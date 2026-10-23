@@ -2,8 +2,14 @@
 # ------------------------------------------------------------------
 # AssetLotse – rebuild and update the container
 #
-#   ./update.sh                       rebuild the current version and restart
-#   ./update.sh assetlotse-X.Y.Z.zip  install a new package, then build and start
+#   ./update.sh                       rebuild the installed version locally and restart
+#   ./update.sh assetlotse-X.Y.Z.zip  install a new package, then build locally and start
+#   ./update.sh --pull                install the newest ready-made image from GitHub (ghcr.io)
+#
+# Ready-made images (built by GitHub Actions, see .github/workflows/docker.yml):
+#   --pull           pull the image instead of building it (also updates update.sh & co.)
+#   --image ADDRESS  other image address (default ghcr.io/soleil0815/assetlotse, saved in .env)
+#   --version X.Y.Z  a specific version instead of the newest (also to go back)
 #
 # Options:
 #   --no-backup   do not make a backup first
@@ -49,11 +55,12 @@ ok()   { printf '%s✔ %s%s\n' "$G" "$*" "$N"; }
 warn() { printf '%s! %s%s\n' "$Y" "$*" "$N"; }
 die()  { printf '%s✘ %s%s\n' "$R" "$*" "$N" >&2; exit 1; }
 
-usage() { sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0; }
+usage() { awk 'NR>2 && /^# ---/{exit} NR>2{sub(/^# ?/,""); print}' "$0"; exit 0; }
 
 # ---------------------------------------------------------------- Arguments
 BACKUP=1; NOCACHE=""; PRUNE=0; YES=0; ZIP=""; CLEANUP=1; CLEANUP_ONLY=0
 AFTER_SWAP=0; HANDED_OLD_VERSION=""; HANDED_ZIP=""
+PULL=0; WANT_IMAGE=""; WANT_VERSION=""; PULLED_REF=""
 ARGS=("$@")
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -63,6 +70,14 @@ while [ "$#" -gt 0 ]; do
         --no-cleanup) CLEANUP=0 ;;
         --cleanup)    CLEANUP_ONLY=1 ;;
         -y|--yes)     YES=1 ;;
+        --pull)       PULL=1 ;;
+        --image)      [ "$#" -ge 2 ] || die "--image needs an address, e.g. --image ghcr.io/owner/repo"
+                      WANT_IMAGE="$2"; shift ;;
+        --version)    [ "$#" -ge 2 ] || die "--version needs a version number, e.g. --version 1.7.0"
+                      WANT_VERSION="$2"; shift ;;
+        # internal: the image the old script pulled (handover after the swap)
+        --pulled)     [ "$#" -ge 2 ] || die "Internal error during handover."
+                      PULL=1; PULLED_REF="$2"; shift ;;
         -h|--help)    usage ;;
         # internal: handover from the old to the new script after the files were swapped
         --continue-after-swap)
@@ -73,7 +88,16 @@ while [ "$#" -gt 0 ]; do
     esac
     shift
 done
-[ "$CLEANUP_ONLY" = 0 ] || [ -z "$ZIP" ] || die "--cleanup only cleans up – please call it without a package."
+[ "$CLEANUP_ONLY" = 0 ] || { [ -z "$ZIP" ] && [ "$PULL" = 0 ]; } || die "--cleanup only cleans up – please call it without a package or --pull."
+[ "$PULL" = 0 ] || [ -z "$ZIP" ] || die "Either a package or --pull, not both."
+[ "$PULL" = 1 ] || [ -z "$WANT_IMAGE$WANT_VERSION" ] || die "--image and --version only work together with --pull."
+if [ -n "$WANT_IMAGE" ]; then
+    WANT_IMAGE="${WANT_IMAGE%/}"; WANT_IMAGE="${WANT_IMAGE%%:*}"
+    [[ "$WANT_IMAGE" =~ ^[a-z0-9]([a-z0-9._-]*[a-z0-9])?(/[a-z0-9]([a-z0-9._-]*[a-z0-9])?)+$ ]] \
+        || die "Invalid image address: $WANT_IMAGE  (lower case, e.g. ghcr.io/owner/repo)"
+fi
+[ -z "$WANT_VERSION" ] || [[ "$WANT_VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Invalid version: $WANT_VERSION  (e.g. 1.7.0)"
+WANT_VERSION="${WANT_VERSION#v}"
 
 # Resolve the package path BEFORE changing into the program folder (also relative paths like ../x.zip)
 if [ -n "$ZIP" ]; then
@@ -122,20 +146,38 @@ version_lt() {   # $1 < $2 (version numbers)?
 }
 env_value() {    # last value of a variable in .env (without quotes/spaces)
     [ -f .env ] || return 0
-    sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" .env 2>/dev/null | tail -n1 \
+    sed -n -E "s/^[[:space:]]*(export[[:space:]]+)?$1[[:space:]]*=[[:space:]]*//p" .env 2>/dev/null | tail -n1 \
         | sed 's/[[:space:]]*#.*$//; s/^["'\'']//; s/["'\'']$//; s/[[:space:]]*$//' || true
 }
+set_env() {      # set KEY=VALUE in .env (replace existing lines, otherwise append)
+    local key="$1" value="$2"
+    [ -f .env ] || ( umask 077; printf '# AssetLotse – your own settings (all options: .env.example)\n' > .env )
+    if grep -Eq "^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*=" .env; then
+        # --follow-symlinks: a symlinked .env stays a symlink
+        sed -i --follow-symlinks -E "s|^[[:space:]]*(export[[:space:]]+)?${key}[[:space:]]*=.*|${key}=${value}|" .env
+    else
+        [ -z "$(tail -c1 .env)" ] || echo >> .env
+        printf '%s=%s\n' "$key" "$value" >> .env
+    fi
+}
+# Which image is running now: built locally (assetlotse) or ready-made (ghcr.io/…)
+OLD_IMAGE="$(env_value ASSETLOTSE_IMAGE)"; OLD_IMAGE="${OLD_IMAGE:-assetlotse}"
+# Where the ready-made images live (GitHub Actions of the AssetLotse repository); --image overrides it
+DEFAULT_REGISTRY_IMAGE="ghcr.io/soleil0815/assetlotse"
+REGISTRY_IMAGE="$(env_value ASSETLOTSE_REGISTRY_IMAGE)"
+REGISTRY_IMAGE="${REGISTRY_IMAGE:-$DEFAULT_REGISTRY_IMAGE}"
+KNOWN_REGISTRY_IMAGE="$REGISTRY_IMAGE"
 OLD_VERSION="$(version_of .)"
 if [ "$AFTER_SWAP" = 1 ]; then
     OLD_VERSION="$HANDED_OLD_VERSION"        # the files have already been swapped
 fi
 if [ -z "$OLD_VERSION" ] && [ "$AFTER_SWAP" = 0 ] && [ "$CLEANUP_ONLY" = 0 ]; then
-    if [ -z "$ZIP" ]; then
+    if [ -z "$ZIP" ] && [ "$PULL" = 0 ]; then
         die "No AssetLotse installation found in $INSTALL_DIR (assetlotse/__init__.py is missing). Install a package with:  ./update.sh assetlotse-X.Y.Z.zip"
     fi
     warn "No complete installation found (assetlotse/__init__.py is missing) – the package will be installed in full."
 fi
-if [ -z "$ZIP" ]; then
+if [ -z "$ZIP" ] && [ "$PULL" = 0 ]; then
     [ -f docker-compose.yml ] || die "docker-compose.yml not found – this script belongs in the AssetLotse folder."
 fi
 
@@ -150,8 +192,10 @@ container_running() {
 KEEP_RE='^(data|instance|packages|pakete|\.env|docker-compose\.override\.yml|\.assetlotse-update\..*)$'
 
 STAGE=""; SWAP_STATE=""; MOVED_OLD=(); PLACED=()
+TMP_CID=""
 cleanup() {
     local rc=$?
+    if [ -n "$TMP_CID" ]; then docker rm -fv "$TMP_CID" >/dev/null 2>&1 || true; fi
     if [ "$SWAP_STATE" = running ]; then
         rollback || true
     fi
@@ -222,7 +266,7 @@ archive_package() {  # put the installed package into the archive ./packages
 }
 
 cleanup_install() {  # after a successful update, or with --cleanup
-    local current="$1" n=0 f v keep_prev="" ref
+    local current="$1" n=0 f v keep_prev="" ref active repo
     step "Cleaning up"
     migrate_pkg_dir
     # 1) leftovers of aborted updates (work folders)
@@ -272,27 +316,41 @@ cleanup_install() {  # after a successful update, or with --cleanup
             fi
         done
     fi
-    # 4) Docker: old AssetLotse images (the previous one is kept as a fallback, all of them with --prune)
-    if [ -z "$keep_prev" ] && [ -n "${OLD_VERSION:-}" ] && [ "$OLD_VERSION" != "$current" ]; then
-        keep_prev="$OLD_VERSION"
-    fi
-    local refs
-    refs="$(docker image ls --format '{{.Repository}}:{{.Tag}}' assetlotse 2>/dev/null | grep -v ':<none>$' || true)"
-    if [ -z "$keep_prev" ]; then
-        # no archive and no known previous version (e.g. --cleanup only): keep the newest older image
-        while read -r ref; do
-            v="${ref#assetlotse:}"
-            [ -n "$ref" ] && version_lt "$v" "$current" || continue
-            if [ -z "$keep_prev" ] || version_lt "$keep_prev" "$v"; then keep_prev="$v"; fi
-        done <<<"$refs"
+    # 4) Docker: old AssetLotse images – locally built (assetlotse) and ready-made (ghcr.io/…), only tags
+    #    that are full version numbers. Kept: the running one and the previous one as a fallback (--prune: only
+    #    the running one).
+    local active_repo keep_ref="" refs="" r best=""
+    active_repo="$(env_value ASSETLOTSE_IMAGE)"; active_repo="${active_repo:-assetlotse}"
+    active="${active_repo}:${current}"
+    for repo in assetlotse "$REGISTRY_IMAGE"; do
+        r="$(docker image ls --format '{{.Repository}}:{{.Tag}}' "$repo" 2>/dev/null || true)"
+        refs+="$(grep -E ':[0-9]+\.[0-9]+\.[0-9]+$' <<<"$r" || true)"$'\n'
+    done
+    if [ -n "${OLD_VERSION:-}" ] && [ "$OLD_VERSION" != "$current" ] \
+            && grep -qxF "${OLD_IMAGE}:${OLD_VERSION}" <<<"$refs"; then
+        keep_ref="${OLD_IMAGE}:${OLD_VERSION}"        # the image that ran before this update
+    else
+        # unknown (e.g. --cleanup only): the newest older image, preferably from the same source
+        for repo in "$active_repo" any; do
+            while read -r ref; do
+                [ -n "$ref" ] || continue
+                [ "$repo" = any ] || [ "${ref%:*}" = "$repo" ] || continue
+                v="${ref##*:}"
+                version_lt "$v" "$current" || continue
+                if [ -z "$best" ] || version_lt "${best##*:}" "$v"; then best="$ref"; fi
+            done <<<"$refs"
+            [ -z "$best" ] || break
+        done
+        keep_ref="$best"
     fi
     while read -r ref; do
         [ -n "$ref" ] || continue
-        v="${ref#assetlotse:}"
-        [ "$v" = "$current" ] && continue
-        if [ "$PRUNE" = 0 ] && [ -n "$keep_prev" ] && [ "$v" = "$keep_prev" ]; then continue; fi
+        [ "$ref" = "$active" ] && continue
+        if [ "$PRUNE" = 0 ] && [ "$ref" = "$keep_ref" ]; then continue; fi
         docker image rm "$ref" >/dev/null 2>&1 && echo "  removed: image $ref" && n=$((n+1)) || true
     done <<<"$refs"
+    # "latest" is only a pointer for pulling – the running version has its own tag
+    docker image rm "${REGISTRY_IMAGE}:latest" >/dev/null 2>&1 || true
     # dangling (untagged) AssetLotse images, e.g. from aborted builds – only ours, nothing else on the server
     docker image prune -f --filter "label=org.opencontainers.image.title=AssetLotse" >/dev/null 2>&1 || true
     if [ "$n" = 0 ]; then ok "Nothing to clean up."; else ok "Cleaned up ($n)."; fi
@@ -305,7 +363,47 @@ if [ "$CLEANUP_ONLY" = 1 ]; then
     exit 0
 fi
 
-# ---------------------------------------------------------------- 1. Check the new package
+# ---------------------------------------------------------------- 1. Check the new package / image
+if [ "$PULL" = 1 ] && [ "$AFTER_SWAP" = 0 ]; then
+    REGISTRY_IMAGE="${WANT_IMAGE:-$REGISTRY_IMAGE}"
+    PULL_TAG="${WANT_VERSION:-latest}"
+    step "Pulling ready-made image: ${REGISTRY_IMAGE}:${PULL_TAG}"
+    docker pull "${REGISTRY_IMAGE}:${PULL_TAG}" \
+        || die "Pull failed – nothing changed. Is the address/version right? For a private repository log in once:  docker login ghcr.io -u <github-user>  (password: a token with read:packages)."
+    NEW_VERSION="$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' "${REGISTRY_IMAGE}:${PULL_TAG}" 2>/dev/null || true)"
+    [[ "$NEW_VERSION" =~ ^[0-9]+(\.[0-9]+)*$ ]] || die "The image has no valid version label – nothing changed."
+    PULLED_REF="${REGISTRY_IMAGE}:${NEW_VERSION}"
+    # Trust: the image's update.sh will run here as root. Check that it was built from the expected
+    # repository and show what was pulled; a new image address always needs an explicit "yes".
+    SOURCE="$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.source"}}' "${REGISTRY_IMAGE}:${PULL_TAG}" 2>/dev/null || true)"
+    DIGEST="$(docker image inspect -f '{{if .RepoDigests}}{{index .RepoDigests 0}}{{end}}' "${REGISTRY_IMAGE}:${PULL_TAG}" 2>/dev/null || true)"
+    if [[ "$REGISTRY_IMAGE" == ghcr.io/* ]]; then
+        EXPECTED_SOURCE="https://github.com/${REGISTRY_IMAGE#ghcr.io/}"
+        [ "${SOURCE,,}" = "${EXPECTED_SOURCE,,}" ] \
+            || die "The image was not built from ${EXPECTED_SOURCE} (source label: ${SOURCE:-none}) – nothing changed."
+    fi
+    echo "Image:   ${REGISTRY_IMAGE}:${PULL_TAG}  →  version ${NEW_VERSION}"
+    [ -z "$SOURCE" ] || echo "Source:  ${SOURCE}"
+    [ -z "$DIGEST" ] || echo "Digest:  ${DIGEST##*@}"
+    if [ "$REGISTRY_IMAGE" != "$KNOWN_REGISTRY_IMAGE" ]; then
+        warn "New image address: ${REGISTRY_IMAGE} (so far: ${KNOWN_REGISTRY_IMAGE}). Its update.sh will run on this server with your rights."
+        YES_SAVED="$YES"; YES=0
+        confirm "Trust this image?" || die "Aborted – nothing changed."
+        YES="$YES_SAVED"
+    fi
+    if [ "$PULL_TAG" != "$NEW_VERSION" ]; then
+        docker tag "${REGISTRY_IMAGE}:${PULL_TAG}" "$PULLED_REF" || die "Could not tag the image – nothing changed."
+    fi
+    # The image carries update.sh, docker-compose.yml & co. – take them out and install them like a package
+    STAGE="$(mktemp -d "$INSTALL_DIR/.assetlotse-update.XXXXXX")" \
+        || die "No write access to $INSTALL_DIR – nothing changed."
+    mkdir "$STAGE/new" "$STAGE/old"
+    TMP_CID="$(docker create "$PULLED_REF")" || { TMP_CID=""; die "Could not read the image – nothing changed."; }
+    docker cp "$TMP_CID:/app/." "$STAGE/new/" >/dev/null 2>&1 \
+        || die "Could not copy the installation files out of the image – nothing changed."
+    docker rm -fv "$TMP_CID" >/dev/null 2>&1 || true     # -v: also the anonymous volume for /data
+    TMP_CID=""
+fi
 if [ -n "$ZIP" ] && [ "$AFTER_SWAP" = 0 ]; then
     step "Checking new package: $ZIP"
     command -v unzip >/dev/null 2>&1 || die "unzip is missing (e.g. sudo apt install unzip)."
@@ -338,6 +436,8 @@ if [ -n "$ZIP" ] && [ "$AFTER_SWAP" = 0 ]; then
     fi
     unzip -q "$PKG" -d "$STAGE/new" || die "Could not unpack the package (disk space?) – nothing changed."
     rm -f -- "$PKG"
+fi
+if { [ -n "$ZIP" ] || [ "$PULL" = 1 ]; } && [ "$AFTER_SWAP" = 0 ]; then
     [ -z "$(find "$STAGE/new" ! -type f ! -type d -print -quit)" ] \
         || die "The package contains special files – nothing changed."
     chmod -R go-w "$STAGE/new"         # never take over permissions from the zip: only the owner may write
@@ -359,6 +459,9 @@ if [ -n "$ZIP" ] && [ "$AFTER_SWAP" = 0 ]; then
     bash -n "$SRC/update.sh" 2>/dev/null || die "The package is damaged (update.sh) – nothing changed."
     NEW_VERSION="$(version_of "$SRC")"
     [ -n "$NEW_VERSION" ] || die "Cannot read the version number in the package – nothing changed."
+    if [ "$PULL" = 1 ] && [ "$NEW_VERSION" != "${PULLED_REF##*:}" ]; then
+        die "The files in the image ($NEW_VERSION) do not match its version label (${PULLED_REF##*:}) – nothing changed."
+    fi
     echo "Installed: ${OLD_VERSION:-none}   Package: ${NEW_VERSION}"
     if [ -z "$OLD_VERSION" ]; then
         :
@@ -387,7 +490,7 @@ if [ "$BACKUP" = 1 ] && [ "$AFTER_SWAP" = 0 ]; then
 fi
 
 # ---------------------------------------------------------------- 3. Swap the files
-if [ -n "$ZIP" ] && [ "$AFTER_SWAP" = 0 ]; then
+if { [ -n "$ZIP" ] || [ "$PULL" = 1 ]; } && [ "$AFTER_SWAP" = 0 ]; then
     step "Installing the files of version ${NEW_VERSION}"
     # Replace the program folder completely (deleted files disappear too);
     # everything personal stays: data, .env, docker-compose.override.yml, instance.
@@ -424,6 +527,7 @@ if [ -n "$ZIP" ] && [ "$AFTER_SWAP" = 0 ]; then
         [ "$PRUNE" = 1 ] && PASS+=(--prune)
         [ "$CLEANUP" = 0 ] && PASS+=(--no-cleanup)
         [ "$YES" = 1 ] && PASS+=(-y)
+        [ "$PULL" = 1 ] && PASS+=(--pulled "$PULLED_REF")
         trap - EXIT
         exec bash ./update.sh "${PASS[@]}" --continue-after-swap "${OLD_VERSION:-}" "$ZIP"
     fi
@@ -438,6 +542,29 @@ if [ ! -f .env ]; then
         || die "Could not create .env."
 fi
 
+# Image source in .env: ready-made from GitHub, or built locally
+if [ "$PULL" = 1 ]; then
+    REGISTRY_IMAGE="${PULLED_REF%:*}"
+    [ "$VERSION" = "${PULLED_REF##*:}" ] || die "Version mismatch: files $VERSION, image $PULLED_REF."
+    set_env ASSETLOTSE_REGISTRY_IMAGE "$REGISTRY_IMAGE"
+    set_env ASSETLOTSE_IMAGE "$REGISTRY_IMAGE"
+    set_env ASSETLOTSE_TAG "$VERSION"
+elif [ -n "$(env_value ASSETLOTSE_IMAGE)$(env_value ASSETLOTSE_TAG)" ]; then
+    # Built locally: never under the GitHub name – Dockhand would replace it with the GitHub image
+    if [ "$OLD_IMAGE" != assetlotse ]; then
+        warn "Switching from the ready-made image ($OLD_IMAGE) to a locally built one. Back to GitHub images with:  ./update.sh --pull"
+    fi
+    set_env ASSETLOTSE_IMAGE assetlotse
+    set_env ASSETLOTSE_TAG "$VERSION"
+fi
+if [ -n "$OLD_VERSION" ] && [ -f "packages/assetlotse-${OLD_VERSION}.zip" ]; then
+    GO_BACK="./update.sh packages/assetlotse-${OLD_VERSION}.zip"
+elif [ "$OLD_IMAGE" != assetlotse ] && [ -n "$OLD_VERSION" ]; then
+    GO_BACK="./update.sh --pull --version ${OLD_VERSION}"
+else
+    GO_BACK="./update.sh packages/assetlotse-OLD.zip"
+fi
+
 # Check the port in .env before building (otherwise the container would not start)
 PORT_CHECK="$(env_value ASSETLOTSE_PORT)"
 if [ -n "$PORT_CHECK" ]; then
@@ -449,17 +576,24 @@ if [ -n "$PORT_CHECK" ]; then
 fi
 
 # ---------------------------------------------------------------- 4. Build
-step "Building image assetlotse:${VERSION}"
 OLD_IMAGE_ID=""
-[ -z "$OLD_VERSION" ] || OLD_IMAGE_ID="$(docker image inspect -f '{{.Id}}' "assetlotse:${OLD_VERSION}" 2>/dev/null || true)"
-# No --pull needed: the base image is pinned by digest in the Dockerfile.
-"${DC[@]}" build $NOCACHE "$SERVICE" || die "Build failed – the running container is unchanged."
-ok "Image built."
+[ -z "$OLD_VERSION" ] || OLD_IMAGE_ID="$(docker image inspect -f '{{.Id}}' "${OLD_IMAGE}:${OLD_VERSION}" 2>/dev/null || true)"
+UP_ARGS=(-d --remove-orphans)
+if [ "$PULL" = 1 ]; then
+    step "Using ready-made image ${PULLED_REF}"
+    ok "Nothing to build."
+    UP_ARGS+=(--no-build)
+else
+    step "Building image assetlotse:${VERSION}"
+    # No --pull needed: the base image is pinned by digest in the Dockerfile.
+    "${DC[@]}" build $NOCACHE "$SERVICE" || die "Build failed – the running container is unchanged."
+    ok "Image built."
+fi
 
 # ---------------------------------------------------------------- 5. Start
 step "Restarting the container"
-"${DC[@]}" up -d --remove-orphans "$SERVICE" \
-    || die "Could not start the container (see the message above). To go back: install the previous package with ./update.sh packages/assetlotse-OLD.zip"
+"${DC[@]}" up "${UP_ARGS[@]}" "$SERVICE" \
+    || die "Could not start the container (see the message above). To go back:  ${GO_BACK}"
 
 printf 'Waiting for start-up '
 STATUS=""
@@ -482,7 +616,7 @@ if [ "$STATUS" = healthy ]; then
 else
     warn "Status: ${STATUS:-unknown}. The last log lines:"
     "${DC[@]}" logs --tail 40 "$SERVICE" || true
-    die "The container did not start healthy. To go back: install the previous package with ./update.sh packages/assetlotse-OLD.zip"
+    die "The container did not start healthy. To go back:  ${GO_BACK}"
 fi
 
 # ---------------------------------------------------------------- 6. Clean up
@@ -492,7 +626,7 @@ fi
 if [ "$CLEANUP" = 1 ]; then
     cleanup_install "$VERSION"
     if [ "$PRUNE" = 0 ] && [ -n "$OLD_IMAGE_ID" ] && [ "$OLD_VERSION" != "$VERSION" ]; then
-        echo "The previous image and package are kept as a fallback (go back with: ./update.sh packages/assetlotse-${OLD_VERSION}.zip)."
+        echo "The previous version is kept as a fallback (go back with:  ${GO_BACK})."
     fi
 fi
 

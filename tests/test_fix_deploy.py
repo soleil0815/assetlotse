@@ -607,7 +607,7 @@ class UpdateCleanupTest(UpdateScriptRunTest):
         self.assertNotIn(" up ", log)
         self.assertFalse((self.inst / ".assetlotse-update.alt1").exists())
         self.assertTrue((self.inst / "packages" / "assetlotse-0.9.0.zip").exists())
-        self.assertIn("image rm assetlotse:0.8.0", log)
+        self.assertNotIn("image rm assetlotse:0.8.0", log)      # jüngstes vorhandenes älteres Image bleibt
         self.assertNotIn("image rm assetlotse:1.0.0", log)      # installierte Version
 
     def test_cleanup_only_without_archive_keeps_previous_image(self):
@@ -633,3 +633,152 @@ class UpdateCleanupTest(UpdateScriptRunTest):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertNotIn("altes Skript", r.stdout)
         self.assertEqual(self.log.read_text().count(" build "), 1)
+
+
+class UpdatePullTest(UpdateScriptRunTest):
+    """./update.sh --pull: fertiges Image von GitHub statt lokal bauen (Fake-docker mit pull/create/cp)."""
+
+    REG = "ghcr.io/soleil0815/assetlotse"
+
+    def setUp(self):
+        super().setUp()
+        t = Path(self.tmp)
+        self.app = t / "app"                                  # Inhalt von /app im Image
+        self._tree(self.app, "2.0.0", extra="AUS-IMAGE")
+        shutil.copy(ROOT / "update.sh", self.app / "update.sh")
+        (self.bin / "docker").write_text(
+            '#!/bin/bash\necho "docker $*" >> "$DOCKER_LOG"\n'
+            'args="$*"; args="${args/compose -p assetlotse-prod /compose }"\n'
+            'case "$args" in\n'
+            '  *com.docker.compose.project*) echo assetlotse-prod;;\n'
+            '  "pull "*) [ -n "$FAKE_PULL_FAIL" ] && exit 1; exit 0;;\n'
+            '  *image.source*) echo "${FAKE_SOURCE-https://github.com/soleil0815/assetlotse}";;\n'
+            '  *RepoDigests*) echo "ghcr.io/x@sha256:abc";;\n'
+            '  "image inspect -f {{index .Config.Labels"*) echo "$FAKE_VERSION";;\n'
+            '  "create "*) echo cid123;;\n'
+            '  "cp cid123:/app/. "*) cp -a "$FAKE_APP/." "$3";;\n'
+            '  "compose ps -q assetlotse") echo abc;;\n'
+            '  *State.Running*) echo true;;\n'
+            '  "image ls"*) if [ "${@: -1}" = assetlotse ]; then printf "assetlotse:1.0.0\\n"; '
+            'else printf "%s:latest\\n%s:2.0.0\\n%s:1.5.0\\n" "${@: -1}" "${@: -1}" "${@: -1}"; fi;;\n'
+            '  inspect*) echo healthy;;\nesac\nexit 0\n')
+
+    def run_pull(self, *args, version="2.0.0", **env):
+        e = dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}", DOCKER_LOG=str(self.log),
+                 FAKE_APP=str(self.app), FAKE_VERSION=version, **env)
+        return subprocess.run(["bash", str(self.inst / "update.sh"), "-y", *args],
+                              env=e, capture_output=True, text=True)
+
+    def env_file(self):
+        return (self.inst / ".env").read_text()
+
+    def test_pull_installs_files_from_image_without_building(self):
+        r = self.run_pull("--pull")                                         # Standardadresse
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("2.0.0", self.version())
+        self.assertTrue((self.inst / "assetlotse" / "AUS-IMAGE").exists())
+        self.assertFalse((self.inst / "assetlotse" / "ALT").exists())
+        log = self.log.read_text()
+        self.assertIn(f"pull {self.REG}:latest", log)
+        self.assertIn(f"tag {self.REG}:latest {self.REG}:2.0.0", log)
+        self.assertNotIn(" build ", log)
+        self.assertIn("up -d --remove-orphans --no-build", log)
+        self.assertLess(log.index("backup"), log.index(" up -d"))           # Sicherung vor dem Neustart
+        env = self.env_file()
+        self.assertIn("X=1", env)                                           # eigene Einträge bleiben
+        for line in (f"ASSETLOTSE_REGISTRY_IMAGE={self.REG}", f"ASSETLOTSE_IMAGE={self.REG}",
+                     "ASSETLOTSE_TAG=2.0.0"):
+            self.assertIn(line, env)
+        self.assertIn(f"image rm {self.REG}:1.5.0", log)                   # ältere GitHub-Images weg …
+        self.assertNotIn("image rm assetlotse:1.0.0", log)                 # … das vorige (lokale) bleibt
+        self.assertNotIn(f"image rm {self.REG}:2.0.0", log)
+        self.assertIn("Digest:  sha256:abc", r.stdout)
+        self.assertNotIn("create cid", log)
+        self.assertIn("rm -fv cid123", log)                                 # auch das anonyme Volume
+        # zweites Mal: bestimmte Version, Einträge in der .env werden ersetzt, nicht doppelt
+        r = self.run_pull("--pull", "--version", "v2.0.0")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn(f"pull {self.REG}:2.0.0", self.log.read_text())
+        self.assertEqual(self.env_file().count("ASSETLOTSE_TAG="), 1)
+
+    def test_other_image_address_needs_explicit_yes_and_matching_source(self):
+        # neue Adresse: auch mit -y nie ohne Rückfrage (ohne Terminal → Abbruch)
+        r = self.run_pull("--pull", "--image", "ghcr.io/jemand/fork",
+                          FAKE_SOURCE="https://github.com/jemand/fork")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("New image address", r.stdout + r.stderr)
+        self.assertIn("1.0.0", self.version())
+        # Image aus einem fremden Repository unter der bekannten Adresse
+        r = self.run_pull("--pull", FAKE_SOURCE="https://github.com/boese/anderes")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("was not built from https://github.com/soleil0815/assetlotse", r.stderr)
+        self.assertIn("1.0.0", self.version())
+        self.assertNotIn("create ", self.log.read_text())
+
+    def test_cleanup_only_in_pull_mode_keeps_previous_registry_image(self):
+        self.assertEqual(self.run_pull("--pull").returncode, 0)
+        self.log.write_text("")
+        r = self.run_pull("--cleanup")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        log = self.log.read_text()
+        self.assertNotIn(f"image rm {self.REG}:1.5.0", log)                # jüngeres älteres GitHub-Image bleibt
+        self.assertIn("image rm assetlotse:1.0.0", log)
+        self.assertNotIn(f"image rm {self.REG}:2.0.0", log)
+
+    def test_zip_after_pull_switches_back_to_local_image(self):
+        self.assertEqual(self.run_pull("--pull").returncode, 0)
+        r = self.run_pull(str(self.zip))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("locally built", r.stdout + r.stderr)
+        env = self.env_file()
+        self.assertIn("ASSETLOTSE_IMAGE=assetlotse", env)
+        self.assertIn(f"ASSETLOTSE_REGISTRY_IMAGE={self.REG}", env)       # Adresse bleibt für das nächste --pull
+        self.assertIn(" build ", self.log.read_text())
+
+    def test_pull_failures_change_nothing(self):
+        cases = [
+            (("--pull",), {"FAKE_PULL_FAIL": "1"}, "docker login ghcr.io"),
+            (("--pull", "--image", "GHCR.io/Gross"), {}, "Invalid image address"),
+            (("--pull", str(self.zip)), {}, "not both"),
+            (("--version", "2.0.0"), {}, "only work together with --pull"),
+            (("--pull", "--version", "neu"), {}, "Invalid version"),
+            (("--pull", "--version", "1.7"), {}, "Invalid version"),
+        ]
+        for args, env, msg in cases:
+            with self.subTest(args=args):
+                r = self.run_pull(*args, **env)
+                self.assertNotEqual(r.returncode, 0)
+                self.assertIn(msg, r.stdout + r.stderr)
+                self.assertIn("1.0.0", self.version())
+
+    def test_image_without_install_files_or_wrong_label(self):
+        (self.app / "update.sh").unlink()
+        r = self.run_pull("--pull")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("incomplete", r.stderr)
+        shutil.copy(ROOT / "update.sh", self.app / "update.sh")
+        r = self.run_pull("--pull", version="2.1.0")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("do not match", r.stderr)
+        self.assertIn("1.0.0", self.version())
+        self.assertEqual(list(self.inst.glob(".assetlotse-update.*")), [])
+
+
+# die geerbten Tests des lokalen Weges nicht noch einmal mit dem Pull-Fake-docker laufen lassen
+for _name in [n for n in dir(UpdateScriptRunTest) if n.startswith("test_")]:
+    setattr(UpdatePullTest, _name, None)
+
+
+class ReleaseFilesTest(unittest.TestCase):
+    def test_versions_and_workflow_agree(self):
+        import re
+        version = re.search(r'__version__ = "(.*?)"', (ROOT / "assetlotse" / "__init__.py").read_text()).group(1)
+        self.assertIn(f'image.version="{version}"', (ROOT / "Dockerfile").read_text())
+        self.assertIn(f"${{ASSETLOTSE_TAG:-{version}}}", (ROOT / "docker-compose.yml").read_text())
+        wf = (ROOT / ".github" / "workflows" / "docker.yml").read_text()
+        self.assertIn("ghcr.io", wf)
+        self.assertIn('tags: ["v*"]', wf)
+        install_layer = (ROOT / "Dockerfile").read_text().split("COPY docker-compose.yml")[1].split("\n\n")[0]
+        for f in ("update.sh", "Dockerfile", "docker-entrypoint.sh", "requirements.txt"):
+            self.assertIn(f, install_layer)
+        self.assertNotIn("update.sh", (ROOT / ".dockerignore").read_text().split())

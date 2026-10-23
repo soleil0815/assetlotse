@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.6.3** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 1.7.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -65,11 +65,42 @@ The package may live elsewhere (`./update.sh ~/Downloads/assetlotse-X.Y.Z.zip`) 
 
 **Cleanup:** after a successful update the script tidies up by itself. The installed zip goes into the archive `./packages`, which keeps the **current and the previous package** for going back; older ones are deleted (a package from elsewhere, e.g. `~/Downloads`, is only copied). Loose `assetlotse-*.zip` files in the program folder move into the archive; leftovers of aborted updates (`.assetlotse-update.*`) and **older AssetLotse images** are removed, while the image of the previous version is kept as a fallback. Other Docker images and data on the server are never touched. After the files are swapped, the **new** `update.sh` always takes over building, starting and cleaning up – so improvements to the script already apply to the update itself.
 
-Options: `--no-backup`, `--no-cache` (build without Docker cache), `--prune` (also delete the previous image), `--no-cleanup` (do not clean up), `--cleanup` (clean up only, build nothing), `-y` (no questions), `--help`. Without a terminal (cron, `ssh` without `-t`) the script aborts at every question – use `-y` there.
+Options: `--no-backup`, `--no-cache` (build without Docker cache), `--prune` (also delete the previous image), `--no-cleanup` (do not clean up), `--cleanup` (clean up only, build nothing), `--pull` / `--version` / `--image` (ready-made image from GitHub, see below), `-y` (no questions), `--help`. Without a terminal (cron, `ssh` without `-t`) the script aborts at every question – use `-y` there.
 
 **Going back to the previous version** if something is wrong after an update: install the previous package from the archive again: `./update.sh packages/assetlotse-OLD.zip` (the script warns about the older version). If the new version has already changed data, also restore the backup taken before the update (see [Backups](#backups) → restoring; it is the newest manual backup).
 
 Requires Docker Compose – the `docker compose` plugin or the older standalone `docker-compose`, any version – and `unzip`; run as root or as a member of the `docker` group. With older Compose, simply write `docker-compose` instead of `docker compose` in all commands of this guide.
+
+### Ready-made images from GitHub (`--pull`)
+
+Instead of building on the server, GitHub can build the image: the workflow `.github/workflows/docker.yml` builds it for every version tag and publishes it as **`ghcr.io/soleil0815/assetlotse`** (tags `1.7.0`, `1.7` and `latest`). The server only downloads it – an update takes seconds.
+
+**Publishing a new version** (on your computer, in the repository folder): unpack the zip over the files, then
+```bash
+git add -A
+git commit -m "AssetLotse 1.7.0"
+git tag v1.7.0                  # must match the version in assetlotse/__init__.py
+git push --follow-tags
+```
+The run shows up under *Actions* (a few minutes), then the image appears under *Packages*. If the tag does not match the version, the run stops with a message. To try it without a tag: *Actions → Docker image → Run workflow* (image tag `test-<commit>`, the version tags stay untouched).
+
+**Once on the server** (private repository): create a token on GitHub (*Settings → Developer settings → Personal access tokens*) with the `read:packages` permission, then
+```bash
+docker login ghcr.io -u soleil0815        # password = the token
+```
+
+**Updating the server:**
+```bash
+./update.sh --pull                  # newest version
+./update.sh --pull --version 1.7.0  # a specific version, also to go back
+```
+The script backs up the database, pulls the image, takes `update.sh`, `docker-compose.yml` & co. out of the image (so the installation files stay current), restarts and removes old images. Which image runs is recorded in `.env` (`ASSETLOTSE_IMAGE`, `ASSETLOTSE_TAG` – managed by `update.sh`). Another repository (e.g. a fork): `--image ghcr.io/NAME/REPO`.
+
+**Both ways keep working:** `./update.sh assetlotse-X.Y.Z.zip` builds locally as before – the image is then called `assetlotse:X.Y.Z`, never like the GitHub image, so Dockhand does not replace it. The next `--pull` switches back to GitHub.
+
+**Dockhand** does not update AssetLotse by itself (`dockhand.update=false`): the image is pinned to an exact version, and only `update.sh` backs up the database first and keeps `update.sh`/`docker-compose.yml` in step with the image. Dockhand can still show and monitor the container.
+
+**Trust:** with `--pull` the script takes `update.sh` out of the image and runs it with your rights. It therefore checks that the image was built from the matching GitHub repository (label `org.opencontainers.image.source`), shows version and digest, and always asks for an explicit "yes" for a new image address – even with `-y`. Anyone with write access to the repository can influence what runs on the server, so grant repository access accordingly. `latest` always points to the highest released version; a fix for an older line (e.g. `v1.6.4` after `v1.7.0`) does not change `latest`.
 
 ### Reproducible build
 

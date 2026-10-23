@@ -1,11 +1,15 @@
 instance
 data
 .venv
-__pycache__
+**/__pycache__
+**/*.pyc
 tests
 *.zip
 .env
-update.sh
 .assetlotse-update.*
 pakete
 packages
+.github
+.git
+.gitignore
+*.zip.sha256

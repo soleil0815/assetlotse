@@ -2,6 +2,31 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.7.0 – 2026-10-23
+
+**Neu: fertige Images von GitHub**
+- **GitHub Actions** (`.github/workflows/docker.yml`): Ein Versions-Tag wie `v1.7.0` baut das Image und legt es unter
+  `ghcr.io/soleil0815/assetlotse` ab (Tags `1.7.0`, `1.7`, `latest`). Der Lauf bricht ab, wenn Tag und Version in
+  `assetlotse/__init__.py` nicht zusammenpassen. Von Hand gestartet entsteht nur ein Test-Image `test-<commit>`.
+- **`./update.sh --pull`** lädt das Image statt zu bauen: Sicherung → Image laden → `update.sh`, `docker-compose.yml`
+  & Co. aus dem Image übernehmen → Neustart → alte Images aufräumen. `--version X.Y.Z` für eine bestimmte Version
+  (auch zum Zurückgehen), `--image` für eine andere Adresse. Einmalig auf dem Server: `docker login ghcr.io`.
+- **Beide Wege bleiben:** Ein Zip wird weiter lokal gebaut, dann als `assetlotse:X.Y.Z` – nie unter dem
+  GitHub-Namen, damit Dockhand es nicht ersetzt. Welches Image läuft, verwaltet `update.sh` in der `.env`
+  (`ASSETLOTSE_IMAGE`, `ASSETLOTSE_TAG`, `ASSETLOTSE_REGISTRY_IMAGE`). Aufräumen behält immer das laufende und das
+  zuvor laufende Image, egal ob lokal gebaut oder von GitHub.
+- **Dockhand:** weiterhin kein automatisches Update (`dockhand.update=false`), weil nur `update.sh` vorher sichert.
+- **Vertrauen:** `--pull` prüft, dass das Image aus dem passenden GitHub-Repository gebaut wurde, zeigt Version und
+  Digest und verlangt bei einer neuen Image-Adresse immer ein „ja“ (auch mit `-y`). Die GitHub-Actions sind auf
+  feste Commits festgelegt. `latest` bekommt nur die höchste Version – ein Nachtrag für eine ältere Reihe
+  verschiebt es nicht.
+- Das Image enthält jetzt auch die Installationsdateien (`/app/update.sh` usw.). `.gitignore` ergänzt (Pakete,
+  Archiv), das Zip enthält keine `.env` mehr (`update.sh` legt sie bei Bedarf an).
+
+**Erster Umstieg:** Dieses Zip wie gewohnt mit `./update.sh assetlotse-1.7.0.zip` einspielen (das alte Skript kennt
+`--pull` noch nicht). Danach den Code mit Tag `v1.7.0` zu GitHub schicken, auf dem Server einmal
+`docker login ghcr.io -u soleil0815` und `./update.sh --pull`.
+
 ## 1.6.3 – 2026-10-23
 
 **Geändert**

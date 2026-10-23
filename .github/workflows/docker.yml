@@ -1,23 +1,76 @@
-name: Docker
+# Builds the AssetLotse image on GitHub and publishes it to ghcr.io/<owner>/<repo>.
+#
+# Release: push a version tag that matches assetlotse/__init__.py, e.g.
+#   git tag v1.7.0 && git push origin v1.7.0
+#   → tags 1.7.0 and 1.7; "latest" only if it is the highest version released so far.
+# Test: Actions → Docker image → Run workflow → tag "test-<commit>" (release tags stay untouched).
+#
+# On the server:  ./update.sh --pull   (see README, "Ready-made images from GitHub")
+# Actions are pinned to commit SHAs (the comment shows the version) – update them deliberately.
+name: Docker image
+
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+
 permissions:
   contents: read
   packages: write
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
-      - uses: docker/metadata-action@v5
-        id: meta
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=raw,value=latest
-      - uses: docker/build-push-action@v6
-        with: { push: true, tags: "${{ steps.meta.outputs.tags }}", labels: "${{ steps.meta.outputs.labels }}" }
+          fetch-depth: 0          # all tags, to decide whether this release becomes "latest"
+
+      - name: Version and tags
+        id: meta
+        run: |
+          version="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' assetlotse/__init__.py)"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::No valid __version__ in assetlotse/__init__.py"; exit 1; }
+          grep -q "org.opencontainers.image.version=\"${version}\"" Dockerfile \
+            || { echo "::error::Dockerfile LABEL org.opencontainers.image.version is not ${version}"; exit 1; }
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          if [ "${{ github.event_name }}" = "push" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            [ "${GITHUB_REF_NAME}" = "v${version}" ] \
+              || { echo "::error::Tag ${GITHUB_REF_NAME} does not match version ${version} (expected v${version})"; exit 1; }
+            tags="${image}:${version},${image}:${version%.*}"
+            highest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//' | sort -V | tail -n1)"
+            if [ "$highest" = "$version" ]; then
+              tags="${tags},${image}:latest"
+            else
+              echo "::notice::v${version} is not the highest release (${highest}) – \"latest\" stays unchanged."
+            fi
+          else
+            tags="${image}:test-${GITHUB_SHA::7}"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+          { echo "### AssetLotse ${version}"; echo "Tags: \`${tags//,/\`, \`}\`"; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -5,7 +5,7 @@ ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3d
 FROM ${PYTHON_IMAGE}
 
 LABEL org.opencontainers.image.title="AssetLotse" \
-      org.opencontainers.image.version="1.6.3" \
+      org.opencontainers.image.version="1.7.0" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -36,6 +36,10 @@ COPY wsgi.py gunicorn.conf.py LICENSE ./
 COPY docs ./docs
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod 755 /usr/local/bin/docker-entrypoint.sh && mkdir -p /data
+# Installation files: "./update.sh --pull" takes them out of the image, so a server that pulls
+# ready-made images keeps its update.sh, docker-compose.yml etc. up to date (last layer: small).
+COPY docker-compose.yml Dockerfile docker-entrypoint.sh update.sh requirements.txt requirements.in \
+     .env.example .dockerignore README.md README.en.md CHANGELOG.md ./
 
 # The container starts as root, fixes the permissions of /data and
 # then switches to PUID:PGID in the entrypoint (no root while running).
