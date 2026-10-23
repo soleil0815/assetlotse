@@ -1,0 +1,19 @@
+{% if not f.backup_supported %}
+<p><b>Diese Installation nutzt keine SQLite-Datenbank</b> – die eingebaute Datensicherung ist deshalb nicht verfügbar. Sichert die Datenbank mit den Werkzeugen des Datenbankservers (z. B. <code>mysqldump</code> oder <code>pg_dump</code>) und zusätzlich den Ordner <code>./data</code> – vor allem die Datei <code>secret_key</code>.</p>
+{% else %}
+<p>Unter <span class="ui">Administration → Datensicherung</span> wird die Datenbank <code>assetlotse.db</code> {% if f.backup_enabled %}<b>jeden Tag automatisch</b> ab {{ "%02d"|format(f.backup_hour) }}:00 Uhr gesichert{% else %}derzeit <b>nicht automatisch</b> gesichert – schalte <span class="ui">Täglich automatisch sichern</span> ein{% endif %}. Das läuft im laufenden Betrieb, jede Sicherung wird auf Beschädigung geprüft. Aufbewahrt werden {{ "die neueste" if f.backup_keep == 1 else "die neuesten" }} <b>{{ f.backup_keep }}</b> (einstellbar 1–100), ältere werden gelöscht.</p>
+{% endif %}
+<ul>
+  <li><span class="ui">Jetzt sichern</span> legt sofort eine Sicherung an – sinnvoll vor größeren Änderungen oder einem Update.</li>
+  <li>Jede Sicherung (<code>assetlotse-….db</code>) lässt sich <b>herunterladen</b> oder löschen. Ablage: <code>./data/backups</code> oder der Ordner aus <code>ASSETLOTSE_BACKUP_DIR</code> (z. B. ein NAS).</li>
+  <li>Schlägt eine Sicherung fehl, erscheint ein Warnzeichen am Menüpunkt und Administratoren bekommen eine E-Mail{% if not f.mail_on %} (sobald der E-Mail-Versand aktiv ist){% endif %}.</li>
+  <li>Gesichert wird die Datenbank. Fotos (<code>./data/images</code>), Logo und <code>secret_key</code> liegen als Dateien in <code>./data</code> – für einen Umzug den ganzen Ordner mitnehmen.</li>
+</ul>
+<p><b>Datenbank und <code>secret_key</code> gehören zusammen:</b> Spiel eine Datenbank immer zusammen mit ihrer <code>secret_key</code> zurück. Ohne den passenden Schlüssel funktionieren 2FA-Anmeldungen nicht, gespeicherte SMTP-/AD-Passwörter und die <b>vertraulichen Angaben</b> der Gegenstände (z. B. BitLocker-Schlüssel) sind unlesbar, und AssetLotse startet nicht.</p>
+<p><b>Wichtig:</b> Die Sicherungen liegen auf demselben Server und schützen nicht vor einem Festplattenausfall. Kopiert den Ordner regelmäßig an einen anderen Ort – die <code>secret_key</code> dabei getrennt geschützt aufbewahren.</p>
+<p><b>Wiederherstellen</b> (auf dem Server; der aktuelle Stand wird vorher automatisch gesichert):</p>
+<pre><code>docker compose stop assetlotse
+docker compose run --rm assetlotse flask --app wsgi list-backups
+docker compose run --rm assetlotse flask --app wsgi restore-backup DATEINAME.db
+docker compose start assetlotse</code></pre>
+<p>Alles, was nach der Sicherung passiert ist, geht dabei verloren.</p>

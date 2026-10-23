@@ -1,0 +1,22 @@
+<p>Unter <span class="ui">Bestand</span> findest du alle Gegenstände, die du sehen darfst. Schon beim Tippen ins Suchfeld oben erscheinen passende Gegenstände – ein Klick (oder <span class="kbd">↓</span> und <span class="kbd">Enter</span>) öffnet das Gerät, <span class="ui">Alle Treffer anzeigen</span> bzw. <span class="kbd">Enter</span> die ganze Liste. Das Suchfeld durchsucht Bezeichnung, Kategorie, Hersteller, Modell, Seriennummer, Inventarnummer, Standort und Beschreibung – eine Inventarnummer kannst du auch mit dem Barcodescanner vom Etikett hineinscannen.</p>
+<ul>
+  <li><b>Filtern</b> nach Kategorie, Gruppe, Standort und Status (<span class="ui">Verfügbar</span> / <span class="ui">Ausgegeben</span>).</li>
+  <li><b>Sortieren</b> nach Bezeichnung, Kategorie, Inventarnummer oder zuletzt angelegt.</li>
+  <li><b>Ansicht:</b> Rechts schaltest du zwischen <span class="ui">Kacheln</span> mit Foto und kompakter <span class="ui">Liste</span> um. Dein Browser merkt sich die Wahl.</li>
+  <li>Ein Klick auf Foto oder Bezeichnung öffnet die <b>Detailseite</b> mit Standort, Inventar- und Seriennummer, Zubehör und der Zahl verfügbarer Stücke.</li>
+  <li>Bei gleichartigen Dingen ohne Nummer (z. B. HDMI-Kabel) steht dort, wie viele von wie vielen Stück gerade frei sind.</li>
+</ul>
+{% if current_user.is_global_manager %}
+<p><b>Was du siehst:</b> Du verwaltest den gesamten Bestand und siehst daher alle Gegenstände.</p>
+{% elif f.catalog_own and not current_user.is_manager %}
+<p><b>Was du siehst:</b> Nur die Gegenstände, die dir gerade ausgegeben sind.</p>
+{% elif f.catalog_own %}
+<p><b>Was du siehst:</b> Die allgemeinen Gegenstände und die Gegenstände deiner Gruppen. Mitarbeiter sehen derzeit keinen Bestand, nur ihre eigenen Gegenstände (<span class="ui">Einstellungen → Sichtbarkeit des Bestands</span>).</p>
+{% elif f.catalog_all %}
+<p><b>Was du siehst:</b> Den ganzen Bestand. Bekommen kannst du aber nur allgemeine Gegenstände und Gegenstände deiner Gruppen – bei allen anderen zeigt die Detailseite einen Hinweis mit Schloss.</p>
+{% else %}
+<p><b>Was du siehst:</b> Die allgemeinen Gegenstände und die Gegenstände deiner Gruppen{% if current_user.groups %} ({{ current_user.groups|map(attribute="name")|join(", ") }}){% endif %}. Gegenstände anderer Gruppen erscheinen nicht im Bestand.</p>
+{% endif %}
+{% if current_user.is_manager %}
+<p><b>Für Verwalter:</b> Oben im Bestand findest du <span class="ui">CSV</span> und <span class="ui">Gegenstand anlegen</span>.</p>
+{% endif %}

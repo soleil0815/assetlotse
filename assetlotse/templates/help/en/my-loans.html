@@ -1,0 +1,17 @@
+<p><span class="ui">My items</span> lists everything currently issued to you, with the issue date and – if agreed – the return date. The <span class="ui">Overdue</span> and <span class="ui">History</span> tabs show only overdue or already returned items. Where there is a return date, the colour shows the status: green = time left, yellow = due soon, red = overdue. Items issued <b>open-ended</b> are never overdue.</p>
+<p><b>Forgot a key?</b> If the managers have allowed it for a device (e.g. an encrypted drive), its item page has a password field under <span class="ui">Confidential details</span>. After entering your password you see e.g. the BitLocker recovery key – only while the device is issued to you. Every view is logged.</p>
+{% if f.self_extend %}
+<p><b>Extending:</b> if an item has a return date, <span class="ui">Extend</span> moves it back by {{ f.extension_days }} {{ "day" if f.extension_days == 1 else "days" }} – at most {{ f.max_extensions }} {{ "time" if f.max_extensions == 1 else "times" }} per loan. It counts from the later date: today or the current return date. Once the limit is reached the button disappears; then only the managers can extend. Open-ended loans do not need extending.</p>
+{% else %}
+<p><b>Extending</b> is done by the managers only. If you need an item for longer, let them know before the return date. Open-ended loans do not need extending.</p>
+{% endif %}
+<p><b>Returning:</b> {% if f.self_return %}<span class="ui">Return</span> records the return yourself – then put the item and its accessories back at its location.{% else %}Bring the item to the managers or the issue desk; there is no return button for you.{% endif %}</p>
+{% if f.mail_on and (f.reminder_on or f.overdue_on) %}
+<p><b>Emails</b> (only for items with a return date):
+{% if f.reminder_on %}Shortly before (up to {{ f.reminder_days }} {{ "day" if f.reminder_days == 1 else "days" }}) you get a reminder.{% endif %}
+{% if f.overdue_on %}If an item is overdue, an overdue notice follows.{% endif %}
+Several items are combined in one email. You can turn this off under <span class="ui">My profile</span>.</p>
+{% endif %}
+{% if current_user.is_manager %}
+<p><b>For managers:</b> <span class="ui">My items</span> only shows your own. Everything issued to staff members is under <span class="ui">Management → All loans</span>.</p>
+{% endif %}

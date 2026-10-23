@@ -1,0 +1,17 @@
+{% if f.self_checkout and not catalog_hidden() %}
+<p><b>How to take an item yourself:</b></p>
+<ol>
+  <li>Open the item in the <span class="ui">Inventory</span> by clicking its photo or name.</li>
+  <li>Click <span class="ui">Borrow for myself</span>. {% if f.loan_days %}You need to return it after {{ f.loan_days }} {{ "day" if f.loan_days == 1 else "days" }}.{% else %}The item is issued <b>open-ended</b> – you keep it until you return it.{% endif %}</li>
+  <li>Pick the item up at the <b>location</b> shown.{% if f.mail_on and f.loan_mail %} You will get a confirmation by email.{% endif %}</li>
+</ol>
+<p><b>No button?</b> Then everything is issued, the item belongs to a group you are not in, or you already have it.{% if f.max_loans %} Also, you can have at most {{ f.max_loans }} {{ "item" if f.max_loans == 1 else "items" }} at a time.{% endif %} The item page tells you why.</p>
+{% else %}
+<p>Items are <b>issued by the managers</b>: {% if catalog_hidden() %}tell the people in charge (e.g. IT) or the issue desk what you need. They issue the item and record it under your name – it then appears under <span class="ui">My items</span>.{% else %}look up what you need in the <span class="ui">Inventory</span> and contact the people in charge (e.g. IT). They issue the item and record it under your name – the item page points this out as well.{% endif %} {% if f.loan_days %}Items normally have to be returned after {{ f.loan_days }} {{ "day" if f.loan_days == 1 else "days" }}{% else %}Items are normally issued <b>open-ended</b> – you keep the item until you return it{% endif %}; in individual cases the manager sets a specific return date.{% if f.max_loans %} You can have at most {{ f.max_loans }} {{ "item" if f.max_loans == 1 else "items" }} at a time.{% endif %}</p>
+{% endif %}
+<p><b>Returning:</b>
+{% if f.self_return %}Under <span class="ui">My items</span> (or on the item page) click <span class="ui">Return</span> and put the item and its accessories back at its location.
+{% else %}Bring the item and its accessories to the managers or the issue desk, where the return is recorded. Only then does it disappear from your items.{% endif %}</p>
+{% if current_user.is_manager %}
+<p><b>For managers:</b> on the item page, <span class="ui">Issue to …</span> issues the item to someone – including yourself (“me”). Only people allowed to receive the item are listed. Set a <span class="ui">Return by</span> date or tick <span class="ui">open-ended</span>{% if not f.loan_days %} (preselected){% endif %}; a note (e.g. accessories handed out) is optional. For many items in a row, the <span class="ui">Issue desk</span> is quicker.</p>
+{% endif %}

@@ -1,0 +1,9 @@
+{% extends "mail/_layout.html" %}{% from "mail/_asset.html" import asset_row with context %}
+{% block content %}
+<p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
+<p style="margin:0 0 6px;">{{ _("dir wurde folgender Gegenstand ausgegeben:") }}</p>
+{{ asset_row(loan) }}
+{% if loan.note %}<p style="margin:10px 0;color:#6b7785;font-size:14px;">{{ _("Notiz: {note}", note=loan.note) }}</p>{% endif %}
+<p style="margin:14px 0;">{{ _("Bitte geh sorgsam damit um.") }}</p>
+{% if base_url %}<p style="margin:18px 0 10px;"><a href="{{ base_url }}/ausleihen" style="background:{{ mail_accent }};color:{{ mail_accent_ink }};padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600;display:inline-block;">{{ _("Meine Gegenstände") }}</a></p>{% endif %}
+{% endblock %}

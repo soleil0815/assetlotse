@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, thumb, avail_badge, due_badge %}
+{% block title %}{{ _("Übersicht") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="eyebrow">{{ today|de_day }}</div>
+    <h1>{{ _("Übersicht") if stats else _("Hallo, {name}.", name=current_user.name.split(" ")[0]) }}</h1>
+    <p>{% if my_loans %}{{ _n("Dir ist {n} Gegenstand ausgegeben.", "Dir sind {n} Gegenstände ausgegeben.", my_loans|length) }}{% else %}{{ _("Dir ist gerade nichts ausgegeben.") }}{% endif %}</p>
+  </div>
+  {% if current_user.is_manager %}
+  <div class="actions">
+    <a class="btn" href="{{ url_for('loans.desk') }}">{{ icon("desk") }} {{ _("Ausgabetheke") }}</a>
+    <a class="btn primary" href="{{ url_for('assets.create') }}">{{ icon("plus") }} {{ _("Gegenstand anlegen") }}</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if pending_registrations %}
+<a class="notice warn" href="{{ url_for('admin.users', status='neu') }}" style="margin-bottom: 18px; color: inherit; text-decoration: none">
+  {{ icon("user") }}<div>{{ _n("<b>{n} neue Registrierung</b> wartet auf Freigabe. Jetzt prüfen →", "<b>{n} neue Registrierungen</b> warten auf Freigabe. Jetzt prüfen →", pending_registrations) }}</div></a>
+{% endif %}
+
+{% if stats %}
+<div class="stats">
+  <a class="card stat accent" href="{{ url_for('assets.index') }}">
+    <div class="label">{{ icon("assets") }} {{ _("Bestand") }}</div>
+    <div class="value">{{ stats.pieces }}</div>
+    <div class="sub">{{ _n("Stück in {n} Eintrag", "Stück in {n} Einträgen", stats.entries) }}</div></a>
+  <a class="card stat ok" href="{{ url_for('assets.index', status='verfuegbar') }}">
+    <div class="label">{{ icon("check") }} {{ _("Verfügbar") }}</div>
+    <div class="value">{{ stats.available }}</div>
+    <div class="sub">{{ _("Stück im Lager") }}</div></a>
+  <a class="card stat" href="{{ url_for('loans.index') }}">
+    <div class="label">{{ icon("loan") }} {{ _("Ausgegeben") }}</div>
+    <div class="value">{{ stats.active }}</div>
+    <div class="sub">{{ _("{pct} % ausgelastet", pct=stats.usage) }}</div></a>
+  <a class="card stat {{ 'alert' if stats.overdue }}" href="{{ url_for('loans.index', ansicht='ueberfaellig') }}">
+    <div class="label">{{ icon("alert") }} {{ _("Überfällig") }}</div>
+    <div class="value">{{ stats.overdue }}</div>
+    <div class="sub">{{ _("{n} in den nächsten 7 Tagen fällig", n=stats.due_soon) }}</div></a>
+  <div class="card stat">
+    <div class="label">{{ icon("key") }} {{ _("Vertraulich") }}</div>
+    <div class="value">{{ stats.secrets }}</div>
+    <div class="sub">{{ _("mit hinterlegtem Schlüssel") }}</div></div>
+</div>
+
+<div class="split">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h2>{{ _("Bestand nach Kategorie") }}</h2>
+        <a href="{{ url_for('assets.index') }}" class="btn ghost sm">{{ _("Bestand öffnen") }}</a></div>
+      {% if categories %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>{{ _("Kategorie") }}</th><th class="num">{{ _("Einträge") }}</th><th class="num">{{ _("Stück") }}</th>
+          <th class="num">{{ _("Ausgegeben") }}</th><th class="num">{{ _("Verfügbar") }}</th><th style="width: 28%">{{ _("Auslastung") }}</th></tr></thead>
+        <tbody>
+        {% for c in categories %}
+          <tr>
+            <td>{% if c.name %}<a href="{{ url_for('assets.index', kategorie=c.name) }}">{{ c.name }}</a>{% else %}<span class="muted">{{ _("ohne Kategorie") }}</span>{% endif %}</td>
+            <td class="num">{{ c.entries }}</td><td class="num">{{ c.pieces }}</td>
+            <td class="num">{{ c.issued }}</td><td class="num">{{ c.free }}</td>
+            <td><div class="meter" title="{{ c.pct }} %"><span style="width: {{ [c.pct, 100]|min }}%"></span></div></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <div class="empty">{{ icon("assets") }}<div>{{ _("Noch keine Gegenstände angelegt.") }}</div>
+        <a href="{{ url_for('assets.create') }}">{{ _("Ersten Gegenstand anlegen →") }}</a></div>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>{{ _("Letzte Bewegungen") }}</h2>
+        <a href="{{ url_for('loans.index', ansicht='verlauf') }}" class="btn ghost sm">{{ _("Verlauf") }}</a></div>
+      {% if recent_loans %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>{{ _("Gegenstand") }}</th><th>{{ _("Person") }}</th><th>{{ _("Ausgegeben") }}</th><th>{{ _("Status") }}</th></tr></thead>
+        <tbody>
+        {% for loan in recent_loans %}
+          <tr>
+            <td><a href="{{ url_for('assets.detail', asset_id=loan.asset.id) }}" style="color: inherit"><b>{{ loan.asset.name }}</b></a>
+              {% if loan.asset.inventory_no %}<small class="mono"> {{ loan.asset.inventory_no }}</small>{% endif %}</td>
+            <td>{{ loan.user.name }}</td>
+            <td class="nowrap">{{ loan.loaned_at|de_day }}</td>
+            <td>{{ due_badge(loan) }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <div class="empty" style="padding: 26px">{{ _("Noch nichts ausgegeben.") }}</div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h2>{{ _("Überfällig") }}</h2>
+        <a href="{{ url_for('loans.index', ansicht='ueberfaellig') }}" class="btn ghost sm">{{ _("Alle") }}</a></div>
+      {% for loan in overdue %}
+      <div class="list-row">
+        <div class="grow"><b>{{ loan.asset.name }}</b><small>{{ loan.user.name }}</small></div>
+        {{ due_badge(loan) }}
+      </div>
+      {% else %}
+      <div class="empty" style="padding: 22px">{{ icon("check") }}<div>{{ _("Nichts überfällig.") }}</div></div>
+      {% endfor %}
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>{{ _("Bald zurück") }}</h2></div>
+      {% for loan in due_soon %}
+      <div class="list-row">
+        <div class="grow"><b>{{ loan.asset.name }}</b><small>{{ loan.user.name }}</small></div>
+        {{ due_badge(loan) }}
+      </div>
+      {% else %}
+      <div class="empty" style="padding: 22px">{{ _("In den nächsten 7 Tagen ist nichts fällig.") }}</div>
+      {% endfor %}
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>{{ _("Meine Gegenstände") }}</h2>
+        <a href="{{ url_for('loans.index', nur='meine') }}" class="btn ghost sm">{{ _("Alle ansehen") }}</a></div>
+      {% for loan in my_loans %}
+      <div class="list-row">
+        <div class="grow"><a href="{{ url_for('assets.detail', asset_id=loan.asset.id) }}"><b>{{ loan.asset.name }}</b></a>
+          <small>{{ loan.asset.inventory_no or loan.asset.category }}</small></div>
+        {{ due_badge(loan) }}
+      </div>
+      {% else %}
+      <div class="empty" style="padding: 22px">{{ _("Dir ist nichts ausgegeben.") }}</div>
+      {% endfor %}
+    </section>
+  </div>
+</div>
+
+{% else %}
+<div class="stack">
+  <section class="card">
+    <div class="card-head"><h2>{{ _("Meine Gegenstände") }}</h2>
+      <a href="{{ url_for('loans.index') }}" class="btn ghost sm">{{ _("Alle ansehen") }}</a></div>
+    {% if my_loans %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>{{ _("Gegenstand") }}</th><th>{{ _("Inventarnummer") }}</th><th>{{ _("Ausgegeben") }}</th><th>{{ _("Status") }}</th></tr></thead>
+      <tbody>
+      {% for loan in my_loans %}
+        <tr>
+          <td><a class="cell-asset" href="{{ url_for('assets.detail', asset_id=loan.asset.id) }}" style="color: inherit">
+            <span class="mini-thumb">{{ thumb(loan.asset) }}</span><span><b>{{ loan.asset.name }}</b><small>{{ loan.asset.category }}</small></span></a></td>
+          <td class="mono">{{ loan.asset.inventory_no or "–" }}</td>
+          <td class="nowrap">{{ _("seit {date}", date=loan.loaned_at|de_day) }}</td>
+          <td>{{ due_badge(loan) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty">{{ icon("asset") }}<div>{{ _("Dir ist nichts ausgegeben.") }}</div>
+      {% if not catalog_hidden() %}<a href="{{ url_for('assets.index', status='verfuegbar') }}">{{ _("Verfügbare Gegenstände ansehen →") }}</a>{% endif %}</div>
+    {% endif %}
+  </section>
+
+  {% if not catalog_hidden() %}
+  <section class="card">
+    <div class="card-head"><h2>{{ _("Neu im Bestand") }}</h2>
+      <a href="{{ url_for('assets.index', sort='new') }}" class="btn ghost sm">{{ _("Bestand öffnen") }}</a></div>
+    {% if newest %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>{{ _("Gegenstand") }}</th><th>{{ _("Kategorie") }}</th><th>{{ _("Standort") }}</th><th>{{ _("Status") }}</th></tr></thead>
+      <tbody>
+      {% for asset in newest %}
+        <tr>
+          <td><a href="{{ url_for('assets.detail', asset_id=asset.id) }}" style="color: inherit"><b>{{ asset.name }}</b></a></td>
+          <td>{{ asset.category or "–" }}</td><td>{{ asset.location or "–" }}</td><td>{{ avail_badge(asset) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty" style="padding: 26px">{{ _("Noch keine Gegenstände angelegt.") }}</div>
+    {% endif %}
+  </section>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

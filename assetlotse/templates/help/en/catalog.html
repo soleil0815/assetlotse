@@ -1,0 +1,22 @@
+<p><span class="ui">Inventory</span> shows every item you are allowed to see. Matching items appear as you type in the search box at the top – a click (or <span class="kbd">↓</span> and <span class="kbd">Enter</span>) opens the item, <span class="ui">Show all results</span> or <span class="kbd">Enter</span> the full list. The search box searches name, category, manufacturer, model, serial number, inventory number, location and description – you can also scan an inventory number from its label with a barcode scanner.</p>
+<ul>
+  <li><b>Filter</b> by category, group, location and status (<span class="ui">Available</span> / <span class="ui">Issued</span>).</li>
+  <li><b>Sort</b> by name, category, inventory number or most recently added.</li>
+  <li><b>View:</b> on the right, switch between <span class="ui">Tiles</span> with photos and a compact <span class="ui">List</span>. Your browser remembers the choice.</li>
+  <li>Clicking a photo or name opens the <b>item page</b> with location, inventory and serial number, accessories and the number of pieces available.</li>
+  <li>For identical things without a number (e.g. HDMI cables) it shows how many of how many pcs are currently free.</li>
+</ul>
+{% if current_user.is_global_manager %}
+<p><b>What you see:</b> you manage the whole inventory, so you see every item.</p>
+{% elif f.catalog_own and not current_user.is_manager %}
+<p><b>What you see:</b> only the items currently issued to you.</p>
+{% elif f.catalog_own %}
+<p><b>What you see:</b> general items and the items of your groups. Staff members currently see no inventory, only their own items (<span class="ui">Settings → Inventory visibility</span>).</p>
+{% elif f.catalog_all %}
+<p><b>What you see:</b> the whole inventory. However, you can only be issued general items and items of your groups – for all others the item page shows a notice with a padlock.</p>
+{% else %}
+<p><b>What you see:</b> general items and the items of your groups{% if current_user.groups %} ({{ current_user.groups|map(attribute="name")|join(", ") }}){% endif %}. Items belonging to other groups do not appear in the inventory.</p>
+{% endif %}
+{% if current_user.is_manager %}
+<p><b>For managers:</b> at the top of the inventory you will find <span class="ui">CSV</span> and <span class="ui">Add item</span>.</p>
+{% endif %}

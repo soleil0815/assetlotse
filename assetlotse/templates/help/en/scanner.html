@@ -1,0 +1,15 @@
+<p><b>USB or Bluetooth barcode scanners</b> work without any setup: they behave like a keyboard. Click into the input field and scan – the scanner “types” the number from the label and presses Enter. This works in the <span class="ui">Inventory</span> search, in the number fields under <span class="ui">Add item</span> and at the <span class="ui">Issue desk</span>. At the desk a scanner is the fastest and most reliable option.</p>
+<ul>
+  <li>If nothing arrives, the cursor is not in the field – click into it once.</li>
+  <li>If no Enter follows, configure the scanner to send “Enter/CR as suffix” (see its manual).</li>
+  <li>If wrong characters appear (e.g. <code>IT?0042</code> instead of <code>IT-0042</code>, or Y and Z swapped), the scanner's keyboard layout does not match the computer (e.g. US instead of German).</li>
+  <li>Many devices already carry a manufacturer barcode with the serial number – you can scan that too.</li>
+</ul>
+<p><b>Inventory labels:</b> ideally, stick a label on every item showing the <b>inventory number as a barcode</b> and also in plain text.</p>
+<ul>
+  <li><b>AssetLotse prints the labels itself:</b> on an item page, <span class="ui">Label</span> creates a PDF in the <b>62 × 29 mm</b> format (Brother QL, e.g. DK-11209 or 62 mm continuous tape). In the <span class="ui">Inventory</span>, <span class="ui">Labels</span> prints every item of the current selection at once – so filter first, e.g. by category. In the print dialog choose the label size and “Actual size” (100 %).</li>
+  <li>The barcode is <b>Code 128</b> with the inventory number. If an item has no inventory number (or it contains umlauts), the barcode holds <code>#</code> plus the internal number – the issue desk still finds it.</li>
+  <li>A consistent scheme helps, e.g. a prefix per category plus a running number: <code>LT-0001</code> for laptops, <code>PR-0001</code> for projectors.</li>
+  <li>Laminated or polyester labels last longer on laptops and chargers than paper. Keep vents and the rating plate clear.</li>
+  <li>For small parts without their own number (cables, adapters) one shared label on the box or shelf is enough.</li>
+</ul>

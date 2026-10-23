@@ -1,0 +1,19 @@
+{% if not f.backup_supported %}
+<p><b>This installation does not use an SQLite database</b>, so the built-in backup is not available. Back up the database with the database server's tools (e.g. <code>mysqldump</code> or <code>pg_dump</code>) and also the <code>./data</code> folder – above all the <code>secret_key</code> file.</p>
+{% else %}
+<p>Under <span class="ui">Administration → Backup</span> the database <code>assetlotse.db</code> is {% if f.backup_enabled %}backed up <b>automatically every day</b> from {{ "%02d"|format(f.backup_hour) }}:00{% else %}currently <b>not backed up automatically</b> – switch on <span class="ui">Back up automatically every day</span>{% endif %}. This runs while AssetLotse is in use, and every backup is checked for corruption. {% if f.backup_keep == 1 %}Only the newest backup is kept{% else %}The newest <b>{{ f.backup_keep }}</b> are kept{% endif %} (adjustable 1–100); older ones are deleted.</p>
+{% endif %}
+<ul>
+  <li><span class="ui">Back up now</span> creates a backup immediately – useful before major changes or an update.</li>
+  <li>Each backup (<code>assetlotse-….db</code>) can be <b>downloaded</b> or deleted. Location: <code>./data/backups</code> or the folder set in <code>ASSETLOTSE_BACKUP_DIR</code> (e.g. a NAS).</li>
+  <li>If a backup fails, a warning sign appears next to the menu item and administrators get an email{% if not f.mail_on %} (once email delivery is active){% endif %}.</li>
+  <li>The database is backed up. Photos (<code>./data/images</code>), logo and <code>secret_key</code> are files in <code>./data</code> – take the whole folder when moving servers.</li>
+</ul>
+<p><b>The database and <code>secret_key</code> belong together:</b> always restore a database together with its <code>secret_key</code>. Without the matching key, 2FA sign-ins do not work, stored SMTP/AD passwords and the items' <b>confidential details</b> (e.g. BitLocker keys) are unreadable, and AssetLotse will not start.</p>
+<p><b>Important:</b> backups are stored on the same server and do not protect against disk failure. Copy the folder to another place regularly – and keep the <code>secret_key</code> separately protected.</p>
+<p><b>Restoring</b> (on the server; the current state is backed up automatically first):</p>
+<pre><code>docker compose stop assetlotse
+docker compose run --rm assetlotse flask --app wsgi list-backups
+docker compose run --rm assetlotse flask --app wsgi restore-backup FILENAME.db
+docker compose start assetlotse</code></pre>
+<p>Anything that happened after the backup was taken is lost.</p>

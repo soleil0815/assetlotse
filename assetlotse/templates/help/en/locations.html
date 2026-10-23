@@ -1,0 +1,10 @@
+<p>Under <span class="ui">Management → Locations</span> you define rooms, cabinets or compartments once. As soon as there is at least one, the location is <b>picked from a list</b> instead of typed when adding or editing an item – no more typos.</p>
+<ul>
+  <li><b>Add:</b> type the names into the field, one per line, then click <span class="ui">Add</span>. Duplicate names (including different capitalisation) are skipped.</li>
+  <li><b>Rename:</b> change the name in the field and save with ✓ – all items at this location are updated too. An optional note helps people find it (e.g. “keys at the front office”).</li>
+  <li><b>Deleting</b> is only possible once no item is assigned there any more.</li>
+  <li>The number next to each location leads to the items there; the <span class="ui">Inventory</span> can be filtered by location.</li>
+</ul>
+<p><b>In use but not defined</b> lists locations that were typed freely in the past. Choose <span class="ui">add as new location</span> or <span class="ui">replace with …</span> and click <span class="ui">Apply</span> – the items are moved along with it. For a different spelling (“room 2.14”) or a similar name (“Rom 2.14”) the matching location is already preselected.</p>
+<p><b>Merging:</b> two defined locations cannot be merged by renaming. Move the items of one of them and then delete it.</p>
+{% if not current_user.is_global_manager %}<p>As a manager of a group you can add locations. Renaming or replacing that also affects items of other groups is reserved for administrators and managers without a group.</p>{% endif %}

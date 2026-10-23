@@ -1,0 +1,13 @@
+<p>Groups link items and people, e.g. a department, a project or a working group. Every item belongs to one group or is <b>general</b>.</p>
+<ul>
+  <li><b>Receive:</b> staff members can only be issued items of their groups and general items.</li>
+  <li><b>See</b> in the inventory: {% if f.catalog_own %}currently staff members see no inventory at all, only their own items; managers see their groups' items{% elif f.catalog_all %}currently everyone sees the whole inventory{% else %}currently only the items of one's own groups and general items{% endif %} – changeable under <span class="ui">Settings → Inventory visibility</span>.</li>
+  <li><b>Managers with a group</b> only look after the items and loans of their groups (plus general ones). A manager <b>without</b> a group is responsible for the whole inventory – e.g. IT.</li>
+</ul>
+<ol>
+  <li><span class="ui">Administration → Groups</span> → <span class="ui">Group</span>: enter name, colour and description.</li>
+  <li>Tick users on the right under <span class="ui">Members</span> – or choose the groups in the user's account.</li>
+  <li><span class="ui">Save</span>.</li>
+</ol>
+<p><b>Automatically from Active Directory:</b> enter the name (e.g. <code>Dept-Physics</code>) or DN of a directory group under <span class="ui">AD group (optional)</span>. Its members are assigned to this group at every sign-in and removed again when they leave it. For this, <span class="ui">Assign groups automatically</span> must be switched on under <span class="ui">Active Directory</span>. Groups assigned manually without a directory link are not affected.</p>
+<p><b>Deleting</b> a group turns its items into general items – nothing is lost.</p>

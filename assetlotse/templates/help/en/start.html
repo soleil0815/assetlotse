@@ -1,0 +1,10 @@
+<p>The menu is on the left{% if not catalog_hidden() %}, the inventory search at the top{% endif %}. On a phone, the <span class="ui">☰</span> icon opens the menu.</p>
+<ul>
+  <li><span class="ui">Overview</span> shows what has been issued to you – and, if a return date was agreed, what has to go back soon.</li>
+  {% if catalog_hidden() %}<li>You do not see an inventory – items are issued by the managers or at the issue desk. Everything you have is listed under <span class="ui">My items</span>.</li>{% else %}<li><span class="ui">Inventory</span> lists every item you are allowed to see: laptops, headsets, projectors, keys, cables …</li>{% endif %}
+  <li><span class="ui">My items</span>, <span class="ui">My profile</span> and <span class="ui">Security</span> only concern you.</li>
+  {% if current_user.is_manager %}<li><span class="ui">Management</span> contains the issue desk, all loans, <span class="ui">Add item</span> and locations.</li>{% endif %}
+  {% if current_user.is_admin %}<li>Under <span class="ui">Administration</span> you set up users, groups, Active Directory, email, branding, backups and settings.</li>{% endif %}
+</ul>
+<p><b>Language:</b> switch between <span class="ui">DE</span> and <span class="ui">EN</span> at the top right. Your choice is saved in your profile and also applies to emails sent to you.</p>
+<p><b>Help for the current page:</b> the <span class="ui">?</span> at the top right jumps straight to the matching section.</p>

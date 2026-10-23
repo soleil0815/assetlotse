@@ -1,0 +1,8 @@
+<p>In the <span class="ui">Inventory</span>, the <span class="ui">CSV</span> button at the top right downloads the inventory as a spreadsheet (<code>assetlotse-inventory.csv</code>) – e.g. for a stocktake. It contains {% if current_user.is_global_manager %}all items{% else %}the items of your groups and general items{% endif %}, sorted by name – search and filter settings make no difference.</p>
+<p><b>Columns:</b> ID, Name, Category, Manufacturer, Model, Serial number, Inventory number, Location, Group (or “General”), Quantity, Available, Issued to.</p>
+<ul>
+  <li>The file is <b>Excel-compatible</b>: semicolon as separator and UTF-8 with a byte-order mark so that umlauts display correctly. A double-click is enough.</li>
+  <li><b>Formula protection:</b> cells starting with <code>=</code>, <code>+</code>, <code>-</code> or <code>@</code> get a leading apostrophe. This stops Excel from running anything as a formula; you may see the apostrophe in the cell.</li>
+  <li><b>Personal data:</b> the “Issued to” column shows who currently has the item, so handle the file with care. <b>Confidential details</b> (e.g. BitLocker keys) are never included.</li>
+</ul>
+<p>The ID is the internal number you can enter at the <span class="ui">Issue desk</span> as <code>#ID</code>.</p>

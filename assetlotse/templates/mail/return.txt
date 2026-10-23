@@ -1,0 +1,7 @@
+{{ _("Zurückgegeben: {title}", title=asset.name|safe) }}
+{{ _("Hallo {name},", name=user.name|safe) }}
+
+{{ _("danke! Die Rückgabe von „{title}“ ist verbucht.", title=asset.name|safe) }}
+{% if footer %}
+--
+{{ footer }}{% endif %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, thumb %}
+{% block title %}{{ _("Gegenstand anlegen") if is_new else _("Bearbeiten: {title}", title=asset.name) }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Neuer Gegenstand") if is_new else _("Gegenstand bearbeiten") }}</div>
+    <h1>{{ _("Gegenstand anlegen") if is_new else asset.name }}</h1>
+    <p>{{ _("Nur die Bezeichnung ist Pflicht – alles andere kannst du später ergänzen.") }}</p></div>
+</div>
+
+<form method="post" enctype="multipart/form-data" autocomplete="off">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="split">
+    <div class="stack">
+      <section class="card card-pad">
+        <div class="form-grid">
+          <div class="field span-4"><label>{{ _("Bezeichnung *") }}</label>
+            <input type="text" name="name" value="{{ asset.name or '' }}" required maxlength="300" {{ "autofocus" if is_new }}
+                   placeholder="{{ _("z. B. Laptop Dell Latitude 5440, USB-Stick 64 GB") }}"></div>
+          <div class="field span-2"><label>{{ _("Kategorie") }}</label>
+            <input type="text" name="category" value="{{ asset.category or '' }}" maxlength="200" list="categorylist"
+                   placeholder="{{ _("z. B. Laptop") }}">
+            <datalist id="categorylist">{% for c in categories %}<option value="{{ c }}">{% endfor %}</datalist></div>
+          <div class="field span-3"><label>{{ _("Hersteller") }}</label><input type="text" name="manufacturer" value="{{ asset.manufacturer or '' }}" maxlength="200"></div>
+          <div class="field span-3"><label>{{ _("Modell") }}</label><input type="text" name="model" value="{{ asset.model or '' }}" maxlength="200"></div>
+          <div class="field span-3"><label>{{ _("Inventarnummer") }}</label><input class="code-input" type="text" name="inventory_no" value="{{ asset.inventory_no or '' }}" maxlength="100"
+                   placeholder="{{ _("z. B. IT-0042") }}" autocomplete="off" data-number-check="{{ url_for('assets.check_number') }}" data-field="inventory_no" data-except="{{ asset.id or '' }}">
+            <div class="number-hint" data-number-hint aria-live="polite"></div></div>
+          <div class="field span-3"><label>{{ _("Seriennummer") }}</label><input class="code-input" type="text" name="serial_number" value="{{ asset.serial_number or '' }}" maxlength="200"
+                   autocomplete="off" data-number-check="{{ url_for('assets.check_number') }}" data-field="serial_number" data-except="{{ asset.id or '' }}">
+            <div class="number-hint" data-number-hint aria-live="polite"></div></div>
+          <div class="field span-6"><label>{{ _("Beschreibung / Zubehör") }}</label><textarea name="description" placeholder="{{ _("z. B. mit Netzteil und Tasche; Zustand; Garantie bis …") }}">{{ asset.description or '' }}</textarea></div>
+        </div>
+        <div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">
+          {{ _('Tipp: Ein USB-/Bluetooth-Barcodescanner funktioniert direkt in den Nummernfeldern – er „tippt“ die Nummer und drückt <span class="kbd">Enter</span>.') }}</div>
+      </section>
+
+      <section class="card card-pad">
+        <h3 style="margin-bottom: 6px">{{ icon("key") }} {{ _("Vertrauliche Angaben") }}</h3>
+        <p class="muted" style="margin-bottom: 12px">{{ _("Z. B. BitLocker-Wiederherstellungsschlüssel, PIN oder Kennwort. Wird verschlüsselt gespeichert, nie exportiert, und jedes Anzeigen wird protokolliert. Sehen dürfen es nur Administratoren und Verwalter, die Mitglied der gewählten Gruppe sind – bei „Allgemein“ nur Administratoren.") }}</p>
+        {% if not is_new and not current_user.can_view_secret(asset) %}
+        <div class="notice warn">{{ icon("lock") }}<div>{{ _("Vertrauliche Angaben sehen nur Administratoren und Verwalter, die Mitglied der Gruppe dieses Gegenstands sind.") }}</div></div>
+        {% else %}
+        {% if asset.has_secret %}
+        <div class="notice accent" style="margin-bottom: 12px">{{ icon("lock") }}<div>{{ _("Es sind bereits vertrauliche Angaben hinterlegt. Das Feld bleibt leer – nur ausfüllen, um sie zu ersetzen.") }}</div></div>
+        {% endif %}
+        <div class="field"><textarea name="secret" rows="3" maxlength="4000" class="code-input" spellcheck="false" autocomplete="off"
+             placeholder="{{ _("neu eingeben, um zu ersetzen") if asset.has_secret else _("z. B. 123456-123456-123456-123456-123456-123456-123456-123456") }}"></textarea></div>
+        <input type="hidden" name="secret_holder_view_shown" value="1">
+        <label class="check" style="margin-top: 10px"><input type="checkbox" name="secret_holder_view" value="1" {{ "checked" if asset.secret_holder_view }}>
+          <span>{{ _("Die Person, der der Gegenstand ausgegeben ist, darf die Angaben selbst ansehen") }}<br>
+          <small class="muted">{{ _("Nur solange er ihr ausgegeben ist und erst nach Eingabe ihres Passworts; jedes Anzeigen wird protokolliert. Praktisch, wenn jemand den BitLocker-Schlüssel seiner Festplatte vergessen hat.") }} {{ _("Gilt nur für Einzelstücke und nur für Ausgaben durch jemanden, der die Angaben selbst sehen darf – nicht für „Selbst ausleihen“.") }}</small></span></label>
+        {% if asset.has_secret %}<label class="check"><input type="checkbox" name="remove_secret" value="1"> {{ _("Vertrauliche Angaben löschen") }}</label>{% endif %}
+        {% endif %}
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card card-pad">
+        <h3 style="margin-bottom: 14px">{{ _("Bestand") }}</h3>
+        <div class="field"><label>{{ _("Gruppe") }}</label>
+          <select name="group_id">
+            <option value="">{{ _("Allgemein – für alle") }}</option>
+            {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if asset.group_id == g.id }}>{{ g.name }}</option>{% endfor %}
+          </select>
+          <div class="hint">{{ _("Gegenstände einer Gruppe bekommen nur deren Mitglieder.") }}</div></div>
+        <div class="field"><label>{{ _("Anzahl") }}</label><input type="number" name="quantity" value="{{ asset.quantity if asset.quantity is not none else 1 }}" min="0">
+          <div class="hint">{{ _("1 für Einzelstücke mit Seriennummer; mehr für gleichartige Dinge ohne Nummer (z. B. 20 HDMI-Kabel).") }}</div></div>
+        <div class="field"><label>{{ _("Standort") }}</label>
+          {% if location_names %}
+          <select name="location">
+            <option value="">{{ _("– kein Standort –") }}</option>
+            {% for n in location_names %}<option value="{{ n }}" {{ 'selected' if (asset.location or '')|lower == n|lower }}>{{ n }}</option>{% endfor %}
+            {% if asset.location and asset.location|lower not in location_names|map('lower')|list %}
+            <option value="{{ asset.location }}" selected>{{ _("{name} (nicht in der Liste)", name=asset.location) }}</option>{% endif %}
+          </select>
+          <div class="hint">{{ _('Fehlt ein Standort? <a href="{url}" target="_blank">Standorte verwalten</a>', url=url_for('locations.index')) }}</div>
+          {% else %}
+          <input type="text" name="location" value="{{ asset.location or '' }}" placeholder="{{ _("z. B. Raum 2.14, Schrank B") }}">
+          <div class="hint">{{ _('Tipp: Unter <a href="{url}">Standorte</a> eine feste Liste anlegen – dann wird hier ausgewählt statt getippt.', url=url_for('locations.index')) }}</div>
+          {% endif %}</div>
+      </section>
+
+      <section class="card card-pad">
+        <h3 style="margin-bottom: 14px">{{ _("Foto") }}</h3>
+        <div style="display: grid; grid-template-columns: 90px 1fr; gap: 14px; align-items: start">
+          <div>{{ thumb(asset) }}</div>
+          <div>
+            <div class="field"><label>{{ _("Bild hochladen") }}</label><input type="file" name="image_upload" accept="image/*"></div>
+            {% if not is_new and asset.image %}<label class="check"><input type="checkbox" name="remove_image" value="1"> {{ _("Foto entfernen") }}</label>{% endif %}
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="actions" style="margin-top: 20px; justify-content: flex-end">
+    <a class="btn ghost" href="{{ url_for('assets.detail', asset_id=asset.id) if not is_new else url_for('assets.index') }}">{{ _("Abbrechen") }}</a>
+    {% if is_new %}<button class="btn" name="next_action" value="another" title="{{ _("Speichern und gleich den nächsten gleichartigen Gegenstand anlegen") }}">{{ icon("plus") }} {{ _("Speichern &amp; nächsten") }}</button>{% endif %}
+    <button class="btn primary lg">{{ icon("check") }} {{ _("Speichern") }}</button>
+  </div>
+</form>
+{% endblock %}

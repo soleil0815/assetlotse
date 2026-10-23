@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, thumb, avail_badge, group_badge, due_badge %}
+{% block title %}{{ _("Ausgabetheke") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Ausgabetheke") }}</div><h1>{{ _("Ausgabe") if mode == "ausgabe" else _("Rückgabe") }}</h1>
+    <p>{{ _("Auch für Barcodescanner: Feld fokussiert lassen, Etikett scannen, fertig.") }}</p></div>
+</div>
+
+<nav class="tabs">
+  <a href="{{ url_for('loans.desk', modus='ausgabe') }}" class="{{ 'on' if mode == 'ausgabe' }}">{{ icon("loan") }} {{ _("Ausgabe") }}</a>
+  <a href="{{ url_for('loans.desk', modus='rueckgabe') }}" class="{{ 'on' if mode == 'rueckgabe' }}">{{ icon("return") }} {{ _("Rückgabe") }}</a>
+</nav>
+
+{% if mode == "ausgabe" %}
+<div class="split">
+  <div class="stack">
+    <section class="card card-pad">
+      <form method="get">
+        <input type="hidden" name="modus" value="ausgabe">
+        <label>{{ _("1. Person") }}</label>
+        <div class="input-group">
+          <input type="text" name="benutzer" value="{{ borrower.username if borrower else user_q }}"
+                 placeholder="{{ _("Benutzername oder Name") }}" {{ "autofocus" if not borrower }} autocomplete="off"
+                 data-suggest="{{ url_for('loans.people_suggest') }}" data-suggest-action="person">
+          <button class="btn">{{ icon("user") }} {{ _("Wählen") }}</button>
+        </div>
+        {% if ad_search %}<div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">{{ _("Findet auch Personen aus dem Active Directory, die sich noch nie angemeldet haben – aber nur, wer nach den AD-Regeln Zugang hat.") }}</div>{% endif %}
+      </form>
+      {% if not borrower and (people or ad_people or ad_error) %}
+      <div class="people-pick" style="margin-top: 14px">
+        {% if people %}<div class="eyebrow">{{ _("Konten in AssetLotse") }}</div>
+        {% for u in people %}
+        <div class="list-row" style="padding: 8px 0">
+          <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ u.initials }}</span>
+          <div class="grow"><b>{{ u.name }}</b><small>{{ u.username }}{% if u.auth_source == 'ldap' %} · AD{% endif %}</small></div>
+          <a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', benutzer=u.username) }}">{{ _("Wählen") }}</a>
+        </div>
+        {% endfor %}{% endif %}
+        {% if ad_people %}<div class="eyebrow" style="margin-top: 10px">{{ _("Aus dem Active Directory (noch nie angemeldet)") }}</div>
+        {% for p in ad_people %}
+        <div class="list-row" style="padding: 8px 0">
+          <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ icon("server") }}</span>
+          <div class="grow"><b>{{ p.display_name }}</b><small>{{ p.username }}{% if p.email %} · {{ p.email }}{% endif %}</small></div>
+          <form method="post" action="{{ url_for('loans.desk_ad_account') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="username" value="{{ p.username }}">
+            <button class="btn sm primary">{{ _("Konto übernehmen") }}</button>
+          </form>
+        </div>
+        {% endfor %}{% endif %}
+        {% if ad_error %}<div class="notice warn" style="margin-top: 10px">{{ icon("alert") }}<div>{{ _("Suche im Active Directory nicht möglich: {error}", error=ad_error) }}</div></div>{% endif %}
+      </div>
+      {% endif %}
+      {% if borrower %}
+      <div class="notice accent" style="margin-top: 14px">
+        <span class="avatar">{{ borrower.initials }}</span>
+        <div><b>{{ borrower.name }}</b> <small>({{ borrower.username }})</small><br>
+          <small>{{ _("Gruppen: {groups}", groups=borrower_groups|join(", ") or _("keine")) }} · {{ _n("{n} Gegenstand ausgegeben", "{n} Gegenstände ausgegeben", borrower_loans|length) }}</small></div>
+        <a class="btn sm ghost" style="margin-left:auto" href="{{ url_for('loans.desk', modus='ausgabe') }}">{{ _("Wechseln") }}</a>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="card card-pad" {% if not borrower %}style="opacity:.55"{% endif %}>
+      <form method="post" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="modus" value="ausgabe">
+        <input type="hidden" name="benutzer" value="{{ borrower.username if borrower else '' }}">
+        <label>{{ _("2. Gegenstand (Inventarnummer, Seriennummer, Bezeichnung oder #Nummer)") }}</label>
+        <div class="input-group">
+          <input class="code-input" id="desk-code" type="text" name="code" placeholder="{{ _("Nummer scannen oder eintippen") }}" {{ ("" if focus_search else "autofocus") if borrower else "disabled" }}
+                 {% if borrower %}data-suggest="{{ url_for('assets.suggest') }}" data-suggest-for="theke" data-suggest-action="issue" data-suggest-user="{{ borrower.username }}"
+                 data-suggest-more="{{ url_for('loans.desk', modus='ausgabe', benutzer=borrower.username, fokus='suche') }}&amp;suche="{% endif %}>
+          <button class="btn primary" {{ "disabled" if not borrower }}>{{ icon("check") }} {{ _("Ausgeben") }}</button>
+        </div>
+        {% if borrower %}<div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">{{ _("Beim Tippen erscheinen passende Gegenstände – anklicken (oder mit ↓ und Enter wählen) gibt sie sofort aus.") }}</div>{% endif %}
+        <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Bei eindeutigem Treffer sofort ausgeben") }}</label>
+        {% for k in ("suche", "kategorie", "frei") %}{% if stock[k] %}<input type="hidden" name="{{ k }}" value="{{ stock[k] }}">{% endif %}{% endfor %}
+      </form>
+    </section>
+
+
+    {% if assets %}
+    <section class="card">
+      <div class="card-head"><h3>{{ _("Treffer") }}</h3></div>
+      {% for asset in assets %}
+      <div class="list-row">
+        <div class="mini-thumb">{{ thumb(asset) }}</div>
+        <div class="grow"><b>{{ asset.name }}</b><small>{{ [asset.inventory_no, asset.serial_number]|select|join(" · ") or asset.category }}</small></div>
+        {{ group_badge(asset.group) }} {{ avail_badge(asset) }}
+        {% if borrower %}
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="modus" value="ausgabe">
+          <input type="hidden" name="benutzer" value="{{ borrower.username }}">
+          <input type="hidden" name="asset_id" value="{{ asset.id }}">
+          {% for k in ("suche", "kategorie", "frei") %}{% if stock[k] %}<input type="hidden" name="{{ k }}" value="{{ stock[k] }}">{% endif %}{% endfor %}
+          <button class="btn sm primary" {{ "disabled" if asset.available == 0 or not borrower.can_borrow(asset) }}
+                  title="{{ _('Keine Berechtigung für diese Gruppe') if not borrower.can_borrow(asset) }}">{{ _("Ausgeben") }}</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </div>
+
+  <section class="card">
+    <div class="card-head"><h3>{{ _("Bei {name}", name=borrower.name) if borrower else _("Ausgegebene Gegenstände") }}</h3></div>
+    {% for loan in borrower_loans %}
+    <div class="list-row">
+      <div class="mini-thumb">{{ thumb(loan.asset) }}</div>
+      <div class="grow"><b>{{ loan.asset.name }}</b><small>{{ loan.asset.inventory_no }}{{ " · " if loan.asset.inventory_no }}{{ _("seit {date}", date=loan.loaned_at|de_day) }}</small></div>
+      {{ due_badge(loan) }}
+    </div>
+    {% else %}
+    <div class="empty" style="padding: 26px">{{ _("Nichts ausgegeben.") if borrower else _("Zuerst eine Person wählen.") }}</div>
+    {% endfor %}
+  </section>
+</div>
+
+    <section class="card" id="bestand" style="margin-top: 18px;{% if not borrower %} opacity:.55{% endif %}">
+      <div class="card-head"><h3>{{ icon("search") }} {{ _("Im Bestand suchen") }}</h3>
+        {% if stock_results is not none %}<a class="btn ghost sm" href="{{ url_for('loans.desk', modus='ausgabe', benutzer=borrower.username if borrower else None) }}#bestand">{{ _("Zurücksetzen") }}</a>{% endif %}</div>
+      <div class="card-body">
+        <form method="get" action="{{ url_for('loans.desk') }}#bestand" class="toolbar" style="margin-bottom: 0" autocomplete="off">
+          <input type="hidden" name="modus" value="ausgabe">
+          {% if borrower %}<input type="hidden" name="benutzer" value="{{ borrower.username }}">{% endif %}
+          <input type="hidden" name="fokus" value="suche">
+          <input class="grow" type="search" name="suche" value="{{ stock.suche }}" placeholder="{{ _("Bezeichnung, Hersteller, Modell, Nummer …") }}" {{ "autofocus" if focus_search or not borrower and stock_results is not none }}>
+          {% if categories %}
+          <select name="kategorie">
+            <option value="">{{ _("Alle Kategorien") }}</option>
+            {% for c in categories %}<option value="{{ c }}" {{ 'selected' if stock.kategorie == c }}>{{ c }}</option>{% endfor %}
+          </select>
+          {% endif %}
+          <select name="frei">
+            <option value="1" {{ 'selected' if stock.frei == '1' }}>{{ _("Nur verfügbare") }}</option>
+            <option value="0" {{ 'selected' if stock.frei == '0' }}>{{ _("Alle") }}</option>
+          </select>
+          <button class="btn">{{ icon("search") }} {{ _("Suchen") }}</button>
+        </form>
+      </div>
+      {% if stock_results is not none %}
+      {% if stock_results %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>{{ _("Gegenstand") }}</th><th>{{ _("Inventarnummer") }}</th><th>{{ _("Standort") }}</th><th>{{ _("Status") }}</th><th></th></tr></thead>
+        <tbody>
+        {% for asset in stock_results[:30] %}
+          <tr>
+            <td><div class="cell-asset"><span class="mini-thumb">{{ thumb(asset) }}</span>
+              <span><b>{{ asset.name }}</b><small>{{ [asset.category, asset.maker_model]|select|join(" · ") }}</small></span></div></td>
+            <td class="mono nowrap">{{ asset.inventory_no or "–" }}</td>
+            <td>{{ asset.location or "–" }}</td>
+            <td>{{ avail_badge(asset) }}</td>
+            <td class="actions-cell">
+              {% if borrower %}
+              <form method="post" action="{{ url_for('loans.desk') }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="modus" value="ausgabe">
+                <input type="hidden" name="benutzer" value="{{ borrower.username }}">
+                <input type="hidden" name="asset_id" value="{{ asset.id }}">
+                <input type="hidden" name="suche" value="{{ stock.suche }}">
+                <input type="hidden" name="kategorie" value="{{ stock.kategorie }}">
+                <input type="hidden" name="frei" value="{{ stock.frei }}">
+                <button class="btn sm primary" {{ "disabled" if asset.available == 0 or not borrower.can_borrow(asset) }}
+                        title="{{ _('Keine Berechtigung für diese Gruppe') if not borrower.can_borrow(asset) }}">{{ icon("check") }} {{ _("Ausgeben") }}</button>
+              </form>
+              {% else %}<span class="muted" style="font-size: 12.5px">{{ _("Zuerst eine Person wählen.") }}</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% if stock_results|length > 30 %}<p class="muted" style="font-size: 12.5px; padding: 10px 18px; margin: 0">{{ _("Es gibt mehr Treffer – bitte die Suche eingrenzen.") }}</p>{% endif %}
+      {% else %}
+      <div class="empty" style="padding: 22px">{{ _("Nichts gefunden.") }}</div>
+      {% endif %}
+      {% endif %}
+    </section>
+
+{% else %}
+<div class="split">
+  <div class="stack">
+    <section class="card card-pad">
+      <form method="post" autocomplete="off">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="modus" value="rueckgabe">
+        <label>{{ _("Gegenstand (Inventarnummer, Seriennummer, Bezeichnung oder #Nummer)") }}</label>
+        <div class="input-group">
+          <input class="code-input" id="return-code" type="text" name="code" placeholder="{{ _("Nummer scannen oder eintippen") }}" autofocus value="">
+          <button class="btn primary">{{ icon("return") }} {{ _("Suchen") }}</button>
+        </div>
+        <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Bei eindeutigem Treffer sofort zurücknehmen") }}</label>
+      </form>
+    </section>
+    {% if code %}
+    <section class="card">
+      <div class="card-head"><h3>{{ _("Offene Ausleihen zu „{code}“", code=code) }}</h3></div>
+      {% for loan in loans %}
+      <div class="list-row">
+        <div class="mini-thumb">{{ thumb(loan.asset) }}</div>
+        <div class="grow"><b>{{ loan.asset.name }}</b><small>{{ loan.user.name }} · {{ _("seit {date}", date=loan.loaned_at|de_day) }}</small></div>
+        {{ due_badge(loan) }}
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="modus" value="rueckgabe">
+          <input type="hidden" name="loan_id" value="{{ loan.id }}">
+          <button class="btn sm primary">{{ icon("return") }} {{ _("Zurücknehmen") }}</button>
+        </form>
+      </div>
+      {% else %}
+      <div class="empty" style="padding: 26px">{{ _("Dazu ist nichts ausgegeben.") }}</div>
+      {% endfor %}
+    </section>
+    {% endif %}
+  </div>
+  <section class="card card-pad">
+    <h3>{{ _("So funktioniert's") }}</h3>
+    <p class="muted" style="margin-top: 8px">{{ _("Scanne oder tippe die Nummer des zurückgegebenen Gegenstands. Gibt es genau eine offene Ausleihe, wird sie sofort abgeschlossen. Bei mehreren Stück wählst du die passende Ausleihe aus.") }}</p>
+  </section>
+</div>
+{% endif %}
+{% endblock %}

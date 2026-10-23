@@ -1,0 +1,24 @@
+{% extends "_auth.html" %}
+{% from "_macros.html" import icon %}
+{% block title %}{{ _("Einrichtung") }}{% endblock %}
+{% block auth %}
+<div class="eyebrow">{{ _("Ersteinrichtung") }}</div>
+<h2>{{ _("AssetLotse einrichten") }}</h2>
+<p class="muted">{{ _("Lege das lokale Administratorkonto an. Es funktioniert auch dann, wenn das Active Directory nicht erreichbar ist.") }}</p>
+<form method="post" style="margin-top: 22px">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field"><label>{{ _("Name (Einrichtung oder Programm)") }}</label>
+    <input type="text" name="org_name" value="{{ request.form.get('org_name', '') }}" placeholder="{{ _('z. B. AssetLotse oder IT-Ausgabe des Instituts') }}"></div>
+  <div class="field"><label>{{ _("Admin-Benutzername") }}</label>
+    <input type="text" name="username" value="{{ request.form.get('username', 'admin') }}" required autocomplete="username"></div>
+  <div class="field"><label>{{ _("Anzeigename") }}</label>
+    <input type="text" name="display_name" value="{{ request.form.get('display_name', 'Administrator') }}"></div>
+  <div class="field"><label>{{ _("E-Mail <small>(optional)</small>") }}</label>
+    <input type="email" name="email" value="{{ request.form.get('email', '') }}"></div>
+  <div class="field"><label>{{ _("Passwort <small>(mind. 10 Zeichen)</small>") }}</label>
+    <input type="password" name="password" required minlength="10" autocomplete="new-password"></div>
+  <div class="field"><label>{{ _("Passwort wiederholen") }}</label>
+    <input type="password" name="password2" required minlength="10" autocomplete="new-password"></div>
+  <button class="btn primary lg block">{{ icon("check") }} {{ _("Einrichten") }}</button>
+</form>
+{% endblock %}

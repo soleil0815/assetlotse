@@ -1,0 +1,27 @@
+# AssetLotse – this file does not need to be changed.
+# Your own settings (port, time zone, database …) belong in the file .env
+# next to it (template: .env.example). Updates never overwrite .env.
+
+services:
+  assetlotse:
+    build: .
+    image: assetlotse:1.6.3
+    container_name: assetlotse
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"  # no privilege gain via setuid programs in the container
+    labels:
+      - "dockhand.update=false"   # locally built image – updates only via a new package, not automatically
+    ports:
+      # change the port only in .env (ASSETLOTSE_PORT) – the same number applies outside and inside
+      - "${ASSETLOTSE_BIND:-0.0.0.0}:${ASSETLOTSE_PORT:-9343}:${ASSETLOTSE_PORT:-9343}"
+    volumes:
+      - ./data:/data            # database, photos, keys, certificates, backups
+    env_file: .env              # your own settings; without entries the defaults apply
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      ASSETLOTSE_PORT: ${ASSETLOTSE_PORT:-9343}
+    logging:                    # limit the log (max. 3 × 10 MB)
+      options:
+        max-size: "10m"
+        max-file: "3"
