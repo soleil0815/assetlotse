@@ -2,6 +2,24 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.8.1 – 2026-10-23
+
+Ersetzt 1.8.0 (dort gab es einen eigenen Dockhand-Modus – entfernt, jetzt geht es mit jedem Tool).
+
+**Neu: Updates auch mit anderen Tools**
+- Nach `./update.sh --pull` folgt der Container dem Image-Tag **`latest`**. Neue Versionen lassen sich damit wie
+  bisher mit `./update.sh --pull` einspielen – oder mit einem beliebigen Tool, das Container aktualisiert. Es gibt
+  keine Einstellungen mehr für ein bestimmtes Tool; das Dockhand-Label in der `docker-compose.yml` ist entfernt.
+- `./update.sh --pull --version X.Y.Z` legt eine Version fest (Tools lassen sie dann in Ruhe), das nächste
+  `./update.sh --pull` folgt wieder der neuesten.
+- **Sicherung beim ersten Start einer neuen Version:** AssetLotse merkt sich seine Version in der Datenbank. Läuft
+  eine neue Version zum ersten Mal, legt die App **vor** jeder Änderung an der Datenbank eine Sicherung an
+  (`…-vor-update.db`, nur SQLite) – egal, wie das Update kam. Startet eine ältere Version auf einer neueren
+  Datenbank, steht eine Warnung im Protokoll.
+
+**Hinweis:** Ein Update-Tool tauscht nur den Container aus, nicht `update.sh` und `docker-compose.yml` auf dem
+Server. Wenn sich diese ändern, steht es hier im CHANGELOG – dann einmal `./update.sh --pull`.
+
 ## 1.7.0 – 2026-10-23
 
 **Neu: fertige Images von GitHub**

@@ -27,7 +27,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "1.7.0"
+__version__ = "1.8.1"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Wo der Quellcode zu finden ist (AGPL § 13). Wer AssetLotse verändert betreibt, trägt hier
@@ -243,6 +243,49 @@ def _sqlite_file(instance: Path) -> Path:
     return db_file
 
 
+def _backup_before_upgrade() -> str | None:
+    """Läuft eine neue Version zum ersten Mal auf einer vorhandenen Datenbank, vor jeder Änderung an der
+    Datenbank eine Sicherung anlegen. So ist auch ein Update ohne update.sh (z. B. ein Update-Tool zieht ein neues
+    Image) abgesichert. Liefert die bisher eingetragene Version (None = neue/leere Datenbank)."""
+    from sqlalchemy import inspect as sa_inspect, text
+
+    from . import backup
+    try:
+        if "settings" not in sa_inspect(db.engine).get_table_names():
+            return None                                   # neue Datenbank – nichts zu sichern
+        row = db.session.execute(text("SELECT value FROM settings WHERE key = 'app_version'")).first()
+        has_users = "users" in sa_inspect(db.engine).get_table_names() and \
+            db.session.execute(text("SELECT 1 FROM users LIMIT 1")).first() is not None
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Versionsprüfung beim Start nicht möglich: %s", exc)
+        db.session.rollback()
+        return None
+    finally:
+        db.session.remove()
+    previous = (row[0] if row else "") or ""
+    if previous == __version__ or (not previous and not has_users):
+        return previous or None
+    from_text = previous or "einer Version vor 1.8.0"
+    if previous and _version_tuple(previous) > _version_tuple(__version__):
+        log.warning("AssetLotse %s startet auf einer Datenbank von Version %s (ältere Version auf neuerer "
+                    "Datenbank) – bei Problemen die Sicherung von vor dem Update zurückspielen.",
+                    __version__, previous)
+    if not backup.supported():
+        log.info("Update von %s auf %s – automatische Sicherung nur bei SQLite; bitte selbst sichern.",
+                 from_text, __version__)
+        return previous
+    try:
+        path = backup.create_backup("-vor-update")
+        log.info("Update von %s auf %s: Sicherung vor dem Update angelegt (%s)", from_text, __version__, path.name)
+    except Exception as exc:  # noqa: BLE001 – lieber starten als ausfallen, aber deutlich melden
+        log.error("Update von %s auf %s: Sicherung vor dem Update FEHLGESCHLAGEN: %s", from_text, __version__, exc)
+    return previous
+
+
+def _version_tuple(v: str) -> tuple:
+    return tuple(int(x) if x.isdigit() else 0 for x in v.split("."))
+
+
 def create_app(test_config: dict | None = None) -> Flask:
     data_dir = os.environ.get("ASSETLOTSE_DATA_DIR")
     app = Flask(__name__, instance_path=os.path.abspath(data_dir) if data_dir else None,
@@ -334,6 +377,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     # ---- Start-Schritte unter exklusiver Sperre (mehrere gunicorn-Worker starten gleichzeitig) ----
     with _startup_lock(instance), app.app_context():
+        previous_version = _backup_before_upgrade()
         db.create_all()
         from .models import ensure_columns
         for col in ensure_columns():
@@ -344,6 +388,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         from .models import encrypt_stored_secrets
         if encrypt_stored_secrets():
             logging.getLogger(__name__).info("Gespeicherte Zugangsdaten (AD, SMTP) werden jetzt verschlüsselt abgelegt")
+        if previous_version != __version__:
+            set_setting("app_version", __version__)
+            db.session.commit()
 
     # Hintergrund-Job für E-Mail-Erinnerungen (täglich zur eingestellten Uhrzeit)
     if not app.config.get("TESTING") and os.environ.get("ASSETLOTSE_SCHEDULER", "1") == "1":

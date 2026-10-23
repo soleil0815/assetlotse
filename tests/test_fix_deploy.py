@@ -687,7 +687,7 @@ class UpdatePullTest(UpdateScriptRunTest):
         env = self.env_file()
         self.assertIn("X=1", env)                                           # eigene Einträge bleiben
         for line in (f"ASSETLOTSE_REGISTRY_IMAGE={self.REG}", f"ASSETLOTSE_IMAGE={self.REG}",
-                     "ASSETLOTSE_TAG=2.0.0"):
+                     "ASSETLOTSE_TAG=latest"):
             self.assertIn(line, env)
         self.assertIn(f"image rm {self.REG}:1.5.0", log)                   # ältere GitHub-Images weg …
         self.assertNotIn("image rm assetlotse:1.0.0", log)                 # … das vorige (lokale) bleibt
@@ -724,6 +724,26 @@ class UpdatePullTest(UpdateScriptRunTest):
         self.assertNotIn(f"image rm {self.REG}:1.5.0", log)                # jüngeres älteres GitHub-Image bleibt
         self.assertIn("image rm assetlotse:1.0.0", log)
         self.assertNotIn(f"image rm {self.REG}:2.0.0", log)
+
+    def test_follows_latest_or_pinned_version(self):
+        (self.inst / ".env").write_text("X=1\nASSETLOTSE_DOCKHAND_UPDATE=true\n")   # alte Einstellung aus 1.8.0
+        r = self.run_pull("--pull")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        env, log = self.env_file(), self.log.read_text()
+        self.assertIn("ASSETLOTSE_TAG=latest", env)
+        self.assertNotIn("DOCKHAND", env)                                     # wird entfernt
+        self.assertNotIn(f"image rm {self.REG}:latest", log)                # der Container folgt latest
+        self.assertNotIn(f"image rm {self.REG}:2.0.0", log)
+        # festlegen – Update-Tools lassen den Container dann in Ruhe
+        r = self.run_pull("--pull", "--version", "2.0.0")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("Pinned to version 2.0.0", r.stdout)
+        self.assertIn("ASSETLOTSE_TAG=2.0.0", self.env_file())
+        # das nächste --pull folgt wieder latest
+        self.assertEqual(self.run_pull("--pull").returncode, 0)
+        env = self.env_file()
+        self.assertIn("ASSETLOTSE_TAG=latest", env)
+        self.assertEqual(env.count("ASSETLOTSE_TAG="), 1)
 
     def test_zip_after_pull_switches_back_to_local_image(self):
         self.assertEqual(self.run_pull("--pull").returncode, 0)
@@ -782,3 +802,24 @@ class ReleaseFilesTest(unittest.TestCase):
         for f in ("update.sh", "Dockerfile", "docker-entrypoint.sh", "requirements.txt"):
             self.assertIn(f, install_layer)
         self.assertNotIn("update.sh", (ROOT / ".dockerignore").read_text().split())
+
+
+@unittest.skipUnless(shutil.which("docker") and subprocess.run(["docker", "compose", "version"], capture_output=True).returncode == 0,
+                     "braucht docker compose")
+class ComposeInterpolationTest(unittest.TestCase):
+    def config(self, env_text):
+        with tempfile.TemporaryDirectory() as d:
+            shutil.copy(ROOT / "docker-compose.yml", Path(d) / "docker-compose.yml")
+            (Path(d) / ".env").write_text(env_text)
+            r = subprocess.run(["docker", "compose", "config"], cwd=d, capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            return r.stdout
+
+    def test_local_default_and_registry_latest(self):
+        import re
+        version = re.search(r'__version__ = "(.*?)"', (ROOT / "assetlotse" / "__init__.py").read_text()).group(1)
+        out = self.config("")
+        self.assertIn(f"image: assetlotse:{version}", out)
+        out = self.config("ASSETLOTSE_IMAGE=ghcr.io/soleil0815/assetlotse\nASSETLOTSE_TAG=latest\n")
+        self.assertIn("image: ghcr.io/soleil0815/assetlotse:latest", out)
+        self.assertNotIn("dockhand", out)

@@ -9,7 +9,12 @@
 # Ready-made images (built by GitHub Actions, see .github/workflows/docker.yml):
 #   --pull           pull the image instead of building it (also updates update.sh & co.)
 #   --image ADDRESS  other image address (default ghcr.io/soleil0815/assetlotse, saved in .env)
-#   --version X.Y.Z  a specific version instead of the newest (also to go back)
+#   --version X.Y.Z  pin a specific version instead of following the newest (also to go back);
+#                    the next plain --pull follows the newest version again
+#
+# With --pull the container follows the image tag "latest", so other update tools can install
+# new versions as well. AssetLotse backs up the database itself whenever a
+# new version starts for the first time.
 #
 # Options:
 #   --no-backup   do not make a backup first
@@ -60,7 +65,7 @@ usage() { awk 'NR>2 && /^# ---/{exit} NR>2{sub(/^# ?/,""); print}' "$0"; exit 0;
 # ---------------------------------------------------------------- Arguments
 BACKUP=1; NOCACHE=""; PRUNE=0; YES=0; ZIP=""; CLEANUP=1; CLEANUP_ONLY=0
 AFTER_SWAP=0; HANDED_OLD_VERSION=""; HANDED_ZIP=""
-PULL=0; WANT_IMAGE=""; WANT_VERSION=""; PULLED_REF=""
+PULL=0; WANT_IMAGE=""; WANT_VERSION=""; PULLED_REF=""; PINNED=0
 ARGS=("$@")
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -75,6 +80,7 @@ while [ "$#" -gt 0 ]; do
                       WANT_IMAGE="$2"; shift ;;
         --version)    [ "$#" -ge 2 ] || die "--version needs a version number, e.g. --version 1.7.0"
                       WANT_VERSION="$2"; shift ;;
+        --pinned)     PINNED=1 ;;      # internal: handover, the version was given with --version
         # internal: the image the old script pulled (handover after the swap)
         --pulled)     [ "$#" -ge 2 ] || die "Internal error during handover."
                       PULL=1; PULLED_REF="$2"; shift ;;
@@ -160,6 +166,10 @@ set_env() {      # set KEY=VALUE in .env (replace existing lines, otherwise appe
         printf '%s=%s\n' "$key" "$value" >> .env
     fi
 }
+unset_env() {    # remove KEY=… lines from .env (no-op if absent)
+    [ -f .env ] && grep -Eq "^[[:space:]]*(export[[:space:]]+)?$1[[:space:]]*=" .env || return 0
+    sed -i --follow-symlinks -E "/^[[:space:]]*(export[[:space:]]+)?$1[[:space:]]*=/d" .env
+}
 # Which image is running now: built locally (assetlotse) or ready-made (ghcr.io/…)
 OLD_IMAGE="$(env_value ASSETLOTSE_IMAGE)"; OLD_IMAGE="${OLD_IMAGE:-assetlotse}"
 # Where the ready-made images live (GitHub Actions of the AssetLotse repository); --image overrides it
@@ -167,6 +177,7 @@ DEFAULT_REGISTRY_IMAGE="ghcr.io/soleil0815/assetlotse"
 REGISTRY_IMAGE="$(env_value ASSETLOTSE_REGISTRY_IMAGE)"
 REGISTRY_IMAGE="${REGISTRY_IMAGE:-$DEFAULT_REGISTRY_IMAGE}"
 KNOWN_REGISTRY_IMAGE="$REGISTRY_IMAGE"
+
 OLD_VERSION="$(version_of .)"
 if [ "$AFTER_SWAP" = 1 ]; then
     OLD_VERSION="$HANDED_OLD_VERSION"        # the files have already been swapped
@@ -349,8 +360,10 @@ cleanup_install() {  # after a successful update, or with --cleanup
         if [ "$PRUNE" = 0 ] && [ "$ref" = "$keep_ref" ]; then continue; fi
         docker image rm "$ref" >/dev/null 2>&1 && echo "  removed: image $ref" && n=$((n+1)) || true
     done <<<"$refs"
-    # "latest" is only a pointer for pulling – the running version has its own tag
-    docker image rm "${REGISTRY_IMAGE}:latest" >/dev/null 2>&1 || true
+    # "latest" is only a pointer for pulling – unless the container follows it
+    if [ "$(env_value ASSETLOTSE_TAG)" != latest ]; then
+        docker image rm "${REGISTRY_IMAGE}:latest" >/dev/null 2>&1 || true
+    fi
     # dangling (untagged) AssetLotse images, e.g. from aborted builds – only ours, nothing else on the server
     docker image prune -f --filter "label=org.opencontainers.image.title=AssetLotse" >/dev/null 2>&1 || true
     if [ "$n" = 0 ]; then ok "Nothing to clean up."; else ok "Cleaned up ($n)."; fi
@@ -528,6 +541,7 @@ if { [ -n "$ZIP" ] || [ "$PULL" = 1 ]; } && [ "$AFTER_SWAP" = 0 ]; then
         [ "$CLEANUP" = 0 ] && PASS+=(--no-cleanup)
         [ "$YES" = 1 ] && PASS+=(-y)
         [ "$PULL" = 1 ] && PASS+=(--pulled "$PULLED_REF")
+        [ -n "$WANT_VERSION" ] && PASS+=(--pinned)
         trap - EXIT
         exec bash ./update.sh "${PASS[@]}" --continue-after-swap "${OLD_VERSION:-}" "$ZIP"
     fi
@@ -548,14 +562,25 @@ if [ "$PULL" = 1 ]; then
     [ "$VERSION" = "${PULLED_REF##*:}" ] || die "Version mismatch: files $VERSION, image $PULLED_REF."
     set_env ASSETLOTSE_REGISTRY_IMAGE "$REGISTRY_IMAGE"
     set_env ASSETLOTSE_IMAGE "$REGISTRY_IMAGE"
-    set_env ASSETLOTSE_TAG "$VERSION"
+    if [ "$PINNED" = 1 ] || [ -n "$WANT_VERSION" ]; then
+        # pinned: update tools leave it alone until the next plain ./update.sh --pull
+        set_env ASSETLOTSE_TAG "$VERSION"
+        ok "Pinned to version ${VERSION}. Back to the newest version with:  ./update.sh --pull"
+    else
+        # follows "latest": ./update.sh --pull or another update tool installs new versions
+        docker tag "$PULLED_REF" "${REGISTRY_IMAGE}:latest" >/dev/null 2>&1 || true
+        set_env ASSETLOTSE_TAG latest
+    fi
+    unset_env ASSETLOTSE_DOCKHAND_UPDATE        # setting of 1.8.0, no longer used
 elif [ -n "$(env_value ASSETLOTSE_IMAGE)$(env_value ASSETLOTSE_TAG)" ]; then
-    # Built locally: never under the GitHub name – Dockhand would replace it with the GitHub image
+    # Built locally: never under the GitHub name – an update tool would replace it with the GitHub image
     if [ "$OLD_IMAGE" != assetlotse ]; then
         warn "Switching from the ready-made image ($OLD_IMAGE) to a locally built one. Back to GitHub images with:  ./update.sh --pull"
     fi
     set_env ASSETLOTSE_IMAGE assetlotse
     set_env ASSETLOTSE_TAG "$VERSION"
+    unset_env ASSETLOTSE_DOCKHAND_UPDATE
+    [ "$OLD_IMAGE" = assetlotse ] || warn "Update tools cannot update a locally built image – they only work after  ./update.sh --pull"
 fi
 if [ -n "$OLD_VERSION" ] && [ -f "packages/assetlotse-${OLD_VERSION}.zip" ]; then
     GO_BACK="./update.sh packages/assetlotse-${OLD_VERSION}.zip"

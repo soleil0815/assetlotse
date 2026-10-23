@@ -5,18 +5,15 @@
 services:
   assetlotse:
     # Image source – managed by update.sh in .env:
-    #   built locally from a package:  assetlotse:<version>            (./update.sh assetlotse-X.Y.Z.zip)
-    #   ready-made from GitHub:        ghcr.io/<owner>/<repo>:<version> (./update.sh --pull)
-    image: ${ASSETLOTSE_IMAGE:-assetlotse}:${ASSETLOTSE_TAG:-1.7.0}
+    #   built locally from a package:  assetlotse:<version>          (./update.sh assetlotse-X.Y.Z.zip)
+    #   ready-made from GitHub:        ghcr.io/<owner>/<repo>:latest  (./update.sh --pull) – other update
+    #                                  tools can then install new versions as well
+    image: ${ASSETLOTSE_IMAGE:-assetlotse}:${ASSETLOTSE_TAG:-1.8.1}
     build: .
     container_name: assetlotse
     restart: unless-stopped
     security_opt:
       - "no-new-privileges:true"  # no privilege gain via setuid programs in the container
-    labels:
-      # No automatic updates by Dockhand: the image is pinned to an exact version, and only ./update.sh
-      # makes a backup first and keeps update.sh/docker-compose.yml in step with the image.
-      - "dockhand.update=false"
     ports:
       # change the port only in .env (ASSETLOTSE_PORT) – the same number applies outside and inside
       - "${ASSETLOTSE_BIND:-0.0.0.0}:${ASSETLOTSE_PORT:-9343}:${ASSETLOTSE_PORT:-9343}"

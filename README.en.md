@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.7.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 1.8.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -91,14 +91,14 @@ docker login ghcr.io -u soleil0815        # password = the token
 
 **Updating the server:**
 ```bash
-./update.sh --pull                  # newest version
-./update.sh --pull --version 1.7.0  # a specific version, also to go back
+./update.sh --pull                  # newest version (then follows latest)
+./update.sh --pull --version 1.8.1  # pin a version, also to go back
 ```
 The script backs up the database, pulls the image, takes `update.sh`, `docker-compose.yml` & co. out of the image (so the installation files stay current), restarts and removes old images. Which image runs is recorded in `.env` (`ASSETLOTSE_IMAGE`, `ASSETLOTSE_TAG` – managed by `update.sh`). Another repository (e.g. a fork): `--image ghcr.io/NAME/REPO`.
 
-**Both ways keep working:** `./update.sh assetlotse-X.Y.Z.zip` builds locally as before – the image is then called `assetlotse:X.Y.Z`, never like the GitHub image, so Dockhand does not replace it. The next `--pull` switches back to GitHub.
+**Both ways keep working:** `./update.sh assetlotse-X.Y.Z.zip` builds locally as before – the image is then called `assetlotse:X.Y.Z`, never like the GitHub image, so no update tool replaces it. The next `--pull` switches back to GitHub.
 
-**Dockhand** does not update AssetLotse by itself (`dockhand.update=false`): the image is pinned to an exact version, and only `update.sh` backs up the database first and keeps `update.sh`/`docker-compose.yml` in step with the image. Dockhand can still show and monitor the container.
+**Updates with other tools:** after `./update.sh --pull` the container follows the `latest` tag. You can therefore install new versions with `./update.sh --pull` **or** with any tool that updates containers (e.g. Dockhand or Watchtower). Both are safe: when a new version starts for the first time, AssetLotse makes a backup itself **before** any change to the database (`…-vor-update.db`, under *Administration → Backup*; SQLite only). A tool only replaces the container, though, not `update.sh` and `docker-compose.yml` on the server – if those change, the CHANGELOG says so; then run `./update.sh --pull` once. `--version X.Y.Z` pins a version (tools then leave it alone); the next `./update.sh --pull` follows the newest again.
 
 **Trust:** with `--pull` the script takes `update.sh` out of the image and runs it with your rights. It therefore checks that the image was built from the matching GitHub repository (label `org.opencontainers.image.source`), shows version and digest, and always asks for an explicit "yes" for a new image address – even with `-y`. Anyone with write access to the repository can influence what runs on the server, so grant repository access accordingly. `latest` always points to the highest released version; a fix for an older line (e.g. `v1.6.4` after `v1.7.0`) does not change `latest`.
 
