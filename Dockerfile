@@ -5,7 +5,7 @@ ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3d
 FROM ${PYTHON_IMAGE}
 
 LABEL org.opencontainers.image.title="AssetLotse" \
-      org.opencontainers.image.version="1.8.1" \
+      org.opencontainers.image.version="1.8.2" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

@@ -173,7 +173,7 @@ def index():
             groups.append((GROUPS[role][1 if lang == "en" else 0], items))
     manual = MANUALS.get(lang, MANUALS["de"])
     if not (_docs_dir() / manual).exists():
-        manual = MANUALS["de"]          # z. B. englische Oberfläche: deutsches Handbuch, solange es kein englisches gibt
+        manual = MANUALS["de"]          # fehlt die Sprachfassung, das deutsche Handbuch
     has_manual = (_docs_dir() / manual).exists()
     return render_template("help/index.html", groups=groups, lang=lang, focus=focus, f=facts(),
                            has_manual=has_manual, manual=manual)

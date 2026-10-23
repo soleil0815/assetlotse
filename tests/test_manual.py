@@ -18,11 +18,18 @@ class ManualTests(Base):
         self.assertEqual((r.status_code, r.mimetype), (200, "application/pdf"))
         r.close()
 
-    def test_english_ui_falls_back_to_german_manual(self):
+    def test_english_ui_gets_english_manual(self):
+        pdf = ROOT / "docs" / "Manual-AssetLotse.pdf"
+        self.assertTrue(pdf.exists())
+        self.assertEqual(pdf.read_bytes()[:5], b"%PDF-")
         self.login("mia")
         self.c.post("/sprache/en")
         html = self.c.get("/hilfe").get_data(as_text=True)
-        self.assertIn("/hilfe/handbuch/Handbuch-AssetLotse.pdf", html)
+        self.assertIn("/hilfe/handbuch/Manual-AssetLotse.pdf", html)
+        self.assertNotIn("Handbuch-AssetLotse.pdf", html)
+        r = self.c.get("/hilfe/handbuch/Manual-AssetLotse.pdf")
+        self.assertEqual((r.status_code, r.mimetype), (200, "application/pdf"))
+        r.close()
 
     def test_only_known_files(self):
         self.login("mia")

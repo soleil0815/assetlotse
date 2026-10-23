@@ -2,6 +2,12 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.8.2 – 2026-10-23
+
+**Neu**
+- **Englisches Handbuch** `docs/Manual-AssetLotse.pdf` mit Bildschirmfotos der englischen Oberfläche. Die Hilfe
+  verlinkt in der englischen Oberfläche jetzt dieses statt des deutschen.
+
 ## 1.8.1 – 2026-10-23
 
 Ersetzt 1.8.0 (dort gab es einen eigenen Dockhand-Modus – entfernt, jetzt geht es mit jedem Tool).
@@ -61,7 +67,7 @@ Server. Wenn sich diese ändern, steht es hier im CHANGELOG – dann einmal `./u
 **Hinweise zum Update von 1.6.1:**
 - Das alte `update.sh` kennt das Aufräumen noch nicht. Nach diesem Update einmal `./update.sh --cleanup` ausführen –
   ab dann räumt jedes Update selbst auf.
-- Ist die Selbstregistrierung mit E-Mail-Bestätigung an, muss unter *Verwaltung → E-Mail* die **Adresse von
+- Ist die Selbstregistrierung mit E-Mail-Bestätigung an, muss unter *Administration → E-Mail* die **Adresse von
   AssetLotse** eingetragen sein (so, wie sie von außen erreichbar ist) – sonst ist die Registrierung gesperrt.
 - `./data` ist jetzt nur noch für den App-Benutzer lesbar. Kopiert ein Skript auf dem Server die Sicherungen, muss
   es als root oder als `PUID` laufen.

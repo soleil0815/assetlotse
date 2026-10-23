@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.8.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 1.8.2** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -224,7 +224,7 @@ Under *Inventory*, managers can download the inventory of their groups as **CSV*
 - The texts follow your settings: loan period, extensions, self-service checkout, e-mail reminders, registration, mandatory 2FA, AD or local account …
 - A search box covers all topics.
 
-**PDF manual:** `docs/Handbuch-AssetLotse.pdf` (German, with screenshots) – for staff, managers and administrators, including troubleshooting and emergency commands. The in-app help links it at the top (*Manual (PDF)*); the English interface links the German manual as long as there is no `docs/Manual-AssetLotse.pdf`.
+**PDF manual:** `docs/Manual-AssetLotse.pdf` (English, with screenshots of the English interface) and `docs/Handbuch-AssetLotse.pdf` (German) – for staff, managers and administrators, including troubleshooting and emergency commands. The in-app help links the manual in the language of the interface at the top (*Manual (PDF)*).
 
 **Maintaining translations:** The German text is also the key (`_("…")` in templates and Python, `T("…")` in `app.js`); the English texts live in `assetlotse/translations/en.json`. The test `tests/test_i18n.py` reports every text without a translation and German leftovers on English pages. Help texts are stored per language in `assetlotse/templates/help/de|en/`.
 
@@ -542,7 +542,7 @@ assetlotse/
                    loans (issuing, returns, issue desk), locations, admin, security, register, help
   templates/       Jinja templates (incl. e-mail templates and help texts help/de, help/en)
   static/          CSS, JavaScript (no build step)
-docs/              Handbuch-AssetLotse.pdf (linked in the help)
+docs/              Handbuch-AssetLotse.pdf, Manual-AssetLotse.pdf (linked in the help)
 tests/             Automated tests
 ```
 

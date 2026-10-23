@@ -128,7 +128,7 @@ def send_verification(user: User) -> bool:
     base = _base_url()
     if not base:
         log.warning("Bestätigungs-E-Mail nicht gesendet: keine Adresse für Links in E-Mails eingestellt "
-                    "(Verwaltung → E-Mail)")
+                    "(Administration → E-Mail)")
         return False
     token = _serializer().dumps({"uid": user.id, "email": user.email})
     link = f"{base}{url_for('register.verify', token=token)}"
@@ -185,7 +185,7 @@ def register():
         error = None
         if needs_verification() and not _base_url():
             log.warning("Registrierung abgelehnt: E-Mail-Bestätigung ist an, aber keine Adresse für Links in "
-                        "E-Mails eingestellt (Verwaltung → E-Mail)")
+                        "E-Mails eingestellt (Administration → E-Mail)")
             flash(_("Die Registrierung ist gerade nicht möglich. Bitte versuche es später erneut."), "error")
             return render_template("register.html", v=values, privacy=privacy), 503
         if not USERNAME_RE.match(username):

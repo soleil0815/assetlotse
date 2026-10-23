@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.8.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 1.8.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -224,7 +224,7 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 - Die Texte richten sich nach euren Einstellungen: Leihdauer, Verlängerungen, Selbstausleihe, E-Mail-Erinnerungen, Registrierung, Zwei-Faktor-Pflicht, AD-Konto oder lokales Konto …
 - Suchfeld über alle Themen.
 
-**Handbuch als PDF:** `docs/Handbuch-AssetLotse.pdf` (Deutsch, mit Bildschirmfotos) – für Mitarbeitende, Verwalter und Administratoren, mit Fehlerbehebung und Notfallbefehlen. Die Hilfe im Programm verlinkt es oben (*Handbuch (PDF)*); in der englischen Oberfläche ebenfalls, solange es kein `docs/Manual-AssetLotse.pdf` gibt.
+**Handbuch als PDF:** `docs/Handbuch-AssetLotse.pdf` (Deutsch) und `docs/Manual-AssetLotse.pdf` (Englisch, mit Bildschirmfotos der englischen Oberfläche) – für Mitarbeitende, Verwalter und Administratoren, mit Fehlerbehebung und Notfallbefehlen. Die Hilfe im Programm verlinkt oben das Handbuch in der Sprache der Oberfläche (*Handbuch (PDF)*).
 
 **Übersetzungen pflegen:** Der deutsche Text ist zugleich der Schlüssel (`_("…")` in Templates und Python, `T("…")` in `app.js`); die englischen Texte stehen in `assetlotse/translations/en.json`. Der Test `tests/test_i18n.py` meldet jeden Text ohne Übersetzung und deutsche Reste auf englischen Seiten. Die Hilfetexte liegen je Sprache in `assetlotse/templates/help/de|en/`.
 
@@ -542,7 +542,7 @@ assetlotse/
                    loans (Ausgabe, Rückgabe, Ausgabetheke), locations, admin, security, register, help
   templates/       Jinja-Templates (inkl. E-Mail-Vorlagen und Hilfetexte help/de, help/en)
   static/          CSS, JavaScript (ohne Build-Schritt)
-docs/              Handbuch-AssetLotse.pdf (wird in der Hilfe verlinkt)
+docs/              Handbuch-AssetLotse.pdf, Manual-AssetLotse.pdf (werden in der Hilfe verlinkt)
 tests/             Automatische Tests
 ```
 
