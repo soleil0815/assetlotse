@@ -75,14 +75,13 @@ Das Skript braucht Docker Compose – das Plugin `docker compose` oder das älte
 
 Statt auf dem Server zu bauen, kann GitHub das Image bauen: Der Workflow `.github/workflows/docker.yml` baut bei jedem Versions-Tag das Image und legt es unter **`ghcr.io/soleil0815/assetlotse`** ab (Tags `1.7.0`, `1.7` und `latest`). Der Server lädt es nur noch herunter – ein Update dauert Sekunden.
 
-**Neue Version veröffentlichen** (auf deinem Rechner, im Repository-Ordner): Zip entpacken und die Dateien überschreiben, dann
+**Neue Version veröffentlichen:** Die neue Versionsnummer (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) auf `master` hochladen – mehr nicht. Der Workflow merkt, dass es `v<Version>` noch nicht gibt, baut das Image, setzt `latest` (wenn es die höchste Version ist) und legt den Tag `v<Version>` selbst an. Hochladen ohne neue Versionsnummer baut nichts. Per Zip, im Repository-Ordner:
 ```bash
 git add -A
-git commit -m "AssetLotse 1.7.0"
-git tag v1.7.0                  # muss zur Version in assetlotse/__init__.py passen
-git push --follow-tags
+git commit -m "AssetLotse 1.9.0"
+git push
 ```
-Unter *Actions* siehst du den Lauf (ein paar Minuten), danach liegt das Image unter *Packages*. Passt der Tag nicht zur Version, bricht der Lauf mit einer Meldung ab. Zum Ausprobieren ohne Tag: *Actions → Docker image → Run workflow* (Image-Tag `test-<commit>`, die Versions-Tags bleiben unberührt).
+Unter *Actions* siehst du den Lauf (ein, zwei Minuten), danach liegt das Image unter *Packages*. Einen Tag von Hand zu setzen (`git tag v1.9.0 && git push origin v1.9.0`) geht weiterhin. Zum Ausprobieren ohne Release: *Actions → Docker image → Run workflow* (Image-Tag `test-<commit>`).
 
 **Einmalig auf dem Server** (privates Repository): auf GitHub ein Token (*Settings → Developer settings → Personal access tokens*) mit dem Recht `read:packages` anlegen, dann
 ```bash

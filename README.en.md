@@ -75,14 +75,13 @@ Requires Docker Compose – the `docker compose` plugin or the older standalone 
 
 Instead of building on the server, GitHub can build the image: the workflow `.github/workflows/docker.yml` builds it for every version tag and publishes it as **`ghcr.io/soleil0815/assetlotse`** (tags `1.7.0`, `1.7` and `latest`). The server only downloads it – an update takes seconds.
 
-**Publishing a new version** (on your computer, in the repository folder): unpack the zip over the files, then
+**Publishing a new version:** push the new version number (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) to `master` – nothing else. The workflow notices that `v<version>` does not exist yet, builds the image, sets `latest` (if it is the highest version) and creates the tag `v<version>` itself. Pushes without a new version number build nothing. From a zip, in the repository folder:
 ```bash
 git add -A
-git commit -m "AssetLotse 1.7.0"
-git tag v1.7.0                  # must match the version in assetlotse/__init__.py
-git push --follow-tags
+git commit -m "AssetLotse 1.9.0"
+git push
 ```
-The run shows up under *Actions* (a few minutes), then the image appears under *Packages*. If the tag does not match the version, the run stops with a message. To try it without a tag: *Actions → Docker image → Run workflow* (image tag `test-<commit>`, the version tags stay untouched).
+The run shows up under *Actions* (a minute or two), then the image appears under *Packages*. Setting a tag by hand (`git tag v1.9.0 && git push origin v1.9.0`) still works. To try it without a release: *Actions → Docker image → Run workflow* (image tag `test-<commit>`).
 
 **Once on the server** (private repository): create a token on GitHub (*Settings → Developer settings → Personal access tokens*) with the `read:packages` permission, then
 ```bash

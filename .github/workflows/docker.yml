@@ -1,8 +1,9 @@
 # Builds the AssetLotse image on GitHub and publishes it to ghcr.io/<owner>/<repo>.
 #
-# Release: push a version tag that matches assetlotse/__init__.py, e.g.
-#   git tag v1.7.0 && git push origin v1.7.0
-#   → tags 1.7.0 and 1.7; "latest" only if it is the highest version released so far.
+# Release – automatic: push to master with a new version in assetlotse/__init__.py. If there is no tag
+#   v<version> yet, the image is built (tags <version>, <minor> and – if it is the highest release –
+#   "latest") and the tag v<version> is created. Pushes without a new version build nothing.
+# Release – by hand (still works): git tag v1.9.0 && git push origin v1.9.0
 # Test: Actions → Docker image → Run workflow → tag "test-<commit>" (release tags stay untouched).
 #
 # On the server:  ./update.sh --pull   (see README, "Ready-made images from GitHub")
@@ -11,11 +12,12 @@ name: Docker image
 
 on:
   push:
+    branches: [master, main]
     tags: ["v*"]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write      # create the release tag v<version>
   packages: write
 
 concurrency:
@@ -38,11 +40,25 @@ jobs:
           grep -q "org.opencontainers.image.version=\"${version}\"" Dockerfile \
             || { echo "::error::Dockerfile LABEL org.opencontainers.image.version is not ${version}"; exit 1; }
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
-          if [ "${{ github.event_name }}" = "push" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            [ "${GITHUB_REF_NAME}" = "v${version}" ] \
-              || { echo "::error::Tag ${GITHUB_REF_NAME} does not match version ${version} (expected v${version})"; exit 1; }
+          release=false
+          if [ "${{ github.event_name }}" = "push" ] && [ "${GITHUB_REF_TYPE}" = "branch" ]; then
+            if git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; then
+              echo "::notice::v${version} is already released – nothing to build (raise the version to release)."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            release=true
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            release=true
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "create_tag=$([ "${GITHUB_REF_TYPE}" = branch ] && [ "$release" = true ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          if [ "$release" = true ]; then
+            if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+              echo "::error::Tag ${GITHUB_REF_NAME} does not match version ${version} (expected v${version})"; exit 1
+            fi
             tags="${image}:${version},${image}:${version%.*}"
-            highest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//' | sort -V | tail -n1)"
+            highest="$( { git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//'; echo "$version"; } | sort -V | tail -n1)"
             if [ "$highest" = "$version" ]; then
               tags="${tags},${image}:latest"
             else
@@ -55,15 +71,18 @@ jobs:
           echo "tags=${tags}" >> "$GITHUB_OUTPUT"
           { echo "### AssetLotse ${version}"; echo "Tags: \`${tags//,/\`, \`}\`"; } >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - if: steps.meta.outputs.skip != 'true'
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      - if: steps.meta.outputs.skip != 'true'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+      - if: steps.meta.outputs.skip != 'true'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           push: true
@@ -74,3 +93,9 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Create release tag
+        if: steps.meta.outputs.skip != 'true' && steps.meta.outputs.create_tag == 'true'
+        run: |
+          git tag "v${{ steps.meta.outputs.version }}" "${GITHUB_SHA}"
+          git push origin "v${{ steps.meta.outputs.version }}"
