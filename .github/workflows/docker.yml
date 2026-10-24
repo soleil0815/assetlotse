@@ -162,16 +162,15 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           trivyignores: .trivyignore
-          format: table
-          output: trivy.txt
+          format: json
+          output: trivy.json
           exit-code: "1"
 
       - name: Scan result
         if: always()
-        run: |
-          [ -s trivy.txt ] || exit 0
-          cat trivy.txt
-          { echo "### Trivy (HIGH/CRITICAL with a fix)"; echo '```'; cat trivy.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          HEADING: Trivy (HIGH/CRITICAL with a fix)
+        run: .github/trivy-report.sh trivy.json
 
   # publish exactly the scanned image, then create the release tag
   publish:
@@ -249,18 +248,12 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           trivyignores: .trivyignore
-          format: table
-          output: trivy.txt
+          format: json
+          output: trivy.json
           exit-code: "1"
 
       - name: Scan result
         if: always()
         env:
-          REF: ${{ steps.img.outputs.ref }}
-          VERSION: ${{ steps.img.outputs.version }}
-        run: |
-          [ -s trivy.txt ] || exit 0
-          cat trivy.txt
-          { echo "### Trivy: ${REF} (${VERSION})"
-            echo "A finding here means: build a new version (base image / packages updated)."
-            echo '```'; cat trivy.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          HEADING: "Trivy: ${{ steps.img.outputs.ref }} (${{ steps.img.outputs.version }}) – a finding here means: build a new version"
+        run: .github/trivy-report.sh trivy.json
