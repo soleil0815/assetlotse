@@ -13,8 +13,9 @@
 # Weekly rebuild (security updates): every Monday the highest release is built again from its tag, on the newest
 #   Python image of its line (e.g. python:3.13-slim-trixie) and with all Debian updates. It is tested and scanned
 #   like a release and – only if both pass and something actually changed – published as "latest", "<minor>" and
-#   "<version>-<date>". The exact tag "<version>" stays the image as released. The Python packages stay as pinned
-#   in requirements.txt. A failed run changes nothing (GitHub sends an e-mail). By hand: Run workflow → weekly.
+#   "<version>-<date>". The exact tag "<version>" stays the image as released. The Python packages are the newest
+#   within the ranges of requirements.in (sub-dependencies too). A failed run changes nothing (GitHub sends an
+#   e-mail). By hand: Run workflow → weekly.
 # Jobs: build (read only) → test + scan (read only, the scanner never sees write access or registry login)
 #   → publish (write access, pushes exactly the tested and scanned image and creates the tag).
 #
@@ -100,8 +101,8 @@ jobs:
             stamp="$(date -u +%Y%m%d)"
             tags="${image}:latest,${image}:${version%.*},${image}:${version}-${stamp}"
             { echo "skip=false"; echo "create_tag=false"; echo "weekly=true"; echo "tags=${tags}"
-              echo "build_args<<EOF"; echo "PYTHON_IMAGE=${base}"; echo "OS_UPGRADE=${stamp}"; echo "EOF"; } >> "$GITHUB_OUTPUT"
-            { echo "### Security rebuild of ${version}"; echo "Base: \`${base}\` + Debian updates"
+              echo "build_args<<EOF"; echo "PYTHON_IMAGE=${base}"; echo "OS_UPGRADE=${stamp}"; echo "PKG_UPGRADE=${stamp}"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+            { echo "### Security rebuild of ${version}"; echo "Base: \`${base}\` + Debian updates + newest Python packages within requirements.in"
               echo "Tags (if tests and scan pass and something changed): \`${tags//,/\`, \`}\`"; } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi

@@ -15,7 +15,7 @@
 Flask==3.1.3
 Werkzeug==3.1.9
 Jinja2==3.1.6
-MarkupSafe==3.0.3
+MarkupSafe==3.0.4
 itsdangerous==2.2.0
 click==8.5.0
 blinker==1.9.0
@@ -24,9 +24,9 @@ colorama==0.4.6 ; platform_system == "Windows"     # needed by click on Windows
 # Sign-in, forms, database
 Flask-Login==0.6.3
 Flask-WTF==1.3.0
-WTForms==3.2.2
+WTForms==3.3.1
 Flask-SQLAlchemy==3.1.1
-SQLAlchemy==2.1.4
+SQLAlchemy==2.1.6
 typing_extensions==4.16.0
 PyMySQL==1.2.3          # driver for MySQL/MariaDB (DATABASE_URL=mysql+pymysql://…)
 
@@ -35,9 +35,9 @@ ldap3==2.9.1
 pyasn1==0.6.4
 
 # Encryption, two-factor sign-in, QR codes
-cryptography==50.0.1
+cryptography==50.0.2
 cffi==2.1.1
-pycparser==3.0
+pycparser==3.12
 fido2==2.2.1
 segno==1.6.6
 
@@ -48,8 +48,8 @@ pillow==13.0.0
 requests==2.34.2
 urllib3==2.8.0
 idna==3.20
-charset-normalizer==3.5.1
-certifi==2026.10.19
+charset-normalizer==3.5.2
+certifi==2026.10.23
 
 # Application server
 gunicorn==26.2.0 ; sys_platform != "win32"

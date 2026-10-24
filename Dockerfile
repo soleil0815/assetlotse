@@ -13,7 +13,7 @@ RUN if [ -n "$OS_UPGRADE" ]; then \
     fi
 
 LABEL org.opencontainers.image.title="AssetLotse" \
-      org.opencontainers.image.version="1.9.4" \
+      org.opencontainers.image.version="1.9.5" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -27,13 +27,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PGID=1000
 
 WORKDIR /app
-COPY requirements.txt .
-# pin pip itself, then install exactly the lock file – without pulling in sub-dependencies
+COPY requirements.txt requirements.in ./
+# Normal build: pin pip itself, then install exactly the lock file – without pulling in sub-dependencies
 # (--no-deps) – and finally check that everything fits together.
+# Weekly security rebuild on GitHub (PKG_UPGRADE=<date>): instead the newest versions within the ranges
+# of requirements.in, sub-dependencies included; the tests in the workflow then run against exactly these.
 # pip is removed afterwards: AssetLotse does not need it at runtime, and pip carries its own
 # (often older) copies of urllib3, msgpack and setuptools that the Trivy scan rightly reports.
-RUN pip install pip==26.2.2 \
- && pip install --no-deps --only-binary=:all: -r requirements.txt \
+ARG PKG_UPGRADE=
+RUN if [ -n "$PKG_UPGRADE" ]; then \
+      pip install --upgrade pip \
+      && pip install --upgrade --upgrade-strategy eager --only-binary=:all: -r requirements.in; \
+    else \
+      pip install pip==26.2.2 \
+      && pip install --no-deps --only-binary=:all: -r requirements.txt; \
+    fi \
  && pip check \
  && pip uninstall -y pip \
  && ! python -c "import pip" 2>/dev/null

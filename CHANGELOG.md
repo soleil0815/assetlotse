@@ -2,6 +2,15 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.9.5 – 2026-10-24
+
+**Sicherheit**
+- **Der Montagsneubau aktualisiert jetzt auch die Python-Pakete:** jeweils die neueste Version innerhalb der Bereiche
+  aus `requirements.in`, Unterabhängigkeiten eingeschlossen. Tests und Trivy laufen gegen genau diese Versionen;
+  nur wenn beides besteht, wird veröffentlicht. Sprünge über die Bereiche hinaus kommen weiterhin als neue Version.
+- Feste Paketversionen aktualisiert: cryptography 50.0.2, SQLAlchemy 2.1.6, WTForms 3.3.1, MarkupSafe 3.0.4,
+  certifi 2026.10.23, charset-normalizer 3.5.2, pycparser 3.12.
+
 ## 1.9.4 – 2026-10-24
 
 **Sicherheit**

@@ -879,6 +879,7 @@ class ReleaseFilesTest(unittest.TestCase):
         # höchstes Release aus seinem Tag, frisch und mit Debian-Updates
         self.assertIn("git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n1", build)
         self.assertIn("OS_UPGRADE=", build)
+        self.assertIn("PKG_UPGRADE=", build)                               # auch die Python-Pakete
         self.assertIn("no-cache: ${{ steps.meta.outputs.weekly == 'true' }}", build)
         # nur latest, Minor und <version>-<datum> – das exakte Versions-Tag bleibt das Release
         self.assertIn('tags="${image}:latest,${image}:${version%.*},${image}:${version}-${stamp}"', build)
@@ -891,6 +892,12 @@ class ReleaseFilesTest(unittest.TestCase):
         dockerfile = (ROOT / "Dockerfile").read_text()
         self.assertIn("ARG OS_UPGRADE=\n", dockerfile)
         self.assertIn('if [ -n "$OS_UPGRADE" ]', dockerfile)
+        self.assertIn("ARG PKG_UPGRADE=\n", dockerfile)
+        install = dockerfile.split("ARG PKG_UPGRADE=")[1].split("\n# ")[0]
+        self.assertIn("-r requirements.in", install.split("else")[0])        # Neubau: neueste im erlaubten Bereich
+        self.assertIn("--no-deps --only-binary=:all: -r requirements.txt", install.split("else")[1])
+        self.assertIn("pip check", install)
+        self.assertIn("pip uninstall -y pip", install)
 
 
 @unittest.skipUnless(shutil.which("docker") and subprocess.run(["docker", "compose", "version"], capture_output=True).returncode == 0,

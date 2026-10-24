@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "1.9.5",
+      "date": "2026-10-24",
+      "kind": "security",
+      "audience": "admin",
+      "de": {
+        "title": "Alle Bausteine bleiben aktuell",
+        "text": "Der wöchentliche Neubau aktualisiert jetzt neben Betriebssystem und Python auch alle Programmbibliotheken auf den neuesten passenden Stand – getestet und auf Schwachstellen geprüft, bevor er veröffentlicht wird."
+      },
+      "en": {
+        "title": "All components stay up to date",
+        "text": "Besides the operating system and Python, the weekly rebuild now also updates all program libraries to the newest compatible version – tested and checked for vulnerabilities before it is published."
+      }
+    },
+    {
       "version": "1.9.4",
       "date": "2026-10-24",
       "kind": "security",
