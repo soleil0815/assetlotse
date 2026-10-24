@@ -214,10 +214,20 @@ jobs:
         run: |
           docker load -q -i "${RUNNER_TEMP}/image.tar"
           # pytest goes only into this throw-away container; the published image stays without pip
+          rc=0
           docker run --rm -v "$PWD:/src" -w /src -e PYTEST_VERSION --entrypoint sh assetlotse:scan -c '
             python -m ensurepip -q >/dev/null 2>&1 &&
             python -m pip install -q "pytest==${PYTEST_VERSION}" &&
-            python -m pytest -q -p no:cacheprovider tests'
+            python -m pytest -q -p no:cacheprovider -rfE tests' > pytest.log 2>&1 || rc=$?
+          cat pytest.log
+          { echo "### Tests in the image"; echo '```'; tail -n 25 pytest.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$rc" != 0 ]; then
+            grep -E '^(FAILED|ERROR|E  )' pytest.log | head -n 20 | while IFS= read -r line; do
+              echo "::error title=Test::${line}"
+            done
+            echo "::error title=Tests::exit code ${rc} – last line: $(tail -n 1 pytest.log)"
+            exit "$rc"
+          fi
 
   # security scan – a finding stops here, before anything is pushed
   scan:
