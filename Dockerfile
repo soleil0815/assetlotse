@@ -22,9 +22,13 @@ WORKDIR /app
 COPY requirements.txt .
 # pin pip itself, then install exactly the lock file – without pulling in sub-dependencies
 # (--no-deps) – and finally check that everything fits together.
+# pip is removed afterwards: AssetLotse does not need it at runtime, and pip carries its own
+# (often older) copies of urllib3, msgpack and setuptools that the Trivy scan rightly reports.
 RUN pip install pip==26.2.2 \
  && pip install --no-deps --only-binary=:all: -r requirements.txt \
- && pip check
+ && pip check \
+ && pip uninstall -y pip \
+ && ! python -c "import pip" 2>/dev/null
 # Time zone: TZ (e.g. Europe/Berlin) needs /usr/share/zoneinfo (Debian package tzdata, included
 # in the python-slim image). If it is missing, the build reports it here and AssetLotse at start-up.
 RUN test -e /usr/share/zoneinfo/Europe/Berlin \

@@ -14,6 +14,9 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 - Der Workflow ist in Bauen → Prüfen → Veröffentlichen aufgeteilt: Der Prüfer läuft ohne Schreibrechte und ohne
   Anmeldung an der Registry, Schreibrechte hat nur der letzte Schritt. Ein manipulierter Prüfer könnte so weder
   Images noch Tags verändern.
+- **pip ist nicht mehr im Image:** Es wird nur zum Installieren gebraucht und danach entfernt. pip bringt eigene,
+  ältere Kopien von urllib3, msgpack und setuptools mit, in denen die erste Prüfung vier HIGH-Lücken gefunden hat
+  (AssetLotse selbst nutzt urllib3 2.8.0 und hatte keine).
 
 Für die App selbst ändert sich nichts.
 
