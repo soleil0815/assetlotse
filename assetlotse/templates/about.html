@@ -9,7 +9,7 @@
   <dl class="kv">
     <dt>{{ _("Programm") }}</dt><dd>{{ _("{app} – freie Verwaltung und Ausgabe von Arbeitsmitteln", app=app_name) }}</dd>
     <dt>{{ _("Entwickelt von") }}</dt><dd><a href="{{ author_url }}" rel="noopener" target="_blank">helfi.space</a></dd>
-    <dt>{{ _("Version") }}</dt><dd>{{ version }}</dd>
+    <dt>{{ _("Version") }}</dt><dd>{{ version }} · <a href="{{ url_for('main.news') }}">{{ _("Neuigkeiten") }}</a></dd>
     <dt>{{ _("Lizenz") }}</dt><dd>{{ _(license_name) }}{% if has_license %} · <a href="{{ url_for('main.license_text') }}">{{ _("Lizenztext") }}</a>{% endif %}</dd>
     <dt>{{ _("Quellcode") }}</dt><dd>{% if source_url %}<a href="{{ source_url }}" rel="noopener" target="_blank">{{ source_url }}</a>{% else %}<span class="muted">{{ _("Beim Betreiber dieser Installation erhältlich.") }}</span>{% endif %}</dd>
   </dl>

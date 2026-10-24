@@ -91,6 +91,8 @@ class User(UserMixin, db.Model):
     auth_epoch = db.Column(db.Integer, default=0, nullable=False)
     # Sprache der Oberfläche und der E-Mails ("" = Browser bzw. Standardsprache)
     language = db.Column(db.String(5), default="", nullable=False)
+    # Neuigkeiten: bis zu dieser Programmversion gelesen ("" = noch nie geöffnet)
+    news_seen = db.Column(db.String(20), default="", nullable=False)
 
     groups = db.relationship("Group", secondary=user_groups, back_populates="users")
     loans = db.relationship("Loan", back_populates="user", foreign_keys="Loan.user_id")

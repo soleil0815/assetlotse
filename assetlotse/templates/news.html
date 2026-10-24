@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ _("Neuigkeiten") }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="eyebrow">{{ _("Version {version}", version=version) }}</div><h1>{{ _("Neuigkeiten") }}</h1>
+    <p class="muted">{{ _("Was sich in AssetLotse geändert hat – Neuerungen, Sicherheitsupdates und Korrekturen.") }}</p></div>
+</div>
+<div class="news-list">
+  {% for g in groups %}
+  <section>
+    <div class="news-version"><b>{{ _("Version {version}", version=g.version) }}</b>{% if g.date %}<span>{{ g.date|day }}</span>{% endif %}</div>
+    <div class="card">
+      {% for it in g["items"] %}
+      <article class="news-item{{ ' is-new' if it.new }}"{% if it.new %} title="{{ _('Neu seit deinem letzten Besuch') }}"{% endif %}>
+        <h3>{% if it.kind == "security" %}<span class="badge warn">{{ _("Sicherheit") }}</span>{% elif it.kind == "fix" %}<span class="badge">{{ _("Korrektur") }}</span>{% else %}<span class="badge accent">{{ _("Neu") }}</span>{% endif %}
+          {{ it.title }}</h3>
+        <p>{{ it.text }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% else %}
+  <p class="muted">{{ _("Noch keine Neuigkeiten.") }}</p>
+  {% endfor %}
+</div>
+{% endblock %}

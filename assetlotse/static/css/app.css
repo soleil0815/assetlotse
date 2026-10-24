@@ -92,6 +92,17 @@ code, .mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-si
 .nav .count { margin-left: auto; background: var(--danger); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 99px; }
 .side-version { display: block; margin-top: auto; padding: 10px 12px 8px; font-size: 11px; letter-spacing: .06em; color: var(--side-muted); opacity: .75; text-decoration: none; }
 .side-version:hover { opacity: 1; text-decoration: underline; }
+.side-version.has-news { opacity: 1; }
+.news-dot { display: inline-block; width: 6px; height: 6px; margin-left: 7px; border-radius: 50%; background: var(--brass); vertical-align: 1px; }
+/* Neuigkeiten */
+.news-list { max-width: 760px; display: grid; gap: 16px; }
+.news-version { display: flex; align-items: baseline; gap: 10px; margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.news-version b { color: var(--ink); font-size: 14px; }
+.news-item { padding: 14px 18px; border-top: 1px solid var(--line); }
+.news-item:first-child { border-top: 0; }
+.news-item h3 { margin: 0 0 4px; font-size: 15px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.news-item p { margin: 0; color: var(--ink-2); font-size: 14px; line-height: 1.55; }
+.news-item.is-new h3::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--brass); }
 .legal-links { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; }
 .legal-links a { color: var(--muted); text-decoration: none; }
 .legal-links a:hover { text-decoration: underline; color: var(--ink); }

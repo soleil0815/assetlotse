@@ -2,6 +2,14 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.9.0 – 2026-10-24
+
+**Neu**
+- **Neuigkeiten in der App:** Ein kleiner Punkt neben der Versionsnummer unten links zeigt, wenn es nach einem Update
+  etwas Neues gibt; er führt zur Seite *Neuigkeiten* (auch über *Über dieses Programm*). Kurze Hinweise zu neuen
+  Funktionen, Sicherheitsupdates und Korrekturen, auf Deutsch und Englisch, je nach Rolle gefiltert. Nach dem Lesen
+  verschwindet der Punkt bis zum nächsten Update. Inhalt: `assetlotse/news.json`.
+
 ## 1.8.2 – 2026-10-23
 
 **Neu**

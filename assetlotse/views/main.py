@@ -433,6 +433,27 @@ def about():
     return render_template("about.html", has_license=_license_file() is not None)
 
 
+@bp.route("/neuigkeiten")
+@login_required
+def news():
+    from .. import news as news_mod
+    from ..i18n import get_locale
+    lang = get_locale()
+    unread_ids = {id(e) for e in news_mod.unread(current_user)}
+    groups: list[dict] = []
+    for e in news_mod.for_user(current_user):
+        if not groups or groups[-1]["version"] != e["version"]:
+            try:
+                day = date.fromisoformat(e.get("date", ""))
+            except ValueError:
+                day = None
+            groups.append({"version": e["version"], "date": day, "items": []})
+        groups[-1]["items"].append({**news_mod.text(e, lang), "kind": e["kind"], "new": id(e) in unread_ids})
+    if news_mod.mark_read(current_user):
+        db.session.commit()
+    return render_template("news.html", groups=groups)
+
+
 @bp.route("/info/lizenz")
 @login_required
 def license_text():
