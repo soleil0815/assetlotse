@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "1.9.3",
+      "date": "2026-10-24",
+      "kind": "security",
+      "audience": "admin",
+      "de": {
+        "title": "Images werden auf Schwachstellen geprüft",
+        "text": "Jede neue Version wird vor dem Veröffentlichen mit Trivy auf bekannte Schwachstellen geprüft. Hat ein Baustein eine schwere Lücke, für die es schon eine Korrektur gibt, wird die Version nicht ausgeliefert – dein Server behält die geprüfte. Zusätzlich wird die aktuelle Version jede Woche neu geprüft."
+      },
+      "en": {
+        "title": "Images are checked for vulnerabilities",
+        "text": "Every new version is checked for known vulnerabilities with Trivy before it is published. If a component has a serious vulnerability that already has a fix, the version is not released – your server keeps the checked one. The current version is also re-checked every week."
+      }
+    },
+    {
       "version": "1.9.2",
       "date": "2026-10-24",
       "kind": "security",

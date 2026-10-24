@@ -833,6 +833,44 @@ class ReleaseFilesTest(unittest.TestCase):
             self.assertIn(f, install_layer)
         self.assertNotIn("update.sh", (ROOT / ".dockerignore").read_text().split())
 
+    def test_trivy_scan_runs_before_publishing(self):
+        import re
+        wf = (ROOT / ".github" / "workflows" / "docker.yml").read_text()
+        parts = re.split(r"\n  ([a-z-]+):\n", "\n" + wf.split("\njobs:\n", 1)[1])
+        jobs = dict(zip(parts[1::2], parts[2::2]))
+        self.assertEqual(list(jobs), ["build", "scan", "publish", "scan-latest"])
+        self.assertIn("permissions: {}", wf.split("\njobs:\n")[0])           # nichts ohne ausdrückliche Rechte
+        # bauen ohne zu veröffentlichen
+        self.assertIn("push: false", jobs["build"])
+        self.assertNotIn("push: true", wf)
+        self.assertNotIn("write", jobs["build"])
+        # prüfen: Fund bricht ab, der Prüfer sieht weder Schreibrechte noch eine Anmeldung an der Registry
+        for name in ("scan", "scan-latest"):
+            job = jobs[name]
+            self.assertIn("trivy-action@", job)
+            self.assertIn('exit-code: "1"', job)
+            self.assertIn("CRITICAL", job)
+            self.assertNotIn("write", job.split("steps:")[0])
+            before_scan = job.split("trivy-action@")[0]
+            if "login-action" in before_scan:
+                self.assertIn("docker logout", before_scan)
+        # veröffentlichen erst nach der Prüfung, genau das geprüfte Image, ohne Prüfer im Job
+        self.assertRegex(jobs["publish"], r"needs: \[build, scan\]")
+        self.assertNotIn("trivy", jobs["publish"])
+        self.assertNotIn("build-push-action", jobs["publish"])
+        self.assertLess(jobs["publish"].index("docker push"), jobs["publish"].index("Create release tag"))
+        self.assertEqual(wf.count("trivy-action@"), 2)
+        # nur der wöchentliche Lauf am Montag, kein Bauen dabei
+        self.assertIn("schedule:", wf)
+        self.assertIn("if: github.event_name != 'schedule'", jobs["build"])
+        self.assertIn("if: github.event_name == 'schedule'", jobs["scan-latest"])
+        # alle Actions über Commit-SHA festgelegt; trivy-action nicht aus den kompromittierten Versionen ≤ 0.34.2
+        for ref in re.findall(r"uses:\s*(\S+)", wf):
+            self.assertRegex(ref, r"@[0-9a-f]{40}$")
+        for v in re.findall(r"trivy-action@[0-9a-f]{40} # v(\d+)\.(\d+)", wf):
+            self.assertGreaterEqual(tuple(map(int, v)), (0, 35))
+        self.assertTrue((ROOT / ".trivyignore").exists())
+
 
 @unittest.skipUnless(shutil.which("docker") and subprocess.run(["docker", "compose", "version"], capture_output=True).returncode == 0,
                      "braucht docker compose")

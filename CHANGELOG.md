@@ -2,6 +2,21 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.9.3 – 2026-10-24
+
+**Sicherheit**
+- **Schwachstellenprüfung mit Trivy:** Der GitHub-Workflow prüft jedes Image vor dem Veröffentlichen. Bekannte
+  Schwachstellen der Stufe HIGH oder CRITICAL mit verfügbarer Korrektur (Debian- und Python-Pakete) stoppen das
+  Release – `latest` bleibt dann auf der bisherigen Version. Veröffentlicht wird genau das geprüfte Image.
+- Jeden Montag wird `latest` erneut geprüft; bei einem Fund schlägt der Lauf fehl und GitHub schickt eine E-Mail.
+- Bewusste Ausnahmen mit Begründung und Ablaufdatum in `.trivyignore`. Trivy wird in einer Version nach dem
+  Lieferketten-Vorfall vom März 2026 verwendet und wie alle Actions über den Commit-SHA festgelegt.
+- Der Workflow ist in Bauen → Prüfen → Veröffentlichen aufgeteilt: Der Prüfer läuft ohne Schreibrechte und ohne
+  Anmeldung an der Registry, Schreibrechte hat nur der letzte Schritt. Ein manipulierter Prüfer könnte so weder
+  Images noch Tags verändern.
+
+Für die App selbst ändert sich nichts.
+
 ## 1.9.2 – 2026-10-24
 
 Code-Audit: Korrekturen in App, Oberfläche und Update-Weg. Keine neuen Funktionen, keine Datenbankänderung.

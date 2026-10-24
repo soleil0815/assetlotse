@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.9.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 1.9.3** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -100,6 +100,10 @@ Das Skript sichert die Datenbank, lädt das Image, holt `update.sh`, `docker-com
 **Updates mit anderen Tools:** Nach `./update.sh --pull` folgt der Container dem Tag `latest`. Neue Versionen kannst du deshalb mit `./update.sh --pull` einspielen **oder** mit einem Tool deiner Wahl, das Container aktualisiert (z. B. Dockhand oder Watchtower). Abgesichert ist beides: Startet eine neue Version zum ersten Mal, legt AssetLotse **vor** jeder Änderung an der Datenbank selbst eine Sicherung an (`…-vor-update.db`, unter *Administration → Datensicherung*; nur SQLite). Ein Tool tauscht allerdings nur den Container aus, nicht `update.sh` und `docker-compose.yml` auf dem Server – ändern sich diese, steht es im CHANGELOG; dann einmal `./update.sh --pull`. Mit `--version X.Y.Z` legst du eine Version fest (Tools lassen sie dann in Ruhe); das nächste `./update.sh --pull` folgt wieder der neuesten.
 
 **Vertrauen:** Bei `--pull` übernimmt das Skript `update.sh` aus dem Image und führt es mit deinen Rechten aus. Es prüft deshalb, dass das Image aus dem passenden GitHub-Repository gebaut wurde (Label `org.opencontainers.image.source`), zeigt Version und Digest an und verlangt bei einer neuen Image-Adresse immer ein ausdrückliches „ja“ – auch mit `-y`. Wer Schreibrechte am Repository hat, kann also beeinflussen, was auf dem Server läuft: Zugänge zum Repository entsprechend vergeben. `latest` zeigt immer auf die höchste veröffentlichte Version; ein Nachtrag für eine ältere Reihe (z. B. `v1.6.4` nach `v1.7.0`) ändert `latest` nicht.
+
+**Sicherheitsprüfung (Trivy):** Jedes Image wird auf GitHub mit [Trivy](https://trivy.dev) geprüft, **bevor** es veröffentlicht wird – die Debian-Pakete des Basis-Images und alle Python-Pakete. Gibt es eine bekannte Schwachstelle der Stufe HIGH oder CRITICAL, für die schon eine Korrektur existiert, bricht der Lauf ab: Nichts wird veröffentlicht, `latest` bleibt auf der bisherigen Version, Server und Update-Tools behalten also die geprüfte Version. Das Ergebnis steht in der Zusammenfassung des Laufs unter *Actions*. Abhilfe: Basis-Image (Tag und Digest im `Dockerfile`) oder das Paket in `requirements.txt` anheben, Versionsnummer erhöhen, erneut hochladen. Schwachstellen ohne verfügbare Korrektur halten den Lauf nicht auf (man könnte sie ohnehin nicht beheben). Eine bewusste Ausnahme – nur wenn die Lücke AssetLotse nachweislich nicht betrifft – kommt mit Begründung und Ablaufdatum in `.trivyignore`.
+
+**Wöchentliche Nachprüfung:** Jeden Montag prüft der Workflow das veröffentlichte `latest` erneut, denn in alten Images werden laufend neue Lücken bekannt. Schlägt der Lauf fehl, schickt GitHub eine E-Mail – dann eine neue Version bauen (meist reicht ein aktuelles Basis-Image).
 
 ### Reproduzierbarer Build
 
