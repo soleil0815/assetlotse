@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "1.9.4",
+      "date": "2026-10-24",
+      "kind": "security",
+      "audience": "admin",
+      "de": {
+        "title": "Sicherheitsupdates jede Woche",
+        "text": "Jeden Montag wird die aktuelle Version mit allen Sicherheitsupdates des Betriebssystems neu gebaut, vollständig getestet und auf Schwachstellen geprüft. Nur wenn alles besteht, erscheint sie unter latest – Server, die latest folgen, bekommen die Updates dann von selbst."
+      },
+      "en": {
+        "title": "Security updates every week",
+        "text": "Every Monday the current version is rebuilt with all operating system security updates, fully tested and checked for vulnerabilities. Only if everything passes is it published as latest – servers following latest then get the updates by themselves."
+      }
+    },
+    {
       "version": "1.9.3",
       "date": "2026-10-24",
       "kind": "security",

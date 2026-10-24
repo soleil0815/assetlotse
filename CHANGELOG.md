@@ -2,6 +2,20 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.9.4 – 2026-10-24
+
+**Sicherheit**
+- **Wöchentlicher Sicherheits-Neubau statt reiner Nachprüfung:** Jeden Montag baut GitHub die höchste Version neu
+  (aus ihrem Tag, neuestes Python-Image der Reihe, alle Debian-Updates), lässt alle Tests im fertigen Image laufen
+  und prüft mit Trivy. Nur wenn beides besteht und sich etwas geändert hat, wird das Image als `latest`, `<Minor>`
+  und `<Version>-<Datum>` veröffentlicht. Das exakte Versions-Tag bleibt unverändert. Von Hand: *Run workflow → weekly*.
+- **Tests laufen jetzt auch bei jedem Release** im gebauten Image (vorher nur lokal) – veröffentlicht wird erst nach
+  bestandenen Tests und bestandener Prüfung.
+- `Dockerfile`: neues `ARG OS_UPGRADE` für den Neubau; ohne Angabe passiert nichts, normale Builds bleiben exakt
+  reproduzierbar.
+
+Für die App selbst ändert sich nichts.
+
 ## 1.9.3 – 2026-10-24
 
 **Sicherheit**

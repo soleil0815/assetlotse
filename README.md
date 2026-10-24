@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.9.3** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 1.9.4** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -103,7 +103,7 @@ Das Skript sichert die Datenbank, lädt das Image, holt `update.sh`, `docker-com
 
 **Sicherheitsprüfung (Trivy):** Jedes Image wird auf GitHub mit [Trivy](https://trivy.dev) geprüft, **bevor** es veröffentlicht wird – die Debian-Pakete des Basis-Images und alle Python-Pakete. Gibt es eine bekannte Schwachstelle der Stufe HIGH oder CRITICAL, für die schon eine Korrektur existiert, bricht der Lauf ab: Nichts wird veröffentlicht, `latest` bleibt auf der bisherigen Version, Server und Update-Tools behalten also die geprüfte Version. Das Ergebnis steht in der Zusammenfassung des Laufs unter *Actions*. Abhilfe: Basis-Image (Tag und Digest im `Dockerfile`) oder das Paket in `requirements.txt` anheben, Versionsnummer erhöhen, erneut hochladen. Schwachstellen ohne verfügbare Korrektur halten den Lauf nicht auf (man könnte sie ohnehin nicht beheben). Eine bewusste Ausnahme – nur wenn die Lücke AssetLotse nachweislich nicht betrifft – kommt mit Begründung und Ablaufdatum in `.trivyignore`.
 
-**Wöchentliche Nachprüfung:** Jeden Montag prüft der Workflow das veröffentlichte `latest` erneut, denn in alten Images werden laufend neue Lücken bekannt. Schlägt der Lauf fehl, schickt GitHub eine E-Mail – dann eine neue Version bauen (meist reicht ein aktuelles Basis-Image).
+**Wöchentlicher Sicherheits-Neubau:** Jeden Montag baut GitHub die höchste veröffentlichte Version neu – aus ihrem Tag, also ohne unveröffentlichte Änderungen, auf dem neuesten Python-Image ihrer Reihe (z. B. `python:3.13-slim-trixie`) und mit allen Debian-Updates. Danach laufen alle Tests im fertigen Image und die Trivy-Prüfung. Nur wenn beides besteht **und** sich tatsächlich etwas geändert hat, wird das Image als `latest`, `<Minor>` (z. B. `1.9`) und `<Version>-<Datum>` veröffentlicht – Server, die `latest` folgen (`./update.sh --pull`, Dockhand & Co.), bekommen die Sicherheitsupdates dann von selbst. Ohne Änderungen bleibt `latest`, wie es ist (kein unnötiger Neustart). Schlägt ein Test oder die Prüfung fehl, wird nichts veröffentlicht und GitHub schickt eine E-Mail. Das exakte Versions-Tag (z. B. `1.9.4`) bleibt das Image, wie es veröffentlicht wurde: Wer mit `--version` festgelegt ist, bekommt den Neubau nicht. Die Python-Pakete bleiben wie in `requirements.txt` festgelegt; meldet Trivy dort etwas, braucht es eine neue Version. Von Hand: *Actions → Docker image → Run workflow → weekly*.
 
 ### Reproduzierbarer Build
 

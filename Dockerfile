@@ -4,8 +4,16 @@
 ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3df53a1476cf5ddc6c087c0c10bc3a5678c2f
 FROM ${PYTHON_IMAGE}
 
+# Weekly security rebuild on GitHub: OS_UPGRADE=<date> installs all Debian updates. Empty (default, every
+# normal build): nothing happens, the build stays exactly reproducible.
+ARG OS_UPGRADE=
+RUN if [ -n "$OS_UPGRADE" ]; then \
+      apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y upgrade \
+      && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 LABEL org.opencontainers.image.title="AssetLotse" \
-      org.opencontainers.image.version="1.9.3" \
+      org.opencontainers.image.version="1.9.4" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
