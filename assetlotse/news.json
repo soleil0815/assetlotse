@@ -2,60 +2,130 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
-      "version": "1.9.0", "date": "2026-10-24", "kind": "feature", "audience": "all",
-      "de": {"title": "Neuigkeiten in AssetLotse",
-             "text": "Unten links neben der Versionsnummer zeigt ein kleiner Punkt, wenn es Neues gibt. Hier steht dann kurz, was sich geändert hat – Neuerungen, Sicherheitsupdates und Korrekturen."},
-      "en": {"title": "What's new in AssetLotse",
-             "text": "A small dot next to the version number at the bottom left shows when there is something new. This page then briefly explains what has changed – new features, security updates and fixes."}
+      "version": "1.9.1",
+      "date": "2026-10-24",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Neue Versionen kommen von selbst",
+        "text": "Neue Versionen werden auf GitHub gebaut, sobald sie hochgeladen sind – ohne Tag von Hand. Folgt der Server latest (./update.sh --pull oder ein Update-Tool), kommen sie ohne weiteren Schritt an. Vor jedem Update legt AssetLotse weiterhin selbst eine Sicherung an."
+      },
+      "en": {
+        "title": "New versions arrive by themselves",
+        "text": "New versions are built on GitHub as soon as they are pushed – no manual tag needed. If the server follows latest (./update.sh --pull or an update tool), they arrive without any further step. AssetLotse still makes a backup itself before every update."
+      }
     },
     {
-      "version": "1.8.2", "date": "2026-10-23", "kind": "feature", "audience": "all",
-      "de": {"title": "Handbuch auch auf Englisch",
-             "text": "In der englischen Oberfläche verlinkt die Hilfe jetzt ein englisches Handbuch (PDF) mit Bildschirmfotos der englischen Oberfläche."},
-      "en": {"title": "Manual in English",
-             "text": "In the English interface, the help now links an English manual (PDF) with screenshots of the English interface."}
+      "version": "1.9.0",
+      "date": "2026-10-24",
+      "kind": "feature",
+      "audience": "all",
+      "de": {
+        "title": "Neuigkeiten in AssetLotse",
+        "text": "Unten links neben der Versionsnummer zeigt ein kleiner Punkt, wenn es Neues gibt. Hier steht dann kurz, was sich geändert hat – Neuerungen, Sicherheitsupdates und Korrekturen."
+      },
+      "en": {
+        "title": "What's new in AssetLotse",
+        "text": "A small dot next to the version number at the bottom left shows when there is something new. This page then briefly explains what has changed – new features, security updates and fixes."
+      }
     },
     {
-      "version": "1.8.0", "date": "2026-10-23", "kind": "feature", "audience": "admin",
-      "de": {"title": "Sicherung vor jedem Update – automatisch",
-             "text": "Startet eine neue Version zum ersten Mal, legt AssetLotse vor jeder Änderung an der Datenbank selbst eine Sicherung an (…-vor-update.db). Updates lassen sich damit auch mit einem Update-Tool einspielen, nicht nur mit ./update.sh --pull."},
-      "en": {"title": "Backup before every update – automatically",
-             "text": "When a new version starts for the first time, AssetLotse makes a backup before any change to the database (…-vor-update.db). Updates can therefore also be installed with an update tool, not only with ./update.sh --pull."}
+      "version": "1.8.2",
+      "date": "2026-10-23",
+      "kind": "feature",
+      "audience": "all",
+      "de": {
+        "title": "Handbuch auch auf Englisch",
+        "text": "In der englischen Oberfläche verlinkt die Hilfe jetzt ein englisches Handbuch (PDF) mit Bildschirmfotos der englischen Oberfläche."
+      },
+      "en": {
+        "title": "Manual in English",
+        "text": "In the English interface, the help now links an English manual (PDF) with screenshots of the English interface."
+      }
     },
     {
-      "version": "1.7.0", "date": "2026-10-23", "kind": "feature", "audience": "admin",
-      "de": {"title": "Fertige Images statt Bauen auf dem Server",
-             "text": "Neue Versionen werden auf GitHub gebaut. Auf dem Server genügt ./update.sh --pull – das sichert, lädt das Image und startet neu, in Sekunden statt Minuten."},
-      "en": {"title": "Ready-made images instead of building on the server",
-             "text": "New versions are built on GitHub. On the server, ./update.sh --pull is enough – it backs up, pulls the image and restarts, in seconds instead of minutes."}
+      "version": "1.8.0",
+      "date": "2026-10-23",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Sicherung vor jedem Update – automatisch",
+        "text": "Startet eine neue Version zum ersten Mal, legt AssetLotse vor jeder Änderung an der Datenbank selbst eine Sicherung an (…-vor-update.db). Updates lassen sich damit auch mit einem Update-Tool einspielen, nicht nur mit ./update.sh --pull."
+      },
+      "en": {
+        "title": "Backup before every update – automatically",
+        "text": "When a new version starts for the first time, AssetLotse makes a backup before any change to the database (…-vor-update.db). Updates can therefore also be installed with an update tool, not only with ./update.sh --pull."
+      }
     },
     {
-      "version": "1.6.2", "date": "2026-10-23", "kind": "security", "audience": "manager",
-      "de": {"title": "BitLocker-Schlüssel nur mit zweitem Faktor",
-             "text": "Wer die Zwei-Faktor-Anmeldung eingerichtet hat, muss den zweiten Faktor in der laufenden Sitzung bestätigt haben, um vertrauliche Angaben anzuzeigen oder zu ändern – auch im internen Netz, wo zum Anmelden das Passwort reicht."},
-      "en": {"title": "BitLocker keys only with a second factor",
-             "text": "If you have set up two-factor sign-in, you must have confirmed the second factor in the current session to show or change confidential details – even on the internal network, where the password is enough to sign in."}
+      "version": "1.7.0",
+      "date": "2026-10-23",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Fertige Images statt Bauen auf dem Server",
+        "text": "Neue Versionen werden auf GitHub gebaut. Auf dem Server genügt ./update.sh --pull – das sichert, lädt das Image und startet neu, in Sekunden statt Minuten."
+      },
+      "en": {
+        "title": "Ready-made images instead of building on the server",
+        "text": "New versions are built on GitHub. On the server, ./update.sh --pull is enough – it backs up, pulls the image and restarts, in seconds instead of minutes."
+      }
     },
     {
-      "version": "1.6.2", "date": "2026-10-23", "kind": "security", "audience": "admin",
-      "de": {"title": "Sicherheitsprüfung abgeschlossen",
-             "text": "Eine vollständige Prüfung fand nichts Kritisches; mehrere kleinere Punkte sind behoben: Links in E-Mails nur noch aus der eingetragenen Adresse, Ersteinrichtung nur aus dem internen Netz, keine Zwischenspeicherung angemeldeter Seiten, gebremste Registrierung, aktualisierte Bibliotheken (u. a. Pillow) und ein strengerer Container. Bitte unter Administration → E-Mail prüfen, ob die Adresse von AssetLotse eingetragen ist."},
-      "en": {"title": "Security review completed",
-             "text": "A full review found nothing critical; several smaller points are fixed: links in emails only from the configured address, initial setup only from the internal network, no caching of signed-in pages, throttled registration, updated libraries (including Pillow) and a stricter container. Please check under Administration → Email that the address of AssetLotse is filled in."}
+      "version": "1.6.2",
+      "date": "2026-10-23",
+      "kind": "security",
+      "audience": "manager",
+      "de": {
+        "title": "BitLocker-Schlüssel nur mit zweitem Faktor",
+        "text": "Wer die Zwei-Faktor-Anmeldung eingerichtet hat, muss den zweiten Faktor in der laufenden Sitzung bestätigt haben, um vertrauliche Angaben anzuzeigen oder zu ändern – auch im internen Netz, wo zum Anmelden das Passwort reicht."
+      },
+      "en": {
+        "title": "BitLocker keys only with a second factor",
+        "text": "If you have set up two-factor sign-in, you must have confirmed the second factor in the current session to show or change confidential details – even on the internal network, where the password is enough to sign in."
+      }
     },
     {
-      "version": "1.6.0", "date": "2026-10-23", "kind": "feature", "audience": "manager",
-      "de": {"title": "Personen an der Theke sofort finden",
-             "text": "Mit Active Directory findet die Ausgabetheke Personen schon beim Tippen – auch solche, die sich noch nie angemeldet haben. AssetLotse hält dafür die AD-Konten im Hintergrund aktuell."},
-      "en": {"title": "Find people at the desk instantly",
-             "text": "With Active Directory, the issue desk finds people as you type – including people who have never signed in. AssetLotse keeps the AD accounts up to date in the background for this."}
+      "version": "1.6.2",
+      "date": "2026-10-23",
+      "kind": "security",
+      "audience": "admin",
+      "de": {
+        "title": "Sicherheitsprüfung abgeschlossen",
+        "text": "Eine vollständige Prüfung fand nichts Kritisches; mehrere kleinere Punkte sind behoben: Links in E-Mails nur noch aus der eingetragenen Adresse, Ersteinrichtung nur aus dem internen Netz, keine Zwischenspeicherung angemeldeter Seiten, gebremste Registrierung, aktualisierte Bibliotheken (u. a. Pillow) und ein strengerer Container. Bitte unter Administration → E-Mail prüfen, ob die Adresse von AssetLotse eingetragen ist."
+      },
+      "en": {
+        "title": "Security review completed",
+        "text": "A full review found nothing critical; several smaller points are fixed: links in emails only from the configured address, initial setup only from the internal network, no caching of signed-in pages, throttled registration, updated libraries (including Pillow) and a stricter container. Please check under Administration → Email that the address of AssetLotse is filled in."
+      }
     },
     {
-      "version": "1.5.0", "date": "2026-10-22", "kind": "feature", "audience": "manager",
-      "de": {"title": "Vorschläge beim Tippen",
-             "text": "Die Suche oben, die Ausgabetheke und das Feld Inventarnummer zeigen schon beim Tippen passende Treffer. Doppelte Inventar- und Seriennummern werden abgelehnt."},
-      "en": {"title": "Suggestions as you type",
-             "text": "The search at the top, the issue desk and the inventory number field show matches as you type. Duplicate inventory and serial numbers are rejected."}
+      "version": "1.6.0",
+      "date": "2026-10-23",
+      "kind": "feature",
+      "audience": "manager",
+      "de": {
+        "title": "Personen an der Theke sofort finden",
+        "text": "Mit Active Directory findet die Ausgabetheke Personen schon beim Tippen – auch solche, die sich noch nie angemeldet haben. AssetLotse hält dafür die AD-Konten im Hintergrund aktuell."
+      },
+      "en": {
+        "title": "Find people at the desk instantly",
+        "text": "With Active Directory, the issue desk finds people as you type – including people who have never signed in. AssetLotse keeps the AD accounts up to date in the background for this."
+      }
+    },
+    {
+      "version": "1.5.0",
+      "date": "2026-10-22",
+      "kind": "feature",
+      "audience": "manager",
+      "de": {
+        "title": "Vorschläge beim Tippen",
+        "text": "Die Suche oben, die Ausgabetheke und das Feld Inventarnummer zeigen schon beim Tippen passende Treffer. Doppelte Inventar- und Seriennummern werden abgelehnt."
+      },
+      "en": {
+        "title": "Suggestions as you type",
+        "text": "The search at the top, the issue desk and the inventory number field show matches as you type. Duplicate inventory and serial numbers are rejected."
+      }
     }
   ]
 }

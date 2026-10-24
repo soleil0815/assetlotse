@@ -2,6 +2,15 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.9.1 – 2026-10-24
+
+**Geändert**
+- **Neue Versionen ohne Tag:** Der GitHub-Workflow baut jetzt bei jedem Push auf `master` mit einer neuen
+  Versionsnummer selbst das Image, setzt `latest` (wenn es die höchste Version ist) und legt den Tag `v<Version>` an.
+  Pushes ohne neue Versionsnummer bauen nichts. Einen Tag von Hand zu setzen geht weiterhin.
+- Server, die `latest` folgen (`./update.sh --pull` oder ein Update-Tool wie Dockhand), bekommen neue Versionen damit
+  ohne weiteren Schritt – nach dem Hochladen dauert es ein, zwei Minuten, bis das Image bereitsteht.
+
 ## 1.9.0 – 2026-10-24
 
 **Neu**
@@ -9,9 +18,6 @@ Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
   etwas Neues gibt; er führt zur Seite *Neuigkeiten* (auch über *Über dieses Programm*). Kurze Hinweise zu neuen
   Funktionen, Sicherheitsupdates und Korrekturen, auf Deutsch und Englisch, je nach Rolle gefiltert. Nach dem Lesen
   verschwindet der Punkt bis zum nächsten Update. Inhalt: `assetlotse/news.json`.
-- **Release ohne Tag:** Der GitHub-Workflow baut jetzt bei jedem Push auf `master` mit einer neuen Versionsnummer
-  selbst das Image, setzt `latest` und legt den Tag `v<Version>` an. Pushes ohne neue Version bauen nichts. Server, die
-  `latest` folgen (`./update.sh --pull` oder ein Update-Tool), bekommen neue Versionen damit ohne weiteren Schritt.
 
 ## 1.8.2 – 2026-10-23
 
