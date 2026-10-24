@@ -15,7 +15,6 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections import defaultdict
 
 from flask import (Blueprint, abort, current_app, flash, redirect, render_template, request, session,
                    url_for)
@@ -35,7 +34,6 @@ RESERVED = {"admin", "administrator", "root", "system", "assetlotse", "support",
             "webmaster", "hostmaster", "info", "noreply", "no-reply", "guest", "gast", "test", "krbtgt"}
 VERIFY_MAX_AGE = 48 * 3600
 MIN_FILL_SECONDS = 3
-_REG_LOG: dict[str, list[float]] = defaultdict(list)
 REG_PER_HOUR = 5
 ATTEMPTS_PER_HOUR = 30      # jedes Absenden zählt – bremst das Abfragen vorhandener Namen/Adressen
 
@@ -102,10 +100,22 @@ def _exists_in_directory(username: str) -> bool | None:
         return None
 
 
-def _rate_limited(ip: str, limit: int = REG_PER_HOUR) -> bool:
-    now = time.time()
-    _REG_LOG[ip] = [t for t in _REG_LOG[ip] if now - t < 3600]
-    return len(_REG_LOG[ip]) >= limit
+_KEY = "~reg~|"   # Zähler in der Tabelle login_attempts – für alle Server-Prozesse gemeinsam
+
+
+def _rate_limited(key: str, limit: int = REG_PER_HOUR) -> bool:
+    from datetime import datetime, timedelta
+
+    from ..models import LoginAttempt
+    since = datetime.now() - timedelta(hours=1)
+    return LoginAttempt.query.filter(LoginAttempt.key == _KEY + key[:250],
+                                     LoginAttempt.created_at >= since).count() >= limit
+
+
+def _count(key: str) -> None:
+    from ..models import LoginAttempt
+    db.session.add(LoginAttempt(key=_KEY + key[:250], username="-"))
+    db.session.commit()
 
 
 def maybe_activate(user: User):
@@ -179,7 +189,7 @@ def register():
             flash(_("Zu viele Registrierungen von deinem Anschluss. Bitte versuche es später erneut."), "error")
             return render_template("register.html", v=values, privacy=privacy), 429
 
-        _REG_LOG[f"try|{ip}"].append(time.time())
+        _count(f"try|{ip}")
         username, name, email = values["username"], values["display_name"], values["email"].lower()
         password = request.form.get("password") or ""
         error = None
@@ -223,7 +233,7 @@ def register():
             session["reg_started"] = time.time() - MIN_FILL_SECONDS  # erneutes Absenden sofort erlaubt
             return render_template("register.html", v=values, privacy=privacy), 400
 
-        _REG_LOG[ip].append(time.time())
+        _count(ip)
         verify = needs_verification()
         from ..i18n import get_locale
         user = User(username=username, display_name=name, email=email, role=ROLE_READER, auth_source="local",
@@ -283,6 +293,6 @@ def resend():
     if user is not None and not user.email_verified and needs_verification():
         key = f"resend|{user.id}"
         if not _rate_limited(key):
-            _REG_LOG[key].append(time.time())
+            _count(key)
             send_verification(user)
     return render_template("register_done.html", state="check_mail", email=user.email if user else "")

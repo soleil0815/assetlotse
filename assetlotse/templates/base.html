@@ -80,7 +80,7 @@
 
   <div class="main">
     <header class="topbar">
-      <button class="icon-btn menu-btn" type="button" data-nav-toggle aria-label="{{ _('Menü') }}">{{ icon("menu") }}</button>
+      <button class="icon-btn menu-btn" type="button" data-nav-toggle aria-label="{{ _('Menü') }}" aria-controls="sidebar" aria-expanded="false">{{ icon("menu") }}</button>
       {% if catalog_hidden() %}<div class="search" aria-hidden="true" style="visibility: hidden"></div>{% else %}
       <form class="search" action="{{ url_for('assets.index') }}" role="search">
         {{ icon("search") }}

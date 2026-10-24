@@ -3,12 +3,12 @@
 <p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
 <p style="margin:0 0 12px;">{{ _n("aktuell ist <b>{n} Ausleihe</b> überfällig:", "aktuell sind <b>{n} Ausleihen</b> überfällig:", loans|length) }}</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
-  <tr><th align="left" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#6b7785;font-size:12px;">{{ _("Gegenstand") }}</th>
-      <th align="left" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#6b7785;font-size:12px;">{{ _("Ausgegeben an") }}</th>
-      <th align="right" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#6b7785;font-size:12px;">{{ _("Überfällig") }}</th></tr>
+  <tr><th align="left" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#5f6b78;font-size:12px;">{{ _("Gegenstand") }}</th>
+      <th align="left" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#5f6b78;font-size:12px;">{{ _("Ausgegeben an") }}</th>
+      <th align="right" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#5f6b78;font-size:12px;">{{ _("Überfällig") }}</th></tr>
   {% for l in loans %}
   <tr><td style="padding:8px;border-bottom:1px solid #e9edf1;">{{ l.asset.name }}</td>
-      <td style="padding:8px;border-bottom:1px solid #e9edf1;">{{ l.user.name }}{% if l.user.email %}<br><span style="color:#6b7785;font-size:12px;">{{ l.user.email }}</span>{% endif %}</td>
+      <td style="padding:8px;border-bottom:1px solid #e9edf1;">{{ l.user.name }}{% if l.user.email %}<br><span style="color:#5f6b78;font-size:12px;">{{ l.user.email }}</span>{% endif %}</td>
       <td align="right" style="padding:8px;border-bottom:1px solid #e9edf1;color:#c0392b;font-weight:600;white-space:nowrap;">{{ _("{n} Tg.", n=-l.days_left) }}</td></tr>
   {% endfor %}
 </table>

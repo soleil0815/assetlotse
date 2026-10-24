@@ -8,10 +8,11 @@ services:
     #   built locally from a package:  assetlotse:<version>          (./update.sh assetlotse-X.Y.Z.zip)
     #   ready-made from GitHub:        ghcr.io/<owner>/<repo>:latest  (./update.sh --pull) – other update
     #                                  tools can then install new versions as well
-    image: ${ASSETLOTSE_IMAGE:-assetlotse}:${ASSETLOTSE_TAG:-1.9.1}
+    image: ${ASSETLOTSE_IMAGE:-assetlotse}:${ASSETLOTSE_TAG:-1.9.2}
     build: .
     container_name: assetlotse
     restart: unless-stopped
+    stop_grace_period: 35s      # let running requests finish (gunicorn waits up to 30 s)
     security_opt:
       - "no-new-privileges:true"  # no privilege gain via setuid programs in the container
     ports:

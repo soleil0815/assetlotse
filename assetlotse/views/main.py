@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import case, func
+from sqlalchemy.exc import IntegrityError
 
 from ..ldap_auth import LDAPError, authenticate, ldap_enabled, normalize_dn, rule_matches
 from .. import lockout
@@ -156,10 +157,22 @@ def login():
                         ok_user = sync_ldap_user(info, user)
                         if reactivate:                # vom AD-Abgleich gesperrt, laut AD wieder berechtigt
                             ok_user.active, ok_user.deactivated_by_sync = True, False
-                        db.session.commit()
+                        try:
+                            db.session.commit()
+                        except IntegrityError:
+                            # Erste Anmeldung gleichzeitig in zwei Fenstern: das andere hat das Konto gerade
+                            # angelegt – zurückrollen und das nun vorhandene Konto verwenden
+                            db.session.rollback()
+                            ok_user = find_ldap_account(info)
+                            if ok_user is not None and (ok_user.auth_source != "ldap" or guid_conflict(info, ok_user)):
+                                ok_user = None
             except LDAPError as exc:
+                db.session.rollback()
+                ok_user = None
                 log.warning("LDAP-Login %s fehlgeschlagen: %s", username, exc)
             except Exception:  # noqa: BLE001 – niemals Details an den Client geben
+                db.session.rollback()
+                ok_user = None
                 log.exception("Unerwarteter Fehler bei der LDAP-Anmeldung")
                 error = _("Anmeldung derzeit nicht möglich. Bitte versuche es später erneut.")
 
@@ -385,7 +398,7 @@ def logout_everywhere():
 @bp.route("/branding/<path:filename>")
 def branding_file(filename):
     """Logo, Favicon und Hintergrundbild – öffentlich, da auch auf der Anmeldeseite sichtbar."""
-    from flask import current_app, send_from_directory
+    from flask import send_from_directory
     from werkzeug.utils import secure_filename
 
     from ..branding import brand_dir

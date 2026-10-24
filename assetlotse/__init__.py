@@ -19,6 +19,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import click
+from sqlalchemy.exc import IntegrityError
 from flask import Flask, flash, has_request_context, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFError, CSRFProtect
@@ -27,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "1.9.1"
+__version__ = "1.9.2"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Wo der Quellcode zu finden ist (AGPL § 13). Wer AssetLotse verändert betreibt, trägt hier
@@ -544,6 +545,21 @@ def create_app(test_config: dict | None = None) -> Flask:
     def not_found(_e):
         return render_template("error.html", code=404, title=_("Nicht gefunden"),
                                text=_("Diese Seite oder diesen Gegenstand gibt es nicht.")), 404
+
+    @app.errorhandler(IntegrityError)
+    def integrity_error(_e):
+        # Seltener Wettlauf (z. B. derselbe Name gleichzeitig in zwei Fenstern angelegt): kein Fehler 500,
+        # sondern zurück zum Formular mit Hinweis
+        db.session.rollback()
+        logging.getLogger(__name__).warning("Speichern abgelehnt (eindeutiger Wert schon vorhanden): %s", _e.orig)
+        flash(_("Das konnte nicht gespeichert werden, weil es den Eintrag gerade schon gibt. Bitte prüfen und "
+                "erneut versuchen."), "error")
+        from urllib.parse import urlsplit
+
+        from .views import safe_next
+        ref = urlsplit(request.referrer or "")
+        back = (ref.path + (f"?{ref.query}" if ref.query else "")) if ref.netloc == request.host else ""
+        return redirect(safe_next(back) or url_for("main.dashboard"))
 
     @app.errorhandler(CSRFError)
     def csrf_error(_e):

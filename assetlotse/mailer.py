@@ -310,6 +310,26 @@ def collect_due(today: date | None = None) -> dict[int, dict]:
     return {uid: b for uid, b in per_user.items() if b["due_soon"] or b["overdue"]}
 
 
+def _remind(user, bucket: dict, cfg, smtp) -> bool:
+    """Erinnerung/Mahnung an eine Person (eine Mail für alles). True, wenn alles verschickt wurde."""
+    subject, text, html = render_mail("reminder", user=user, due_soon=bucket["due_soon"], overdue=bucket["overdue"])
+    ok_r = ok_o = True
+    if bucket["due_soon"]:
+        ok_r, _err = send_mail(user.email, subject, text, html, kind="reminder", cfg=cfg, smtp=smtp,
+                               loan_ids=[l.id for l in bucket["due_soon"]], user_id=user.id)
+    if bucket["overdue"]:
+        if bucket["due_soon"]:  # gleiche Mail, nur zusätzlich protokollieren
+            for l in bucket["overdue"]:
+                db.session.add(MailLog(kind="overdue", to_addr=user.email, subject=subject,
+                                       status="sent" if ok_r else "error", loan_id=l.id, user_id=user.id))
+            db.session.commit()
+            ok_o = ok_r
+        else:
+            ok_o, _err = send_mail(user.email, subject, text, html, kind="overdue", cfg=cfg, smtp=smtp,
+                                   loan_ids=[l.id for l in bucket["overdue"]], user_id=user.id)
+    return ok_r and ok_o
+
+
 def run_notifications(today: date | None = None) -> dict:
     """Versendet Erinnerungen, Mahnungen und die Verwalter-Übersicht. Liefert eine Statistik."""
     stats = {"sent": 0, "errors": 0, "loans": 0, "digest": 0}
@@ -326,36 +346,42 @@ def run_notifications(today: date | None = None) -> dict:
         stats["error"] = str(exc)
         log.warning("Erinnerungslauf: %s", exc)
         return stats
+    reconnected = False
     try:
         for bucket in collect_due(today).values():
             user = bucket["user"]
-            subject, text, html = render_mail("reminder", user=user, due_soon=bucket["due_soon"],
-                                              overdue=bucket["overdue"])
-            ok_r = ok_o = True
-            if bucket["due_soon"]:
-                ok_r, _err = send_mail(user.email, subject, text, html, kind="reminder", cfg=cfg, smtp=smtp,
-                                    loan_ids=[l.id for l in bucket["due_soon"]], user_id=user.id)
-            if bucket["overdue"]:
-                if bucket["due_soon"]:  # gleiche Mail, nur zusätzlich protokollieren
-                    for l in bucket["overdue"]:
-                        db.session.add(MailLog(kind="overdue", to_addr=user.email, subject=subject,
-                                               status="sent" if ok_r else "error", loan_id=l.id, user_id=user.id))
-                    db.session.commit()
-                    ok_o = ok_r
-                else:
-                    ok_o, _err = send_mail(user.email, subject, text, html, kind="overdue", cfg=cfg, smtp=smtp,
-                                        loan_ids=[l.id for l in bucket["overdue"]], user_id=user.id)
-            ok = ok_r and ok_o
+            try:
+                ok = _remind(user, bucket, cfg, smtp)
+            except Exception:  # noqa: BLE001 – eine Person darf nie den Lauf für alle anderen abbrechen
+                db.session.rollback()
+                ok = False
+                log.exception("Erinnerung an %s fehlgeschlagen", user.username)
             stats["sent" if ok else "errors"] += 1
             stats["loans"] += len(bucket["due_soon"]) + len(bucket["overdue"])
+            if not ok and not reconnected:
+                # Häufigster Grund: Der Mailserver hat die Verbindung nach einigen Mails getrennt – einmal neu
+                # verbinden. Fehlgeschlagene Mails gelten nicht als gesendet und werden später nachgeholt.
+                reconnected = True
+                try:
+                    smtp.quit()
+                except Exception:  # noqa: BLE001
+                    pass
+                try:
+                    smtp = smtp_connect(cfg)
+                except MailError as exc:
+                    smtp = None
+                    stats["error"] = str(exc)
+                    log.warning("Erinnerungslauf: Neuverbindung fehlgeschlagen: %s", exc)
+                    return stats
 
         if get_bool("mail_digest"):
             stats["digest"] = _send_digests(cfg, smtp, today)
     finally:
-        try:
-            smtp.quit()
-        except Exception:  # noqa: BLE001
-            pass
+        if smtp is not None:
+            try:
+                smtp.quit()
+            except Exception:  # noqa: BLE001
+                pass
     return stats
 
 
@@ -399,6 +425,7 @@ def _claim_today(today_str: str, key: str = "mail_last_run") -> bool:
 
 
 RETRY_MINUTES = 15   # nach einem Verbindungsfehler frühestens so viel später erneut versuchen
+MAX_RETRIES = 3      # einzelne fehlgeschlagene Mails: höchstens so oft am selben Tag nachholen
 
 
 def run_scheduled(now: datetime | None = None) -> dict | None:
@@ -415,11 +442,15 @@ def run_scheduled(now: datetime | None = None) -> dict | None:
     if not _claim_today(today_str):
         return None
     stats = run_notifications(now.date())
-    if stats.get("error"):
-        # SMTP nicht erreichbar o. Ä.: Tag wieder freigeben, damit ein späterer Durchlauf nachholt
+    tries = get_setting("mail_retries")
+    done_today = int(tries.split(":", 1)[1]) if tries.startswith(today_str + ":") and tries.split(":", 1)[1].isdigit() else 0
+    if stats.get("error") or (stats.get("errors") and done_today < MAX_RETRIES):
+        # SMTP nicht erreichbar oder einzelne Mails fehlgeschlagen: Tag wieder freigeben, damit ein späterer
+        # Durchlauf nachholt. Bereits gesendete Erinnerungen werden dabei nicht wiederholt (nur status=sent zählt).
         db.session.execute(update(Setting).where(Setting.key == "mail_last_run", Setting.value == today_str)
                            .values(value=previous or ""))
         set_setting("mail_retry_after", (now + timedelta(minutes=RETRY_MINUTES)).isoformat(timespec="seconds"))
+        set_setting("mail_retries", f"{today_str}:{done_today + 1}")
     elif retry_after:
         set_setting("mail_retry_after", "")
     set_setting("mail_last_result", stats_record(now, stats))
@@ -465,14 +496,18 @@ def cleanup_unverified(days: int = 7) -> int:
     limit = datetime.now() - timedelta(days=days)
     stale = User.query.filter(User.self_registered.is_(True), User.email_verified.is_(False),
                               User.created_at < limit).all()
-    from .retention import delete_user
+    from .retention import OpenLoansError, delete_user
+    deleted = 0
     for u in stale:
-        if not u.active_loans:
+        try:
             delete_user(u)   # auch mit abgeschlossenen Ausleihen (sonst IntegrityError)
-    if stale:
+            deleted += 1
+        except OpenLoansError:
+            pass
+    if deleted:
         db.session.commit()
-        log.info("%d unbestätigte Registrierung(en) gelöscht", len(stale))
-    return len(stale)
+        log.info("%d unbestätigte Registrierung(en) gelöscht", deleted)
+    return deleted
 
 
 _scheduler_started = False
@@ -485,20 +520,27 @@ def start_scheduler(app, interval: int = 300):
     _scheduler_started = True
 
     def loop():
+        from .backup import run_daily as run_backup_daily
+        from .lockout import cleanup as cleanup_lockouts
+        from .retention import run_daily as run_retention_daily
+        # Jede Aufgabe einzeln: Ein Fehler in einer darf die anderen nicht überspringen.
+        jobs = [("Registrierungen aufräumen", cleanup_unverified), ("Anmeldesperren aufräumen", cleanup_lockouts),
+                ("Datensicherung", run_backup_daily),            # zuerst sichern …
+                ("Aufbewahrungsfristen", run_retention_daily),   # … dann aufräumen (wartet auf die Sicherung)
+                ("Erinnerungen", run_scheduled)]
         time.sleep(20)
         while True:
-            try:
-                with app.app_context():
-                    from .backup import run_daily as run_backup_daily
-                    from .retention import run_daily as run_retention_daily
-                    from .lockout import cleanup as cleanup_lockouts
-                    cleanup_unverified()
-                    cleanup_lockouts()
-                    run_backup_daily()      # zuerst sichern, dann aufräumen
-                    run_retention_daily()
-                    run_scheduled()
-            except Exception:  # noqa: BLE001
-                log.exception("Fehler im Erinnerungs-Zeitplan")
+            for name, job in jobs:
+                try:
+                    with app.app_context():
+                        job()
+                except Exception:  # noqa: BLE001
+                    log.exception("Fehler im Zeitplan (%s)", name)
+                    try:
+                        with app.app_context():
+                            db.session.rollback()
+                    except Exception:  # noqa: BLE001
+                        pass
             try:
                 with app.app_context():
                     from .ad_cache import maintain as maintain_ad_cache

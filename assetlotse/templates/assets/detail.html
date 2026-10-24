@@ -114,16 +114,16 @@
     <h3 style="margin-bottom: 10px">{{ _("Ausgeben an …") }}</h3>
     <form method="post" action="{{ url_for('loans.borrow', asset_id=asset.id) }}" class="form-grid">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="field span-6"><label>{{ _("Person") }}</label>
-        <select name="user_id" required>
+      <div class="field span-6"><label for="f-user-id">{{ _("Person") }}</label>
+        <select id="f-user-id" name="user_id" required>
           <option value="">{{ _("– auswählen –") }}</option>
           {% for u in users %}<option value="{{ u.id }}">{{ u.name }} ({{ u.username }}){% if u.id == current_user.id %} – {{ _("ich") }}{% endif %}</option>{% endfor %}
         </select>
         <div class="hint">{{ _("Es werden nur Personen angezeigt, die diesen Gegenstand bekommen dürfen.") }}</div></div>
-      <div class="field span-3"><label>{{ _("Rückgabe bis") }}</label><input type="date" name="due_at"></div>
+      <div class="field span-3"><label for="f-due-at">{{ _("Rückgabe bis") }}</label><input id="f-due-at" type="date" name="due_at"></div>
       <div class="field span-3"><label>&nbsp;</label>
         <label class="check"><input type="checkbox" name="no_due" value="1" data-no-due {{ "checked" if not loan_days }}> {{ _("unbefristet") }}</label></div>
-      <div class="field span-6"><label>{{ _("Notiz <small>(optional)</small>") }}</label><input type="text" name="note" maxlength="500" placeholder="{{ _("z. B. Zubehör: Netzteil, Tasche") }}"></div>
+      <div class="field span-6"><label for="f-note">{{ _("Notiz <small>(optional)</small>") }}</label><input id="f-note" type="text" name="note" maxlength="500" placeholder="{{ _("z. B. Zubehör: Netzteil, Tasche") }}"></div>
       <div class="span-6"><button class="btn primary">{{ icon("check") }} {{ _("Ausgeben") }}</button></div>
     </form>
     {% endif %}

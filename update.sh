@@ -47,7 +47,7 @@ set -euo pipefail
 # important, because a new package replaces this very file.
 main() {
 SERVICE=assetlotse
-HEALTH_TIMEOUT=120   # seconds to wait for "healthy"
+HEALTH_TIMEOUT=180   # seconds to wait for "healthy" (the first start of a new version also makes a backup)
 
 # ---------------------------------------------------------------- Output
 if [ -t 1 ]; then
@@ -66,7 +66,6 @@ usage() { awk 'NR>2 && /^# ---/{exit} NR>2{sub(/^# ?/,""); print}' "$0"; exit 0;
 BACKUP=1; NOCACHE=""; PRUNE=0; YES=0; ZIP=""; CLEANUP=1; CLEANUP_ONLY=0
 AFTER_SWAP=0; HANDED_OLD_VERSION=""; HANDED_ZIP=""
 PULL=0; WANT_IMAGE=""; WANT_VERSION=""; PULLED_REF=""; PINNED=0
-ARGS=("$@")
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --no-backup)  BACKUP=0 ;;
@@ -98,8 +97,12 @@ done
 [ "$PULL" = 0 ] || [ -z "$ZIP" ] || die "Either a package or --pull, not both."
 [ "$PULL" = 1 ] || [ -z "$WANT_IMAGE$WANT_VERSION" ] || die "--image and --version only work together with --pull."
 if [ -n "$WANT_IMAGE" ]; then
-    WANT_IMAGE="${WANT_IMAGE%/}"; WANT_IMAGE="${WANT_IMAGE%%:*}"
-    [[ "$WANT_IMAGE" =~ ^[a-z0-9]([a-z0-9._-]*[a-z0-9])?(/[a-z0-9]([a-z0-9._-]*[a-z0-9])?)+$ ]] \
+    WANT_IMAGE="${WANT_IMAGE%/}"
+    case "${WANT_IMAGE##*/}" in
+        *:*) die "Please give the image address without a version and the version with --version (e.g. --image ghcr.io/owner/repo --version 1.7.0)." ;;
+    esac
+    # registry (optionally with port) / path, lower case – e.g. ghcr.io/owner/repo or localhost:5000/team/app
+    [[ "$WANT_IMAGE" =~ ^[a-z0-9]([a-z0-9._-]*[a-z0-9])?(:[0-9]+)?(/[a-z0-9]([a-z0-9._-]*[a-z0-9])?)+$ ]] \
         || die "Invalid image address: $WANT_IMAGE  (lower case, e.g. ghcr.io/owner/repo)"
 fi
 [ -z "$WANT_VERSION" ] || [[ "$WANT_VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Invalid version: $WANT_VERSION  (e.g. 1.7.0)"
@@ -112,6 +115,12 @@ if [ -n "$ZIP" ]; then
 fi
 INSTALL_DIR="$(dirname "$(readlink -f -- "$0")")"
 cd "$INSTALL_DIR" || die "Program folder not accessible: $INSTALL_DIR"
+# Only one update at a time (cron and a manual run must not race). The new script after the handover
+# inherits the lock (file descriptor 9) and does not take it again.
+if [ "$AFTER_SWAP" = 0 ] && command -v flock >/dev/null 2>&1; then
+    exec 9>>"$INSTALL_DIR/.assetlotse.lock"
+    flock -n 9 || die "Another update is running right now. Please wait until it has finished."
+fi
 
 confirm() {
     [ "$YES" = 1 ] && return 0
@@ -191,6 +200,11 @@ fi
 if [ -z "$ZIP" ] && [ "$PULL" = 0 ]; then
     [ -f docker-compose.yml ] || die "docker-compose.yml not found – this script belongs in the AssetLotse folder."
 fi
+# A server that runs ready-made images is never switched to a local build by accident (the local files
+# may be older than the running image, which an update tool may already have moved on).
+if [ -z "$ZIP" ] && [ "$PULL" = 0 ] && [ "$AFTER_SWAP" = 0 ] && [ "$CLEANUP_ONLY" = 0 ] && [ "$OLD_IMAGE" != assetlotse ]; then
+    die "This server runs ready-made images ($OLD_IMAGE). Update with:  ./update.sh --pull   – or build locally from a package:  ./update.sh assetlotse-X.Y.Z.zip"
+fi
 
 container_running() {
     # the old docker-compose does not know "ps --status" – so ask Docker directly
@@ -203,7 +217,7 @@ container_running() {
 KEEP_RE='^(data|instance|packages|pakete|\.env|docker-compose\.override\.yml|\.assetlotse-update\..*)$'
 
 STAGE=""; SWAP_STATE=""; MOVED_OLD=(); PLACED=()
-TMP_CID=""
+TMP_CID=""; RESTORE_LATEST=""
 cleanup() {
     local rc=$?
     if [ -n "$TMP_CID" ]; then docker rm -fv "$TMP_CID" >/dev/null 2>&1 || true; fi
@@ -212,26 +226,50 @@ cleanup() {
     fi
     if [ -n "$STAGE" ] && [ -d "$STAGE" ]; then
         if [ "$SWAP_STATE" = failed ]; then
-            warn "The previous files are still kept in: $STAGE/old"
+            # never deleted by a later cleanup (that only removes .assetlotse-update.*)
+            local keep="$INSTALL_DIR/assetlotse-restore-$(date +%Y%m%d-%H%M%S)"
+            mv -- "$STAGE" "$keep" 2>/dev/null || keep="$STAGE"
+            warn "The previous files are kept in: $keep/old – copy them back by hand."
         else
             rm -rf -- "$STAGE"
+        fi
+    fi
+    # A pull that was refused or failed must not leave a moved "latest" behind
+    if [ -n "$RESTORE_LATEST" ] && [ "$rc" != 0 ]; then
+        if [ "$RESTORE_LATEST" = none ]; then
+            docker image rm "${REGISTRY_IMAGE}:latest" >/dev/null 2>&1 || true
+        else
+            docker tag "$RESTORE_LATEST" "${REGISTRY_IMAGE}:latest" >/dev/null 2>&1 || true
         fi
     fi
     return "$rc"
 }
 trap cleanup EXIT
-trap 'exit 130' INT TERM
+trap 'exit 130' INT TERM HUP
+
+die_swap() {   # after rollback: say what really happened
+    if [ "$SWAP_STATE" = failed ]; then
+        die "Installing failed ($1) and the previous files could not all be restored – see above."
+    fi
+    die "Installing failed ($1) – the previous version is unchanged."
+}
 
 rollback() {   # swap back entries that were already replaced (in reverse order)
     # Only entries that were demonstrably placed (PLACED) or moved away (MOVED_OLD) are touched –
     # if moving an entry away failed, the original stays untouched in its place.
+    # Entries are recorded right BEFORE each mv, so an interrupt between mv and bookkeeping loses nothing:
+    # a placed entry is only removed if its old version is safe in old/ (or never existed), and an old
+    # entry is only moved back if it really is in old/.
     local i name ok=1
     warn "Error while installing – restoring the previous files …"
     for (( i=${#PLACED[@]}-1; i>=0; i-- )); do
-        rm -rf -- "./${PLACED[$i]}" || ok=0
+        name="${PLACED[$i]}"
+        [ -e "$SRC/$name" ] && continue                 # mv never happened – ./name is still the original
+        rm -rf -- "./$name" || ok=0
     done
     for (( i=${#MOVED_OLD[@]}-1; i>=0; i-- )); do
         name="${MOVED_OLD[$i]}"
+        [ -e "$STAGE/old/$name" ] || [ -L "$STAGE/old/$name" ] || continue
         mv -- "$STAGE/old/$name" "./$name" || ok=0
     done
     if [ "$ok" = 1 ]; then
@@ -246,7 +284,6 @@ rollback() {   # swap back entries that were already replaced (in reverse order)
 # ---------------------------------------------------------------- Cleanup (functions)
 PKG_DIR="$INSTALL_DIR/packages"
 OLD_PKG_DIR="$INSTALL_DIR/pakete"   # name of the archive folder in 1.6.2
-KEEP_PACKAGES=2      # current + previous package (for going back)
 
 pkg_version() {      # version of an AssetLotse package (without unpacking it)
     unzip -p "$1" '*assetlotse/__init__.py' 2>/dev/null | sed -n 's/^__version__ = "\(.*\)"/\1/p' | head -n1 || true
@@ -380,6 +417,11 @@ fi
 if [ "$PULL" = 1 ] && [ "$AFTER_SWAP" = 0 ]; then
     REGISTRY_IMAGE="${WANT_IMAGE:-$REGISTRY_IMAGE}"
     PULL_TAG="${WANT_VERSION:-latest}"
+    if [ "$PULL_TAG" = latest ]; then
+        # remember the local "latest" – a refused or failed pull puts it back (see cleanup)
+        RESTORE_LATEST="$(docker image inspect -f '{{.Id}}' "${REGISTRY_IMAGE}:latest" 2>/dev/null || true)"
+        RESTORE_LATEST="${RESTORE_LATEST:-none}"
+    fi
     step "Pulling ready-made image: ${REGISTRY_IMAGE}:${PULL_TAG}"
     docker pull "${REGISTRY_IMAGE}:${PULL_TAG}" \
         || die "Pull failed – nothing changed. Is the address/version right? For a private repository log in once:  docker login ghcr.io -u <github-user>  (password: a token with read:packages)."
@@ -519,15 +561,15 @@ if { [ -n "$ZIP" ] || [ "$PULL" = 1 ]; } && [ "$AFTER_SWAP" = 0 ]; then
     SWAP_STATE=running
     for name in "${ENTRIES[@]}"; do
         if [ -e "./$name" ] || [ -L "./$name" ]; then
-            mv -- "./$name" "$STAGE/old/$name" || { rollback; die "Installing failed ($name) – the previous version is unchanged."; }
             MOVED_OLD+=("$name")
+            mv -- "./$name" "$STAGE/old/$name" || { rollback; die_swap "$name"; }
         fi
         if [ -e "$SRC/$name" ]; then
-            mv -- "$SRC/$name" "./$name" || { rollback; die "Installing failed ($name) – the previous version is unchanged."; }
             PLACED+=("$name")
+            mv -- "$SRC/$name" "./$name" || { rollback; die_swap "$name"; }
         fi
     done
-    [ "$(version_of .)" = "$NEW_VERSION" ] || { rollback; die "Installing failed (check) – the previous version is unchanged."; }
+    [ "$(version_of .)" = "$NEW_VERSION" ] || { rollback; die_swap "check"; }
     SWAP_STATE=done
     chmod +x ./update.sh ./docker-entrypoint.sh 2>/dev/null || true
     rm -rf -- "$STAGE"; STAGE=""
@@ -535,13 +577,15 @@ if { [ -n "$ZIP" ] || [ "$PULL" = 1 ]; } && [ "$AFTER_SWAP" = 0 ]; then
     # From here the NEW update.sh takes over (build, start, clean up) – so improvements to the
     # script already apply to this update. Older packages without this handover just carry on here.
     if grep -q -- '--continue-after-swap' ./update.sh 2>/dev/null; then
+        # Only options the new script knows – going back to an older version must not fail on a new option
+        knows() { grep -q -- "$1)" ./update.sh 2>/dev/null; }
         PASS=()
         [ -n "$NOCACHE" ] && PASS+=(--no-cache)
         [ "$PRUNE" = 1 ] && PASS+=(--prune)
-        [ "$CLEANUP" = 0 ] && PASS+=(--no-cleanup)
+        [ "$CLEANUP" = 0 ] && knows --no-cleanup && PASS+=(--no-cleanup)
         [ "$YES" = 1 ] && PASS+=(-y)
-        [ "$PULL" = 1 ] && PASS+=(--pulled "$PULLED_REF")
-        [ -n "$WANT_VERSION" ] && PASS+=(--pinned)
+        [ "$PULL" = 1 ] && knows --pulled && PASS+=(--pulled "$PULLED_REF")
+        [ -n "$WANT_VERSION" ] && knows --pinned && PASS+=(--pinned)
         trap - EXIT
         exec bash ./update.sh "${PASS[@]}" --continue-after-swap "${OLD_VERSION:-}" "$ZIP"
     fi
@@ -611,7 +655,8 @@ if [ "$PULL" = 1 ]; then
 else
     step "Building image assetlotse:${VERSION}"
     # No --pull needed: the base image is pinned by digest in the Dockerfile.
-    "${DC[@]}" build $NOCACHE "$SERVICE" || die "Build failed – the running container is unchanged."
+    "${DC[@]}" build $NOCACHE "$SERVICE" \
+        || die "Build failed – the running container is unchanged (but the files are new). To go back:  ${GO_BACK}"
     ok "Image built."
 fi
 

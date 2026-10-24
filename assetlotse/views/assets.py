@@ -191,8 +191,8 @@ def index():
 def _render_detail(asset: Asset, secret: str | None = None, own_secret: str | None = None):
     users = []
     if current_user.can_manage(asset):
-        users = [u for u in User.query.filter_by(active=True).order_by(User.display_name, User.username)
-                 if u.can_borrow(asset)]
+        users = [u for u in User.query.filter_by(active=True).options(selectinload(User.groups))
+                 .order_by(User.display_name, User.username) if u.can_borrow(asset)]
     own_loan = next((l for l in asset.active_loans if l.user_id == current_user.id), None)
     return render_template("assets/detail.html", asset=asset, users=users, own_loan=own_loan, own_secret=own_secret,
                            self_checkout=get_bool("self_checkout"),
@@ -616,6 +616,9 @@ def edit(asset_id):
     if not current_user.can_manage(asset):
         abort(403)
     if request.method == "POST":
+        from .loans import lock_asset
+        lock_asset(asset.id)                # gleichzeitige Ausgabe wartet – Anzahl gegen frische Ausleihen prüfen
+        db.session.expire(asset, ["loans"])
         may_secret = current_user.can_view_secret(asset)   # vor dem Formular: alte Gruppe zählt
         previous = {f: getattr(asset, f) for f in NUMBER_FIELDS}
         error = _fill_asset(asset)
@@ -663,7 +666,11 @@ def delete(asset_id):
     asset = _get_asset_or_404(asset_id)
     if not current_user.can_manage(asset):
         abort(403)
+    from .loans import lock_asset
+    lock_asset(asset.id)                    # keine Ausgabe zwischen Prüfung und Löschen
+    db.session.expire(asset, ["loans"])
     if asset.active_loans:
+        db.session.rollback()
         flash(_("Der Gegenstand ist noch ausgegeben und kann nicht gelöscht werden."), "error")
         return redirect(url_for("assets.detail", asset_id=asset.id))
     if asset.has_secret and not current_user.can_view_secret(asset):

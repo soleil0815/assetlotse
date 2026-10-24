@@ -18,9 +18,9 @@
     <section class="card card-pad">
       <form method="get">
         <input type="hidden" name="modus" value="ausgabe">
-        <label>{{ _("1. Person") }}</label>
+        <label for="f-benutzer">{{ _("1. Person") }}</label>
         <div class="input-group">
-          <input type="text" name="benutzer" value="{{ borrower.username if borrower else user_q }}"
+          <input id="f-benutzer" type="text" name="benutzer" value="{{ borrower.username if borrower else user_q }}"
                  placeholder="{{ _("Benutzername oder Name") }}" {{ "autofocus" if not borrower }} autocomplete="off"
                  data-suggest="{{ url_for('loans.people_suggest') }}" data-suggest-action="person">
           <button class="btn">{{ icon("user") }} {{ _("Wählen") }}</button>
@@ -67,7 +67,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="modus" value="ausgabe">
         <input type="hidden" name="benutzer" value="{{ borrower.username if borrower else '' }}">
-        <label>{{ _("2. Gegenstand (Inventarnummer, Seriennummer, Bezeichnung oder #Nummer)") }}</label>
+        <label for="desk-code">{{ _("2. Gegenstand (Inventarnummer, Seriennummer, Bezeichnung oder #Nummer)") }}</label>
         <div class="input-group">
           <input class="code-input" id="desk-code" type="text" name="code" placeholder="{{ _("Nummer scannen oder eintippen") }}" {{ ("" if focus_search else "autofocus") if borrower else "disabled" }}
                  {% if borrower %}data-suggest="{{ url_for('assets.suggest') }}" data-suggest-for="theke" data-suggest-action="issue" data-suggest-user="{{ borrower.username }}"
@@ -187,7 +187,7 @@
       <form method="post" autocomplete="off">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="modus" value="rueckgabe">
-        <label>{{ _("Gegenstand (Inventarnummer, Seriennummer, Bezeichnung oder #Nummer)") }}</label>
+        <label for="return-code">{{ _("Gegenstand (Inventarnummer, Seriennummer, Bezeichnung oder #Nummer)") }}</label>
         <div class="input-group">
           <input class="code-input" id="return-code" type="text" name="code" placeholder="{{ _("Nummer scannen oder eintippen") }}" autofocus value="">
           <button class="btn primary">{{ icon("return") }} {{ _("Suchen") }}</button>

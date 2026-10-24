@@ -49,13 +49,22 @@ def archive_loans(loan_ids: list[int]) -> int:
     return total
 
 
+class OpenLoansError(Exception):
+    """Der Person ist noch etwas ausgegeben – dann wird nicht gelöscht."""
+
+
 def delete_user(user) -> None:
     """Benutzer samt abgeschlossenen Ausleihen löschen (pro Gegenstand nur gezählt, Statistik bleibt).
 
-    Der Aufrufer prüft vorher, dass keine Ausleihe mehr läuft; committet wird nicht."""
-    ids = [i for (i,) in db.session.query(Loan.id).filter(Loan.user_id == user.id)]
+    Läuft noch eine Ausleihe (auch eine, die gerade erst an der Theke angelegt wurde), wird nichts gelöscht:
+    OpenLoansError. Committet wird nicht."""
+    db.session.flush()
+    if db.session.query(Loan.id).filter(Loan.user_id == user.id, Loan.returned_at.is_(None)).first():
+        raise OpenLoansError(user.username)
+    ids = [i for (i,) in db.session.query(Loan.id).filter(Loan.user_id == user.id, Loan.returned_at.isnot(None))]
     archive_loans(ids)
-    db.session.query(Loan).filter(Loan.user_id == user.id).delete(synchronize_session=False)
+    db.session.query(Loan).filter(Loan.user_id == user.id, Loan.returned_at.isnot(None)).delete(
+        synchronize_session=False)
     # schon geladene Ausleihen aus der Sitzung nehmen – sonst will das ORM sie beim Löschen noch ändern
     for obj in [o for o in db.session.identity_map.values() if isinstance(o, Loan) and o.id in set(ids)]:
         db.session.expunge(obj)
@@ -95,8 +104,12 @@ def format_result(res: dict) -> str:
 
 def run_daily(now: datetime | None = None) -> dict | None:
     """Einmal pro Tag (auch bei mehreren Server-Prozessen nur einmal)."""
+    from .backup import supported as backup_supported
     from .mailer import _claim_today
+    from .models import get_bool, get_int
     now = now or datetime.now()
+    if get_bool("backup_enabled") and backup_supported() and now.hour < get_int("backup_hour", 2):
+        return None            # erst nach der täglichen Sicherung löschen
     if not _claim_today(now.date().isoformat(), key="retention_last_run"):
         return None
     res = run_retention(now)

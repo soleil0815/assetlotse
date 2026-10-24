@@ -16,6 +16,7 @@ import threading
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, or_, update
+from sqlalchemy.orm import selectinload
 
 from .i18n import _
 from .models import DirectoryPerson, Setting, User, db, get_bool, get_int, get_setting, set_setting
@@ -217,7 +218,8 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
              "needs_admin": [], "roles_kept": []}
     by_guid = {p.guid: p for p in people if p.guid}
     by_name = {p.username.lower(): p for p in people}
-    accounts = User.query.filter(User.auth_source == "ldap").order_by(User.id).all()
+    accounts = (User.query.filter(User.auth_source == "ldap").options(selectinload(User.groups))
+                .order_by(User.id).all())
     taken_names = {u.lower() for (u,) in db.session.query(User.username).all()}   # Stand vor dem Abgleich
     ldap_groups = Group.query.filter(Group.ldap_dn != "").all()
     group_sync = get_bool("ldap_group_sync")
@@ -226,6 +228,7 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
     claims: dict[int, list[User]] = {}
     persons: dict[int, object] = {}
     missing: list[User] = []
+    account_guids = {u.ldap_guid for u in accounts if u.ldap_guid}   # einmal statt in jeder Runde
     for user in accounts:
         if user.ldap_guid:
             person = by_guid.get(user.ldap_guid)
@@ -234,7 +237,7 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
                 person = cand if cand is not None and not cand.guid else None
         else:
             person = by_name.get(user.username.lower())      # Altkonto ohne Kennung: nur genauer Name, kein DN
-            if person is not None and person.guid and person.guid in {u.ldap_guid for u in accounts if u.ldap_guid}:
+            if person is not None and person.guid and person.guid in account_guids:
                 person = None       # die Person hat schon ein Konto mit ihrer Kennung
         if person is None:
             missing.append(user)
@@ -393,13 +396,12 @@ def _store(people, complete: bool, now: datetime) -> dict:
 def clear() -> int:
     """Zwischenspeicher leeren (beim Ausschalten oder wenn AD abgeschaltet wird).
 
-    Vom Abgleich deaktivierte Konten werden wieder aktiv – ohne Abgleich würde sie sonst nie jemand zurückholen.
-    (Anmelden können sie sich trotzdem nur, wenn das AD sie freigibt.)"""
+    Vom Abgleich deaktivierte Konten bleiben gesperrt: Sonst tauchten ausgeschiedene Personen sofort wieder an der
+    Theke und in Erinnerungsmails auf. Wer wieder berechtigt ist, wird beim nächsten Abgleich bzw. bei der
+    Anmeldung über das AD reaktiviert; von Hand geht es unter Benutzer."""
     n = DirectoryPerson.query.delete()
-    for user in User.query.filter(User.deactivated_by_sync.is_(True)).all():
-        user.active, user.deactivated_by_sync = True, False
     for key in ("ldap_cache_synced_at", "ldap_cache_attempt_at", "ldap_cache_error", "ldap_cache_result",
-                "ldap_cache_warning", "ldap_cache_pending", "ldap_cache_setup_confirmed"):
+                "ldap_cache_warning", "ldap_cache_pending"):
         set_setting(key, "")
     db.session.commit()
     return n
@@ -430,8 +432,7 @@ def maintain() -> None:
     """Vom Hintergrund-Zeitplan aufgerufen: abgleichen, wenn fällig; ausgeschaltet → Reste entfernen."""
     if enabled():
         sync()
-    elif (get_setting("ldap_cache_synced_at") or DirectoryPerson.query.first() is not None
-          or User.query.filter(User.deactivated_by_sync.is_(True)).first() is not None):
+    elif get_setting("ldap_cache_synced_at") or DirectoryPerson.query.first() is not None:
         clear()
 
 

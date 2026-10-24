@@ -65,7 +65,7 @@ def via_proxy_without_client_ip() -> bool:
 
 HOST_RE = __import__("re").compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\.?$", 2)
 RESOLVE_TTL = 300          # Sekunden: DynDNS-Namen alle 5 Minuten neu auflösen
-_cache: dict[str, tuple[float, set]] = {}
+_cache: dict[str, tuple[float, set, float]] = {}
 
 
 def parse_own(text: str) -> tuple[list[str], list[str]]:
@@ -83,19 +83,25 @@ def parse_own(text: str) -> tuple[list[str], list[str]]:
 
 
 def _resolve(host: str, now: float) -> set:
+    """Adressen eines DynDNS-Namens, höchstens alle RESOLVE_TTL Sekunden neu aufgelöst.
+
+    Cache: host → (Zeit der letzten erfolgreichen Auflösung, Adressen, Zeit des letzten Versuchs). Auch ein
+    fehlgeschlagener Versuch wird gemerkt – sonst würde bei einem DNS-Ausfall jede Anfrage neu auflösen."""
     import socket
     cached = _cache.get(host)
-    if cached and now - cached[0] < RESOLVE_TTL:
+    if cached and now - cached[2] < RESOLVE_TTL:
         return cached[1]
     try:
         ips = {info[4][0].split("%")[0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)}
     except OSError as exc:
         log.warning("Eigener Anschluss: %s lässt sich nicht auflösen (%s)", host, exc)
-        # letzte bekannte Adresse höchstens eine Stunde weiterverwenden
-        ips = cached[1] if cached and now - cached[0] < 3600 else set()
-        _cache[host] = (cached[0], ips) if cached and ips else (now, ips)
-        return ips
-    _cache[host] = (now, ips)
+        # letzte bekannte Adresse höchstens eine Stunde nach der letzten erfolgreichen Auflösung weiterverwenden
+        if cached and now - cached[0] < 3600:
+            _cache[host] = (cached[0], cached[1], now)
+            return cached[1]
+        _cache[host] = (cached[0] if cached else 0.0, set(), now)
+        return set()
+    _cache[host] = (now, ips, now)
     return ips
 
 

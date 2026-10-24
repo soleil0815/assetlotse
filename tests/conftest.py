@@ -16,3 +16,18 @@ def _legacy_catalog_default(request, monkeypatch):
         from assetlotse import models
         monkeypatch.setitem(models.DEFAULT_SETTINGS, "catalog_visibility", "groups")
     yield
+
+
+@pytest.fixture(autouse=True)
+def _fast_password_hashes(monkeypatch):
+    """Im Betrieb scrypt (absichtlich langsam); in den Tests ein schnelles Verfahren – sonst kostet jedes
+    angelegte Konto und jeder Wiederherstellungscode rund 0,1 s. Geprüft wird weiterhin mit check_password_hash."""
+    from functools import partial
+
+    from werkzeug.security import generate_password_hash
+
+    from assetlotse import models, twofa
+    fast = partial(generate_password_hash, method="pbkdf2:sha256:1000")
+    monkeypatch.setattr(models, "generate_password_hash", fast)
+    monkeypatch.setattr(twofa, "generate_password_hash", fast)
+    yield

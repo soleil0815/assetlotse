@@ -27,13 +27,26 @@
     store.set("theme", root.dataset.theme);
   }));
 
-  $$("[data-nav-toggle]").forEach((btn) => btn.addEventListener("click", (e) => {
+  const navButtons = $$("[data-nav-toggle]");
+  const setNav = (open) => {
+    document.body.classList.toggle("nav-open", open);
+    navButtons.forEach((b) => b.setAttribute("aria-expanded", open ? "true" : "false"));
+  };
+  navButtons.forEach((btn) => btn.addEventListener("click", (e) => {
     e.stopPropagation();
-    document.body.classList.toggle("nav-open");
+    const open = !document.body.classList.contains("nav-open");
+    setNav(open);
+    if (open) { const first = document.querySelector("#sidebar a"); if (first) first.focus(); }
   }));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && document.body.classList.contains("nav-open")) {
+      setNav(false);
+      if (navButtons[0]) navButtons[0].focus();
+    }
+  });
   document.addEventListener("click", (e) => {
     if (document.body.classList.contains("nav-open") && !e.target.closest(".sidebar")) {
-      document.body.classList.remove("nav-open");
+      setNav(false);
     }
     // Benutzermenü schließen, wenn daneben getippt wird
     $$(".user-menu[open]").forEach((m) => { if (!m.contains(e.target)) m.removeAttribute("open"); });
@@ -71,9 +84,10 @@
     if (el) el.scrollIntoView({ block: scrollTarget.dataset.scrollBlock || "start" });
   }
 
+  // Hinweise blenden sich aus – Fehler und Warnungen bleiben stehen, bis sie geschlossen werden
   $$(".flash").forEach((el) => {
-    const ms = el.classList.contains("error") ? 12000 : 6000;
-    setTimeout(() => { el.style.transition = "opacity .4s"; el.style.opacity = "0"; setTimeout(() => el.remove(), 400); }, ms);
+    if (el.classList.contains("error") || el.classList.contains("warning")) return;
+    setTimeout(() => { el.style.transition = "opacity .4s"; el.style.opacity = "0"; setTimeout(() => el.remove(), 400); }, 6000);
   });
 
   // Kachel-/Listenansicht im Katalog
@@ -308,7 +322,10 @@
       ...opts,
     });
     let data = {};
-    try { data = await res.json(); } catch (e) { /* kein JSON */ }
+    try { data = await res.json(); } catch (e) {
+      // kein JSON – meist ist die Sitzung abgelaufen und es kam die Anmeldeseite zurück
+      if (res.redirected || res.ok) data.error = T("Sitzung abgelaufen – bitte die Seite neu laden.");
+    }
     if (!res.ok && !data.error) data.error = T("Fehler {status}", { status: res.status });
     return data;
   }
@@ -325,8 +342,10 @@
   $$("[data-copy-secret]").forEach((btn) => btn.addEventListener("click", async () => {
     const box = $("[data-secret]");
     if (!box) return;
+    const label = btn.innerHTML;
     try { await navigator.clipboard.writeText(box.textContent.trim()); btn.textContent = T("✓ Kopiert"); }
-    catch (e) { window.getSelection().selectAllChildren(box); }
+    catch (e) { window.getSelection().selectAllChildren(box); btn.textContent = T("Markiert – mit Strg+C kopieren"); }
+    setTimeout(() => { btn.innerHTML = label; }, 2500);
   }));
 
   /* ------------------------------------------------------------ Hilfe */

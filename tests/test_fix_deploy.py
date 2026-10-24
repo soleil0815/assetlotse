@@ -434,7 +434,8 @@ class UpdateScriptRunTest(TmpDir):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("restored", r.stdout + r.stderr)
         self.assertIn("1.0.0", self.version())
-        self.assertEqual(sorted(str(p.relative_to(self.inst)) for p in self.inst.rglob("*")), before)
+        after = sorted(str(p.relative_to(self.inst)) for p in self.inst.rglob("*") if p.name != ".assetlotse.lock")
+        self.assertEqual(after, before)
 
 
 @unittest.skipUnless(hasattr(os, "geteuid") and os.geteuid() == 0 and shutil.which("setpriv")
@@ -534,8 +535,6 @@ class UpdatePackageCheckTest(UpdateScriptRunTest):
         mode = (self.inst / "assetlotse" / "offen.py").stat().st_mode & 0o777
         self.assertEqual(mode & 0o022, 0)
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 @unittest.skipUnless(shutil.which("bash") and shutil.which("unzip"), "braucht bash und unzip")
@@ -693,7 +692,7 @@ class UpdatePullTest(UpdateScriptRunTest):
         self.assertNotIn("image rm assetlotse:1.0.0", log)                 # … das vorige (lokale) bleibt
         self.assertNotIn(f"image rm {self.REG}:2.0.0", log)
         self.assertIn("Digest:  sha256:abc", r.stdout)
-        self.assertNotIn("create cid", log)
+        self.assertIn(f"create {self.REG}:2.0.0", log)
         self.assertIn("rm -fv cid123", log)                                 # auch das anonyme Volume
         # zweites Mal: bestimmte Version, Einträge in der .env werden ersetzt, nicht doppelt
         r = self.run_pull("--pull", "--version", "v2.0.0")
@@ -745,6 +744,36 @@ class UpdatePullTest(UpdateScriptRunTest):
         self.assertIn("ASSETLOTSE_TAG=latest", env)
         self.assertEqual(env.count("ASSETLOTSE_TAG="), 1)
 
+    def test_plain_run_on_pull_server_never_switches_silently(self):
+        self.assertEqual(self.run_pull("--pull").returncode, 0)
+        self.log.write_text("")
+        r = self.run_pull()
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("runs ready-made images", r.stderr)
+        self.assertNotIn(" build ", self.log.read_text())
+        self.assertIn(f"ASSETLOTSE_IMAGE={self.REG}", self.env_file())
+
+    def test_refused_pull_restores_latest(self):
+        r = self.run_pull("--pull", FAKE_SOURCE="https://github.com/boese/anderes")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn(f"image rm {self.REG}:latest", self.log.read_text())   # vorher gab es kein latest
+
+    def test_handover_to_older_script_without_new_options(self):
+        old = (ROOT / "update.sh").read_text().replace('--pinned)', '--xpinned)').replace('--pulled)', '--xpulled)')
+        (self.app / "update.sh").write_text(old)                          # Zielversion kennt die Optionen nicht
+        r = self.run_pull("--pull", "--version", "2.0.0")
+        self.assertNotIn("Unknown option", r.stdout + r.stderr)
+        self.assertIn("2.0.0", self.version())
+
+    def test_only_one_update_at_a_time(self):
+        import fcntl
+        with open(self.inst / ".assetlotse.lock", "a") as fh:
+            fcntl.flock(fh, fcntl.LOCK_EX)
+            r = self.run_pull("--pull")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("Another update is running", r.stderr)
+        self.assertIn("1.0.0", self.version())
+
     def test_zip_after_pull_switches_back_to_local_image(self):
         self.assertEqual(self.run_pull("--pull").returncode, 0)
         r = self.run_pull(str(self.zip))
@@ -784,9 +813,10 @@ class UpdatePullTest(UpdateScriptRunTest):
         self.assertEqual(list(self.inst.glob(".assetlotse-update.*")), [])
 
 
-# die geerbten Tests des lokalen Weges nicht noch einmal mit dem Pull-Fake-docker laufen lassen
-for _name in [n for n in dir(UpdateScriptRunTest) if n.startswith("test_")]:
-    setattr(UpdatePullTest, _name, None)
+# Die geerbten Tests des lokalen Weges nicht in jeder Unterklasse noch einmal laufen lassen
+for _cls in (UpdatePackageCheckTest, UpdateCleanupTest, UpdatePullTest):
+    for _name in [n for n in vars(UpdateScriptRunTest) if n.startswith("test_")]:
+        setattr(_cls, _name, None)
 
 
 class ReleaseFilesTest(unittest.TestCase):
@@ -823,3 +853,7 @@ class ComposeInterpolationTest(unittest.TestCase):
         out = self.config("ASSETLOTSE_IMAGE=ghcr.io/soleil0815/assetlotse\nASSETLOTSE_TAG=latest\n")
         self.assertIn("image: ghcr.io/soleil0815/assetlotse:latest", out)
         self.assertNotIn("dockhand", out)
+
+
+if __name__ == "__main__":
+    unittest.main()

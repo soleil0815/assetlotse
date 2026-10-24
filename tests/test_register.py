@@ -28,7 +28,6 @@ class RegisterTests(unittest.TestCase):
         db.session.add(admin)
         db.session.commit()
         self.c = self.app.test_client()
-        reg._REG_LOG.clear()
         self.sent = []
         patcher = mock.patch("assetlotse.mailer.send_mail", side_effect=self._fake_send)
         patcher.start()

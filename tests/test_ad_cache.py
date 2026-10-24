@@ -137,9 +137,12 @@ class SyncTests(Base):
         self.run_sync([self.person("anna")])
         set_setting("ldap_cache_enabled", "0")
         db.session.commit()
+        gone = self.ad_account("weg", active=False, deactivated_by_sync=True)
         ad_cache.maintain()
         self.assertEqual(DirectoryPerson.query.count(), 0)
         self.assertFalse(get_setting("ldap_cache_synced_at"))
+        db.session.refresh(gone)
+        self.assertFalse(gone.active)            # ausgeschiedene Personen kommen nicht zurück
 
     def test_search_escapes_and_skips_accounts(self):
         self.run_sync([self.person("a_b", "A_B"), self.person("axb", "AxB")])
@@ -344,13 +347,16 @@ class ReviewFixTests(SyncTests):
         self.ad_account("anna", ldap_guid=G1)
         self.assertEqual(self.login_ad("anna", self.person("anna", guid=G2)).status_code, 401)
 
-    def test_switching_off_reactivates(self):
+    def test_switching_off_keeps_departed_locked(self):
+        # Seit 1.9.2: Ausschalten holt ausgeschiedene Personen nicht zurück (Theke, Erinnerungsmails).
+        # Wieder berechtigte Personen reaktiviert die AD-Anmeldung (Kennzeichen bleibt dafür stehen).
         u = self.ad_account("weg", active=False, deactivated_by_sync=True)
         set_setting("ldap_cache_enabled", "0")
         db.session.commit()
         ad_cache.maintain()
         db.session.expire_all()
-        self.assertTrue(db.session.get(User, u.id).active)
+        self.assertFalse(db.session.get(User, u.id).active)
+        self.assertTrue(db.session.get(User, u.id).deactivated_by_sync)
 
     def test_renames_never_break_on_swapped_names(self):
         a = self.ad_account("x", ldap_guid=G1)

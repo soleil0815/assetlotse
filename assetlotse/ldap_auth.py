@@ -209,6 +209,18 @@ class Directory:
         raise LDAPError(_("Weder Dienstkonto (Bind-DN) noch UPN-Suffix für direkten Bind konfiguriert."))
 
     # ---------------------------------------------------------------- Suche
+    # Vorübergehende Serverfehler (operationsError, timeLimit, adminLimit, busy, unavailable, other): Mit
+    # raise_exceptions=False liefert ldap3 dann einfach keine Treffer – das darf nie als „gibt es nicht“ gelten.
+    TRANSIENT_CODES = {1, 3, 11, 51, 52, 80}
+
+    @staticmethod
+    def _search_failed(conn, ok_codes=(0, 4, 32)) -> tuple[int, str] | None:
+        res = conn.result if isinstance(getattr(conn, "result", None), dict) else {}
+        code = res.get("result", 0) or 0
+        if code in ok_codes:
+            return None
+        return code, f"{res.get('description', code)} {res.get('message', '')}".strip()
+
     def find_user(self, conn, username: str) -> dict:
         from ldap3 import SUBTREE
 
@@ -220,7 +232,10 @@ class Directory:
                     attributes=["displayName", "cn", "mail", "memberOf", "givenName", "sn",
                                 "objectSid", "primaryGroupID", "userAccountControl", "accountExpires",
                                 "objectClass", self.user_attr] + GUID_ATTRS, size_limit=2)
-        entries = [e for e in conn.response if e.get("type") == "searchResEntry"]
+        failed = self._search_failed(conn)
+        if failed:
+            raise LDAPError(_("Suche im Verzeichnis fehlgeschlagen: {error}", error=failed[1]))
+        entries = [e for e in (conn.response or []) if e.get("type") == "searchResEntry"]
         if not entries:
             raise LDAPUserNotFound(_("Benutzer '{username}' nicht unterhalb von {base} gefunden.", username=username, base=self.base_dn))
         if len(entries) > 1:
@@ -241,7 +256,11 @@ class Directory:
     def _search_dns(self, conn, base: str, flt: str) -> list[str]:
         from ldap3 import SUBTREE
         if not conn.search(base, flt, SUBTREE, attributes=["1.1"]):
-            return []
+            failed = self._search_failed(conn)
+            if failed and failed[0] in self.TRANSIENT_CODES:
+                # Server gerade nicht bereit: lieber abbrechen als Gruppen (und damit Rechte) zu verlieren
+                raise LDAPError(_("Suche im Verzeichnis fehlgeschlagen: {error}", error=failed[1]))
+            return []      # z. B. Suchverfahren nicht unterstützt – die anderen Verfahren decken es ab
         return [e["dn"] for e in conn.response if e.get("type") == "searchResEntry"]
 
     def _sids_to_dns(self, conn, base: str, sids: list[bytes]) -> list[str]:

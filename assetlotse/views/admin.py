@@ -10,7 +10,7 @@ from sqlalchemy import func, or_
 
 from ..i18n import _, _n
 from ..ldap_auth import Directory, LDAPError, group_cn, parse_rules
-from ..models import (MIN_PASSWORD_LENGTH, DEFAULT_SETTINGS, ROLE_ADMIN, ROLES, Asset, Group, Loan, User, db, get_bool,
+from ..models import (MIN_PASSWORD_LENGTH, DEFAULT_SETTINGS, ROLE_ADMIN, ROLE_MANAGER, ROLES, Asset, Group, Loan, User, db, get_bool,
                       get_setting, set_setting)
 from . import admin_required, form_bool, form_int, form_str, safe_next
 
@@ -91,7 +91,9 @@ def users():
         query = query.filter(User.active.is_(False), User.pending_approval.is_(False), User.email_verified.is_(True))
     from .. import lockout
     locked = lockout.locked_usernames()
-    users = query.order_by(User.pending_approval.desc(), User.username).all()
+    from sqlalchemy.orm import selectinload
+    users = (query.options(selectinload(User.groups), selectinload(User.webauthn_credentials))
+             .order_by(User.pending_approval.desc(), User.username).all())
     # Sperren werden unter dem vereinheitlichten Namen geführt („DOMÄNE\anna“ = „anna“)
     locked = {u.username.lower() for u in users if lockout.norm(u.username) in locked}
     if status == "anmeldesperre":
@@ -148,7 +150,10 @@ def _save_user(user: User, is_new: bool):
         user.auth_source = "local"
         user.set_password(password)
     ids = _ids(request.form.getlist("groups"))
+    had_groups = bool(user.groups)
     user.groups = Group.query.filter(Group.id.in_(ids)).all() if ids else []
+    if user.role == ROLE_MANAGER and had_groups and not user.groups:
+        flash(_("Hinweis: Ein Verwalter ohne Gruppe verwaltet den gesamten Bestand."), "warning")
     return None
 
 
@@ -215,11 +220,15 @@ def user_reject(user_id):
     elif user.active_loans:
         flash(_("Der Person sind noch Gegenstände ausgegeben. Sperre das Konto stattdessen."), "error")
     else:
-        from ..retention import delete_user
+        from ..retention import OpenLoansError, delete_user
         name = user.name
-        delete_user(user)
-        db.session.commit()
-        flash(_("Registrierung von {name} abgelehnt und gelöscht.", name=name), "success")
+        try:
+            delete_user(user)
+            db.session.commit()
+            flash(_("Registrierung von {name} abgelehnt und gelöscht.", name=name), "success")
+        except OpenLoansError:
+            db.session.rollback()
+            flash(_("Der Person sind noch Gegenstände ausgegeben. Sperre das Konto stattdessen."), "error")
     return redirect(url_for("admin.users", status="neu"))
 
 
@@ -260,10 +269,15 @@ def user_delete(user_id):
     elif user.role == ROLE_ADMIN and _admin_count(user.id) == 0:
         flash(_("Der letzte Administrator kann nicht gelöscht werden."), "error")
     else:
-        from ..retention import delete_user
-        delete_user(user)   # abgeschlossene Ausleihen nur noch gezählt – Statistik bleibt erhalten
-        db.session.commit()
-        flash(_("Benutzer {name} gelöscht.", name=user.username), "success")
+        from ..retention import OpenLoansError, delete_user
+        name = user.username
+        try:
+            delete_user(user)   # abgeschlossene Ausleihen nur noch gezählt – Statistik bleibt erhalten
+            db.session.commit()
+            flash(_("Benutzer {name} gelöscht.", name=name), "success")
+        except OpenLoansError:      # gerade eben doch noch etwas ausgegeben
+            db.session.rollback()
+            flash(_("Der Person sind noch Gegenstände ausgegeben. Sperre das Konto stattdessen."), "error")
     return redirect(url_for("admin.users"))
 
 
@@ -336,14 +350,8 @@ def _retention_message(msg: str) -> str:
 
 def _backup_message(msg: str) -> str:
     """Ergebnis von backup.run_now (deutsch, so auch gespeichert) in der Sprache der Oberfläche."""
-    import re
-    m = re.match(r"^(\S+) gesichert \((.+)\)$", msg)
-    if m:
-        return _("{name} gesichert ({size})", name=m.group(1), size=m.group(2))
-    m = re.match(r"^Sicherung fehlgeschlagen: (.*)$", msg, re.S)
-    if m:
-        return _("Sicherung fehlgeschlagen: {error}", error=m.group(1))
-    return _(msg)
+    from ..backup import localized_message
+    return localized_message(msg)
 
 
 @bp.route("/datensicherung/jetzt", methods=["POST"])
@@ -446,6 +454,13 @@ def group_edit(group_id):
 @admin_required
 def group_delete(group_id):
     group = db.session.get(Group, group_id) or abort(404)
+    # Ein Verwalter ohne Gruppe verwaltet den ganzen Bestand – das darf nicht nebenbei durch Löschen passieren
+    orphaned = [u.name for u in group.users if u.role == ROLE_MANAGER and len(u.groups) == 1]
+    if orphaned:
+        flash(_("Gruppe {name} nicht gelöscht: {people} hätte(n) danach keine Gruppe mehr und würde(n) damit den "
+                "gesamten Bestand verwalten. Bitte zuerst eine andere Gruppe zuweisen.",
+                name=group.name, people=", ".join(orphaned)), "error")
+        return redirect(url_for("admin.groups"))
     n = len(group.assets)
     for b in group.assets:
         b.group_id = None

@@ -57,10 +57,38 @@ def supported() -> bool:
     return database_file() is not None
 
 
-def human_size(n: int) -> str:
+def human_size(n: int, lang: str | None = None) -> str:
+    """Dateigröße – Dezimalzeichen nach Sprache (12,3 MB / 12.3 MB)."""
     if n < 1024 * 1024:
         return f"{max(1, round(n / 1024))} KB"
-    return f"{n / 1024 / 1024:.1f} MB".replace(".", ",")
+    if lang is None:
+        from .i18n import get_locale
+        try:
+            lang = get_locale()
+        except Exception:  # noqa: BLE001 – außerhalb einer Anfrage
+            lang = "de"
+    text = f"{n / 1024 / 1024:.1f} MB"
+    return text if lang == "en" else text.replace(".", ",")
+
+
+def localized_message(msg: str) -> str:
+    """Gespeicherte Meldung (deutsch) in der aktuellen Sprache – für Oberfläche und E-Mail."""
+    import re
+    from .i18n import _, get_locale
+    en = get_locale() == "en"
+    patterns = [
+        (r"^(\S+) gesichert \((.+)\)$", lambda m: _("{name} gesichert ({size})", name=m.group(1),
+                                                     size=m.group(2).replace(",", ".") if en else m.group(2))),
+        (r"^Sicherung fehlgeschlagen: (.*)$", lambda m: _("Sicherung fehlgeschlagen: {error}", error=m.group(1))),
+        (r"^Datenbankdatei (.+) nicht gefunden\.$", lambda m: _("Datenbankdatei {path} nicht gefunden.", path=m.group(1))),
+        (r"^Sicherung (\S+) nicht gefunden\.$", lambda m: _("Sicherung {name} nicht gefunden.", name=m.group(1))),
+        (r"^Sicherung (\S+) ist beschädigt\.$", lambda m: _("Sicherung {name} ist beschädigt.", name=m.group(1))),
+    ]
+    for pat, fn in patterns:
+        m = re.match(pat, msg or "", re.S)
+        if m:
+            return fn(m)
+    return _(msg) if msg else msg
 
 
 def keep_count() -> int:
@@ -265,7 +293,9 @@ def _notify_admins(message: str):
     for admin in User.query.filter_by(role=ROLE_ADMIN, active=True):
         if admin.email:
             try:
-                subject, text, html = render_mail("backup_failed", user=admin, message=message)
+                # Meldung erst in der Sprache des Empfängers übersetzen (render_mail stellt sie ein)
+                subject, text, html = render_mail("backup_failed", user=admin, message=message,
+                                                  localize=localized_message)
                 send_mail(admin.email, subject, text, html, kind="backup", user_id=admin.id)
             except Exception:  # noqa: BLE001
                 log.exception("Hinweis auf fehlgeschlagene Sicherung konnte nicht gesendet werden")

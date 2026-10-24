@@ -5,14 +5,14 @@ import logging
 import re
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func, or_, update
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import contains_eager
 
 from ..i18n import _, format_day
-from ..models import (ROLE_READER, Asset, Loan, User, count_active_loans, db, default_due_date, get_bool, get_int, get_setting,
+from ..models import (ROLE_READER, Asset, Loan, User, count_active_loans, db, default_due_date, number_key, get_bool, get_int, get_setting,
                       catalog_hidden, manageable_assets_query)
 from ..mailer import notify_loan, notify_return, send_manual_reminder
 from . import get_by_id, manager_required, parse_id, safe_next
@@ -82,9 +82,13 @@ def lend_asset(asset: Asset, borrower: User, due=DEFAULT_DUE, note: str = "") ->
 
 
 def return_loan(loan: Loan) -> str:
-    loan.returned_at = datetime.now()
-    loan.returned_by_id = current_user.id
+    # Nur zurückbuchen, wenn noch offen – ein Doppelklick oder zwei Fenster buchen sonst zweimal (zwei Mails)
+    res = db.session.execute(update(Loan).where(Loan.id == loan.id, Loan.returned_at.is_(None))
+                             .values(returned_at=datetime.now(), returned_by_id=current_user.id))
     db.session.commit()
+    db.session.refresh(loan)
+    if res.rowcount != 1:
+        return _("„{title}“ war bereits zurückgegeben.", title=loan.asset.name)
     notify_return(loan)
     return _("„{title}“ von {name} zurückgenommen.", title=loan.asset.name, name=loan.user.name)
 
@@ -235,9 +239,10 @@ def _find_assets(code: str) -> tuple[list, bool]:
     if re.fullmatch(r"#\d+", code):
         ident = parse_id(code[1:])
         return (base.filter(Asset.id == ident).all() if ident else []), True
-    # SQLite kennt bei lower() nur A–Z – deshalb zusätzlich der genaue Vergleich (z. B. „Ü-12“)
-    for col in (Asset.inventory_no, Asset.serial_number):
-        found = base.filter(or_(col == code, func.lower(col) == code.lower())).limit(20).all()
+    # Vergleich über die normalisierten Schlüssel (wie Vorschläge und Dubletten-Prüfung) – auch „Ü-12“ = „ü-12“
+    key = number_key(code)
+    for col in (Asset.inventory_key, Asset.serial_key):
+        found = base.filter(col == key).limit(20).all() if key else []
         if found:
             return found, True
     return base.filter(Asset.name.ilike(f"%{code}%")).limit(20).all(), False
@@ -433,6 +438,8 @@ def _stock_search(stock: dict, borrower: User | None = None):
 @manager_required
 def desk():
     mode = request.values.get("modus", "ausgabe")
+    if mode not in ("ausgabe", "rueckgabe"):
+        mode = "ausgabe"
     code = (request.values.get("code") or "").strip()
     user_q = (request.values.get("benutzer") or "").strip()[:120]
     borrower, people, ad_people, ad_error = None, [], [], ""
@@ -458,18 +465,21 @@ def desk():
             return redirect(url_for("loans.desk", modus="ausgabe", benutzer=borrower.username,
                                     **{k: v for k, v in _stock_args().items() if v}))
 
+    if request.method == "POST" and "code" in request.form:
+        # Häkchen „sofort aus-/zurückgeben“ merken – auch über Rückgabe-Knopf, Vorschläge und Ergebnisliste hinweg
+        session["desk_auto"] = "1" if request.form.get("auto") == "1" else "0"
     if code:
         assets, exact = _find_assets(code)
         if mode == "rueckgabe":
             loans = [l for b in assets for l in b.active_loans]
             if exact and len(loans) == 1 and request.method == "POST" and request.values.get("auto") == "1":
                 flash(return_loan(loans[0]), "success")
-                return redirect(url_for("loans.desk", modus="rueckgabe", auto="1"))
+                return redirect(url_for("loans.desk", modus="rueckgabe"))
         elif mode == "ausgabe" and borrower and exact and len(assets) == 1 and request.method == "POST" \
                 and request.values.get("auto") == "1":
             ok, msg = lend_asset(assets[0], borrower)
             flash(msg, "success" if ok else "error")
-            return redirect(url_for("loans.desk", modus="ausgabe", benutzer=borrower.username, auto="1",
+            return redirect(url_for("loans.desk", modus="ausgabe", benutzer=borrower.username,
                                     **{k: v for k, v in _stock_args().items() if v and k != "frei"}))
         if not assets:
             flash(_("Kein Gegenstand zu „{code}“ gefunden.", code=code), "error")
@@ -488,4 +498,4 @@ def desk():
                            user_q=user_q, stock=stock, stock_results=stock_results,
                            categories=category_names(manageable_assets_query(current_user)) if mode == "ausgabe" else [],
                            focus_search=request.args.get("fokus") == "suche",
-                           auto=request.form.get("auto", "") if request.method == "POST" else request.args.get("auto", "1"))
+                           auto=session.get("desk_auto", "1"))

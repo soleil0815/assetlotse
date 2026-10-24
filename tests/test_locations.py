@@ -59,7 +59,7 @@ class LocationTests(unittest.TestCase):
         names = [l.name for l in Location.query.order_by(Location.name)]
         self.assertEqual(sorted(names), ["Lehrer zimmer", "Regal 10", "Regal 2"])
         html = self.c.get("/gegenstaende/neu").get_data(as_text=True)
-        self.assertIn('<select name="location">', html)
+        self.assertIn('<select id="f-location" name="location">', html)
         self.assertLess(html.index(">Regal 2<"), html.index(">Regal 10<"))   # natürliche Sortierung
         self.c.post("/gegenstaende/neu", data={"name": "Faust", "location": "REGAL 2"})
         self.assertEqual(Asset.query.one().location, "Regal 2")                 # Schreibweise angeglichen

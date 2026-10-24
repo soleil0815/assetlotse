@@ -2,6 +2,43 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.9.2 – 2026-10-24
+
+Code-Audit: Korrekturen in App, Oberfläche und Update-Weg. Keine neuen Funktionen, keine Datenbankänderung.
+
+**Sicherheit**
+- Löschen einer Gruppe, deren Verwalter sonst ohne Gruppe dastünde, wird abgelehnt – ein Verwalter ohne Gruppe
+  verwaltet den gesamten Bestand. Beim Speichern eines Verwalters ohne Gruppe gibt es einen Hinweis.
+- Grenze für Registrierungsversuche gilt jetzt für alle Prozesse gemeinsam (vorher pro Worker).
+- Sicherungs-Download wird nicht mehr zwischengespeichert.
+
+**Korrigiert**
+- AD: Ist der Verzeichnisserver kurz nicht erreichbar oder ausgelastet, gilt das als Fehler statt als „Benutzer
+  unbekannt“ bzw. „keine Gruppen“ – niemand verliert dadurch Gruppen oder wird gesperrt.
+- Erste Anmeldung zweier Sitzungen gleichzeitig führt nicht mehr zu einem Fehler 500.
+- Benutzer mit offenen Ausleihen werden nie gelöscht (auch nicht durch Aufräumen oder Aufbewahrungsfristen).
+- Doppelte Rückgabe (zwei Klicks, zwei Geräte) wird nur einmal gebucht.
+- Ausschalten des AD-Abgleichs entsperrt keine ausgeschiedenen Konten mehr.
+- Erinnerungsmails: Ein Fehler bei einer Person stoppt den Lauf nicht mehr; fehlgeschlagene Läufe werden bis zu
+  dreimal am selben Tag nachgeholt. Die Hintergrundaufgaben laufen unabhängig voneinander.
+- Aufbewahrung läuft bei aktiver Sicherung erst nach der täglichen Sicherung.
+- Theke: Inventarnummern mit Umlauten werden unabhängig von Groß-/Kleinschreibung gefunden; das Häkchen
+  „automatisch“ bleibt gemerkt.
+- Gleichzeitiges Bearbeiten eines Gegenstands und Konflikte beim Speichern ergeben eine Meldung statt Fehler 500.
+- DNS-Fehler bei Netzbereichen mit Hostnamen werden zwischengespeichert (keine Wartezeit bei jedem Aufruf).
+- Schnellere Benutzerliste und AD-Abgleich bei vielen Konten.
+- Sicherungsmeldungen und -mails in der englischen Oberfläche auf Englisch, Größen mit passendem Dezimalzeichen.
+- Oberfläche: kein seitliches Scrollen auf dem Handy, Menü per Escape schließbar und für Screenreader korrekt,
+  alle Formularfelder mit Beschriftung verknüpft, besserer Kontrast, Fehlermeldungen bleiben stehen, abgelaufene
+  Sitzung wird gemeldet.
+
+**Update-Weg**
+- `update.sh`: Abbruch (Strg+C) mitten im Austausch wird sauber zurückgerollt; zwei gleichzeitige Updates werden
+  verhindert; `latest` wird bei einem abgelehnten Image zurückgesetzt; kein stilles Downgrade; der
+  Wiederherstellungsordner bleibt bei einem Fehler erhalten; Registry-Adressen mit Port gehen.
+- Healthcheck und Stoppzeit des Containers passen zur Startzeit; der Workflow setzt Minor-Tag und `latest` nur für
+  die höchste Version.
+
 ## 1.9.1 – 2026-10-24
 
 **Geändert**

@@ -2,6 +2,34 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "1.9.2",
+      "date": "2026-10-24",
+      "kind": "security",
+      "audience": "admin",
+      "de": {
+        "title": "Gründlich geprüft",
+        "text": "Nach einer Code-Prüfung sind mehrere Schwachstellen behoben: Gruppen, deren Verwalter sonst alles verwalten würde, lassen sich nicht mehr löschen; ein kurz nicht erreichbares AD sperrt niemanden mehr aus; Benutzer mit offenen Ausleihen werden nie gelöscht; Erinnerungsmails werden bei Fehlern nachgeholt."
+      },
+      "en": {
+        "title": "Thoroughly reviewed",
+        "text": "A code review fixed several weak spots: groups whose manager would otherwise manage everything can no longer be deleted; a briefly unreachable AD no longer locks anyone out; users with open loans are never deleted; reminder mails are retried after errors."
+      }
+    },
+    {
+      "version": "1.9.2",
+      "date": "2026-10-24",
+      "kind": "fix",
+      "audience": "all",
+      "de": {
+        "title": "Kleine Korrekturen",
+        "text": "Doppelte Rückgaben werden nur einmal gebucht, die Theke findet Nummern mit Umlauten, auf dem Handy scrollt nichts mehr zur Seite, und Fehlermeldungen bleiben stehen, bis du sie liest."
+      },
+      "en": {
+        "title": "Small fixes",
+        "text": "Double returns are booked only once, the desk finds numbers with umlauts, nothing scrolls sideways on phones any more, and error messages stay until you have read them."
+      }
+    },
+    {
       "version": "1.9.1",
       "date": "2026-10-24",
       "kind": "feature",

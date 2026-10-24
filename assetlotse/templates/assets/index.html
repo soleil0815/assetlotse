@@ -19,28 +19,28 @@
 <form class="toolbar" method="get">
   <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _("Suchen …") }}">
   {% if categories %}
-  <select name="kategorie" data-autosubmit>
+  <select name="kategorie" data-autosubmit aria-label="{{ _("Kategorie") }}">
     <option value="">{{ _("Alle Kategorien") }}</option>
     {% for c in categories %}<option value="{{ c }}" {{ 'selected' if category == c }}>{{ c }}</option>{% endfor %}
   </select>
   {% endif %}
-  <select name="gruppe" data-autosubmit>
+  <select name="gruppe" data-autosubmit aria-label="{{ _("Gruppe") }}">
     <option value="">{{ _("Alle Gruppen") }}</option>
     <option value="allgemein" {{ 'selected' if group == 'allgemein' }}>{{ _("Allgemein") }}</option>
     {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if group == g.id|string }}>{{ g.name }}</option>{% endfor %}
   </select>
   {% if location_names %}
-  <select name="standort" data-autosubmit>
+  <select name="standort" data-autosubmit aria-label="{{ _("Standort") }}">
     <option value="">{{ _("Alle Standorte") }}</option>
     {% for n in location_names %}<option value="{{ n }}" {{ 'selected' if location == n }}>{{ n }}</option>{% endfor %}
   </select>
   {% endif %}
-  <select name="status" data-autosubmit>
+  <select name="status" data-autosubmit aria-label="{{ _("Status") }}">
     <option value="">{{ _("Jeder Status") }}</option>
     <option value="verfuegbar" {{ 'selected' if status == 'verfuegbar' }}>{{ _("Verfügbar") }}</option>
     <option value="ausgegeben" {{ 'selected' if status == 'ausgegeben' }}>{{ _("Ausgegeben") }}</option>
   </select>
-  <select name="sort" data-autosubmit>
+  <select name="sort" data-autosubmit aria-label="{{ _("Sortierung") }}">
     <option value="name" {{ 'selected' if sort == 'name' }}>{{ _("Bezeichnung A–Z") }}</option>
     <option value="category" {{ 'selected' if sort == 'category' }}>{{ _("Kategorie A–Z") }}</option>
     <option value="inventory" {{ 'selected' if sort == 'inventory' }}>{{ _("Inventarnummer") }}</option>

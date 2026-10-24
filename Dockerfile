@@ -5,7 +5,7 @@ ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3d
 FROM ${PYTHON_IMAGE}
 
 LABEL org.opencontainers.image.title="AssetLotse" \
-      org.opencontainers.image.version="1.9.1" \
+      org.opencontainers.image.version="1.9.2" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -48,6 +48,6 @@ VOLUME ["/data"]
 # all read this one variable – so host and container port are always the same.
 EXPOSE 9343
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD python -c "import os,urllib.request;urllib.request.urlopen('http://127.0.0.1:%s/login' % (os.environ.get('ASSETLOTSE_PORT') or '9343').strip('\"\' '), timeout=4)" || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s CMD python -c "import os,urllib.request;urllib.request.urlopen('http://127.0.0.1:%s/login' % (os.environ.get('ASSETLOTSE_PORT') or '9343').strip('\"\' '), timeout=4)" || exit 1
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["gunicorn", "wsgi:app"]

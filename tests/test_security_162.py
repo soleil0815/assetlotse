@@ -26,7 +26,6 @@ class Base(unittest.TestCase):
         db.drop_all()
         db.create_all()
         self.c = self.app.test_client()
-        reg._REG_LOG.clear()
         self.sent = []
         p = mock.patch("assetlotse.mailer.send_mail", side_effect=self._fake_send)
         p.start()
@@ -109,7 +108,8 @@ class RegistrationMailTests(Base):
         r = self.submit(host="lotse.schule.de")
         self.assertEqual(r.status_code, 400)
         self.assertIn("bereits ein Konto", r.get_data(as_text=True))
-        self.assertEqual(len(reg._REG_LOG["try|127.0.0.1"]), 1)
+        from assetlotse.models import LoginAttempt
+        self.assertEqual(LoginAttempt.query.filter_by(key="~reg~|try|127.0.0.1").count(), 1)
         self.assertIsNone(User.query.filter_by(username="lena.s").first())
 
     def test_every_attempt_counts(self):

@@ -3,6 +3,6 @@
 
 {{ _("die automatische Datensicherung von „{library}“ ist fehlgeschlagen:", library=org_name|safe) }}
 
-{{ message }}
+{{ localize(message) if localize else message }}
 
 {{ _("Bitte unter Administration → Datensicherung nachsehen") }}{% if base_url %}: {{ base_url }}/admin/datensicherung{% endif %}
