@@ -579,6 +579,10 @@ class WorkflowTests(unittest.TestCase):
         prep = b[b.index("- name: Prepare"):b.index("- name: Build")]
         self.assertNotIn("GH_TOKEN", prep)                     # no token while third-party containers run
 
+    def test_artifacts_downloaded_by_name(self):
+        for block in re.findall(r"uses: actions/download-artifact@\S+.*?(?=\n      - |\Z)", WF, re.S):
+            self.assertIn("name:", block)                 # downloading "all" failed on GitHub
+
     def test_selftests_on_runner_others_in_image(self):
         t = self.J["test"]
         self.assertIn("python3 -m pytest -q -p no:cacheprovider -rfE tests/test_supply_chain.py", t)

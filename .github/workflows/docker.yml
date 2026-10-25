@@ -238,7 +238,14 @@ jobs:
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          path: ${{ runner.temp }}/artifacts
+          name: image
+          path: ${{ runner.temp }}/artifacts/image
+
+      - if: needs.build.outputs.name != needs.build.outputs.version
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: security-update
+          path: ${{ runner.temp }}/artifacts/security-update
 
       - name: Apply the new versions (security update)
         run: |
@@ -323,7 +330,14 @@ jobs:
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          path: ${{ runner.temp }}/artifacts
+          name: image
+          path: ${{ runner.temp }}/artifacts/image
+
+      - if: env.KIND == 'security'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: security-update
+          path: ${{ runner.temp }}/artifacts/security-update
 
       # security update: only the lock files and the changelog may change – checked before anything is written
       - name: Check the changes
