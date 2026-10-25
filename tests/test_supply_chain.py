@@ -585,7 +585,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_selftests_on_runner_others_in_image(self):
         t = self.J["test"]
-        self.assertIn("python3 -m pytest -q -p no:cacheprovider -rfE tests/test_supply_chain.py", t)
+        self.assertIn("python3 -m pytest -q -p no:cacheprovider --noconftest -rfE tests/test_supply_chain.py", t)
         self.assertIn("--ignore=tests/test_supply_chain.py tests", t)
 
     def test_one_release_at_a_time(self):

@@ -261,7 +261,7 @@ jobs:
             --target "${RUNNER_TEMP}/pytest" -r tests/requirements-test.txt
           rc=0
           # the self-tests of the build chain need tools of the runner (jq, bash) – they run here, all others in the image
-          PYTHONPATH="${RUNNER_TEMP}/pytest" python3 -m pytest -q -p no:cacheprovider -rfE tests/test_supply_chain.py \
+          PYTHONPATH="${RUNNER_TEMP}/pytest" python3 -m pytest -q -p no:cacheprovider --noconftest -rfE tests/test_supply_chain.py \
             > selftest.log 2>&1 || rc=$?
           docker run --rm -v "$PWD:/src" -w /src -v "${RUNNER_TEMP}/pytest:/opt/pytest:ro" -e PYTHONPATH=/opt/pytest \
             --entrypoint python assetlotse:scan -m pytest -q -p no:cacheprovider -rfE \
