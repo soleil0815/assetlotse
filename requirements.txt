@@ -3,7 +3,7 @@
 #
 # Every version is fixed, including those of sub-dependencies, so every
 # build gives the same result. All tests run with exactly these
-# versions on Python 3.13.16.
+# versions on Python 3.13.17.
 #
 # Installation:   pip install --no-deps -r requirements.txt
 # Maintenance:    direct dependencies are listed in requirements.in.
