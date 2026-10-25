@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.10.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 1.10.2** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -75,13 +75,13 @@ Requires Docker Compose – the `docker compose` plugin or the older standalone 
 
 Instead of building on the server, GitHub can build the image: the workflow `.github/workflows/docker.yml` builds, tests and scans it for every new version and publishes it as **`ghcr.io/soleil0815/assetlotse`** (tags e.g. `1.10.0`, `1.10` and `latest`; security updates as `1.10.0-s1` etc., see below). The server only downloads it – an update takes seconds.
 
-**Publishing a new version:** push the new version number (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) to `master` – nothing else. The workflow notices that the version does not exist yet, builds the image from the pinned versions, runs the tests in the image, scans it with Trivy and publishes it only if everything passed – `latest` only if it is the highest version; it creates the tag `v<version>` itself, plus a GitHub release (*Releases*, text from the CHANGELOG) – likewise for every security update. Pushes without a new version number build nothing. From a zip, in the repository folder:
+**Publishing a new version:** push the new version number (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) to `main` – nothing else. The workflow notices that the version does not exist yet, builds the image from the pinned versions, runs the tests in the image, scans it with Trivy and publishes it only if everything passed – `latest` only if it is the highest version; it creates the tag `v<version>` itself, plus a GitHub release (*Releases*, text from the CHANGELOG) – likewise for every security update. Pushes without a new version number build nothing. From a zip, in the repository folder:
 ```bash
 git add -A
 git commit -m "AssetLotse 1.9.0"
 git push
 ```
-The run shows up under *Actions* (about ten minutes), then the image appears under *Packages*. Publishing only happens from the branch `master`. To try it without publishing: *Actions → Docker image → Run workflow → check* (build, test, scan).
+The run shows up under *Actions* (about ten minutes), then the image appears under *Packages*. Publishing only happens from the branch `main`. To try it without publishing: *Actions → Docker image → Run workflow → check* (build, test, scan).
 
 **Once on the server** (private repository): create a token on GitHub (*Settings → Developer settings → Personal access tokens*) with the `read:packages` permission, then
 ```bash
@@ -110,7 +110,7 @@ Goal: the image stays secure and up to date by itself, **without version jumps**
 - **All Debian packages** of the image – including those of the base image – are listed with exact versions in `build/debian-packages.lock`. They are installed from one fixed state of the Debian archive (`snapshot.debian.org`, the timestamp is in the file); if any package differs, the build stops.
 - **All Python packages** including all sub-dependencies are pinned exactly in `requirements.txt`, `pip` itself as `ARG PIP_VERSION` in the `Dockerfile`. They are installed with `--no-deps` and `--only-binary`, then `pip check` runs.
 - **Nothing that is not needed at runtime stays in the image:** `pip` and `ensurepip` are removed after the installation. (Debian's package management stays: it is part of the operating system, and the vulnerability scan needs its package list.)
-- **Setting new versions** – within the limits below – is done by `scripts/lock.py refresh` (needs Docker and Internet). On GitHub without a local Docker: *Actions → Docker image → Run workflow → relock*; the result is committed to `master` and tested and published with the next version. `scripts/lock.py check` checks the files offline.
+- **Setting new versions** – within the limits below – is done by `scripts/lock.py refresh` (needs Docker and Internet). On GitHub without a local Docker: *Actions → Docker image → Run workflow → relock*; the result is committed to `main` and tested and published with the next version. `scripts/lock.py check` checks the files offline.
 
 **Limits (the "base").** Automatic updates only happen **within** the base:
 - the same Debian release (13 "trixie" is fixed in the base image's name – never a tag that changes silently),
@@ -120,7 +120,7 @@ Goal: the image stays secure and up to date by itself, **without version jumps**
 
 Nobody raises the base silently (e.g. Python 3.14, Debian 14 or a new major version of a package) – that is always a deliberate new program version.
 
-**Security update every week** (Mondays 04:17 UTC, by hand: *Run workflow → security-update*): `scripts/lock.py` fetches the newest versions within the limits. If there is nothing new, nothing happens. Otherwise the image is built **without cache**, the automatic tests run **in the finished image**, then Trivy scans it. Only if **everything** passed is the image published – as `<version>-s<counter>` (e.g. `1.10.0-s1`, `1.10.0-s2`: same program, only new packages), and as `latest` and `<minor>`. The new pinned versions are committed to `master` with an entry in the [CHANGELOG](CHANGELOG.md) (list of the changed packages) and tagged `v<version>-s<counter>`. A new program version starts again at `s1`. Servers following `latest` (`./update.sh --pull`, Dockhand and similar) get the security updates by themselves; a server pinned with `--version X.Y.Z` keeps exactly that image. If `master` holds unreleased program changes, there is no security update until they are released as a new version.
+**Security update every week** (Mondays 04:17 UTC, by hand: *Run workflow → security-update*): `scripts/lock.py` fetches the newest versions within the limits. If there is nothing new, nothing happens. Otherwise the image is built **without cache**, the automatic tests run **in the finished image**, then Trivy scans it. Only if **everything** passed is the image published – as `<version>-s<counter>` (e.g. `1.10.0-s1`, `1.10.0-s2`: same program, only new packages), and as `latest` and `<minor>`. The new pinned versions are committed to `main` with an entry in the [CHANGELOG](CHANGELOG.md) (list of the changed packages) and tagged `v<version>-s<counter>`. A new program version starts again at `s1`. Servers following `latest` (`./update.sh --pull`, Dockhand and similar) get the security updates by themselves; a server pinned with `--version X.Y.Z` keeps exactly that image. If `main` holds unreleased program changes, there is no security update until they are released as a new version.
 
 **Vulnerability scan (Trivy).** Every image is scanned before it is published. Only vulnerabilities rated HIGH or CRITICAL that have a fix stop the release (plus secrets such as keys found in the image). Trivy is deliberately **not** a GitHub Action (trivy-action and setup-trivy were compromised in March 2026, CVE-2026-33634): `.github/install-trivy.sh` loads a fixed version and checks its SHA-256 checksum before it runs. Checked findings that cannot be exploited go into `.trivyignore` with a reason (`# reason: …` on the line above) and an expiry date (`exp:YYYY-MM-DD`); if either is missing, the scan stops; after the expiry date the finding is reported again.
 
@@ -128,9 +128,9 @@ Nobody raises the base silently (e.g. Python 3.14, Debian 14 or a new major vers
 
 **Base warning.** Every Monday the workflow asks [endoflife.date](https://endoflife.date) how long Debian and the Python line still get security updates: from 12 months before a note (yellow), from 6 months a red run.
 
-**Security of the workflow.** All actions are pinned to commit checksums; every job has only the permissions it needs (write access only for the steps that publish); tests and Trivy never run in a job with write access; git credentials are not stored; publishing only from the branch `master`, never two runs at the same time; a published version is never overwritten, `latest` only points to the highest version.
+**Security of the workflow.** All actions are pinned to commit checksums; every job has only the permissions it needs (write access only for the steps that publish); tests and Trivy never run in a job with write access; git credentials are not stored; publishing only from the branch `main`, never two runs at the same time; a published version is never overwritten, `latest` only points to the highest version.
 
-**One-time setup** (on GitHub, *Settings → Environments*): restrict the environment `release` – it is created by the first run – to the branch `master` under *Deployment branches and tags*. Then not even a changed workflow on another branch can publish anything.
+**One-time setup** (on GitHub, *Settings → Environments*): restrict the environment `release` – it is created by the first run – to the branch `main` under *Deployment branches and tags*. Then not even a changed workflow on another branch can publish anything.
 
 **Building on your own server** (`./update.sh` with a zip, without `--pull`) uses the same pinned versions and therefore needs HTTPS access to `snapshot.debian.org`. The Debian package list applies to `amd64`; on another processor (e.g. `arm64`) the same state is installed, but the list is not compared. If a run stops in the middle of publishing, the next run completes what is missing (`latest` and `<minor>` are moved, nothing is rebuilt).
 
@@ -142,7 +142,7 @@ Nobody raises the base silently (e.g. Python 3.14, Debian 14 or a new major vers
 | *Trivy … finding(s)* for a release or security update | The fix lies outside the limits (e.g. only in a new major version): raise it deliberately and release a new version. If the finding provably cannot be exploited: entry with reason and expiry date in `.trivyignore`. |
 | *Trivy … finding(s)* in the daily scan | A newly known vulnerability in the published image. Usually the next security update fixes it; right away: *Run workflow → security-update*. |
 | *Base ends soon* (red) / *within a year* (yellow) | Debian or Python will soon stop getting security updates: plan the switch to the next base as a new version. |
-| *unreleased program changes* | `master` holds changes without a new version number: raise the version and push. |
+| *unreleased program changes* | `main` holds changes without a new version number: raise the version and push. |
 | *the scan itself failed*, network or download errors | Usually temporary: run it again (*Re-run jobs*). |
 | *exists already* | This version exists already – raise the version number. |
 

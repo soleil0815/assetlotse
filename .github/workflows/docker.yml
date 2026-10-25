@@ -1,7 +1,7 @@
 # Builds, tests, scans and publishes the AssetLotse image (ghcr.io/<owner>/<repo>). What a run does is
 # decided by scripts/ci.py ("mode"):
 #
-# New program version – push to master with a new version in assetlotse/__init__.py: build from the
+# New program version – push to main with a new version in assetlotse/__init__.py: build from the
 #   locked versions, tests in the image, Trivy, then publish <version>, <minor> and – only for the highest
 #   version – latest, and create the tag v<version> with a GitHub release (text from CHANGELOG.md). A version
 #   that exists is never built or pushed again.
@@ -9,7 +9,7 @@
 #   the newest versions WITHIN the base (same Python line, same Debian release, every package within its
 #   major version). Nothing new → nothing happens. Otherwise: build without cache, tests, Trivy, and only
 #   if all passed: publish <version>-s<n> (+ <minor>, latest), commit the new lock files with a changelog
-#   entry to master and tag v<version>-s<n>.
+#   entry to main and tag v<version>-s<n>.
 # Daily scan – 05:43 UTC: scans the published latest for vulnerabilities that became known after release.
 # Base check – Mondays: how long Python and Debian still get security updates (scripts/eol_check.py).
 # By hand also: check (build, test, scan – nothing published), relock (set new versions, commit them
@@ -18,17 +18,17 @@
 # Trivy is not a GitHub Action (trivy-action/setup-trivy were compromised in March 2026, CVE-2026-33634):
 #   .github/install-trivy.sh loads a fixed version and checks its SHA-256.
 # Security of this workflow: actions pinned to commit SHAs, no permissions by default and only what each
-#   job needs, no stored git credentials (persist-credentials: false), publishing only from master, one
+#   job needs, no stored git credentials (persist-credentials: false), publishing only from main, one
 #   release run at a time. Scanners and tests never run in a job that can write. The jobs that write use
-#   the environment "release" – restrict it to the branch master in the repository settings
-#   (Settings → Environments → release → Deployment branches: master).
+#   the environment "release" – restrict it to the branch main in the repository settings
+#   (Settings → Environments → release → Deployment branches: main).
 # A run that stopped halfway is completed by the next one ("repair": floating tags only, nothing rebuilt).
 # A red run publishes nothing; GitHub sends an e-mail. The cause is shown as annotations on the run page.
 name: Docker image
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
     inputs:
       mode:
@@ -167,7 +167,7 @@ jobs:
               changed="${changed} Dockerfile"
             fi
             if [ -n "${changed// /}" ]; then
-              echo "::error title=Security update::master has unreleased program changes since v${version}: $(echo $changed) – release them as a new version first (raise the version number)"
+              echo "::error title=Security update::main has unreleased program changes since v${version}: $(echo $changed) – release them as a new version first (raise the version number)"
               exit 1
             fi
             python3 scripts/lock.py refresh --report "${RUNNER_TEMP}/refresh.json"
@@ -381,8 +381,8 @@ jobs:
             docker tag assetlotse:scan "$first"; docker push -q "$first"
             git commit -q -am "Sicherheitsupdate ${NAME}: aktualisierte Pakete (gleiches Programm wie ${VERSION})"
             git tag "v${NAME}"
-            # fails if master moved on meanwhile – then latest stays unchanged and the next run repeats it
-            git -c http.https://github.com/.extraheader="$auth" push --atomic origin HEAD:refs/heads/master "refs/tags/v${NAME}"
+            # fails if main moved on meanwhile – then latest stays unchanged and the next run repeats it
+            git -c http.https://github.com/.extraheader="$auth" push --atomic origin HEAD:refs/heads/main "refs/tags/v${NAME}"
           fi
           for t in "${tags[@]:1}"; do              # <minor> and latest (latest only for the highest version)
             docker tag assetlotse:scan "$t"; docker push -q "$t"
@@ -502,7 +502,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -q -am "Versionen neu festgelegt (scripts/lock.py)"
           auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
-          git -c http.https://github.com/.extraheader="$auth" push origin HEAD:refs/heads/master
+          git -c http.https://github.com/.extraheader="$auth" push origin HEAD:refs/heads/main
           echo "::notice title=Relock::committed – tested and published with the next security update or version"
 
   # ------------------------------------------------------------------ daily scan of the published image (read only)

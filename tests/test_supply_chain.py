@@ -251,7 +251,7 @@ class ModeTests(unittest.TestCase):
         main = ci.MAIN_REF
         m = ci.mode("push", ref=main)
         self.assertEqual((m["kind"], m["build"], m["publish"]), ("release", True, True))
-        self.assertFalse(ci.mode("push", ref="refs/heads/feature")["publish"])     # only from master
+        self.assertFalse(ci.mode("push", ref="refs/heads/feature")["publish"])     # only from main
         m = ci.mode("schedule", ci.WEEKLY_CRON, ref=main)
         self.assertEqual((m["kind"], m["publish"], m["eol"], m["scan_latest"]), ("security", True, True, False))
         m = ci.mode("schedule", ci.DAILY_CRON, ref=main)
@@ -520,7 +520,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_triggers_only_main_branch(self):
         on = WF.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
-        self.assertIn("  push:\n    branches: [master]\n", on)
+        self.assertIn("  push:\n    branches: [main]\n", on)
         self.assertNotIn("tags:", on)
         self.assertIn("workflow_dispatch:", on)
 
@@ -531,7 +531,7 @@ class WorkflowTests(unittest.TestCase):
             self.assertIsNotNone(perms, f"{name}: no permissions block")
             if name in ("publish", "relock-commit", "repair"):
                 self.assertIn("write", perms)
-                self.assertIn("    environment: release\n", text, name)      # restricted to master in the settings
+                self.assertIn("    environment: release\n", text, name)      # restricted to main in the settings
             else:
                 self.assertNotIn("write", perms, name)
                 self.assertNotIn("environment:", text, name)
@@ -576,7 +576,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertLess(pub.index("git apply"), pub.index('for t in "${tags[@]:1}"'))
         release = pub[pub.index('if [ "$KIND" = release ]'):pub.index("          else\n")]
         self.assertLess(release.index("git tag"), release.index("docker push"))   # tag first: a re-run resumes
-        self.assertIn("push --atomic origin HEAD:refs/heads/master", pub)
+        self.assertIn("push --atomic origin HEAD:refs/heads/main", pub)
         self.assertIn('http.https://github.com/.extraheader="$auth"', pub)
         self.assertIn("check-changes", self.J["relock-commit"])
         # GitHub release page only after the images, "Latest" only together with the latest tag

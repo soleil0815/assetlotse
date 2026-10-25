@@ -26,7 +26,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-MAIN_REF = "refs/heads/master"
+MAIN_REF = "refs/heads/main"
 WEEKLY_CRON = "17 4 * * 1"      # Mondays 04:17 UTC: security update + base (EOL) check
 DAILY_CRON = "43 5 * * *"       # every day 05:43 UTC: scan the published image
 RELEASE_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
@@ -99,7 +99,7 @@ def plan_security(image: str, version: str, git_tags, registry_tags) -> dict:
     is never used twice – not even after a run that stopped halfway."""
     highest = highest_release(git_tags)
     if highest != version:
-        raise SystemExit(f"The program version on master ({version}) is not the highest release ({highest}) – "
+        raise SystemExit(f"The program version on main ({version}) is not the highest release ({highest}) – "
                          "a security update is only made for the highest version.")
     n = next_security_number(version, list(git_tags) + list(registry_tags))
     name = f"{version}-s{n}"

@@ -2,6 +2,15 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.10.2 – 2026-10-25
+
+**Geändert**
+- **Der Hauptzweig heißt jetzt `main`** (vorher `master`). Workflow, Skripte, Selbsttests und Doku sind umgestellt;
+  veröffentlicht wird nur von `main`. Auf GitHub die Umgebung `release` entsprechend auf `main` beschränken.
+  Lokale Kopien: `git branch -m master main && git fetch origin && git branch -u origin/main main`.
+
+Für die App selbst ändert sich nichts.
+
 ## 1.10.1 – 2026-10-25
 
 **Neu**

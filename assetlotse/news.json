@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "1.10.2",
+      "date": "2026-10-25",
+      "kind": "fix",
+      "audience": "admin",
+      "de": {
+        "title": "Hauptzweig heißt main",
+        "text": "Auf GitHub heißt der Hauptzweig jetzt main. Neue Versionen und Sicherheitsupdates werden nur von dort veröffentlicht."
+      },
+      "en": {
+        "title": "Main branch is called main",
+        "text": "On GitHub the main branch is now called main. New versions and security updates are only published from there."
+      }
+    },
+    {
       "version": "1.10.1",
       "date": "2026-10-25",
       "kind": "feature",

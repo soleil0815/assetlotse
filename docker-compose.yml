@@ -8,7 +8,7 @@ services:
     #   built locally from a package:  assetlotse:<version>          (./update.sh assetlotse-X.Y.Z.zip)
     #   ready-made from GitHub:        ghcr.io/<owner>/<repo>:latest  (./update.sh --pull) – other update
     #                                  tools can then install new versions as well
-    image: ${ASSETLOTSE_IMAGE:-assetlotse}:${ASSETLOTSE_TAG:-1.10.1}
+    image: ${ASSETLOTSE_IMAGE:-assetlotse}:${ASSETLOTSE_TAG:-1.10.2}
     build: .
     container_name: assetlotse
     restart: unless-stopped
