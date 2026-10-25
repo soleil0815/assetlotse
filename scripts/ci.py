@@ -8,6 +8,7 @@
   check-trivyignore  every exception in .trivyignore needs a reason and an expiry date
   registry-state     what is published in ghcr.io (fails closed: an error is never "does not exist")
   check-changes      a security update / relock may only change the lock files (checked before writing)
+  release-notes      text of the GitHub release: the version's section of CHANGELOG.md
 
 Only the Python standard library is used.
 """
@@ -252,6 +253,16 @@ def changelog_entry(name: str, version: str, date: str, changes: list[dict], lim
     return "\n".join(lines + items) + "\n\n"
 
 
+def release_notes(changelog: str, name: str, image_ref: str) -> str:
+    """The section "## <name> – <date>" of CHANGELOG.md (without its heading) plus how to get the image."""
+    m = re.search(rf"^## {re.escape(name)} [–-][^\n]*\n(.*?)(?=^## |\Z)", changelog, re.M | re.S)
+    if not m:
+        raise SystemExit(f"CHANGELOG.md has no section for {name}")
+    body = m.group(1).strip()
+    return (f"{body}\n\n---\nImage: `{image_ref}` – auf dem Server: `./update.sh --pull` "
+            f"(oder ein Update-Tool, das `latest` folgt).\n")
+
+
 def insert_changelog(text: str, entry: str) -> str:
     i = text.find("\n## ")
     if i < 0:
@@ -330,6 +341,10 @@ def main(argv=None) -> int:
     g.add_argument("--git-tags", required=True)
     g.add_argument("--tags-out", required=True)
     sub.add_parser("check-changes")
+    n = sub.add_parser("release-notes")
+    n.add_argument("--name", required=True)
+    n.add_argument("--image", required=True)
+    n.add_argument("--file", default="CHANGELOG.md")
     d = sub.add_parser("registry-digest")
     d.add_argument("--image", required=True)
     d.add_argument("--tag", required=True)
@@ -370,6 +385,8 @@ def main(argv=None) -> int:
         for e in errors:
             print(f"::error title=Unexpected change::{e}")
         return 1 if errors else 0
+    elif a.cmd == "release-notes":
+        sys.stdout.write(release_notes(Path(a.file).read_text(), a.name, a.image))
     elif a.cmd == "check-trivyignore":
         f = Path(a.file)
         errors, warnings = check_trivyignore(f.read_text() if f.exists() else "", dt.date.today())

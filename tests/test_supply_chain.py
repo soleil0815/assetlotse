@@ -372,6 +372,19 @@ class VersionPlanTests(unittest.TestCase):
                                                     for i in range(100)], limit=10)
         self.assertIn("… und 90 weitere", many)
 
+    def test_release_notes_from_changelog(self):
+        cl = ("# Änderungen\n\n## 1.10.0-s1 – 2026-10-26\n\nSicherheitsupdate: x\n\n- Debian: a 1 → 2\n\n"
+              "## 1.10.0 – 2026-10-25\n\n**Neu**\n- y\n")
+        notes = ci.release_notes(cl, "1.10.0-s1", "ghcr.io/o/r:1.10.0-s1")
+        self.assertTrue(notes.startswith("Sicherheitsupdate: x\n\n- Debian: a 1 → 2\n\n---\n"))
+        self.assertIn("`ghcr.io/o/r:1.10.0-s1`", notes)
+        self.assertNotIn("**Neu**", notes)
+        self.assertIn("**Neu**\n- y", ci.release_notes(cl, "1.10.0", "i"))
+        with self.assertRaises(SystemExit):
+            ci.release_notes(cl, "1.10.1", "i")
+        version = re.search(r'__version__ = "(.*?)"', (ROOT / "assetlotse" / "__init__.py").read_text()).group(1)
+        ci.release_notes((ROOT / "CHANGELOG.md").read_text(), version, "i")    # the current version has a section
+
     def test_trivyignore_needs_reason_and_expiry(self):
         today = dt.date(2026, 10, 25)
         ok = "# reason: only the XYZ parser, never called\nCVE-2026-1 exp:2027-01-31\n"
@@ -566,6 +579,11 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("push --atomic origin HEAD:refs/heads/master", pub)
         self.assertIn('http.https://github.com/.extraheader="$auth"', pub)
         self.assertIn("check-changes", self.J["relock-commit"])
+        # GitHub release page only after the images, "Latest" only together with the latest tag
+        self.assertLess(pub.index('for t in "${tags[@]:1}"'), pub.index("gh release create"))
+        self.assertIn('--verify-tag', pub)
+        self.assertIn('[[ ",${TAGS}," != *":latest,"* ]] || latest=true', pub)
+        self.assertNotIn("gh release", "".join(v for k, v in self.J.items() if k != "publish"))
         self.assertIn('[ "$VERSION_EXISTS" = true ]', self.J["build"])
         self.assertIn("points to another commit", self.J["build"])
 

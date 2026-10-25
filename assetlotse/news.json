@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "1.10.1",
+      "date": "2026-10-25",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Versionen auf GitHub nachlesen",
+        "text": "Jede neue Version und jedes Sicherheitsupdate erscheint jetzt auch unter Releases auf GitHub – mit der Liste der Änderungen."
+      },
+      "en": {
+        "title": "Versions listed on GitHub",
+        "text": "Every new version and every security update now also appears under Releases on GitHub – with the list of changes."
+      }
+    },
+    {
       "version": "1.10.0",
       "date": "2026-10-25",
       "kind": "security",

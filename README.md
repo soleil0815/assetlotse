@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.10.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 1.10.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -75,7 +75,7 @@ Das Skript braucht Docker Compose – das Plugin `docker compose` oder das älte
 
 Statt auf dem Server zu bauen, kann GitHub das Image bauen: Der Workflow `.github/workflows/docker.yml` baut bei jeder neuen Version das Image, testet und prüft es und legt es unter **`ghcr.io/soleil0815/assetlotse`** ab (Tags z. B. `1.10.0`, `1.10` und `latest`; Sicherheitsupdates als `1.10.0-s1` usw., siehe unten). Der Server lädt es nur noch herunter – ein Update dauert Sekunden.
 
-**Neue Version veröffentlichen:** Die neue Versionsnummer (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) auf `master` hochladen – mehr nicht. Der Workflow merkt, dass es die Version noch nicht gibt, baut das Image aus den festgelegten Versionen, lässt die Tests im Image laufen, prüft es mit Trivy und veröffentlicht es nur, wenn alles bestanden ist – `latest` nur, wenn es die höchste Version ist; den Tag `v<Version>` legt er selbst an. Hochladen ohne neue Versionsnummer baut nichts. Per Zip, im Repository-Ordner:
+**Neue Version veröffentlichen:** Die neue Versionsnummer (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) auf `master` hochladen – mehr nicht. Der Workflow merkt, dass es die Version noch nicht gibt, baut das Image aus den festgelegten Versionen, lässt die Tests im Image laufen, prüft es mit Trivy und veröffentlicht es nur, wenn alles bestanden ist – `latest` nur, wenn es die höchste Version ist; den Tag `v<Version>` legt er selbst an, dazu ein Release auf GitHub (*Releases*, Text aus dem CHANGELOG) – ebenso für jedes Sicherheitsupdate. Hochladen ohne neue Versionsnummer baut nichts. Per Zip, im Repository-Ordner:
 ```bash
 git add -A
 git commit -m "AssetLotse 1.9.0"

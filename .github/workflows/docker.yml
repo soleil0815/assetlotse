@@ -3,7 +3,8 @@
 #
 # New program version – push to master with a new version in assetlotse/__init__.py: build from the
 #   locked versions, tests in the image, Trivy, then publish <version>, <minor> and – only for the highest
-#   version – latest, and create the tag v<version>. A version that exists is never built or pushed again.
+#   version – latest, and create the tag v<version> with a GitHub release (text from CHANGELOG.md). A version
+#   that exists is never built or pushed again.
 # Security update – Mondays 04:17 UTC (or by hand: Run workflow → security-update): scripts/lock.py sets
 #   the newest versions WITHIN the base (same Python line, same Debian release, every package within its
 #   major version). Nothing new → nothing happens. Otherwise: build without cache, tests, Trivy, and only
@@ -387,6 +388,24 @@ jobs:
             docker tag assetlotse:scan "$t"; docker push -q "$t"
           done
           echo "::notice title=Published::${TAGS//,/, }"
+
+      # the release page on GitHub (tag v<name>, text from CHANGELOG.md) – after the image is published
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if gh release view "v${NAME}" >/dev/null 2>&1; then
+            echo "::notice title=Release::v${NAME} exists already"; exit 0
+          fi
+          python3 scripts/ci.py release-notes --name "$NAME" --image "${TAGS%%,*}" > "${RUNNER_TEMP}/notes.md"
+          latest=false
+          [[ ",${TAGS}," != *":latest,"* ]] || latest=true          # marked "Latest" only for the highest version
+          title="AssetLotse ${NAME}"
+          [ "$KIND" != security ] || title="${title} (Sicherheitsupdate)"
+          gh release create "v${NAME}" --verify-tag --title "$title" --notes-file "${RUNNER_TEMP}/notes.md" --latest="$latest"
+          echo "::notice title=Release::${title}"
 
   # a run that stopped halfway: point <minor>/latest to the newest build (nothing is rebuilt)
   repair:

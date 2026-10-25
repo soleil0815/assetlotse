@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.10.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 1.10.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -75,7 +75,7 @@ Requires Docker Compose – the `docker compose` plugin or the older standalone 
 
 Instead of building on the server, GitHub can build the image: the workflow `.github/workflows/docker.yml` builds, tests and scans it for every new version and publishes it as **`ghcr.io/soleil0815/assetlotse`** (tags e.g. `1.10.0`, `1.10` and `latest`; security updates as `1.10.0-s1` etc., see below). The server only downloads it – an update takes seconds.
 
-**Publishing a new version:** push the new version number (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) to `master` – nothing else. The workflow notices that the version does not exist yet, builds the image from the pinned versions, runs the tests in the image, scans it with Trivy and publishes it only if everything passed – `latest` only if it is the highest version; it creates the tag `v<version>` itself. Pushes without a new version number build nothing. From a zip, in the repository folder:
+**Publishing a new version:** push the new version number (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) to `master` – nothing else. The workflow notices that the version does not exist yet, builds the image from the pinned versions, runs the tests in the image, scans it with Trivy and publishes it only if everything passed – `latest` only if it is the highest version; it creates the tag `v<version>` itself, plus a GitHub release (*Releases*, text from the CHANGELOG) – likewise for every security update. Pushes without a new version number build nothing. From a zip, in the repository folder:
 ```bash
 git add -A
 git commit -m "AssetLotse 1.9.0"

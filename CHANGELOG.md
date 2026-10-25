@@ -2,6 +2,15 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.10.1 – 2026-10-25
+
+**Neu**
+- **Releases auf GitHub:** Jede neue Version und jedes Sicherheitsupdate (`<Version>-s<Zähler>`) bekommt nach dem
+  Veröffentlichen eine eigene Seite unter *Releases* – mit dem passenden Abschnitt aus diesem CHANGELOG. Als
+  „Latest“ markiert wird nur, was auch `latest` ist. Erst nach bestandenen Tests und Prüfung, wie das Image.
+
+Für die App selbst ändert sich nichts.
+
 ## 1.10.0 – 2026-10-25
 
 **Sicherheit – Image bleibt automatisch sicher und aktuell, ohne Versionssprünge**
