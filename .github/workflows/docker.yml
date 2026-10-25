@@ -18,7 +18,10 @@
 #   .github/install-trivy.sh loads a fixed version and checks its SHA-256.
 # Security of this workflow: actions pinned to commit SHAs, no permissions by default and only what each
 #   job needs, no stored git credentials (persist-credentials: false), publishing only from master, one
-#   release run at a time. Scanners and tests never run in a job that can write.
+#   release run at a time. Scanners and tests never run in a job that can write. The jobs that write use
+#   the environment "release" – restrict it to the branch master in the repository settings
+#   (Settings → Environments → release → Deployment branches: master).
+# A run that stopped halfway is completed by the next one ("repair": floating tags only, nothing rebuilt).
 # A red run publishes nothing; GitHub sends an e-mail. The cause is shown as annotations on the run page.
 name: Docker image
 
@@ -52,6 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    timeout-minutes: 5
     outputs:
       kind: ${{ steps.m.outputs.kind }}
       build: ${{ steps.m.outputs.build }}
@@ -85,6 +89,10 @@ jobs:
       tags: ${{ steps.prep.outputs.tags }}
       create_tag: ${{ steps.prep.outputs.create_tag }}
       publish: ${{ needs.mode.outputs.publish == 'true' && steps.prep.outputs.skip != 'true' }}
+      repair: ${{ needs.mode.outputs.publish == 'true' && steps.prep.outputs.repair == 'true' }}
+      repair_source: ${{ steps.reg.outputs.repair_source }}
+      repair_tags: ${{ steps.reg.outputs.repair_tags }}
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -99,33 +107,56 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare
-        id: prep
+      # what is published already – the only step with a token; fails closed (an error never means "missing")
+      - name: Registry state
+        id: reg
         env:
-          KIND: ${{ needs.mode.outputs.kind }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           version="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' assetlotse/__init__.py)"
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::No valid __version__ in assetlotse/__init__.py"; exit 1; }
+          git tag -l > "${RUNNER_TEMP}/git-tags.txt"
+          python3 scripts/ci.py registry-state --image "ghcr.io/${GITHUB_REPOSITORY,,}" --version "$version" \
+            --git-tags "${RUNNER_TEMP}/git-tags.txt" --tags-out "${RUNNER_TEMP}/registry-tags.txt"
+
+      - name: Prepare
+        id: prep
+        env:
+          KIND: ${{ needs.mode.outputs.kind }}
+          VERSION_EXISTS: ${{ steps.reg.outputs.version_exists }}
+          REPAIR_TAGS: ${{ steps.reg.outputs.repair_tags }}
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' assetlotse/__init__.py)"
           grep -q "org.opencontainers.image.version=\"${version}\"" Dockerfile \
             || { echo "::error::Dockerfile LABEL org.opencontainers.image.version is not ${version}"; exit 1; }
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
-          git tag -l > "${RUNNER_TEMP}/git-tags.txt"
-          { echo "version=${version}"; echo "name=${version}"; echo "create_tag=false"; } >> "$GITHUB_OUTPUT"
+          { echo "version=${version}"; echo "name=${version}"; echo "create_tag=false"; echo "repair=false"; } >> "$GITHUB_OUTPUT"
+          repair() {   # a previous run stopped halfway: only move <minor>/latest, rebuild nothing
+            echo "::notice title=Repair::${REPAIR_TAGS//,/, } do not point to the newest build yet – fixed in this run, nothing is rebuilt"
+            { echo "repair=true"; echo "skip=true"; } >> "$GITHUB_OUTPUT"; exit 0
+          }
 
           if [ "$KIND" = release ]; then
-            if docker buildx imagetools inspect "${image}:${version}" >/dev/null 2>&1; then
+            if [ "$VERSION_EXISTS" = true ]; then
+              [ -z "$REPAIR_TAGS" ] || repair
               echo "::notice::${version} is already published – nothing to build (raise the version to release)."
               echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
             fi
+            if git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; then
+              [ "$(git rev-parse "v${version}^{commit}")" = "$(git rev-parse HEAD)" ] \
+                || { echo "::error title=Release::tag v${version} points to another commit – raise the version number"; exit 1; }
+            else
+              echo "create_tag=true" >> "$GITHUB_OUTPUT"
+            fi
             python3 scripts/ci.py plan-release --image "$image" --version "$version" --git-tags "${RUNNER_TEMP}/git-tags.txt"
-            git rev-parse -q --verify "refs/tags/v${version}" >/dev/null || echo "create_tag=true" >> "$GITHUB_OUTPUT"
 
           elif [ "$KIND" = security ]; then
+            [ -z "$REPAIR_TAGS" ] || repair
             # same program as the release: only lock files, changelog, docs, tests and CI may differ
-            git rev-parse -q --verify "refs/tags/v${version}" >/dev/null \
-              || { echo "::error title=Security update::v${version} is not released yet – push a new version first"; exit 1; }
+            git rev-parse -q --verify "refs/tags/v${version}" >/dev/null && [ "$VERSION_EXISTS" = true ] \
+              || { echo "::error title=Security update::${version} is not released yet – push a new version first"; exit 1; }
             changed="$(git diff --name-only "v${version}" HEAD -- . ':(exclude)requirements.txt' \
               ':(exclude)build/debian-packages.lock' ':(exclude)CHANGELOG.md' ':(exclude)README.md' \
               ':(exclude)README.en.md' ':(exclude)docs' ':(exclude)tests' ':(exclude)scripts' \
@@ -138,22 +169,23 @@ jobs:
               echo "::error title=Security update::master has unreleased program changes since v${version}: $(echo $changed) – release them as a new version first (raise the version number)"
               exit 1
             fi
-            python3 scripts/lock.py refresh --report "${RUNNER_TEMP}/changes.json"
-            if git diff --quiet; then
-              echo "::notice title=Security update::No new versions within the base – nothing to do."
+            python3 scripts/lock.py refresh --report "${RUNNER_TEMP}/refresh.json"
+            # compared with what is PUBLISHED (also catches versions committed by "relock" but not released yet)
+            published="v$(python3 -c 'import sys; sys.path.insert(0, "scripts"); import ci; print(ci.expected_build(sys.argv[1], open(sys.argv[2]).read().split()))' "$version" "${RUNNER_TEMP}/git-tags.txt")"
+            python3 scripts/lock.py changes --since "$published" --report "${RUNNER_TEMP}/changes.json"
+            if [ "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["changed"])' "${RUNNER_TEMP}/changes.json")" != True ]; then
+              echo "::notice title=Security update::No new versions within the base since ${published} – nothing to do."
               echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
             fi
             # numbers already used in the registry count too (a run may have stopped halfway)
-            token="$(curl -fsS -u "${GITHUB_ACTOR}:${GH_TOKEN}" "https://ghcr.io/token?scope=repository:${GITHUB_REPOSITORY,,}:pull" | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')"
-            curl -fsS -H "Authorization: Bearer ${token}" "https://ghcr.io/v2/${GITHUB_REPOSITORY,,}/tags/list?n=10000" \
-              | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin).get("tags") or []))' > "${RUNNER_TEMP}/registry-tags.txt"
             plan="$(python3 scripts/ci.py plan-security --image "$image" --version "$version" \
               --git-tags "${RUNNER_TEMP}/git-tags.txt" --registry-tags "${RUNNER_TEMP}/registry-tags.txt")"
             name="$(sed -n 's/^name=//p' <<< "$plan")"
             python3 scripts/ci.py changelog --name "$name" --version "$version" --report "${RUNNER_TEMP}/changes.json" \
               > "${RUNNER_TEMP}/entry.md"
             git diff --binary > "${RUNNER_TEMP}/security.patch"
-            cp "${RUNNER_TEMP}/changes.json" "${RUNNER_TEMP}/security.patch" "${RUNNER_TEMP}/entry.md" .
+            mkdir -p "${RUNNER_TEMP}/security-update"
+            cp "${RUNNER_TEMP}/changes.json" "${RUNNER_TEMP}/security.patch" "${RUNNER_TEMP}/entry.md" "${RUNNER_TEMP}/security-update/"
             { echo "### Security update ${name}"; cat "${RUNNER_TEMP}/entry.md"; } >> "$GITHUB_STEP_SUMMARY"
           fi
           python3 scripts/lock.py check \
@@ -188,10 +220,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: security-update
-          path: |
-            security.patch
-            changes.json
-            entry.md
+          path: ${{ runner.temp }}/security-update/
           retention-days: 7
 
   # ------------------------------------------------------------------ tests in the image (read only)
@@ -201,6 +230,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -223,8 +253,13 @@ jobs:
           python3 -m pip install -q --no-deps --only-binary=:all: --break-system-packages \
             --target "${RUNNER_TEMP}/pytest" -r tests/requirements-test.txt
           rc=0
+          # the self-tests of the build chain need tools of the runner (jq, bash) – they run here, all others in the image
+          PYTHONPATH="${RUNNER_TEMP}/pytest" python3 -m pytest -q -p no:cacheprovider -rfE tests/test_supply_chain.py \
+            > selftest.log 2>&1 || rc=$?
           docker run --rm -v "$PWD:/src" -w /src -v "${RUNNER_TEMP}/pytest:/opt/pytest:ro" -e PYTHONPATH=/opt/pytest \
-            --entrypoint python assetlotse:scan -m pytest -q -p no:cacheprovider -rfE tests > pytest.log 2>&1 || rc=$?
+            --entrypoint python assetlotse:scan -m pytest -q -p no:cacheprovider -rfE \
+            --ignore=tests/test_supply_chain.py tests > pytest.log 2>&1 || rc=$?
+          cat selftest.log >> pytest.log
           cat pytest.log
           { echo "### Tests in the image"; echo '```'; tail -n 25 pytest.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           if [ "$rc" != 0 ]; then
@@ -241,6 +276,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -268,14 +304,17 @@ jobs:
     needs: [build, test, scan]
     if: needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write          # release tag; security update: commit of the lock files + tag
       packages: write
+    timeout-minutes: 20
     env:
       KIND: ${{ needs.build.outputs.name != needs.build.outputs.version && 'security' || 'release' }}
       VERSION: ${{ needs.build.outputs.version }}
       NAME: ${{ needs.build.outputs.name }}
       TAGS: ${{ needs.build.outputs.tags }}
+      CREATE_TAG: ${{ needs.build.outputs.create_tag }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -285,6 +324,13 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: ${{ runner.temp }}/artifacts
+
+      # security update: only the lock files and the changelog may change – checked before anything is written
+      - name: Check the changes
+        if: env.KIND == 'security'
+        run: |
+          git apply "${RUNNER_TEMP}/artifacts/security-update/security.patch"
+          python3 scripts/ci.py check-changes
 
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
@@ -300,30 +346,64 @@ jobs:
           docker load -q -i "${RUNNER_TEMP}/artifacts/image/image.tar"
           IFS=, read -ra tags <<< "$TAGS"
           first="${tags[0]}"                       # <version> or <version>-s<n> – never overwritten
-          if docker buildx imagetools inspect "$first" >/dev/null 2>&1; then
+          state="$(python3 scripts/ci.py registry-digest --image "${first%:*}" --tag "${first##*:}")"
+          if [ "$state" != missing ]; then
             echo "::error title=Publish::${first} exists already – a published version is never overwritten"; exit 1
           fi
-          docker tag assetlotse:scan "$first"
-          docker push -q "$first"
           # git: credentials only for this one command, never stored
           auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ "$KIND" = security ]; then
-            git apply "${RUNNER_TEMP}/artifacts/security-update/security.patch"
+          if [ "$KIND" = release ]; then
+            # tag first: if a later step fails, the next push resumes (image still missing, tag already right)
+            if [ "$CREATE_TAG" = true ]; then
+              git tag "v${VERSION}" "${GITHUB_SHA}"
+              git -c http.https://github.com/.extraheader="$auth" push origin "refs/tags/v${VERSION}"
+            fi
+            docker tag assetlotse:scan "$first"; docker push -q "$first"
+          else
+            docker tag assetlotse:scan "$first"; docker push -q "$first"
             git commit -q -am "Sicherheitsupdate ${NAME}: aktualisierte Pakete (gleiches Programm wie ${VERSION})"
             git tag "v${NAME}"
             # fails if master moved on meanwhile – then latest stays unchanged and the next run repeats it
             git -c http.https://github.com/.extraheader="$auth" push --atomic origin HEAD:refs/heads/master "refs/tags/v${NAME}"
-          elif [ "${{ needs.build.outputs.create_tag }}" = true ]; then
-            git tag "v${VERSION}" "${GITHUB_SHA}"
-            git -c http.https://github.com/.extraheader="$auth" push origin "refs/tags/v${VERSION}"
           fi
           for t in "${tags[@]:1}"; do              # <minor> and latest (latest only for the highest version)
-            docker tag assetlotse:scan "$t"
-            docker push -q "$t"
+            docker tag assetlotse:scan "$t"; docker push -q "$t"
           done
           echo "::notice title=Published::${TAGS//,/, }"
+
+  # a run that stopped halfway: point <minor>/latest to the newest build (nothing is rebuilt)
+  repair:
+    needs: build
+    if: needs.build.outputs.repair == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Move the floating tags
+        env:
+          SOURCE: ${{ needs.build.outputs.repair_source }}
+          REPAIR_TAGS: ${{ needs.build.outputs.repair_tags }}
+        run: |
+          set -euo pipefail
+          IFS=, read -ra tags <<< "$REPAIR_TAGS"
+          for t in "${tags[@]}"; do
+            docker buildx imagetools create --tag "$t" "$SOURCE"
+          done
+          echo "::notice title=Repair::${REPAIR_TAGS//,/, } → ${SOURCE}"
 
   # ------------------------------------------------------------------ relock: set new versions, commit (no release)
   relock:
@@ -332,6 +412,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    timeout-minutes: 45
     outputs:
       changed: ${{ steps.lock.outputs.changed }}
     steps:
@@ -364,8 +445,10 @@ jobs:
     needs: [mode, relock]
     if: needs.mode.outputs.publish == 'true' && needs.relock.outputs.changed == 'true'
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -380,12 +463,13 @@ jobs:
         run: |
           set -euo pipefail
           git apply "${RUNNER_TEMP}/relock.patch"
+          python3 scripts/ci.py check-changes          # only lock files – checked before anything is written
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -q -am "Versionen neu festgelegt (scripts/lock.py)"
           auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git -c http.https://github.com/.extraheader="$auth" push origin HEAD:refs/heads/master
-          echo "::notice title=Relock::committed – tested and published with the next version"
+          echo "::notice title=Relock::committed – tested and published with the next security update or version"
 
   # ------------------------------------------------------------------ daily scan of the published image (read only)
   scan-latest:
@@ -395,6 +479,7 @@ jobs:
     permissions:
       contents: read
       packages: read
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -436,6 +521,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:

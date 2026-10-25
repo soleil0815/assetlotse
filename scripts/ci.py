@@ -6,17 +6,23 @@
   plan-security      next security-update number <version>-s<n> and its tags
   changelog          changelog entry of a security update with the changed packages
   check-trivyignore  every exception in .trivyignore needs a reason and an expiry date
+  registry-state     what is published in ghcr.io (fails closed: an error is never "does not exist")
+  check-changes      a security update / relock may only change the lock files (checked before writing)
 
 Only the Python standard library is used.
 """
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import json
 import os
 import re
+import subprocess
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 MAIN_REF = "refs/heads/master"
@@ -98,6 +104,127 @@ def plan_security(image: str, version: str, git_tags, registry_tags) -> dict:
     name = f"{version}-s{n}"
     major, minor, _ = version.split(".")
     return {"name": name, "tags": [f"{image}:{name}", f"{image}:{major}.{minor}", f"{image}:latest"]}
+
+
+def expected_build(version: str, git_tags) -> str:
+    """The newest published build of a program version: <version>-s<n> (git tag v<version>-s<n> is only
+    set after its image was pushed) or <version>."""
+    n = next_security_number(version, git_tags) - 1
+    return f"{version}-s{n}" if n else version
+
+
+def build_key(build: str) -> tuple | None:
+    """"1.10.0" -> (1, 10, 0, 0), "1.10.0-s3" -> (1, 10, 0, 3); anything else -> None."""
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-s(\d+))?$", build or "")
+    return tuple(int(x or 0) for x in m.groups()) if m else None
+
+
+def plan_repair(image: str, version: str, git_tags, digest_of, build_of) -> dict:
+    """After a run that stopped halfway: which floating tags (<minor>, latest) still point to an OLDER build
+    of this pipeline than the newest published one. digest_of(ref) -> digest or None; build_of(ref) -> the
+    image's label io.assetlotse.build or None. A tag that points to something else (no label, or a newer
+    build) is left alone – a repair only ever moves forward."""
+    name = expected_build(version, git_tags)
+    src = f"{image}:{name}"
+    want = digest_of(src)
+    if want is None:
+        return {"source": src, "tags": []}
+    tags = []
+    for t in plan_release(image, version, git_tags)["tags"][1:]:
+        if digest_of(t) == want:
+            continue
+        current = build_key(build_of(t)) if digest_of(t) else (0, 0, 0, 0)
+        if current is not None and current < build_key(name):
+            tags.append(t)
+    return {"source": src, "tags": tags}
+
+
+# ---------------------------------------------------------------- registry (ghcr.io, read only)
+MANIFEST_TYPES = ", ".join(["application/vnd.oci.image.index.v1+json", "application/vnd.oci.image.manifest.v1+json",
+                            "application/vnd.docker.distribution.manifest.list.v2+json",
+                            "application/vnd.docker.distribution.manifest.v2+json"])
+
+
+class Registry:
+    def __init__(self, repo: str, user: str, password: str, host: str = "ghcr.io"):
+        self.repo, self.host = repo.lower(), host
+        auth = base64.b64encode(f"{user}:{password}".encode()).decode()
+        req = urllib.request.Request(f"https://{host}/token?scope=repository:{self.repo}:pull",
+                                     headers={"Authorization": f"Basic {auth}"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            self.token = json.load(r)["token"]
+
+    def _get(self, url: str, method: str = "GET"):
+        req = urllib.request.Request(url, method=method, headers={"Authorization": f"Bearer {self.token}",
+                                                                  "Accept": MANIFEST_TYPES})
+        return urllib.request.urlopen(req, timeout=60)
+
+    def digest(self, tag: str) -> str | None:
+        """Digest of a tag, None if it does not exist (404). Any other answer raises – never "missing"."""
+        try:
+            with self._get(f"https://{self.host}/v2/{self.repo}/manifests/{tag}", "HEAD") as r:
+                d = r.headers.get("Docker-Content-Digest")
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None
+            raise SystemExit(f"registry: {tag}: HTTP {e.code} – stopped (an error never counts as 'missing')")
+        if not d:
+            raise SystemExit(f"registry: {tag}: no digest in the answer – stopped")
+        return d
+
+    def _blob(self, digest: str) -> dict:
+        """Blobs are served via a redirect to a storage URL – follow it WITHOUT the registry token."""
+        class Stop(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, *a, **k):
+                return None
+        req = urllib.request.Request(f"https://{self.host}/v2/{self.repo}/blobs/{digest}",
+                                     headers={"Authorization": f"Bearer {self.token}"})
+        try:
+            with urllib.request.build_opener(Stop).open(req, timeout=60) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            if e.code not in (301, 302, 303, 307, 308) or not e.headers.get("Location"):
+                raise SystemExit(f"registry: blob {digest[:19]}: HTTP {e.code} – stopped")
+            with urllib.request.urlopen(e.headers["Location"], timeout=60) as r:
+                return json.load(r)
+
+    def build_label(self, tag: str) -> str | None:
+        """The label io.assetlotse.build of an image (None if it has none)."""
+        def get(path):
+            with self._get(f"https://{self.host}/v2/{self.repo}/{path}") as r:
+                return json.load(r)
+        m = get(f"manifests/{tag}")
+        if "manifests" in m:                                   # an index: take the image for linux/amd64
+            ref = next((x for x in m["manifests"] if x.get("platform", {}).get("architecture") == "amd64"),
+                       m["manifests"][0])
+            m = get(f"manifests/{ref['digest']}")
+        config = self._blob(m["config"]["digest"])
+        return (config.get("config", {}).get("Labels") or {}).get("io.assetlotse.build")
+
+    def tags(self) -> list[str]:
+        url, tags = f"https://{self.host}/v2/{self.repo}/tags/list?n=1000", []
+        while url:
+            with self._get(url) as r:
+                tags += json.load(r).get("tags") or []
+                link = r.headers.get("Link", "")
+            m = re.search(r"<([^>]+)>;\s*rel=\"?next", link)
+            url = (m.group(1) if m.group(1).startswith("http") else f"https://{self.host}{m.group(1)}") if m else None
+        return tags
+
+
+# ---------------------------------------------------------------- what a security update / relock may change
+ALLOWED_FILES = {"requirements.txt", "build/debian-packages.lock", "CHANGELOG.md", "Dockerfile"}
+ALLOWED_DOCKERFILE_LINE = re.compile(r"^[+-]ARG (PYTHON_IMAGE|PIP_VERSION)=")
+
+
+def check_changes(names, dockerfile_diff: str) -> list[str]:
+    errors = [f"{n} must not be changed by an automatic update" for n in names if n not in ALLOWED_FILES]
+    for line in dockerfile_diff.splitlines():
+        if line.startswith(("+++", "---", "@@")) or not line.startswith(("+", "-")):
+            continue
+        if not ALLOWED_DOCKERFILE_LINE.match(line):
+            errors.append(f"Dockerfile: only ARG PYTHON_IMAGE / ARG PIP_VERSION may change, not: {line[:80]}")
+    return errors
 
 
 # ---------------------------------------------------------------- changelog
@@ -197,6 +324,15 @@ def main(argv=None) -> int:
     c.add_argument("--date", default=dt.date.today().isoformat())
     t = sub.add_parser("check-trivyignore")
     t.add_argument("file", nargs="?", default=".trivyignore")
+    g = sub.add_parser("registry-state")
+    g.add_argument("--image", required=True)
+    g.add_argument("--version", required=True)
+    g.add_argument("--git-tags", required=True)
+    g.add_argument("--tags-out", required=True)
+    sub.add_parser("check-changes")
+    d = sub.add_parser("registry-digest")
+    d.add_argument("--image", required=True)
+    d.add_argument("--tag", required=True)
     a = ap.parse_args(argv)
 
     if a.cmd == "mode":
@@ -213,6 +349,27 @@ def main(argv=None) -> int:
         f = Path(a.file)
         f.write_text(insert_changelog(f.read_text(), entry))
         sys.stdout.write(entry)
+    elif a.cmd == "registry-state":
+        repo = a.image.split("/", 1)[1]
+        reg = Registry(repo, os.environ["GITHUB_ACTOR"], os.environ["GH_TOKEN"])
+        Path(a.tags_out).write_text("\n".join(reg.tags()) + "\n")
+        git_tags = _lines(a.git_tags)
+        repair = plan_repair(a.image, a.version, git_tags, lambda ref: reg.digest(ref.rsplit(":", 1)[1]),
+                             lambda ref: reg.build_label(ref.rsplit(":", 1)[1]))
+        _out({"version_exists": reg.digest(a.version) is not None, "repair_source": repair["source"],
+              "repair_tags": ",".join(repair["tags"])})
+    elif a.cmd == "registry-digest":
+        reg = Registry(a.image.split("/", 1)[1], os.environ["GITHUB_ACTOR"], os.environ["GH_TOKEN"])
+        print(reg.digest(a.tag) or "missing")
+    elif a.cmd == "check-changes":
+        names = subprocess.run(["git", "diff", "--name-only", "HEAD"], check=True, text=True,
+                               stdout=subprocess.PIPE).stdout.split()
+        df = subprocess.run(["git", "diff", "-U0", "HEAD", "--", "Dockerfile"], check=True, text=True,
+                            stdout=subprocess.PIPE).stdout
+        errors = check_changes(names, df)
+        for e in errors:
+            print(f"::error title=Unexpected change::{e}")
+        return 1 if errors else 0
     elif a.cmd == "check-trivyignore":
         f = Path(a.file)
         errors, warnings = check_trivyignore(f.read_text() if f.exists() else "", dt.date.today())

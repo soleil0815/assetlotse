@@ -130,6 +130,10 @@ Nobody raises the base silently (e.g. Python 3.14, Debian 14 or a new major vers
 
 **Security of the workflow.** All actions are pinned to commit checksums; every job has only the permissions it needs (write access only for the steps that publish); tests and Trivy never run in a job with write access; git credentials are not stored; publishing only from the branch `master`, never two runs at the same time; a published version is never overwritten, `latest` only points to the highest version.
 
+**One-time setup** (on GitHub, *Settings → Environments*): restrict the environment `release` – it is created by the first run – to the branch `master` under *Deployment branches and tags*. Then not even a changed workflow on another branch can publish anything.
+
+**Building on your own server** (`./update.sh` with a zip, without `--pull`) uses the same pinned versions and therefore needs HTTPS access to `snapshot.debian.org`. The Debian package list applies to `amd64`; on another processor (e.g. `arm64`) the same state is installed, but the list is not compared. If a run stops in the middle of publishing, the next run completes what is missing (`latest` and `<minor>` are moved, nothing is rebuilt).
+
 **When a run is red.** Red always means: **nothing was published**, the servers keep the previous version. GitHub sends an e-mail; the cause is shown briefly on the run (*Actions* → run → annotations at the top and summary).
 
 | What the run says | What to do |

@@ -130,6 +130,10 @@ Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion e
 
 **Sicherheit des Workflows.** Alle Actions sind auf Commit-Prüfsummen festgelegt; jeder Job hat nur die Rechte, die er braucht (Schreibrechte nur die Schritte, die veröffentlichen); Tests und Trivy laufen nie in einem Job mit Schreibrechten; Git-Anmeldedaten werden nicht gespeichert; veröffentlicht wird nur vom Zweig `master`, nie zwei Läufe gleichzeitig; eine veröffentlichte Version wird nie überschrieben, `latest` zeigt nur auf die höchste Version.
 
+**Einmalig einrichten** (auf GitHub, *Settings → Environments*): Die Umgebung `release` – sie entsteht beim ersten Lauf von selbst – unter *Deployment branches and tags* auf den Zweig `master` beschränken. Dann kann auch ein geänderter Workflow auf einem anderen Zweig nichts veröffentlichen.
+
+**Bauen auf dem eigenen Server** (`./update.sh` mit Zip, ohne `--pull`) nutzt dieselben festen Versionen und braucht deshalb HTTPS-Zugang zu `snapshot.debian.org`. Die Debian-Paketliste gilt für `amd64`; auf einem anderen Prozessor (z. B. `arm64`) wird derselbe Stand installiert, die Liste aber nicht verglichen. Bricht ein Lauf mitten im Veröffentlichen ab, holt der nächste Lauf das Fehlende nach (`latest` und `<Minor>` werden nachgezogen, nichts wird neu gebaut).
+
 **Wenn ein Lauf rot ist.** Rot heißt immer: **nichts wurde veröffentlicht**, die Server behalten die bisherige Version. GitHub schickt eine E-Mail; die Ursache steht kurz am Lauf (*Actions* → Lauf → Hinweise oben und Zusammenfassung).
 
 | Was am Lauf steht | Was zu tun ist |
