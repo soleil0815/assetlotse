@@ -73,15 +73,15 @@ Das Skript braucht Docker Compose – das Plugin `docker compose` oder das älte
 
 ### Fertige Images von GitHub (`--pull`)
 
-Statt auf dem Server zu bauen, kann GitHub das Image bauen: Der Workflow `.github/workflows/docker.yml` baut bei jedem Versions-Tag das Image und legt es unter **`ghcr.io/soleil0815/assetlotse`** ab (Tags `1.7.0`, `1.7` und `latest`). Der Server lädt es nur noch herunter – ein Update dauert Sekunden.
+Statt auf dem Server zu bauen, kann GitHub das Image bauen: Der Workflow `.github/workflows/docker.yml` baut bei jeder neuen Version das Image, testet und prüft es und legt es unter **`ghcr.io/soleil0815/assetlotse`** ab (Tags z. B. `1.10.0`, `1.10` und `latest`; Sicherheitsupdates als `1.10.0-s1` usw., siehe unten). Der Server lädt es nur noch herunter – ein Update dauert Sekunden.
 
-**Neue Version veröffentlichen:** Die neue Versionsnummer (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) auf `master` hochladen – mehr nicht. Der Workflow merkt, dass es `v<Version>` noch nicht gibt, baut das Image, setzt `latest` (wenn es die höchste Version ist) und legt den Tag `v<Version>` selbst an. Hochladen ohne neue Versionsnummer baut nichts. Per Zip, im Repository-Ordner:
+**Neue Version veröffentlichen:** Die neue Versionsnummer (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) auf `master` hochladen – mehr nicht. Der Workflow merkt, dass es die Version noch nicht gibt, baut das Image aus den festgelegten Versionen, lässt die Tests im Image laufen, prüft es mit Trivy und veröffentlicht es nur, wenn alles bestanden ist – `latest` nur, wenn es die höchste Version ist; den Tag `v<Version>` legt er selbst an. Hochladen ohne neue Versionsnummer baut nichts. Per Zip, im Repository-Ordner:
 ```bash
 git add -A
 git commit -m "AssetLotse 1.9.0"
 git push
 ```
-Unter *Actions* siehst du den Lauf (ein, zwei Minuten), danach liegt das Image unter *Packages*. Einen Tag von Hand zu setzen (`git tag v1.9.0 && git push origin v1.9.0`) geht weiterhin. Zum Ausprobieren ohne Release: *Actions → Docker image → Run workflow* (Image-Tag `test-<commit>`).
+Unter *Actions* siehst du den Lauf (rund zehn Minuten), danach liegt das Image unter *Packages*. Veröffentlicht wird nur vom Zweig `master`. Zum Ausprobieren ohne Veröffentlichung: *Actions → Docker image → Run workflow → check* (bauen, testen, prüfen).
 
 **Einmalig auf dem Server** (privates Repository): auf GitHub ein Token (*Settings → Developer settings → Personal access tokens*) mit dem Recht `read:packages` anlegen, dann
 ```bash
@@ -101,16 +101,46 @@ Das Skript sichert die Datenbank, lädt das Image, holt `update.sh`, `docker-com
 
 **Vertrauen:** Bei `--pull` übernimmt das Skript `update.sh` aus dem Image und führt es mit deinen Rechten aus. Es prüft deshalb, dass das Image aus dem passenden GitHub-Repository gebaut wurde (Label `org.opencontainers.image.source`), zeigt Version und Digest an und verlangt bei einer neuen Image-Adresse immer ein ausdrückliches „ja“ – auch mit `-y`. Wer Schreibrechte am Repository hat, kann also beeinflussen, was auf dem Server läuft: Zugänge zum Repository entsprechend vergeben. `latest` zeigt immer auf die höchste veröffentlichte Version; ein Nachtrag für eine ältere Reihe (z. B. `v1.6.4` nach `v1.7.0`) ändert `latest` nicht.
 
-**Sicherheitsprüfung (Trivy):** Jedes Image wird auf GitHub mit [Trivy](https://trivy.dev) geprüft, **bevor** es veröffentlicht wird – die Debian-Pakete des Basis-Images und alle Python-Pakete. Gibt es eine bekannte Schwachstelle der Stufe HIGH oder CRITICAL, für die schon eine Korrektur existiert, bricht der Lauf ab: Nichts wird veröffentlicht, `latest` bleibt auf der bisherigen Version, Server und Update-Tools behalten also die geprüfte Version. Das Ergebnis steht in der Zusammenfassung des Laufs unter *Actions*. Abhilfe: Basis-Image (Tag und Digest im `Dockerfile`) oder das Paket in `requirements.txt` anheben, Versionsnummer erhöhen, erneut hochladen. Schwachstellen ohne verfügbare Korrektur halten den Lauf nicht auf (man könnte sie ohnehin nicht beheben). Eine bewusste Ausnahme – nur wenn die Lücke AssetLotse nachweislich nicht betrifft – kommt mit Begründung und Ablaufdatum in `.trivyignore`.
+### Sicherheit und Aktualität des Images
 
-**Wöchentlicher Sicherheits-Neubau:** Jeden Montag baut GitHub die höchste veröffentlichte Version neu – aus ihrem Tag, also ohne unveröffentlichte Änderungen, auf dem neuesten Python-Image ihrer Reihe (z. B. `python:3.13-slim-trixie`) und mit allen Debian-Updates. Danach laufen alle Tests im fertigen Image und die Trivy-Prüfung. Nur wenn beides besteht **und** sich tatsächlich etwas geändert hat, wird das Image als `latest`, `<Minor>` (z. B. `1.9`) und `<Version>-<Datum>` veröffentlicht – Server, die `latest` folgen (`./update.sh --pull`, Dockhand & Co.), bekommen die Sicherheitsupdates dann von selbst. Ohne Änderungen bleibt `latest`, wie es ist (kein unnötiger Neustart). Schlägt ein Test oder die Prüfung fehl, wird nichts veröffentlicht und GitHub schickt eine E-Mail. Das exakte Versions-Tag (z. B. `1.9.4`) bleibt das Image, wie es veröffentlicht wurde: Wer mit `--version` festgelegt ist, bekommt den Neubau nicht. Auch die Python-Pakete werden dabei aktualisiert: jeweils die neueste Version innerhalb der in `requirements.in` erlaubten Bereiche (z. B. Flask 3.1.x), Unterabhängigkeiten eingeschlossen – getestet wird genau mit diesen. Erst einen Sprung über diese Bereiche hinaus (z. B. Flask 3.2 oder Python 3.14) mache ich als neue Version, spätestens wenn eine Reihe keine Updates mehr bekommt. Von Hand: *Actions → Docker image → Run workflow → weekly*.
+Ziel: Das Image bleibt von selbst sicher und aktuell, **ohne Versionssprünge**. Alles läuft auf GitHub im Workflow `.github/workflows/docker.yml`; wer ihn ändert, ändert, was auf den Servern landet.
 
-### Reproduzierbarer Build
+**Reproduzierbarer Bau.** Jeder Bau aus demselben Stand ergibt dasselbe Image:
+- **Basis-Image** mit fester Version **und** Prüfsumme: `ARG PYTHON_IMAGE=python:3.13.<n>-slim-trixie@sha256:…` im `Dockerfile`.
+- **Alle Debian-Pakete** des Images – auch die des Basis-Images – stehen mit exakter Version in `build/debian-packages.lock`. Installiert wird aus einem festen Stand des Debian-Archivs (`snapshot.debian.org`, Zeitpunkt in der Datei); weicht ein Paket ab, bricht der Bau ab.
+- **Alle Python-Pakete** einschließlich aller Unterabhängigkeiten stehen exakt in `requirements.txt`, `pip` selbst als `ARG PIP_VERSION` im `Dockerfile`. Installiert wird mit `--no-deps` und `--only-binary`, danach prüft `pip check`.
+- **Was zur Laufzeit nicht gebraucht wird, ist nicht im Image:** `pip` und `ensurepip` werden nach der Installation entfernt. (Die Debian-Paketverwaltung bleibt: Sie gehört zum Betriebssystem, und die Paketliste braucht die Schwachstellenprüfung.)
+- **Neu festlegen** – innerhalb der Grenzen unten – macht das Skript `scripts/lock.py refresh` (braucht Docker und Internet). Auf GitHub ohne eigenes Docker: *Actions → Docker image → Run workflow → relock*; das Ergebnis wird auf `master` eingetragen und mit der nächsten Version getestet und veröffentlicht. `scripts/lock.py check` prüft die Dateien ohne Netz.
 
-Jeder Build ergibt dasselbe Image:
-- **Basis-Image** fest: `python:3.13.16-slim-trixie`, zusätzlich über den Digest (`@sha256:…`) eingefroren – auch wenn Docker Hub das Tag später neu belegt, wird genau dieser Stand verwendet.
-- **Alle Python-Pakete** stehen in `requirements.txt` mit exakter Version, auch alle Unterabhängigkeiten. Installiert wird mit `--no-deps` (nichts wird nachgezogen) und nur aus fertigen Paketen (`--only-binary`), anschließend prüft `pip check`, dass alles zusammenpasst. Auch `pip` selbst ist festgelegt.
-- `requirements.in` listet nur die direkten Abhängigkeiten mit erlaubten Bereichen – als Grundlage, wenn die Versionen einmal bewusst angehoben werden. Danach `requirements.txt` vollständig nachziehen und die Tests laufen lassen.
+**Grenzen („Unterbau“).** Automatisch angehoben wird nur **innerhalb** des Unterbaus:
+- gleiche Debian-Version (13 „trixie“ steht fest im Namen des Basis-Images – nie ein Tag, das still wechselt),
+- gleiche Python-Reihe (3.13; nur neuere 3.13.x),
+- jedes Python-Paket innerhalb seiner Hauptversion (vor 1.0: innerhalb der Unterversion), nie niedriger als bisher; die direkten Abhängigkeiten mit diesen Grenzen stehen in `requirements.in`,
+- ohne Grenze nur Kalenderversionen wie die Stammzertifikate (`certifi`) oder Zeitzonen-Daten.
+
+Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion eines Pakets) hebt niemand still an – das ist immer eine bewusste neue Programmversion.
+
+**Sicherheitsupdate jede Woche** (montags 04:17 UTC, von Hand: *Run workflow → security-update*): `scripts/lock.py` holt die neuesten Versionen innerhalb der Grenzen. Gibt es nichts Neues, passiert nichts. Sonst wird **ohne Zwischenspeicher** neu gebaut, die automatischen Tests laufen **im fertigen Image**, dann prüft Trivy. Nur wenn **alles** bestanden ist, wird das Image veröffentlicht – als `<Version>-s<Zähler>` (z. B. `1.10.0-s1`, `1.10.0-s2`: gleiches Programm, nur neue Pakete), außerdem als `latest` und `<Minor>`. Die neuen festen Versionen werden mit einem Eintrag im [CHANGELOG](CHANGELOG.md) (Liste der geänderten Pakete) auf `master` eingetragen und als `v<Version>-s<Zähler>` markiert. Eine neue Programmversion beginnt wieder bei `s1`. Server, die `latest` folgen (`./update.sh --pull`, Dockhand & Co.), bekommen die Sicherheitsupdates von selbst; wer mit `--version X.Y.Z` festgelegt ist, behält genau dieses Image. Liegen auf `master` noch unveröffentlichte Programmänderungen, gibt es kein Sicherheitsupdate, bis sie als neue Version veröffentlicht sind.
+
+**Schwachstellenprüfung (Trivy).** Jedes Image wird vor dem Veröffentlichen geprüft. Nur Schwachstellen der Stufe HOCH oder KRITISCH, für die es eine Korrektur gibt, stoppen das Release (dazu gefundene Geheimnisse wie Schlüssel). Trivy ist bewusst **keine** GitHub Action (trivy-action und setup-trivy wurden im März 2026 kompromittiert, CVE-2026-33634): `.github/install-trivy.sh` lädt eine feste Version und prüft ihre SHA-256-Prüfsumme, bevor sie läuft. Geprüfte, nicht ausnutzbare Befunde kommen mit Begründung (`# reason: …` in der Zeile darüber) und Ablaufdatum (`exp:JJJJ-MM-TT`) in `.trivyignore`; fehlt eines davon, bricht die Prüfung ab, nach dem Ablaufdatum wird der Befund wieder gemeldet.
+
+**Täglicher Scan.** Jeden Tag (05:43 UTC) wird das veröffentlichte `latest` erneut geprüft – für Schwachstellen, die erst nach dem Release bekannt werden.
+
+**Unterbau-Warnung.** Jeden Montag fragt der Workflow bei [endoflife.date](https://endoflife.date), wie lange Debian und die Python-Reihe noch Sicherheitsupdates bekommen: ab 12 Monaten vorher ein Hinweis (gelb), ab 6 Monaten ein roter Lauf.
+
+**Sicherheit des Workflows.** Alle Actions sind auf Commit-Prüfsummen festgelegt; jeder Job hat nur die Rechte, die er braucht (Schreibrechte nur die Schritte, die veröffentlichen); Tests und Trivy laufen nie in einem Job mit Schreibrechten; Git-Anmeldedaten werden nicht gespeichert; veröffentlicht wird nur vom Zweig `master`, nie zwei Läufe gleichzeitig; eine veröffentlichte Version wird nie überschrieben, `latest` zeigt nur auf die höchste Version.
+
+**Wenn ein Lauf rot ist.** Rot heißt immer: **nichts wurde veröffentlicht**, die Server behalten die bisherige Version. GitHub schickt eine E-Mail; die Ursache steht kurz am Lauf (*Actions* → Lauf → Hinweise oben und Zusammenfassung).
+
+| Was am Lauf steht | Was zu tun ist |
+|---|---|
+| *Tests failed* | Ein neues Paket passt nicht zum Programm. Die betroffene Stelle anpassen und als neue Version veröffentlichen – oder bis dahin abwarten (der Lauf wiederholt sich jeden Montag). |
+| *Trivy … finding(s)* beim Release oder Sicherheitsupdate | Für die Lücke gibt es eine Korrektur außerhalb der Grenzen (z. B. nur in einer neuen Hauptversion): bewusst anheben und als neue Version veröffentlichen. Ist der Befund nachweislich nicht ausnutzbar: Eintrag mit Begründung und Ablaufdatum in `.trivyignore`. |
+| *Trivy … finding(s)* beim täglichen Scan | Neu bekannte Lücke im veröffentlichten Image. Meist behebt sie das nächste Sicherheitsupdate; sofort: *Run workflow → security-update*. |
+| *Base ends soon* (rot) / *within a year* (gelb) | Debian oder Python bekommen bald keine Sicherheitsupdates mehr: den Wechsel auf den nächsten Unterbau als neue Version planen. |
+| *unreleased program changes* | Auf `master` liegen Änderungen ohne neue Versionsnummer: Versionsnummer erhöhen und hochladen. |
+| *the scan itself failed*, Netzwerk- oder Download-Fehler | Meist vorübergehend: Lauf erneut starten (*Re-run jobs*). |
+| *exists already* | Diese Version gibt es schon – Versionsnummer erhöhen. |
 
 ### Ohne Docker (Linux)
 

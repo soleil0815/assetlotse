@@ -1,80 +1,95 @@
-# Builds the AssetLotse image on GitHub and publishes it to ghcr.io/<owner>/<repo>.
+# Builds, tests, scans and publishes the AssetLotse image (ghcr.io/<owner>/<repo>). What a run does is
+# decided by scripts/ci.py ("mode"):
 #
-# Release – automatic: push to master with a new version in assetlotse/__init__.py. If there is no tag
-#   v<version> yet, the image is built (tags <version>, <minor> and – if it is the highest release –
-#   "latest") and the tag v<version> is created. Pushes without a new version build nothing.
-# Release – by hand (still works): git tag v1.9.0 && git push origin v1.9.0
-# Test: Actions → Docker image → Run workflow → tag "test-<commit>" (release tags stay untouched).
+# New program version – push to master with a new version in assetlotse/__init__.py: build from the
+#   locked versions, tests in the image, Trivy, then publish <version>, <minor> and – only for the highest
+#   version – latest, and create the tag v<version>. A version that exists is never built or pushed again.
+# Security update – Mondays 04:17 UTC (or by hand: Run workflow → security-update): scripts/lock.py sets
+#   the newest versions WITHIN the base (same Python line, same Debian release, every package within its
+#   major version). Nothing new → nothing happens. Otherwise: build without cache, tests, Trivy, and only
+#   if all passed: publish <version>-s<n> (+ <minor>, latest), commit the new lock files with a changelog
+#   entry to master and tag v<version>-s<n>.
+# Daily scan – 05:43 UTC: scans the published latest for vulnerabilities that became known after release.
+# Base check – Mondays: how long Python and Debian still get security updates (scripts/eol_check.py).
+# By hand also: check (build, test, scan – nothing published), relock (set new versions, commit them
+#   without release), scan-latest, eol-check.
 #
-# Security scan: every image is checked with Trivy BEFORE it is pushed. Known HIGH or CRITICAL vulnerabilities
-#   that already have a fix (Debian packages and Python packages) stop the release – nothing is published,
-#   "latest" stays on the previous version. Fix: update the base image digest or the package in
-#   requirements.txt, raise the version, push again. A deliberate exception goes into .trivyignore.
-# Weekly rebuild (security updates): every Monday the highest release is built again from its tag, on the newest
-#   Python image of its line (e.g. python:3.13-slim-trixie) and with all Debian updates. It is tested and scanned
-#   like a release and – only if both pass and something actually changed – published as "latest", "<minor>" and
-#   "<version>-<date>". The exact tag "<version>" stays the image as released. The Python packages are the newest
-#   within the ranges of requirements.in (sub-dependencies too). A failed run changes nothing (GitHub sends an
-#   e-mail). By hand: Run workflow → weekly.
-# Jobs: build (read only) → test + scan (read only, the scanner never sees write access or registry login)
-#   → publish (write access, pushes exactly the tested and scanned image and creates the tag).
-#
-# On the server:  ./update.sh --pull   (see README, "Ready-made images from GitHub")
-# Actions are pinned to commit SHAs (the comment shows the version) – update them deliberately.
+# Trivy is not a GitHub Action (trivy-action/setup-trivy were compromised in March 2026, CVE-2026-33634):
+#   .github/install-trivy.sh loads a fixed version and checks its SHA-256.
+# Security of this workflow: actions pinned to commit SHAs, no permissions by default and only what each
+#   job needs, no stored git credentials (persist-credentials: false), publishing only from master, one
+#   release run at a time. Scanners and tests never run in a job that can write.
+# A red run publishes nothing; GitHub sends an e-mail. The cause is shown as annotations on the run page.
 name: Docker image
 
 on:
   push:
-    branches: [master, main]
-    tags: ["v*"]
+    branches: [master]
   workflow_dispatch:
     inputs:
       mode:
-        description: "test = image test-<commit>; weekly = security rebuild of the highest release now"
+        description: "check = build, test, scan (nothing published) · security-update · relock = set new versions and commit · scan-latest · eol-check"
         type: choice
-        options: [test, weekly]
-        default: test
+        options: [check, security-update, relock, scan-latest, eol-check]
+        default: check
+      publish:
+        description: "security-update / relock: publish or commit the result (off = trial run)"
+        type: boolean
+        default: true
   schedule:
-    - cron: "17 5 * * 1"      # Mondays 05:17 UTC: security rebuild of the highest release
+    - cron: "17 4 * * 1"      # Mondays 04:17 UTC: security update + base check
+    - cron: "43 5 * * *"      # daily 05:43 UTC: scan the published image
 
-permissions: {}           # every job states what it needs
+permissions: {}
 
 concurrency:
-  group: docker-release          # one build at a time – releases and weekly rebuilds
+  # one release run at a time; scans and the base check do not publish and run separately
+  group: ${{ (github.event.schedule == '43 5 * * *' || inputs.mode == 'scan-latest' || inputs.mode == 'eol-check') && 'docker-scan' || 'docker-release' }}
   cancel-in-progress: false
 
-env:
-  TRIVY_VERSION: v0.75.0
-  PYTEST_VERSION: 9.1.1
-  WEEKLY: ${{ github.event_name == 'schedule' || inputs.mode == 'weekly' }}
-
 jobs:
-  build:
+  mode:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read           # check whether the version is already published
     outputs:
-      skip: ${{ steps.meta.outputs.skip }}
-      version: ${{ steps.meta.outputs.version }}
-      tags: ${{ steps.meta.outputs.tags }}
-      create_tag: ${{ steps.meta.outputs.create_tag }}
-      ref: ${{ steps.meta.outputs.revision }}
-      publish: ${{ steps.meta.outputs.weekly != 'true' || steps.diff.outputs.changed == 'true' }}
+      kind: ${{ steps.m.outputs.kind }}
+      build: ${{ steps.m.outputs.build }}
+      publish: ${{ steps.m.outputs.publish }}
+      scan_latest: ${{ steps.m.outputs.scan_latest }}
+      eol: ${{ steps.m.outputs.eol }}
+      relock: ${{ steps.m.outputs.relock }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          fetch-depth: 0          # all tags, to decide whether this release becomes "latest"
           persist-credentials: false
+      - id: m
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+        run: python3 scripts/ci.py mode --schedule "$SCHEDULE" --input-mode "$INPUT_MODE" --input-publish "$INPUT_PUBLISH"
 
-      - name: "Weekly: check out the highest release"
-        if: env.WEEKLY == 'true'
-        run: |
-          highest="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n1)"
-          [ -n "$highest" ] || { echo "::error::No release tag found"; exit 1; }
-          cp .github/image-fingerprint.sh "${RUNNER_TEMP}/fp.sh"     # helper from master, not from the old tag
-          git checkout -q "$highest"
-          echo "::notice::Security rebuild of ${highest}"
+  # ------------------------------------------------------------------ build (read only)
+  build:
+    needs: mode
+    if: needs.mode.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read           # does the version exist already? existing security-update numbers
+    outputs:
+      skip: ${{ steps.prep.outputs.skip }}
+      version: ${{ steps.prep.outputs.version }}
+      name: ${{ steps.prep.outputs.name }}
+      tags: ${{ steps.prep.outputs.tags }}
+      create_tag: ${{ steps.prep.outputs.create_tag }}
+      publish: ${{ needs.mode.outputs.publish == 'true' && steps.prep.outputs.skip != 'true' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0          # all tags: highest version, unreleased changes, numbers
+          persist-credentials: false
 
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
@@ -84,116 +99,102 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Version and tags
-        id: meta
+      - name: Prepare
+        id: prep
+        env:
+          KIND: ${{ needs.mode.outputs.kind }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           version="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' assetlotse/__init__.py)"
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::No valid __version__ in assetlotse/__init__.py"; exit 1; }
           grep -q "org.opencontainers.image.version=\"${version}\"" Dockerfile \
             || { echo "::error::Dockerfile LABEL org.opencontainers.image.version is not ${version}"; exit 1; }
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
-          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-          if [ "$WEEKLY" = true ]; then
-            # newest Python image of the pinned line, e.g. python:3.13.16-slim-trixie@sha256:… → python:3.13-slim-trixie
-            base="$(sed -n 's/^ARG PYTHON_IMAGE=python:\([0-9]*\.[0-9]*\)\.[0-9]*\(-[^@]*\)@.*/python:\1\2/p' Dockerfile)"
-            [ -n "$base" ] || { echo "::error::Cannot read ARG PYTHON_IMAGE in the Dockerfile"; exit 1; }
-            stamp="$(date -u +%Y%m%d)"
-            tags="${image}:latest,${image}:${version%.*},${image}:${version}-${stamp}"
-            { echo "skip=false"; echo "create_tag=false"; echo "weekly=true"; echo "tags=${tags}"
-              echo "build_args<<EOF"; echo "PYTHON_IMAGE=${base}"; echo "OS_UPGRADE=${stamp}"; echo "PKG_UPGRADE=${stamp}"; echo "EOF"; } >> "$GITHUB_OUTPUT"
-            { echo "### Security rebuild of ${version}"; echo "Base: \`${base}\` + Debian updates + newest Python packages within requirements.in"
-              echo "Tags (if tests and scan pass and something changed): \`${tags//,/\`, \`}\`"; } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          release=false
-          if [ "${{ github.event_name }}" = "push" ] && [ "${GITHUB_REF_TYPE}" = "branch" ]; then
-            # released = the image exists in the registry (a tag alone is not enough, e.g. after a failed build)
+          git tag -l > "${RUNNER_TEMP}/git-tags.txt"
+          { echo "version=${version}"; echo "name=${version}"; echo "create_tag=false"; } >> "$GITHUB_OUTPUT"
+
+          if [ "$KIND" = release ]; then
             if docker buildx imagetools inspect "${image}:${version}" >/dev/null 2>&1; then
               echo "::notice::${version} is already published – nothing to build (raise the version to release)."
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0
+              echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
             fi
-            release=true
-          elif [ "${{ github.event_name }}" = "push" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            release=true
-          fi
-          echo "skip=false" >> "$GITHUB_OUTPUT"
-          create_tag=false
-          if [ "${GITHUB_REF_TYPE}" = branch ] && [ "$release" = true ] && ! git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; then
-            create_tag=true
-          fi
-          echo "create_tag=${create_tag}" >> "$GITHUB_OUTPUT"
-          if [ "$release" = true ]; then
-            if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
-              echo "::error::Tag ${GITHUB_REF_NAME} does not match version ${version} (expected v${version})"; exit 1
-            fi
-            tags="${image}:${version}"
-            # the minor tag (e.g. 1.9) only moves forward within its line
-            minor="${version%.*}"
-            highest_minor="$( { git tag -l "v${minor}.[0-9]*" | sed 's/^v//'; echo "$version"; } | sort -V | tail -n1)"
-            [ "$highest_minor" != "$version" ] || tags="${tags},${image}:${minor}"
-            highest="$( { git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sed 's/^v//'; echo "$version"; } | sort -V | tail -n1)"
-            if [ "$highest" = "$version" ]; then
-              tags="${tags},${image}:latest"
-            else
-              echo "::notice::v${version} is not the highest release (${highest}) – \"latest\" stays unchanged."
-            fi
-          else
-            tags="${image}:test-${GITHUB_SHA::7}"
-          fi
-          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
-          { echo "### AssetLotse ${version}"; echo "Tags: \`${tags//,/\`, \`}\`"; } >> "$GITHUB_STEP_SUMMARY"
+            python3 scripts/ci.py plan-release --image "$image" --version "$version" --git-tags "${RUNNER_TEMP}/git-tags.txt"
+            git rev-parse -q --verify "refs/tags/v${version}" >/dev/null || echo "create_tag=true" >> "$GITHUB_OUTPUT"
 
-      # build into a file – nothing is published yet
+          elif [ "$KIND" = security ]; then
+            # same program as the release: only lock files, changelog, docs, tests and CI may differ
+            git rev-parse -q --verify "refs/tags/v${version}" >/dev/null \
+              || { echo "::error title=Security update::v${version} is not released yet – push a new version first"; exit 1; }
+            changed="$(git diff --name-only "v${version}" HEAD -- . ':(exclude)requirements.txt' \
+              ':(exclude)build/debian-packages.lock' ':(exclude)CHANGELOG.md' ':(exclude)README.md' \
+              ':(exclude)README.en.md' ':(exclude)docs' ':(exclude)tests' ':(exclude)scripts' \
+              ':(exclude).github' ':(exclude)Dockerfile')"
+            if ! diff -q <(git show "v${version}:Dockerfile" | grep -vE '^ARG (PYTHON_IMAGE|PIP_VERSION)=') \
+                         <(grep -vE '^ARG (PYTHON_IMAGE|PIP_VERSION)=' Dockerfile) >/dev/null; then
+              changed="${changed} Dockerfile"
+            fi
+            if [ -n "${changed// /}" ]; then
+              echo "::error title=Security update::master has unreleased program changes since v${version}: $(echo $changed) – release them as a new version first (raise the version number)"
+              exit 1
+            fi
+            python3 scripts/lock.py refresh --report "${RUNNER_TEMP}/changes.json"
+            if git diff --quiet; then
+              echo "::notice title=Security update::No new versions within the base – nothing to do."
+              echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            # numbers already used in the registry count too (a run may have stopped halfway)
+            token="$(curl -fsS -u "${GITHUB_ACTOR}:${GH_TOKEN}" "https://ghcr.io/token?scope=repository:${GITHUB_REPOSITORY,,}:pull" | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')"
+            curl -fsS -H "Authorization: Bearer ${token}" "https://ghcr.io/v2/${GITHUB_REPOSITORY,,}/tags/list?n=10000" \
+              | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin).get("tags") or []))' > "${RUNNER_TEMP}/registry-tags.txt"
+            plan="$(python3 scripts/ci.py plan-security --image "$image" --version "$version" \
+              --git-tags "${RUNNER_TEMP}/git-tags.txt" --registry-tags "${RUNNER_TEMP}/registry-tags.txt")"
+            name="$(sed -n 's/^name=//p' <<< "$plan")"
+            python3 scripts/ci.py changelog --name "$name" --version "$version" --report "${RUNNER_TEMP}/changes.json" \
+              > "${RUNNER_TEMP}/entry.md"
+            git diff --binary > "${RUNNER_TEMP}/security.patch"
+            cp "${RUNNER_TEMP}/changes.json" "${RUNNER_TEMP}/security.patch" "${RUNNER_TEMP}/entry.md" .
+            { echo "### Security update ${name}"; cat "${RUNNER_TEMP}/entry.md"; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          python3 scripts/lock.py check \
+            || { echo "::error title=Lock files::not consistent (details in the log) – set the versions with Run workflow → relock"; exit 1; }
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
       - name: Build (not published yet)
-        if: steps.meta.outputs.skip != 'true'
+        id: build
+        if: steps.prep.outputs.skip != 'true'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           push: false
+          no-cache: true          # always from scratch: exactly the locked versions, nothing cached
+          pull: true
           outputs: type=docker,dest=${{ runner.temp }}/image.tar
           tags: assetlotse:scan
-          build-args: ${{ steps.meta.outputs.build_args }}
-          no-cache: ${{ steps.meta.outputs.weekly == 'true' }}   # weekly: everything fresh
-          pull: ${{ steps.meta.outputs.weekly == 'true' }}
           labels: |
-            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.version=${{ steps.prep.outputs.version }}
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ steps.meta.outputs.revision }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            org.opencontainers.image.revision=${{ github.sha }}
+            io.assetlotse.build=${{ steps.prep.outputs.name }}
 
-      # weekly: publish only if something changed (otherwise every server would restart for nothing)
-      - name: "Weekly: compare with latest"
-        id: diff
-        if: steps.meta.outputs.weekly == 'true'
-        env:
-          LATEST: ghcr.io/${{ github.repository }}:latest
-        run: |
-          latest="${LATEST,,}"
-          fingerprint() {
-            docker image inspect -f '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$1"
-            docker run --rm -v "${RUNNER_TEMP}/fp.sh:/tmp/fp.sh:ro" --entrypoint sh "$1" /tmp/fp.sh
-          }
-          docker load -q -i "${RUNNER_TEMP}/image.tar"
-          fingerprint assetlotse:scan > new.txt
-          if docker pull -q "$latest" >/dev/null 2>&1 && fingerprint "$latest" > old.txt && cmp -s old.txt new.txt; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No updates since the last image – latest stays as it is (tests and scan still run)."
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            { echo "#### Changes against latest"; echo '```'; diff old.txt new.txt 2>/dev/null | grep '^[<>]' | head -n 60 || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - if: steps.meta.outputs.skip != 'true'
+      - if: steps.prep.outputs.skip != 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: image
           path: ${{ runner.temp }}/image.tar
           retention-days: 1
 
-  # the test suite, run with exactly the Python and packages of the built image
+      - if: steps.prep.outputs.skip != 'true' && needs.mode.outputs.kind == 'security'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: security-update
+          path: |
+            security.patch
+            changes.json
+            entry.md
+          retention-days: 7
+
+  # ------------------------------------------------------------------ tests in the image (read only)
   test:
     needs: build
     if: needs.build.outputs.skip != 'true'
@@ -203,35 +204,37 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ needs.build.outputs.ref }}
           persist-credentials: false
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: image
-          path: ${{ runner.temp }}
+          path: ${{ runner.temp }}/artifacts
+
+      - name: Apply the new versions (security update)
+        run: |
+          p="${RUNNER_TEMP}/artifacts/security-update/security.patch"
+          [ ! -f "$p" ] || git apply "$p"
 
       - name: Tests in the image
         run: |
-          docker load -q -i "${RUNNER_TEMP}/image.tar"
-          # pytest goes only into this throw-away container; the published image stays without pip
+          set -uo pipefail
+          docker load -q -i "${RUNNER_TEMP}/artifacts/image/image.tar"
+          # pytest stays outside the image: installed here (exact versions) and mounted read-only
+          python3 -m pip install -q --no-deps --only-binary=:all: --break-system-packages \
+            --target "${RUNNER_TEMP}/pytest" -r tests/requirements-test.txt
           rc=0
-          docker run --rm -v "$PWD:/src" -w /src -e PYTEST_VERSION --entrypoint sh assetlotse:scan -c '
-            python -m ensurepip &&
-            python -m pip install -q "pytest==${PYTEST_VERSION}" &&
-            python -m pytest -q -p no:cacheprovider -rfE tests' > pytest.log 2>&1 || rc=$?
+          docker run --rm -v "$PWD:/src" -w /src -v "${RUNNER_TEMP}/pytest:/opt/pytest:ro" -e PYTHONPATH=/opt/pytest \
+            --entrypoint python assetlotse:scan -m pytest -q -p no:cacheprovider -rfE tests > pytest.log 2>&1 || rc=$?
           cat pytest.log
-          grep -vE "^\s*$" pytest.log | grep -viE "^(Looking|Processing|Collecting|Downloading|Installing|Using cached)" | tail -n 8 | while IFS= read -r line; do echo "::notice title=log::${line}"; done
           { echo "### Tests in the image"; echo '```'; tail -n 25 pytest.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           if [ "$rc" != 0 ]; then
-            grep -E '^(FAILED|ERROR|E  )' pytest.log | head -n 20 | while IFS= read -r line; do
-              echo "::error title=Test::${line}"
-            done
-            echo "::error title=Tests::exit code ${rc} – last line: $(tail -n 1 pytest.log)"
+            grep -E '^(FAILED|ERROR|E  )' pytest.log | head -n 20 | while IFS= read -r line; do echo "::error title=Test::${line}"; done
+            echo "::error title=Tests failed::exit code ${rc} – $(tail -n 1 pytest.log) – nothing is published"
             exit "$rc"
           fi
+          echo "::notice title=Tests::$(tail -n 1 pytest.log)"
 
-  # security scan – a finding stops here, before anything is pushed
+  # ------------------------------------------------------------------ Trivy (read only)
   scan:
     needs: build
     if: needs.build.outputs.skip != 'true'
@@ -248,41 +251,40 @@ jobs:
           name: image
           path: ${{ runner.temp }}
 
-      - name: Load image
-        run: docker load -i "${RUNNER_TEMP}/image.tar"
+      - name: Install Trivy (fixed version, SHA-256 checked)
+        run: |
+          .github/install-trivy.sh "${RUNNER_TEMP}/trivy"
+          echo "${RUNNER_TEMP}/trivy" >> "$GITHUB_PATH"
 
       - name: Trivy scan
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          version: ${{ env.TRIVY_VERSION }}
-          image-ref: assetlotse:scan
-          scanners: vuln,secret
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          trivyignores: .trivyignore
-          format: json
-          output: trivy.json
-          exit-code: "1"
-
-      - name: Scan result
-        if: always()
         env:
-          HEADING: Trivy (HIGH/CRITICAL with a fix)
-        run: .github/trivy-report.sh trivy.json
+          CONSEQUENCE: nothing is published
+          NAME: ${{ needs.build.outputs.name }}
+        run: |
+          .github/trivy-scan.sh "${RUNNER_TEMP}/image.tar" "Trivy – ${NAME} (HIGH/CRITICAL with a fix)"
 
-  # publish exactly the scanned image, then create the release tag
+  # ------------------------------------------------------------------ publish (write) – only if everything passed
   publish:
     needs: [build, test, scan]
     if: needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: write          # create the release tag v<version>
+      contents: write          # release tag; security update: commit of the lock files + tag
       packages: write
+    env:
+      KIND: ${{ needs.build.outputs.name != needs.build.outputs.version && 'security' || 'release' }}
+      VERSION: ${{ needs.build.outputs.version }}
+      NAME: ${{ needs.build.outputs.name }}
+      TAGS: ${{ needs.build.outputs.tags }}
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: image
-          path: ${{ runner.temp }}
+          path: ${{ runner.temp }}/artifacts
 
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
@@ -292,20 +294,151 @@ jobs:
 
       - name: Publish
         env:
-          TAGS: ${{ needs.build.outputs.tags }}
-        run: |
-          docker load -i "${RUNNER_TEMP}/image.tar"
-          IFS=, read -ra tags <<< "$TAGS"
-          for t in "${tags[@]}"; do
-            docker tag assetlotse:scan "$t"
-            docker push "$t"
-          done
-
-      - name: Create release tag
-        if: needs.build.outputs.create_tag == 'true'
-        env:
-          VERSION: ${{ needs.build.outputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/tags/v${VERSION}" -f sha="${GITHUB_SHA}" >/dev/null
-          echo "::notice::Created tag v${VERSION}"
+          set -euo pipefail
+          docker load -q -i "${RUNNER_TEMP}/artifacts/image/image.tar"
+          IFS=, read -ra tags <<< "$TAGS"
+          first="${tags[0]}"                       # <version> or <version>-s<n> – never overwritten
+          if docker buildx imagetools inspect "$first" >/dev/null 2>&1; then
+            echo "::error title=Publish::${first} exists already – a published version is never overwritten"; exit 1
+          fi
+          docker tag assetlotse:scan "$first"
+          docker push -q "$first"
+          # git: credentials only for this one command, never stored
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$KIND" = security ]; then
+            git apply "${RUNNER_TEMP}/artifacts/security-update/security.patch"
+            git commit -q -am "Sicherheitsupdate ${NAME}: aktualisierte Pakete (gleiches Programm wie ${VERSION})"
+            git tag "v${NAME}"
+            # fails if master moved on meanwhile – then latest stays unchanged and the next run repeats it
+            git -c http.https://github.com/.extraheader="$auth" push --atomic origin HEAD:refs/heads/master "refs/tags/v${NAME}"
+          elif [ "${{ needs.build.outputs.create_tag }}" = true ]; then
+            git tag "v${VERSION}" "${GITHUB_SHA}"
+            git -c http.https://github.com/.extraheader="$auth" push origin "refs/tags/v${VERSION}"
+          fi
+          for t in "${tags[@]:1}"; do              # <minor> and latest (latest only for the highest version)
+            docker tag assetlotse:scan "$t"
+            docker push -q "$t"
+          done
+          echo "::notice title=Published::${TAGS//,/, }"
+
+  # ------------------------------------------------------------------ relock: set new versions, commit (no release)
+  relock:
+    needs: mode
+    if: needs.mode.outputs.relock == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.lock.outputs.changed }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: scripts/lock.py refresh
+        id: lock
+        run: |
+          set -euo pipefail
+          python3 scripts/lock.py refresh --report changes.json
+          python3 scripts/lock.py check
+          if git diff --quiet; then
+            echo "::notice title=Relock::No new versions – nothing changed."; echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git diff --binary > relock.patch
+          git diff --stat
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - if: steps.lock.outputs.changed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: relock
+          path: |
+            relock.patch
+            changes.json
+          retention-days: 7
+
+  relock-commit:
+    needs: [mode, relock]
+    if: needs.mode.outputs.publish == 'true' && needs.relock.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: relock
+          path: ${{ runner.temp }}
+      - name: Commit the new versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git apply "${RUNNER_TEMP}/relock.patch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -am "Versionen neu festgelegt (scripts/lock.py)"
+          auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.https://github.com/.extraheader="$auth" push origin HEAD:refs/heads/master
+          echo "::notice title=Relock::committed – tested and published with the next version"
+
+  # ------------------------------------------------------------------ daily scan of the published image (read only)
+  scan-latest:
+    needs: mode
+    if: needs.mode.outputs.scan_latest == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # pull, save, log out: the scanner works on the file and never sees the registry login
+      - name: Pull latest
+        id: img
+        run: |
+          set -euo pipefail
+          ref="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+          docker pull -q "$ref"
+          docker save -o "${RUNNER_TEMP}/latest.tar" "$ref"
+          docker logout ghcr.io
+          echo "build=$(docker inspect -f '{{ index .Config.Labels "io.assetlotse.build" }}' "$ref")" >> "$GITHUB_OUTPUT"
+
+      - name: Install Trivy (fixed version, SHA-256 checked)
+        run: |
+          .github/install-trivy.sh "${RUNNER_TEMP}/trivy"
+          echo "${RUNNER_TEMP}/trivy" >> "$GITHUB_PATH"
+
+      - name: Trivy scan of latest
+        env:
+          CONSEQUENCE: "new since the release – the next security update (Mondays) usually fixes it; otherwise see README"
+          BUILD: ${{ steps.img.outputs.build }}
+        run: |
+          .github/trivy-scan.sh "${RUNNER_TEMP}/latest.tar" "Trivy – latest (${BUILD:-unknown})"
+
+  # ------------------------------------------------------------------ base check (read only)
+  eol:
+    needs: mode
+    if: needs.mode.outputs.eol == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: How long do Python and Debian still get security updates?
+        run: python3 scripts/eol_check.py

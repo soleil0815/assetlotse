@@ -20,7 +20,8 @@ n=0; [ -z "$rows" ] || n="$(printf '%s\n' "$rows" | wc -l)"
   fi
 } >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
 [ "$n" -eq 0 ] && { echo "Trivy: no findings."; exit 0; }
-echo "::error title=Trivy::${n} finding(s) – release stopped. Details in the run summary."
+echo "::error title=Trivy::${n} finding(s) – ${CONSEQUENCE:-nothing is published}. Details in the run summary."
 printf '%s\n' "$rows" | head -n 40 | while IFS=$'\t' read -r sev id pkg inst fix where; do
   echo "::warning title=${sev} ${id}::${pkg} ${inst} → fixed in ${fix} (${where})"
 done
+exit 1

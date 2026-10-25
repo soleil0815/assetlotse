@@ -820,84 +820,20 @@ for _cls in (UpdatePackageCheckTest, UpdateCleanupTest, UpdatePullTest):
 
 
 class ReleaseFilesTest(unittest.TestCase):
+    """Version stands everywhere the same; the installation layer contains what a local build needs.
+    The release workflow itself: tests/test_supply_chain.py."""
     def test_versions_and_workflow_agree(self):
         import re
         version = re.search(r'__version__ = "(.*?)"', (ROOT / "assetlotse" / "__init__.py").read_text()).group(1)
         self.assertIn(f'image.version="{version}"', (ROOT / "Dockerfile").read_text())
         self.assertIn(f"${{ASSETLOTSE_TAG:-{version}}}", (ROOT / "docker-compose.yml").read_text())
-        wf = (ROOT / ".github" / "workflows" / "docker.yml").read_text()
-        self.assertIn("ghcr.io", wf)
-        self.assertIn('tags: ["v*"]', wf)
-        install_layer = (ROOT / "Dockerfile").read_text().split("COPY docker-compose.yml")[1].split("\n\n")[0]
-        for f in ("update.sh", "Dockerfile", "docker-entrypoint.sh", "requirements.txt"):
+        self.assertIn("ghcr.io", (ROOT / ".github" / "workflows" / "docker.yml").read_text())
+        dockerfile = (ROOT / "Dockerfile").read_text()
+        install_layer = dockerfile.split("COPY docker-compose.yml")[1].split("\n\n")[0]
+        for f in ("update.sh", "Dockerfile", "docker-entrypoint.sh", "requirements.txt", "COPY build ./build"):
             self.assertIn(f, install_layer)
         self.assertNotIn("update.sh", (ROOT / ".dockerignore").read_text().split())
-
-    def _jobs(self):
-        import re
-        wf = (ROOT / ".github" / "workflows" / "docker.yml").read_text()
-        parts = re.split(r"\n  ([a-z-]+):\n", "\n" + wf.split("\njobs:\n", 1)[1])
-        return wf, dict(zip(parts[1::2], parts[2::2]))
-
-    def test_trivy_scan_runs_before_publishing(self):
-        import re
-        wf, jobs = self._jobs()
-        self.assertEqual(list(jobs), ["build", "test", "scan", "publish"])
-        self.assertIn("permissions: {}", wf.split("\njobs:\n")[0])           # nichts ohne ausdrückliche Rechte
-        # bauen ohne zu veröffentlichen
-        self.assertIn("push: false", jobs["build"])
-        self.assertNotIn("push: true", wf)
-        self.assertNotIn("write", jobs["build"])
-        # prüfen: Fund bricht ab, der Prüfer sieht weder Schreibrechte noch eine Anmeldung an der Registry
-        scan = jobs["scan"]
-        self.assertIn('exit-code: "1"', scan)
-        self.assertIn("CRITICAL", scan)
-        self.assertNotIn("write", scan)
-        self.assertNotIn("login-action", scan)
-        self.assertEqual(wf.count("trivy-action@"), 1)
-        # Tests laufen im gebauten Image, ohne Schreibrechte
-        self.assertIn("pytest", jobs["test"])
-        self.assertIn("assetlotse:scan", jobs["test"])
-        self.assertNotIn("write", jobs["test"])
-        # veröffentlichen erst nach Tests und Prüfung, genau das geprüfte Image, ohne Prüfer im Job
-        self.assertRegex(jobs["publish"], r"needs: \[build, test, scan\]")
-        self.assertNotIn("trivy", jobs["publish"])
-        self.assertNotIn("build-push-action", jobs["publish"])
-        self.assertLess(jobs["publish"].index("docker push"), jobs["publish"].index("Create release tag"))
-        # alle Actions über Commit-SHA festgelegt; trivy-action nicht aus den kompromittierten Versionen ≤ 0.34.2
-        for ref in re.findall(r"uses:\s*(\S+)", wf):
-            self.assertRegex(ref, r"@[0-9a-f]{40}$")
-        for v in re.findall(r"trivy-action@[0-9a-f]{40} # v(\d+)\.(\d+)", wf):
-            self.assertGreaterEqual(tuple(map(int, v)), (0, 35))
-        self.assertTrue((ROOT / ".trivyignore").exists())
-
-    def test_weekly_security_rebuild(self):
-        wf, jobs = self._jobs()
-        self.assertIn("schedule:", wf)
-        self.assertNotIn("schedule", jobs["build"].split("steps:")[0])      # der Montagslauf baut
-        build = jobs["build"]
-        # höchstes Release aus seinem Tag, frisch und mit Debian-Updates
-        self.assertIn("git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n1", build)
-        self.assertIn("OS_UPGRADE=", build)
-        self.assertIn("PKG_UPGRADE=", build)                               # auch die Python-Pakete
-        self.assertIn("no-cache: ${{ steps.meta.outputs.weekly == 'true' }}", build)
-        # nur latest, Minor und <version>-<datum> – das exakte Versions-Tag bleibt das Release
-        self.assertIn('tags="${image}:latest,${image}:${version%.*},${image}:${version}-${stamp}"', build)
-        self.assertIn('echo "create_tag=false"', build)
-        # nur veröffentlichen, wenn sich etwas geändert hat
-        self.assertIn("steps.diff.outputs.changed == 'true'", build)
-        self.assertIn("if: needs.build.outputs.publish == 'true'", jobs["publish"])
-        self.assertTrue((ROOT / ".github" / "image-fingerprint.sh").exists())
-        # normale Builds bleiben reproduzierbar: ohne OS_UPGRADE passiert nichts
-        dockerfile = (ROOT / "Dockerfile").read_text()
-        self.assertIn("ARG OS_UPGRADE=\n", dockerfile)
-        self.assertIn('if [ -n "$OS_UPGRADE" ]', dockerfile)
-        self.assertIn("ARG PKG_UPGRADE=\n", dockerfile)
-        install = dockerfile.split("ARG PKG_UPGRADE=")[1].split("\n# ")[0]
-        self.assertIn("-r requirements.in", install.split("else")[0])        # Neubau: neueste im erlaubten Bereich
-        self.assertIn("--no-deps --only-binary=:all: -r requirements.txt", install.split("else")[1])
-        self.assertIn("pip check", install)
-        self.assertIn("pip uninstall -y pip", install)
+        self.assertNotIn("build", (ROOT / ".dockerignore").read_text().split())
 
 
 @unittest.skipUnless(shutil.which("docker") and subprocess.run(["docker", "compose", "version"], capture_output=True).returncode == 0,

@@ -1,16 +1,8 @@
-# Base image pinned exactly: Python 3.13.16 on Debian 13 (trixie), frozen to this exact
-# state by digest (same on amd64 and arm64).
-# For a new base image change tag and digest together and run the tests.
+# Base image: Python 3.13 on Debian 13 (trixie) – exact patch release AND digest, so every build starts
+# from exactly the same image. scripts/lock.py sets new values, but only ever within Python 3.13 and
+# Debian trixie; another Python line or Debian release is a deliberate change (see README, "Base").
 ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3df53a1476cf5ddc6c087c0c10bc3a5678c2f
 FROM ${PYTHON_IMAGE}
-
-# Weekly security rebuild on GitHub: OS_UPGRADE=<date> installs all Debian updates. Empty (default, every
-# normal build): nothing happens, the build stays exactly reproducible.
-ARG OS_UPGRADE=
-RUN if [ -n "$OS_UPGRADE" ]; then \
-      apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y upgrade \
-      && apt-get clean && rm -rf /var/lib/apt/lists/*; \
-    fi
 
 LABEL org.opencontainers.image.title="AssetLotse" \
       org.opencontainers.image.version="1.9.5" \
@@ -26,25 +18,24 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PUID=1000 \
     PGID=1000
 
+# Debian packages: ALL packages of the image (also those of the base image) exactly as listed in
+# build/debian-packages.lock – one fixed snapshot of the Debian archive. The build stops if anything differs.
+COPY build/apt-snapshot.sh build/os-install.sh build/debian-packages.lock /tmp/build/
+RUN sh /tmp/build/os-install.sh && rm -rf /tmp/build
+
 WORKDIR /app
 COPY requirements.txt requirements.in ./
-# Normal build: pin pip itself, then install exactly the lock file – without pulling in sub-dependencies
-# (--no-deps) – and finally check that everything fits together.
-# Weekly security rebuild on GitHub (PKG_UPGRADE=<date>): instead the newest versions within the ranges
-# of requirements.in, sub-dependencies included; the tests in the workflow then run against exactly these.
-# pip is removed afterwards: AssetLotse does not need it at runtime, and pip carries its own
-# (often older) copies of urllib3, msgpack and setuptools that the Trivy scan rightly reports.
-ARG PKG_UPGRADE=
-RUN if [ -n "$PKG_UPGRADE" ]; then \
-      pip install --upgrade pip \
-      && pip install --upgrade --upgrade-strategy eager --only-binary=:all: -r requirements.in; \
-    else \
-      pip install pip==26.2.2 \
-      && pip install --no-deps --only-binary=:all: -r requirements.txt; \
-    fi \
+# Python packages: pip in a fixed version installs exactly the lock file – without pulling in anything
+# else (--no-deps) – and checks that everything fits together. Then pip is removed: AssetLotse does not
+# need a package manager at runtime (and pip carries its own, often older copies of urllib3 & co.).
+ARG PIP_VERSION=26.2.2
+RUN PIP_ROOT_USER_ACTION=ignore pip install "pip==${PIP_VERSION}" \
+ && PIP_ROOT_USER_ACTION=ignore pip install --no-deps --only-binary=:all: -r requirements.txt \
  && pip check \
- && pip uninstall -y pip \
- && ! python -c "import pip" 2>/dev/null
+ && PIP_ROOT_USER_ACTION=ignore pip uninstall -y pip \
+ && rm -rf /usr/local/lib/python3.*/ensurepip \
+ && ! python -c "import pip" 2>/dev/null \
+ && ! python -c "import ensurepip" 2>/dev/null
 # Time zone: TZ (e.g. Europe/Berlin) needs /usr/share/zoneinfo (Debian package tzdata, included
 # in the python-slim image). If it is missing, the build reports it here and AssetLotse at start-up.
 RUN test -e /usr/share/zoneinfo/Europe/Berlin \
@@ -60,6 +51,7 @@ RUN chmod 755 /usr/local/bin/docker-entrypoint.sh && mkdir -p /data
 # ready-made images keeps its update.sh, docker-compose.yml etc. up to date (last layer: small).
 COPY docker-compose.yml Dockerfile docker-entrypoint.sh update.sh requirements.txt requirements.in \
      .env.example .dockerignore README.md README.en.md CHANGELOG.md ./
+COPY build ./build
 
 # The container starts as root, fixes the permissions of /data and
 # then switches to PUID:PGID in the entrypoint (no root while running).

@@ -1,0 +1,7 @@
+# Test tools for the test run in the image (.github/workflows/docker.yml) – exact versions, installed
+# outside the image and mounted read-only, so the image itself stays without pip and pytest.
+pytest==9.1.1
+pluggy==1.7.0
+iniconfig==2.3.1
+packaging==26.3
+Pygments==2.21.0

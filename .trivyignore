@@ -1,4 +1,7 @@
-# Deliberate exceptions for the Trivy scan in .github/workflows/docker.yml – one CVE per line.
-# Only add one when the vulnerability provably does not affect AssetLotse, with a reason and an
-# expiry date, so it is checked again:
-#   CVE-2026-12345 exp:2026-12-31   # reason: affects only <feature>, which AssetLotse does not use
+# Exceptions for the Trivy scan (.github/trivy-scan.sh) – only for findings that were checked and
+# provably cannot be exploited in AssetLotse. Each entry needs, checked automatically:
+#   - a reason on the line directly above, starting with "# reason:"
+#   - an expiry date (exp:YYYY-MM-DD); after it the finding is reported again and checked anew
+# Example:
+#   # reason: affects only the XYZ parser, which AssetLotse never calls (checked 2026-10-25)
+#   CVE-2026-12345 exp:2027-01-31
