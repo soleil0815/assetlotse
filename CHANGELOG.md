@@ -2,6 +2,38 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.10.0 – 2026-10-25
+
+**Sicherheit – Image bleibt automatisch sicher und aktuell, ohne Versionssprünge**
+- **Reproduzierbarer Bau:** Basis-Image mit fester Version und Prüfsumme, **alle Debian-Pakete** (auch die des
+  Basis-Images) mit exakter Version in `build/debian-packages.lock` (fester Stand von snapshot.debian.org), alle
+  Python-Pakete inkl. Unterabhängigkeiten exakt in `requirements.txt`, `pip` als `ARG PIP_VERSION`.
+  `scripts/lock.py refresh` legt neue Versionen fest – nur innerhalb des Unterbaus; auf GitHub:
+  *Run workflow → relock*.
+- **Grenzen:** gleiche Debian-Version (trixie), gleiche Python-Reihe (3.13), jedes Paket innerhalb seiner
+  Hauptversion (vor 1.0: Unterversion), Kalenderversionen (Stammzertifikate, Zeitzonen) ohne Grenze.
+  `requirements.in` entsprechend auf die Hauptversionen erweitert.
+- **Sicherheitsupdate jede Woche** (montags; von Hand *Run workflow → security-update*): neue Versionen innerhalb
+  der Grenzen, Bau ohne Zwischenspeicher, Tests im Image, Trivy – nur wenn alles besteht, Veröffentlichung als
+  `<Version>-s<Zähler>` (z. B. `1.10.0-s1`) und `latest`, Eintrag hier im CHANGELOG mit den geänderten Paketen.
+  Nichts Neues → nichts passiert. Ersetzt den bisherigen Montagsneubau (`<Version>-<Datum>`).
+- **Trivy ohne GitHub Action:** feste Version, per SHA-256 geprüft (trivy-action/setup-trivy wurden im März 2026
+  kompromittiert, CVE-2026-33634). `.trivyignore`-Einträge brauchen Begründung und Ablaufdatum.
+- **Täglicher Scan** des veröffentlichten `latest`; **Unterbau-Warnung** montags über endoflife.date
+  (Hinweis ab 12, roter Lauf ab 6 Monaten vor Ende der Sicherheitsupdates).
+- **Workflow:** Release nur vom Zweig `master` (keine Releases mehr über Tag-Pushes oder `main`), nie zwei
+  gleichzeitig, veröffentlichte Versionen werden nie überschrieben, `latest` nur für die höchste Version,
+  keine gespeicherten Git-Anmeldedaten, Tests und Scans nie in Jobs mit Schreibrechten.
+- `ensurepip` wird zusätzlich zu `pip` aus dem Image entfernt; Python 3.13.17 mit neu festgelegten Debian-Paketen.
+- Halb abgebrochene Läufe holt der nächste nach (`latest`/`<Minor>` werden nur vorwärts nachgezogen).
+- Lokaler Bau (`./update.sh` mit Zip) braucht jetzt HTTPS-Zugang zu `snapshot.debian.org`.
+- Einmalig auf GitHub: Umgebung `release` auf den Zweig `master` beschränken (siehe README).
+
+**Dokumentation:** README (Abschnitt „Sicherheit und Aktualität des Images“, inkl. „Wenn ein Lauf rot ist“) und
+Hilfe *Update und Wartung*.
+
+Für die Bedienung der App ändert sich nichts.
+
 ## 1.9.5 – 2026-10-24
 
 **Sicherheit**

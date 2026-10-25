@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "1.10.0",
+      "date": "2026-10-25",
+      "kind": "security",
+      "audience": "admin",
+      "de": {
+        "title": "Sicherheitsupdates mit eigener Nummer",
+        "text": "Alle Bausteine des Programms sind jetzt auf exakte Versionen festgelegt. Jede Woche werden sie innerhalb ihrer Reihe aktualisiert, getestet und geprüft und – nur wenn alles besteht – als Sicherheitsupdate mit eigener Nummer veröffentlicht (z. B. 1.10.0-s1: gleiches Programm, neue Pakete). Das veröffentlichte Programm wird außerdem täglich auf neu bekannte Schwachstellen geprüft."
+      },
+      "en": {
+        "title": "Security updates with their own number",
+        "text": "All components of the program are now pinned to exact versions. Every week they are updated within their line, tested and scanned and – only if everything passes – published as a security update with its own number (e.g. 1.10.0-s1: same program, new packages). The published program is also scanned every day for newly known vulnerabilities."
+      }
+    },
+    {
       "version": "1.9.5",
       "date": "2026-10-24",
       "kind": "security",

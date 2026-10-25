@@ -266,15 +266,16 @@ jobs:
           docker run --rm -v "$PWD:/src" -w /src -v "${RUNNER_TEMP}/pytest:/opt/pytest:ro" -e PYTHONPATH=/opt/pytest \
             --entrypoint python assetlotse:scan -m pytest -q -p no:cacheprovider -rfE \
             --ignore=tests/test_supply_chain.py tests > pytest.log 2>&1 || rc=$?
+          summary="in the image: $(tail -n 1 pytest.log) · build chain: $(tail -n 1 selftest.log)"
           cat selftest.log >> pytest.log
           cat pytest.log
           { echo "### Tests in the image"; echo '```'; tail -n 25 pytest.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           if [ "$rc" != 0 ]; then
             grep -E '^(FAILED|ERROR|E  )' pytest.log | head -n 20 | while IFS= read -r line; do echo "::error title=Test::${line}"; done
-            echo "::error title=Tests failed::exit code ${rc} – $(tail -n 1 pytest.log) – nothing is published"
+            echo "::error title=Tests failed::${summary} – nothing is published"
             exit "$rc"
           fi
-          echo "::notice title=Tests::$(tail -n 1 pytest.log)"
+          echo "::notice title=Tests::${summary}"
 
   # ------------------------------------------------------------------ Trivy (read only)
   scan:
