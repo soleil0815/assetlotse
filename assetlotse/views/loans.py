@@ -493,6 +493,7 @@ def desk():
             ok, msg = lend_asset(assets[0], borrower)
             flash(msg, "success" if ok else "error")
             return redirect(url_for("loans.desk", modus="ausgabe", benutzer=borrower.username,
+                                    gegenstand=preset.id if preset is not None else None,
                                     **{k: v for k, v in _stock_args().items() if v and k != "frei"}))
         if not assets:
             flash(_("Kein Gegenstand zu „{code}“ gefunden.", code=code), "error")

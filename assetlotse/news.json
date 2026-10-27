@@ -2,6 +2,48 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "1.11.0",
+      "date": "2026-10-27",
+      "kind": "feature",
+      "audience": "manager",
+      "de": {
+        "title": "Schneller ausgeben und erfassen",
+        "text": "Freie Gegenstände lassen sich direkt aus der Bestandsliste ausgeben – Person wählen, bestätigen. Beim Erfassen schlägt AssetLotse Bezeichnung, Hersteller und Modell aus dem Bestand vor und füllt passende Felder aus; „Ähnlichen anlegen“ übernimmt jetzt auch das Foto. Steht eine Nummer versehentlich bei einem anderen Gerät, lässt sie sich in einem Schritt dorthin übernehmen, wo sie hingehört."
+      },
+      "en": {
+        "title": "Faster issuing and adding",
+        "text": "Free items can be issued straight from the inventory list – pick the person, confirm. When adding items, AssetLotse suggests name, manufacturer and model from the inventory and fills in matching fields; “Add similar” now also copies the photo. If a number is on another device by mistake, it can be moved to the right one in a single step."
+      }
+    },
+    {
+      "version": "1.11.0",
+      "date": "2026-10-27",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Gruppen ohne Verleih",
+        "text": "Neu in der Gruppe: „Kein Verleih“. Gegenstände solcher Gruppen werden nie ausgegeben und an der Theke gar nicht erst angeboten."
+      },
+      "en": {
+        "title": "Groups without lending",
+        "text": "New in groups: “No lending”. Items of such groups are never issued and not even offered at the desk."
+      }
+    },
+    {
+      "version": "1.11.0",
+      "date": "2026-10-27",
+      "kind": "feature",
+      "audience": "all",
+      "de": {
+        "title": "Eigene Angaben ändern",
+        "text": "Konten ohne Active Directory ändern Name und E-Mail-Adresse jetzt selbst unter Mein Profil → Meine Angaben."
+      },
+      "en": {
+        "title": "Change your own details",
+        "text": "Accounts without Active Directory now change their name and email address themselves under My profile → My details."
+      }
+    },
+    {
       "version": "1.10.2",
       "date": "2026-10-25",
       "kind": "fix",

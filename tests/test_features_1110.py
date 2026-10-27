@@ -37,6 +37,40 @@ class NumberTakeOverTests(Base):
                         follow_redirects=True)
         self.assertIn("Änderungen gespeichert", r.get_data(as_text=True))
 
+    def test_take_over_both_numbers_in_one_step(self):
+        a = self.laptop(secret=None)                   # IT-0042 / SN-1
+        c = self.laptop(secret=None)                   # IT-0044 / SN-3 (zweiter Gegenstand)
+        b = self.laptop(secret=None)
+        self.login("vera")
+        # beide Nummern von A
+        r = self.c.post(f"/gegenstaende/{b.id}/bearbeiten", data=form(
+            b, inventory_no="IT-0042", serial_number="SN-1",
+            take_inventory_no=str(a.id), take_serial_number=str(a.id)), follow_redirects=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("Änderungen gespeichert", r.get_data(as_text=True))
+        db.session.expire_all()
+        self.assertEqual((db.session.get(Asset, b.id).inventory_no, db.session.get(Asset, b.id).serial_number),
+                         ("IT-0042", "SN-1"))
+        self.assertEqual((db.session.get(Asset, a.id).inventory_no, db.session.get(Asset, a.id).serial_number), ("", ""))
+        # je eine Nummer von zwei verschiedenen Gegenständen (C hat Inventar-, B jetzt Seriennummer)
+        a2 = db.session.get(Asset, a.id)
+        r = self.c.post(f"/gegenstaende/{a2.id}/bearbeiten", data=form(
+            a2, inventory_no=c.inventory_no, serial_number="SN-1",
+            take_inventory_no=str(c.id), take_serial_number=str(b.id)), follow_redirects=True)
+        self.assertIn("Änderungen gespeichert", r.get_data(as_text=True))
+
+    def test_ticked_offer_stays_ticked_while_the_other_number_conflicts(self):
+        a = self.laptop(secret=None)
+        b = self.laptop(secret=None)
+        self.login("vera")
+        html = self.c.post(f"/gegenstaende/{b.id}/bearbeiten", data=form(
+            b, inventory_no=a.inventory_no, serial_number=a.serial_number, take_inventory_no=str(a.id)),
+            follow_redirects=True).get_data(as_text=True)
+        self.assertIn(f'name="take_inventory_no" value="{a.id}" checked', html)
+        self.assertIn(f'name="take_serial_number" value="{a.id}" >', html)
+        db.session.expire_all()
+        self.assertEqual(db.session.get(Asset, a.id).inventory_no, a.inventory_no)      # nichts geändert
+
     def test_take_over_when_creating(self):
         a = self.laptop(secret=None)
         self.login("vera")
@@ -126,6 +160,51 @@ class IssueFromInventoryTests(Base):
         self.login("vera")
         html = self.c.get(f"/theke?modus=ausgabe&gegenstand={a.id}&benutzer=mia").get_data(as_text=True)
         self.assertNotIn("Aus dem Bestand ausgeben", html)
+
+
+class OwnMailChangeTests(Base):
+    """Selbst registrierte Konten: neue Adresse nur einmal vergeben und – mit Bestätigung – erst nach dem Link."""
+    def setUp(self):
+        super().setUp()
+        from unittest import mock
+
+        from assetlotse.models import set_setting
+        for k, v in {"registration_mode": "open", "registration_verify_email": "1", "mail_enabled": "1",
+                     "smtp_host": "mail.test", "app_base_url": "http://localhost", "registration_domains": ""}.items():
+            set_setting(k, v)
+        self.mia.self_registered = True
+        self.mia.email = "mia@schule.de"
+        db.session.commit()
+        self.sent = []
+        patcher = mock.patch("assetlotse.mailer.send_mail",
+                             side_effect=lambda to, subject, text, html, **kw: self.sent.append((to, text)) or (True, ""))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_new_address_only_after_confirmation(self):
+        import re
+        self.login("mia")
+        r = self.c.post("/profil", data={"action": "data", "display_name": "Mia M", "email": "neu@schule.de"},
+                        follow_redirects=True)
+        self.assertIn("Bestätigungslink an neu@schule.de", r.get_data(as_text=True))
+        db.session.expire_all()
+        u = db.session.get(User, self.mia.id)
+        self.assertEqual((u.display_name, u.email), ("Mia M", "mia@schule.de"))   # Name sofort, Adresse noch nicht
+        self.assertEqual(self.sent[0][0], "neu@schule.de")
+        link = re.search(r"http://localhost(/profil/email-bestaetigen/\S+)", self.sent[0][1]).group(1)
+        self.c.get(link)
+        db.session.expire_all()
+        self.assertEqual(db.session.get(User, self.mia.id).email, "neu@schule.de")
+        self.assertEqual(self.c.get(link).status_code, 404)          # alter Link gilt nicht mehr
+
+    def test_address_of_another_account_is_refused(self):
+        self.vera.email = "vera@schule.de"
+        db.session.commit()
+        self.login("mia")
+        r = self.c.post("/profil", data={"action": "data", "display_name": "Mia", "email": "VERA@schule.de"},
+                        follow_redirects=True)
+        self.assertIn("bereits von einem anderen Konto", r.get_data(as_text=True))
+        self.assertEqual(self.sent, [])
 
 
 class FormHelpTests(Base):

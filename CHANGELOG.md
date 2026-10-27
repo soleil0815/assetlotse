@@ -2,6 +2,29 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.11.0 – 2026-10-27
+
+**Neu**
+- **Aus dem Bestand ausgeben:** In der Bestandsliste steht bei jedem freien Gegenstand **Ausgeben**, auf der Seite
+  eines Gegenstands **Person suchen**. Beides öffnet die Ausgabetheke mit dem schon gewählten Gegenstand – Person
+  suchen (auch im AD), bestätigen, fertig; danach geht es zurück zum Gegenstand.
+- **Gruppen mit „Kein Verleih“:** Neuer Haken in der Gruppe. Ihre Gegenstände werden nie ausgegeben – weder an der
+  Theke (dort gar nicht erst angeboten) noch aus dem Bestand noch zur Selbstausleihe. Im Bestand steht
+  „kein Verleih“. Schon ausgegebene Gegenstände können weiter zurückgegeben werden.
+- **Vorschläge beim Erfassen:** Bezeichnung, Hersteller und Modell werden aus dem vorhandenen Bestand
+  vorgeschlagen. Wer eine bekannte Bezeichnung oder ein bekanntes Modell wählt (z. B. „Vostro 3400“), bekommt leere
+  Felder wie Hersteller und Kategorie gleich passend ausgefüllt.
+- **„Ähnlichen anlegen“ übernimmt das Foto** (auch „Speichern & nächsten“); abwählbar.
+- **Eigene Angaben:** Lokale und selbst registrierte Konten ändern Name und E-Mail-Adresse unter *Mein Profil →
+  Meine Angaben* selbst. Bei AD-Konten kommen beide weiter aus dem Active Directory. Für selbst registrierte Konten
+  gelten dieselben Regeln wie bei der Registrierung: erlaubte Domain, jede Adresse nur einmal, und – wenn dort eine
+  Bestätigung verlangt wird – gilt die neue Adresse erst nach Klick auf den Link in der Mail.
+
+**Korrigiert**
+- **Falsch vergebene Inventar- oder Seriennummer korrigieren:** Steht eine Nummer versehentlich bei einem anderen
+  Gerät, bietet das Formular an, sie dort zu entfernen und hier einzutragen – in einem Schritt. Vertauschte Nummern
+  lassen sich so korrigieren, ohne ein Gerät zu löschen und neu anzulegen.
+
 ## 1.10.2 – 2026-10-25
 
 **Geändert**

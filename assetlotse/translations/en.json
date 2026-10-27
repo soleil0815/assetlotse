@@ -1206,5 +1206,15 @@
  "{label} „{value}“ wurde bei „{name}“ entfernt – trag dort bitte die richtige ein.": "{label} “{value}” was removed from “{name}” – please enter the correct one there.",
  "„{name}“ ansehen": "View “{name}”",
  "„{title}“ an {name} ausgeben": "Issue “{title}” to {name}",
- "„{title}“ gehört zur Gruppe „{group}“ – deren Gegenstände werden nicht verliehen.": "“{title}” belongs to the group “{group}” – its items are not lent out."
+ "„{title}“ gehört zur Gruppe „{group}“ – deren Gegenstände werden nicht verliehen.": "“{title}” belongs to the group “{group}” – its items are not lent out.",
+ "Bitte bestätige deine neue E-Mail-Adresse": "Please confirm your new email address",
+ "Deine neue E-Mail-Adresse ist bestätigt.": "Your new email address is confirmed.",
+ "Der Bestätigungslink ist abgelaufen. Bitte die neue Adresse im Profil noch einmal eintragen.": "The confirmation link has expired. Please enter the new address in your profile again.",
+ "Die Bestätigungs-E-Mail konnte nicht gesendet werden – die Adresse bleibt unverändert. Bitte später noch einmal versuchen.": "The confirmation email could not be sent – the address stays unchanged. Please try again later.",
+ "Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet.": "This email address is already used by another account.",
+ "Diese E-Mail-Adresse wird inzwischen von einem anderen Konto verwendet.": "This email address is now used by another account.",
+ "Falls du das nicht warst, kannst du diese Nachricht einfach ignorieren – es ändert sich nichts.": "If this wasn't you, simply ignore this message – nothing changes.",
+ "Wir haben einen Bestätigungslink an {email} geschickt. Die neue Adresse gilt, sobald du ihn öffnest.": "We have sent a confirmation link to {email}. The new address applies as soon as you open it.",
+ "für dein Konto bei „{library}“ wurde diese E-Mail-Adresse eingetragen. Bitte bestätige sie innerhalb von 48 Stunden über diesen Link – erst dann wird sie übernommen:": "this email address was entered for your account at “{library}”. Please confirm it within 48 hours using this link – only then will it be used:",
+ "für dein Konto wurde diese E-Mail-Adresse eingetragen. Bitte bestätige sie innerhalb von 48 Stunden – erst dann wird sie übernommen:": "this email address was entered for your account. Please confirm it within 48 hours – only then will it be used:"
 }

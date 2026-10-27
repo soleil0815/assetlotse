@@ -594,6 +594,7 @@ def _number_conflicts_inner(asset: Asset, previous: dict) -> dict:
         mine = current_user.can_manage(other)
         if mine and request.form.get(f"take_{field}") == str(other.id):
             takeovers.append((field, other))
+            offers[field] = {"asset": other, "checked": True}   # bei anderem Fehler angehakt wieder anbieten
             continue
         where = _("bei „{name}“", name=other.name) if mine else _("bei einem Gegenstand einer anderen Gruppe")
         if asset.id and number_key(previous.get(field)) == number_key(value):
@@ -603,7 +604,7 @@ def _number_conflicts_inner(asset: Asset, previous: dict) -> dict:
             errors.append(_("{label} „{value}“ ist bereits vergeben ({where}). Jede Nummer darf es nur einmal "
                             "geben.", label=_number_label(field), value=value, where=where))
             if mine:
-                offers[field] = other
+                offers[field] = {"asset": other, "checked": False}
                 errors.append(_("Steht sie dort versehentlich, kannst du sie unten übernehmen."))
     return {"error": " ".join(errors) or None, "warning": " ".join(warnings) or None,
             "offers": offers, "takeovers": takeovers}
@@ -611,19 +612,21 @@ def _number_conflicts_inner(asset: Asset, previous: dict) -> dict:
 
 def _take_over_numbers(takeovers) -> list[str]:
     """Nummern bei den anderen Gegenständen entfernen – vor dem Speichern dieses Gegenstands, im selben
-    Schritt (sonst greift der eindeutige Index). Liefert die Hinweise für danach."""
+    Schritt (sonst greift der eindeutige Index). Liefert die Hinweise für danach.
+
+    Alles, was danach noch gebraucht wird, vorher lesen und erst am Ende verwerfen: Ein Zugriff auf einen
+    verworfenen Gegenstand würde die Sitzung schreiben, solange die zweite Nummer noch doppelt ist."""
     from sqlalchemy import update
-    notes = []
-    for field, other in takeovers:
-        key = "inventory_key" if field == "inventory_no" else "serial_key"
-        value = getattr(other, field)
-        with db.session.no_autoflush:      # dieser Gegenstand wird erst danach geschrieben
-            db.session.execute(update(Asset).where(Asset.id == other.id).values({field: "", key: None})
+    plan = [(field, other, other.id, other.name, getattr(other, field)) for field, other in takeovers]
+    with db.session.no_autoflush:          # dieser Gegenstand wird erst danach geschrieben
+        for field, _other, ident, _name, _value in plan:
+            key = "inventory_key" if field == "inventory_no" else "serial_key"
+            db.session.execute(update(Asset).where(Asset.id == ident).values({field: "", key: None})
                                .execution_options(synchronize_session=False))
+    for _field, other, *_rest in plan:
         db.session.expire(other)
-        notes.append(_("{label} „{value}“ wurde bei „{name}“ entfernt – trag dort bitte die richtige ein.",
-                       label=_number_label(field), value=value, name=other.name))
-    return notes
+    return [_("{label} „{value}“ wurde bei „{name}“ entfernt – trag dort bitte die richtige ein.",
+              label=_number_label(field), value=value, name=name) for field, _o, _i, name, value in plan]
 
 
 @bp.route("/gegenstaende/neu", methods=["GET", "POST"])

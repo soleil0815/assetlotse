@@ -121,7 +121,7 @@
           <input type="hidden" name="benutzer" value="{{ borrower.username }}">
           <input type="hidden" name="asset_id" value="{{ asset.id }}">
           {% for k in ("suche", "kategorie", "frei") %}{% if stock[k] %}<input type="hidden" name="{{ k }}" value="{{ stock[k] }}">{% endif %}{% endfor %}
-          <button class="btn sm primary" {{ "disabled" if asset.available == 0 or not borrower.can_borrow(asset) }}
+          <button class="btn sm primary" {{ "disabled" if asset.available == 0 or not asset.lendable or not borrower.can_borrow(asset) }}
                   title="{{ _('Keine Berechtigung für diese Gruppe') if not borrower.can_borrow(asset) }}">{{ _("Ausgeben") }}</button>
         </form>
         {% endif %}
@@ -189,7 +189,7 @@
                 <input type="hidden" name="suche" value="{{ stock.suche }}">
                 <input type="hidden" name="kategorie" value="{{ stock.kategorie }}">
                 <input type="hidden" name="frei" value="{{ stock.frei }}">
-                <button class="btn sm primary" {{ "disabled" if asset.available == 0 or not borrower.can_borrow(asset) }}
+                <button class="btn sm primary" {{ "disabled" if asset.available == 0 or not asset.lendable or not borrower.can_borrow(asset) }}
                         title="{{ _('Keine Berechtigung für diese Gruppe') if not borrower.can_borrow(asset) }}">{{ icon("check") }} {{ _("Ausgeben") }}</button>
               </form>
               {% else %}<span class="muted" style="font-size: 12.5px">{{ _("Zuerst eine Person wählen.") }}</span>{% endif %}

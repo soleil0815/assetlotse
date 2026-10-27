@@ -145,6 +145,30 @@ def send_verification(user: User) -> bool:
     return _send("verify", user.email, user=user, link=link)
 
 
+def _change_serializer():
+    return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt="email-change")
+
+
+def send_email_change(user: User, new_email: str) -> bool:
+    """Neue Adresse eines selbst registrierten Kontos erst nach Bestätigung übernehmen (wie bei der Registrierung)."""
+    base = _base_url()
+    if not base:
+        return False
+    token = _change_serializer().dumps({"uid": user.id, "old": user.email or "", "email": new_email})
+    link = f"{base}{url_for('register.confirm_email_change', token=token)}"
+    from ..mailer import mail_active, render_mail, send_mail
+    if not mail_active():
+        return False
+    subject, text, html = render_mail("email_change", user=user, link=link)
+    ok, _detail = send_mail(new_email, subject, text, html, kind="account", user_id=user.id)
+    return ok
+
+
+def email_taken(email: str, user: User) -> bool:
+    """Gehört die Adresse schon einem anderen Konto? (Bei der Registrierung ist jede Adresse nur einmal erlaubt.)"""
+    return User.query.filter(func.lower(User.email) == email.lower(), User.id != user.id).first() is not None
+
+
 def notify_admins(user: User):
     if not get_bool("registration_notify_admins"):
         return
@@ -284,6 +308,30 @@ def verify(token):
         notify_admins(user)
         log.info("E-Mail bestätigt: %s", user.username)
     return render_template("register_done.html", state="verified", approval=user.pending_approval)
+
+
+@bp.route("/profil/email-bestaetigen/<token>")
+def confirm_email_change(token):
+    try:
+        data = _change_serializer().loads(token, max_age=VERIFY_MAX_AGE)
+    except SignatureExpired:
+        flash(_("Der Bestätigungslink ist abgelaufen. Bitte die neue Adresse im Profil noch einmal eintragen."), "error")
+        return redirect(url_for("main.profile"))
+    except BadSignature:
+        abort(404)
+    user = db.session.get(User, data.get("uid"))
+    new = (data.get("email") or "").strip()
+    # nur gültig, solange sich die Adresse seitdem nicht geändert hat und die neue noch frei ist
+    if user is None or (user.email or "").lower() != (data.get("old") or "").lower() or not new:
+        abort(404)
+    if email_taken(new, user):
+        flash(_("Diese E-Mail-Adresse wird inzwischen von einem anderen Konto verwendet."), "error")
+        return redirect(url_for("main.profile"))
+    user.email = new
+    db.session.commit()
+    log.info("E-Mail-Adresse geändert und bestätigt: %s", user.username)
+    flash(_("Deine neue E-Mail-Adresse ist bestätigt."), "success")
+    return redirect(url_for("main.profile"))
 
 
 @bp.route("/registrieren/erneut-senden", methods=["POST"])

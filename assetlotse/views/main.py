@@ -341,14 +341,28 @@ def profile():
         if mail and not valid_email(mail):
             flash(_("Bitte eine gültige E-Mail-Adresse eingeben."), "error")
             return redirect(url_for("main.profile"))
-        if current_user.self_registered and mail.lower() != (current_user.email or "").lower():
-            from .register import _allowed_domain
-            if not mail or not _allowed_domain(mail):
-                # gleiche Regel wie bei der Registrierung (dort ist die Adresse Pflicht)
-                flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
-                return redirect(url_for("main.profile"))
         current_user.display_name = name
-        current_user.email = mail
+        if mail.lower() != (current_user.email or "").lower():
+            if current_user.self_registered:
+                # gleiche Regeln wie bei der Registrierung: Adresse Pflicht, erlaubte Domain, nur einmal vergeben,
+                # und – wenn dort eine Bestätigung verlangt wird – erst nach Klick auf den Link übernommen
+                from .register import _allowed_domain, email_taken, needs_verification, send_email_change
+                if not mail or not _allowed_domain(mail):
+                    flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
+                    return redirect(url_for("main.profile"))
+                if email_taken(mail, current_user):
+                    flash(_("Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet."), "error")
+                    return redirect(url_for("main.profile"))
+                if needs_verification():
+                    db.session.commit()                    # der Name gilt sofort
+                    if send_email_change(current_user, mail):
+                        flash(_("Wir haben einen Bestätigungslink an {email} geschickt. Die neue Adresse gilt, "
+                                "sobald du ihn öffnest.", email=mail), "info")
+                    else:
+                        flash(_("Die Bestätigungs-E-Mail konnte nicht gesendet werden – die Adresse bleibt "
+                                "unverändert. Bitte später noch einmal versuchen."), "error")
+                    return redirect(url_for("main.profile"))
+            current_user.email = mail
         db.session.commit()
         flash(_("Deine Angaben wurden gespeichert."), "success")
         return redirect(url_for("main.profile"))

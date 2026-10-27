@@ -1,0 +1,8 @@
+{{ _("Bitte bestätige deine neue E-Mail-Adresse") }}
+{{ _("Hallo {name},", name=user.name|safe) }}
+
+{{ _("für dein Konto bei „{library}“ wurde diese E-Mail-Adresse eingetragen. Bitte bestätige sie innerhalb von 48 Stunden über diesen Link – erst dann wird sie übernommen:", library=org_name|safe) }}
+
+{{ link }}
+
+{{ _("Falls du das nicht warst, kannst du diese Nachricht einfach ignorieren – es ändert sich nichts.") }}

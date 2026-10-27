@@ -31,15 +31,15 @@
           <div class="field span-3"><label for="f-inventory-no">{{ _("Inventarnummer") }}</label><input id="f-inventory-no" class="code-input" type="text" name="inventory_no" value="{{ asset.inventory_no or '' }}" maxlength="100"
                    placeholder="{{ _("z. B. IT-0042") }}" autocomplete="off" data-number-check="{{ url_for('assets.check_number') }}" data-field="inventory_no" data-except="{{ asset.id or '' }}">
             <div class="number-hint" data-number-hint aria-live="polite"></div>
-            {% if offers.inventory_no %}<label class="check take-over"><input type="checkbox" name="take_inventory_no" value="{{ offers.inventory_no.id }}">
-              {{ _("Bei „{name}“ entfernen und hier eintragen", name=offers.inventory_no.name) }}</label>
-              <a class="hint" href="{{ url_for('assets.detail', asset_id=offers.inventory_no.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=offers.inventory_no.name) }}</a>{% endif %}</div>
+            {% if offers.inventory_no %}{% set o = offers.inventory_no %}<label class="check take-over"><input type="checkbox" name="take_inventory_no" value="{{ o.asset.id }}" {{ "checked" if o.checked }}>
+              {{ _("Bei „{name}“ entfernen und hier eintragen", name=o.asset.name) }}</label>
+              <a class="hint" href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=o.asset.name) }}</a>{% endif %}</div>
           <div class="field span-3"><label for="f-serial-number">{{ _("Seriennummer") }}</label><input id="f-serial-number" class="code-input" type="text" name="serial_number" value="{{ asset.serial_number or '' }}" maxlength="200"
                    autocomplete="off" data-number-check="{{ url_for('assets.check_number') }}" data-field="serial_number" data-except="{{ asset.id or '' }}">
             <div class="number-hint" data-number-hint aria-live="polite"></div>
-            {% if offers.serial_number %}<label class="check take-over"><input type="checkbox" name="take_serial_number" value="{{ offers.serial_number.id }}">
-              {{ _("Bei „{name}“ entfernen und hier eintragen", name=offers.serial_number.name) }}</label>
-              <a class="hint" href="{{ url_for('assets.detail', asset_id=offers.serial_number.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=offers.serial_number.name) }}</a>{% endif %}</div>
+            {% if offers.serial_number %}{% set o = offers.serial_number %}<label class="check take-over"><input type="checkbox" name="take_serial_number" value="{{ o.asset.id }}" {{ "checked" if o.checked }}>
+              {{ _("Bei „{name}“ entfernen und hier eintragen", name=o.asset.name) }}</label>
+              <a class="hint" href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=o.asset.name) }}</a>{% endif %}</div>
           <div class="field span-6"><label for="f-description">{{ _("Beschreibung / Zubehör") }}</label><textarea id="f-description" name="description" placeholder="{{ _("z. B. mit Netzteil und Tasche; Zustand; Garantie bis …") }}">{{ asset.description or '' }}</textarea></div>
         </div>
         <div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">
@@ -100,7 +100,7 @@
             <div class="field"><label for="f-image-upload">{{ _("Bild hochladen") }}</label><input id="f-image-upload" type="file" name="image_upload" accept="image/*"></div>
             {% if not is_new and asset.image %}<label class="check"><input type="checkbox" name="remove_image" value="1"> {{ _("Foto entfernen") }}</label>{% endif %}
             {% if is_new and template_id and asset.image %}<input type="hidden" name="image_from" value="{{ template_id }}">
-            <label class="check"><input type="checkbox" name="remove_image" value="1"> {{ _("Foto der Vorlage nicht übernehmen") }}</label>{% endif %}
+            <label class="check"><input type="checkbox" name="remove_image" value="1" {{ "checked" if request.form.get("remove_image") }}> {{ _("Foto der Vorlage nicht übernehmen") }}</label>{% endif %}
           </div>
         </div>
       </section>
