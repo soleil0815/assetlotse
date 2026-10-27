@@ -51,6 +51,9 @@ class Group(db.Model):
     # Optional: DN einer AD-Gruppe – Mitglieder werden beim Login automatisch zugeordnet
     ldap_dn = db.Column(db.String(500), default="")
     color = db.Column(db.String(16), default="#0b7285")
+    # Kein Verleih: Gegenstände dieser Gruppe werden nie ausgegeben (z. B. fest verbaute oder nur intern
+    # genutzte Geräte) – weder an der Theke noch aus dem Bestand noch per Selbstausleihe.
+    no_lending = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     assets = db.relationship("Asset", back_populates="group")
@@ -247,6 +250,11 @@ class Asset(db.Model):
     @property
     def available(self) -> int:
         return max(0, (self.quantity or 0) - len(self.active_loans))
+
+    @property
+    def lendable(self) -> bool:
+        """False für Gegenstände einer Gruppe mit „Kein Verleih“."""
+        return not (self.group is not None and self.group.no_lending)
 
     @property
     def image(self) -> str:
@@ -611,6 +619,11 @@ def manageable_assets_query(user: User):
         return q
     ids = list(user.group_ids)
     return q.filter((Asset.group_id.is_(None)) | (Asset.group_id.in_(ids or [-1])))
+
+
+def lendable_clause():
+    """SQL-Bedingung: Gegenstand darf verliehen werden (keine Gruppe oder Gruppe ohne „Kein Verleih“)."""
+    return Asset.group_id.is_(None) | ~Asset.group.has(Group.no_lending.is_(True))
 
 
 def count_active_loans(user_id: int) -> int:

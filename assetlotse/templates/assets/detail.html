@@ -96,6 +96,8 @@
         {% endif %}
       </div>
       {% endif %}
+    {% elif not asset.lendable %}
+      <div class="notice">{{ icon("lock") }}<div>{{ _("Dieser Gegenstand gehört zur Gruppe <b>{group}</b>, deren Gegenstände nicht verliehen werden.", group=asset.group.name) }}</div></div>
     {% elif not current_user.can_borrow(asset) %}
       <div class="notice warn">{{ icon("lock") }}<div>{{ _("Dieser Gegenstand gehört zur Gruppe <b>{group}</b>. Nur Mitglieder dieser Gruppe können ihn bekommen.", group=asset.group.name) }}</div></div>
     {% elif asset.available > 0 and self_checkout and not manage %}
@@ -109,9 +111,12 @@
       <div class="notice">{{ icon("clock") }}<div>{{ _("Derzeit ist alles ausgegeben.") }}</div></div>
     {% endif %}
 
-    {% if manage and asset.available > 0 %}
+    {% if manage and asset.available > 0 and asset.lendable %}
     <hr>
-    <h3 style="margin-bottom: 10px">{{ _("Ausgeben an …") }}</h3>
+    <div class="actions" style="justify-content: space-between; margin-bottom: 10px">
+      <h3>{{ _("Ausgeben an …") }}</h3>
+      <a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', gegenstand=asset.id) }}" title="{{ _("Person suchen – auch im Active Directory") }}">{{ icon("search") }} {{ _("Person suchen") }}</a>
+    </div>
     <form method="post" action="{{ url_for('loans.borrow', asset_id=asset.id) }}" class="form-grid">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="field span-6"><label for="f-user-id">{{ _("Person") }}</label>

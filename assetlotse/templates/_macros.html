@@ -57,7 +57,8 @@
 {%- endmacro %}
 
 {% macro avail_badge(asset) -%}
-{%- if asset.quantity == 0 -%}<span class="badge">{{ _("nicht im Bestand") }}</span>
+{%- if not asset.lendable and asset.available -%}<span class="badge" title="{{ _("Gruppe ohne Verleih") }}">{{ _("kein Verleih") }}</span>
+{%- elif asset.quantity == 0 -%}<span class="badge">{{ _("nicht im Bestand") }}</span>
 {%- elif asset.quantity == 1 and asset.available -%}<span class="badge ok">{{ _("verfügbar") }}</span>
 {%- elif asset.available > 0 -%}<span class="badge ok">{{ _("{available} von {quantity} frei", available=asset.available, quantity=asset.quantity) }}</span>
 {%- else -%}<span class="badge warn">{{ _("ausgegeben") }}</span>

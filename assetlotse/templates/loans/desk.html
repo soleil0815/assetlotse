@@ -13,16 +13,41 @@
 </nav>
 
 {% if mode == "ausgabe" %}
+{% if preset %}
+<section class="card card-pad preset-asset" style="margin-bottom: 18px">
+  <div class="list-row" style="padding: 0">
+    <div class="mini-thumb">{{ thumb(preset) }}</div>
+    <div class="grow"><div class="eyebrow">{{ _("Aus dem Bestand ausgeben") }}</div>
+      <b>{{ preset.name }}</b><small>{{ [preset.inventory_no, preset.serial_number]|select|join(" · ") or preset.category }}</small></div>
+    {{ avail_badge(preset) }}
+    <a class="btn sm ghost" href="{{ url_for('assets.detail', asset_id=preset.id) }}">{{ _("Abbrechen") }}</a>
+  </div>
+  {% if borrower %}
+  <form method="post" class="actions" style="margin-top: 14px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="modus" value="ausgabe">
+    <input type="hidden" name="benutzer" value="{{ borrower.username }}">
+    <input type="hidden" name="gegenstand" value="{{ preset.id }}">
+    <input type="hidden" name="asset_id" value="{{ preset.id }}">
+    <button class="btn primary lg" {{ "disabled" if preset.available == 0 or not borrower.can_borrow(preset) }}>{{ icon("check") }} {{ _("„{title}“ an {name} ausgeben", title=preset.name, name=borrower.name) }}</button>
+    {% if not borrower.can_borrow(preset) %}<span class="badge warn">{{ _("nicht für diese Person") }}</span>{% elif preset.available == 0 %}<span class="badge warn">{{ _("ausgegeben") }}</span>{% endif %}
+  </form>
+  {% else %}
+  <p class="muted" style="margin: 10px 0 0">{{ _("Jetzt unten die Person wählen – danach nur noch bestätigen.") }}</p>
+  {% endif %}
+</section>
+{% endif %}
 <div class="split">
   <div class="stack">
     <section class="card card-pad">
       <form method="get">
         <input type="hidden" name="modus" value="ausgabe">
+        {% if preset %}<input type="hidden" name="gegenstand" value="{{ preset.id }}">{% endif %}
         <label for="f-benutzer">{{ _("1. Person") }}</label>
         <div class="input-group">
           <input id="f-benutzer" type="text" name="benutzer" value="{{ borrower.username if borrower else user_q }}"
                  placeholder="{{ _("Benutzername oder Name") }}" {{ "autofocus" if not borrower }} autocomplete="off"
-                 data-suggest="{{ url_for('loans.people_suggest') }}" data-suggest-action="person">
+                 data-suggest="{{ url_for('loans.people_suggest', gegenstand=preset.id if preset else None) }}" data-suggest-action="person">
           <button class="btn">{{ icon("user") }} {{ _("Wählen") }}</button>
         </div>
         {% if ad_search %}<div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">{{ _("Findet auch Personen aus dem Active Directory, die sich noch nie angemeldet haben – aber nur, wer nach den AD-Regeln Zugang hat.") }}</div>{% endif %}
@@ -34,7 +59,7 @@
         <div class="list-row" style="padding: 8px 0">
           <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ u.initials }}</span>
           <div class="grow"><b>{{ u.name }}</b><small>{{ u.username }}{% if u.auth_source == 'ldap' %} · AD{% endif %}</small></div>
-          <a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', benutzer=u.username) }}">{{ _("Wählen") }}</a>
+          <a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', benutzer=u.username, gegenstand=preset.id if preset else None) }}">{{ _("Wählen") }}</a>
         </div>
         {% endfor %}{% endif %}
         {% if ad_people %}<div class="eyebrow" style="margin-top: 10px">{{ _("Aus dem Active Directory (noch nie angemeldet)") }}</div>
@@ -42,7 +67,7 @@
         <div class="list-row" style="padding: 8px 0">
           <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ icon("server") }}</span>
           <div class="grow"><b>{{ p.display_name }}</b><small>{{ p.username }}{% if p.email %} · {{ p.email }}{% endif %}</small></div>
-          <form method="post" action="{{ url_for('loans.desk_ad_account') }}">
+          <form method="post" action="{{ url_for('loans.desk_ad_account', gegenstand=preset.id if preset else None) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="username" value="{{ p.username }}">
             <button class="btn sm primary">{{ _("Konto übernehmen") }}</button>
@@ -57,7 +82,7 @@
         <span class="avatar">{{ borrower.initials }}</span>
         <div><b>{{ borrower.name }}</b> <small>({{ borrower.username }})</small><br>
           <small>{{ _("Gruppen: {groups}", groups=borrower_groups|join(", ") or _("keine")) }} · {{ _n("{n} Gegenstand ausgegeben", "{n} Gegenstände ausgegeben", borrower_loans|length) }}</small></div>
-        <a class="btn sm ghost" style="margin-left:auto" href="{{ url_for('loans.desk', modus='ausgabe') }}">{{ _("Wechseln") }}</a>
+        <a class="btn sm ghost" style="margin-left:auto" href="{{ url_for('loans.desk', modus='ausgabe', gegenstand=preset.id if preset else None) }}">{{ _("Wechseln") }}</a>
       </div>
       {% endif %}
     </section>

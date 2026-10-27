@@ -421,14 +421,17 @@ class ProfileMailTests(Base):
         u.email = "leser@schule.de"
         db.session.commit()
         self.c.post("/login", data={"username": "leser", "password": PW})
-        self.c.post("/profil", data={"action": "notify", "email": "x@fremd.org"})
+        self.c.post("/profil", data={"action": "data", "display_name": "Leser", "email": "x@fremd.org"})
         self.assertEqual(self.user("leser").email, "leser@schule.de")
-        self.c.post("/profil", data={"action": "notify", "email": "neu@eltern.schule.de"})
+        self.c.post("/profil", data={"action": "data", "display_name": "Leser", "email": ""})   # Pflicht bei Registrierten
+        self.assertEqual(self.user("leser").email, "leser@schule.de")
+        self.c.post("/profil", data={"action": "data", "display_name": "Lea Leser", "email": "neu@eltern.schule.de"})
         self.assertEqual(self.user("leser").email, "neu@eltern.schule.de")
+        self.assertEqual(self.user("leser").display_name, "Lea Leser")
         # nicht selbst registriert: keine Einschränkung
         c = self.app.test_client()
         c.post("/login", data={"username": "kasse", "password": PW})
-        c.post("/profil", data={"action": "notify", "email": "k@fremd.org"})
+        c.post("/profil", data={"action": "data", "display_name": "Kasse", "email": "k@fremd.org"})
         self.assertEqual(self.user("kasse").email, "k@fremd.org")
 
 

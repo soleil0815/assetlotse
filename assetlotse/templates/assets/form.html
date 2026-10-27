@@ -17,19 +17,29 @@
         <div class="form-grid">
           <div class="field span-4"><label for="f-name">{{ _("Bezeichnung *") }}</label>
             <input id="f-name" type="text" name="name" value="{{ asset.name or '' }}" required maxlength="300" {{ "autofocus" if is_new }}
-                   placeholder="{{ _("z. B. Laptop Dell Latitude 5440, USB-Stick 64 GB") }}"></div>
+                   placeholder="{{ _("z. B. Laptop Dell Latitude 5440, USB-Stick 64 GB") }}" list="namelist" data-known-fill="name">
+            <datalist id="namelist">{% for n in known.names|sort %}<option value="{{ n }}">{% endfor %}</datalist></div>
           <div class="field span-2"><label for="f-category">{{ _("Kategorie") }}</label>
             <input id="f-category" type="text" name="category" value="{{ asset.category or '' }}" maxlength="200" list="categorylist"
                    placeholder="{{ _("z. B. Laptop") }}">
             <datalist id="categorylist">{% for c in categories %}<option value="{{ c }}">{% endfor %}</datalist></div>
-          <div class="field span-3"><label for="f-manufacturer">{{ _("Hersteller") }}</label><input id="f-manufacturer" type="text" name="manufacturer" value="{{ asset.manufacturer or '' }}" maxlength="200"></div>
-          <div class="field span-3"><label for="f-model">{{ _("Modell") }}</label><input id="f-model" type="text" name="model" value="{{ asset.model or '' }}" maxlength="200"></div>
+          <div class="field span-3"><label for="f-manufacturer">{{ _("Hersteller") }}</label><input id="f-manufacturer" type="text" name="manufacturer" value="{{ asset.manufacturer or '' }}" maxlength="200" list="makerlist">
+            <datalist id="makerlist">{% for m in known.manufacturers %}<option value="{{ m }}">{% endfor %}</datalist></div>
+          <div class="field span-3"><label for="f-model">{{ _("Modell") }}</label><input id="f-model" type="text" name="model" value="{{ asset.model or '' }}" maxlength="200" list="modellist" data-known-fill="model">
+            <datalist id="modellist">{% for m in known.models|sort %}<option value="{{ m }}">{% endfor %}</datalist></div>
+          <script type="application/json" id="asset-known">{{ {"names": known.names, "models": known.models}|tojson }}</script>
           <div class="field span-3"><label for="f-inventory-no">{{ _("Inventarnummer") }}</label><input id="f-inventory-no" class="code-input" type="text" name="inventory_no" value="{{ asset.inventory_no or '' }}" maxlength="100"
                    placeholder="{{ _("z. B. IT-0042") }}" autocomplete="off" data-number-check="{{ url_for('assets.check_number') }}" data-field="inventory_no" data-except="{{ asset.id or '' }}">
-            <div class="number-hint" data-number-hint aria-live="polite"></div></div>
+            <div class="number-hint" data-number-hint aria-live="polite"></div>
+            {% if offers.inventory_no %}<label class="check take-over"><input type="checkbox" name="take_inventory_no" value="{{ offers.inventory_no.id }}">
+              {{ _("Bei „{name}“ entfernen und hier eintragen", name=offers.inventory_no.name) }}</label>
+              <a class="hint" href="{{ url_for('assets.detail', asset_id=offers.inventory_no.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=offers.inventory_no.name) }}</a>{% endif %}</div>
           <div class="field span-3"><label for="f-serial-number">{{ _("Seriennummer") }}</label><input id="f-serial-number" class="code-input" type="text" name="serial_number" value="{{ asset.serial_number or '' }}" maxlength="200"
                    autocomplete="off" data-number-check="{{ url_for('assets.check_number') }}" data-field="serial_number" data-except="{{ asset.id or '' }}">
-            <div class="number-hint" data-number-hint aria-live="polite"></div></div>
+            <div class="number-hint" data-number-hint aria-live="polite"></div>
+            {% if offers.serial_number %}<label class="check take-over"><input type="checkbox" name="take_serial_number" value="{{ offers.serial_number.id }}">
+              {{ _("Bei „{name}“ entfernen und hier eintragen", name=offers.serial_number.name) }}</label>
+              <a class="hint" href="{{ url_for('assets.detail', asset_id=offers.serial_number.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=offers.serial_number.name) }}</a>{% endif %}</div>
           <div class="field span-6"><label for="f-description">{{ _("Beschreibung / Zubehör") }}</label><textarea id="f-description" name="description" placeholder="{{ _("z. B. mit Netzteil und Tasche; Zustand; Garantie bis …") }}">{{ asset.description or '' }}</textarea></div>
         </div>
         <div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">
@@ -89,6 +99,8 @@
           <div>
             <div class="field"><label for="f-image-upload">{{ _("Bild hochladen") }}</label><input id="f-image-upload" type="file" name="image_upload" accept="image/*"></div>
             {% if not is_new and asset.image %}<label class="check"><input type="checkbox" name="remove_image" value="1"> {{ _("Foto entfernen") }}</label>{% endif %}
+            {% if is_new and template_id and asset.image %}<input type="hidden" name="image_from" value="{{ template_id }}">
+            <label class="check"><input type="checkbox" name="remove_image" value="1"> {{ _("Foto der Vorlage nicht übernehmen") }}</label>{% endif %}
           </div>
         </div>
       </section>

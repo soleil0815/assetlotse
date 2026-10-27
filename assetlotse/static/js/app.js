@@ -376,6 +376,30 @@
     });
   }
 
+  /* ------------------------------------------------------------ Erfassen: aus dem Bestand ergänzen
+     Bezeichnung oder Modell aus der Liste gewählt (oder genau so getippt) → leere Felder wie Hersteller,
+     Modell und Kategorie mit dem ausfüllen, was im Bestand meist dazugehört. Ausgefüllte Felder bleiben. */
+  const knownEl = $("#asset-known");
+  if (knownEl) {
+    let known = {};
+    try { known = JSON.parse(knownEl.textContent || "{}"); } catch (e) { known = {}; }
+    const fill = (name, value) => {
+      const field = knownEl.form ? knownEl.form.elements[name] : document.querySelector(`[name="${name}"]`);
+      if (field && value && !field.value.trim()) {
+        field.value = value;
+        field.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    };
+    $$("[data-known-fill]").forEach((input) => {
+      const table = input.dataset.knownFill === "name" ? known.names : known.models;
+      const apply = () => {
+        const hit = table && Object.prototype.hasOwnProperty.call(table, input.value.trim()) ? table[input.value.trim()] : null;
+        if (hit) Object.entries(hit).forEach(([k, v]) => fill(k, v));
+      };
+      input.addEventListener("change", apply);
+    });
+  }
+
   /* ------------------------------------------------------------ Vorschläge beim Tippen
      <input data-suggest="URL" data-suggest-for="suche|theke" data-suggest-action="open|issue"
             [data-suggest-user="benutzername"] [data-suggest-more="URL mit ?q= am Ende"]>

@@ -351,9 +351,13 @@ class SendTests(MailBase):
 
     def test_profile_opt_out(self):
         self.login("lena")
-        self.c.post("/profil", data={"action": "notify", "email": "neu@schule.de"})
+        old = self.lena.email
+        self.c.post("/profil", data={"action": "notify"})                 # nur das Häkchen, Adresse bleibt
         db.session.refresh(self.lena)
         self.assertFalse(self.lena.email_notifications)
+        self.assertEqual(self.lena.email, old)
+        self.c.post("/profil", data={"action": "data", "display_name": "Lena", "email": "neu@schule.de"})
+        db.session.refresh(self.lena)
         self.assertEqual(self.lena.email, "neu@schule.de")
 
 

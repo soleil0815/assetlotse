@@ -409,6 +409,7 @@ def _save_group(group: Group):
     group.name = name
     group.description = form_str("description", 500)
     group.ldap_dn = form_str("ldap_dn", 500)
+    group.no_lending = bool(request.form.get("no_lending"))
     from ..branding import clean_hex
     group.color = clean_hex(form_str("color", 16)) or "#0b7285"
     ids = _ids(request.form.getlist("members"))

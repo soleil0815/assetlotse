@@ -295,15 +295,16 @@ class OpenEndedLoanTests(Base):
 
 
 class FormTests(Base):
-    def test_template_copies_details_but_not_numbers_photo_or_secret(self):
+    def test_template_copies_details_and_photo_but_not_numbers_or_secret(self):
         a = self.laptop(manufacturer="Dell", model="Latitude 5440", location="", description="mit Netzteil")
         a.image_file = "abc.jpg"
         db.session.commit()
         self.login("vera")
         html = self.c.get(f"/gegenstaende/neu?vorlage={a.id}").get_data(as_text=True)
-        for text in ('value="Laptop Dell"', 'value="Latitude 5440"', "mit Netzteil", 'value="Laptop"'):
+        for text in ('value="Laptop Dell"', 'value="Latitude 5440"', "mit Netzteil", 'value="Laptop"', "abc.jpg",
+                     f'name="image_from" value="{a.id}"'):
             self.assertIn(text, html)
-        for text in ('value="IT-0042"', 'value="SN-1"', KEY, "abc.jpg"):
+        for text in ('value="IT-0042"', 'value="SN-1"', KEY):
             self.assertNotIn(text, html)
 
     def test_template_of_foreign_group_is_ignored(self):

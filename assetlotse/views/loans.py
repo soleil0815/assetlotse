@@ -13,7 +13,7 @@ from sqlalchemy.orm import contains_eager
 
 from ..i18n import _, format_day
 from ..models import (ROLE_READER, Asset, Loan, User, count_active_loans, db, default_due_date, number_key, get_bool, get_int, get_setting,
-                      catalog_hidden, manageable_assets_query)
+                      catalog_hidden, lendable_clause, manageable_assets_query)
 from ..mailer import notify_loan, notify_return, send_manual_reminder
 from . import get_by_id, manager_required, parse_id, safe_next
 
@@ -45,6 +45,9 @@ def lend_asset(asset: Asset, borrower: User, due=DEFAULT_DUE, note: str = "") ->
     """Zentrale Ausgabelogik inkl. aller Prüfungen."""
     if not borrower.active:
         return False, _("{name} ist gesperrt.", name=borrower.name)
+    if not asset.lendable:
+        return False, _("„{title}“ gehört zur Gruppe „{group}“ – deren Gegenstände werden nicht verliehen.",
+                        title=asset.name, group=asset.group.name)
     if not borrower.can_borrow(asset):
         grp = asset.group.name if asset.group else "–"
         return False, _("{name} gehört nicht zur Gruppe „{group}“ und darf diesen Gegenstand nicht bekommen.", name=borrower.name, group=grp)
@@ -314,15 +317,17 @@ def people_suggest():
                                    or_(User.display_name.ilike(like, escape="\\"), User.username.ilike(like, escape="\\"),
                                        User.email.ilike(like, escape="\\")))
                  .order_by(User.display_name, User.username).limit(8).all())
+        preset = parse_id(request.args.get("gegenstand"))
         for u in users:
             items.append({"name": u.name, "sub": u.username + (" · AD" if u.auth_source == "ldap" else ""),
-                          "url": url_for("loans.desk", modus="ausgabe", benutzer=u.username)})
+                          "url": url_for("loans.desk", modus="ausgabe", benutzer=u.username, gegenstand=preset)})
         if ad_search_available() and ad_cache.ready():
             for p in ad_cache.search(q, limit=max(0, 10 - len(items)) or 1):
                 items.append({"name": p.display_name or p.username,
                               "sub": " · ".join(x for x in (p.username, p.email) if x),
                               "badge": _("AD – noch kein Konto"),
-                              "post": {"url": url_for("loans.desk_ad_account"), "username": p.username}})
+                              "post": {"url": url_for("loans.desk_ad_account", gegenstand=preset),
+                                       "username": p.username}})
     resp = jsonify({"items": items[:10]})
     resp.headers["Cache-Control"] = "no-store"
     return resp
@@ -338,7 +343,8 @@ def desk_ad_account():
     from ..ldap_auth import Directory, LDAPAmbiguous, LDAPError
     from .main import sync_ldap_user
     username = (request.form.get("username") or "").strip()[:200]
-    back = url_for("loans.desk", modus="ausgabe")
+    preset = parse_id(request.values.get("gegenstand"))       # aus dem Bestand: Gegenstand steht schon fest
+    back = url_for("loans.desk", modus="ausgabe", gegenstand=preset)
     if not username or not ad_search_available():
         abort(400)
     try:
@@ -383,7 +389,7 @@ def desk_ad_account():
                 user.active, user.deactivated_by_sync = True, False
     except IntegrityError:
         db.session.rollback()
-        return redirect(url_for("loans.desk", modus="ausgabe", benutzer=info.username))
+        return redirect(url_for("loans.desk", modus="ausgabe", benutzer=info.username, gegenstand=preset))
     # Die Rolle aus dem AD gilt erst ab der ersten eigenen Anmeldung (dort wird sie ohnehin neu bestimmt).
     # Bis dahin ist ein an der Theke übernommenes Konto nur Mitarbeiter – so bekommt es z. B. keine
     # Verwalter-/Admin-Mails mit Personendaten, solange die Person AssetLotse nie benutzt hat.
@@ -395,7 +401,7 @@ def desk_ad_account():
         user = User.query.filter(func.lower(User.username) == info.username.lower()).first()
         if user is None:
             abort(409)
-        return redirect(url_for("loans.desk", modus="ausgabe", benutzer=user.username))
+        return redirect(url_for("loans.desk", modus="ausgabe", benutzer=user.username, gegenstand=preset))
     from .. import ad_cache
     ad_cache.forget(user.username)         # hat jetzt ein Konto – gehört nicht mehr in den Zwischenspeicher
     db.session.commit()
@@ -403,7 +409,7 @@ def desk_ad_account():
              current_user.username, user.role)
     if existing is None:
         flash(_("{name} aus dem Active Directory übernommen.", name=user.name), "success")
-    return redirect(url_for("loans.desk", modus="ausgabe", benutzer=user.username))
+    return redirect(url_for("loans.desk", modus="ausgabe", benutzer=user.username, gegenstand=preset))
 
 
 STOCK_LIMIT = 30
@@ -426,7 +432,7 @@ def _stock_search(stock: dict, borrower: User | None = None):
     from .assets import _apply_filters
     f = {"q": stock["suche"], "gruppe": "", "kategorie": stock["kategorie"], "standort": "",
          "status": "verfuegbar" if stock["frei"] == "1" else ""}
-    query = _apply_filters(manageable_assets_query(current_user), f)
+    query = _apply_filters(manageable_assets_query(current_user).filter(lendable_clause()), f)
     if borrower is not None and not borrower.is_global_manager:
         query = query.filter(Asset.group_id.is_(None) | Asset.group_id.in_(list(borrower.group_ids) or [-1]))
     return (query
@@ -445,6 +451,8 @@ def desk():
     borrower, people, ad_people, ad_error = None, [], [], ""
     if user_q:
         borrower, people, ad_people, ad_error = _find_people(user_q)
+    # Aus dem Bestand kommend: Gegenstand steht schon fest, es fehlt nur noch die Person
+    preset = _preset_asset() if mode == "ausgabe" else None
 
     assets, loans = [], []
     if request.method == "POST":
@@ -461,6 +469,11 @@ def desk():
                 abort(403)
             ok, msg = lend_asset(asset, borrower)
             flash(msg, "success" if ok else "error")
+            if preset is not None and preset.id == asset.id:
+                # aus dem Bestand gekommen: zurück zum Gegenstand (bei Fehler zur Personenwahl)
+                if ok:
+                    return redirect(url_for("assets.detail", asset_id=asset.id))
+                return redirect(url_for("loans.desk", modus="ausgabe", gegenstand=asset.id))
             # Bestandssuche bleibt erhalten – so kann man gleich das nächste Teil auswählen
             return redirect(url_for("loans.desk", modus="ausgabe", benutzer=borrower.username,
                                     **{k: v for k, v in _stock_args().items() if v}))
@@ -498,4 +511,18 @@ def desk():
                            user_q=user_q, stock=stock, stock_results=stock_results,
                            categories=category_names(manageable_assets_query(current_user)) if mode == "ausgabe" else [],
                            focus_search=request.args.get("fokus") == "suche",
-                           auto=session.get("desk_auto", "1"))
+                           auto=session.get("desk_auto", "1"), preset=preset)
+
+
+def _preset_asset() -> Asset | None:
+    """Gegenstand, der aus dem Bestand heraus ausgegeben werden soll (?gegenstand=<id>) – nur, wenn dieser
+    Verwalter ihn ausgeben darf; sonst wird der Parameter still übergangen."""
+    ident = parse_id(request.values.get("gegenstand"))
+    asset = get_by_id(Asset, ident) if ident else None
+    if asset is None or not current_user.can_manage(asset):
+        return None
+    if not asset.lendable:
+        flash(_("„{title}“ gehört zur Gruppe „{group}“ – deren Gegenstände werden nicht verliehen.",
+                title=asset.name, group=asset.group.name), "error")
+        return None
+    return asset

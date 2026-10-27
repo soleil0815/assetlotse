@@ -328,21 +328,29 @@ def dashboard():
 def profile():
     if request.method == "POST" and request.form.get("action") == "notify":
         current_user.email_notifications = bool(request.form.get("email_notifications"))
-        if current_user.auth_source == "local":
-            from ..mailer import valid_email
-            mail = form_str("email", 200)
-            if mail and not valid_email(mail):
-                flash(_("Bitte eine gültige E-Mail-Adresse eingeben."), "error")
-                return redirect(url_for("main.profile"))
-            if (current_user.self_registered and mail and mail.lower() != (current_user.email or "").lower()):
-                from .register import _allowed_domain
-                if not _allowed_domain(mail):
-                    # gleiche Regel wie bei der Registrierung
-                    flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
-                    return redirect(url_for("main.profile"))
-            current_user.email = mail
         db.session.commit()
         flash(_("Benachrichtigungen gespeichert."), "success")
+        return redirect(url_for("main.profile"))
+    if request.method == "POST" and request.form.get("action") == "data":
+        # Name und E-Mail ändern nur lokale (z. B. selbst registrierte) Konten – bei AD-Konten kommen sie aus dem AD
+        if current_user.auth_source != "local":
+            abort(400)
+        from ..mailer import valid_email
+        name = form_str("display_name", 200)
+        mail = form_str("email", 200)
+        if mail and not valid_email(mail):
+            flash(_("Bitte eine gültige E-Mail-Adresse eingeben."), "error")
+            return redirect(url_for("main.profile"))
+        if current_user.self_registered and mail.lower() != (current_user.email or "").lower():
+            from .register import _allowed_domain
+            if not mail or not _allowed_domain(mail):
+                # gleiche Regel wie bei der Registrierung (dort ist die Adresse Pflicht)
+                flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
+                return redirect(url_for("main.profile"))
+        current_user.display_name = name
+        current_user.email = mail
+        db.session.commit()
+        flash(_("Deine Angaben wurden gespeichert."), "success")
         return redirect(url_for("main.profile"))
     if request.method == "POST":
         if current_user.auth_source != "local":

@@ -69,6 +69,31 @@ def category_names(query=None) -> list[str]:
     return sorted({r[0] for r in rows}, key=str.lower)
 
 
+KNOWN_LIMIT = 1000
+
+
+def known_values(query) -> dict:
+    """Vorschläge beim Erfassen aus dem vorhandenen Bestand (nur, was dieser Verwalter verwalten darf):
+    Bezeichnungen, Hersteller, Modelle – und was zu einer Bezeichnung bzw. einem Modell meist dazugehört,
+    damit das Formular leere Felder gleich ausfüllen kann (z. B. Modell „Vostro 3400“ → Hersteller „Dell“)."""
+    from collections import Counter, defaultdict
+    rows = (query.with_entities(Asset.name, Asset.category, Asset.manufacturer, Asset.model)
+            .order_by(Asset.id.desc()).limit(KNOWN_LIMIT).all())
+    by_name, by_model = defaultdict(Counter), defaultdict(Counter)
+    for name, category, maker, model in rows:
+        if name:
+            by_name[name][(category or "", maker or "", model or "")] += 1
+        if model:
+            by_model[model][(category or "", maker or "")] += 1
+
+    def most(counter):
+        return counter.most_common(1)[0][0]
+    names = {n: dict(zip(("category", "manufacturer", "model"), most(c))) for n, c in by_name.items()}
+    models = {m: dict(zip(("category", "manufacturer"), most(c))) for m, c in by_model.items()}
+    makers = {r[2] for r in rows if r[2]}
+    return {"names": names, "models": models, "manufacturers": sorted(makers, key=str.lower)}
+
+
 # ---------------------------------------------------------------- Fotos
 
 def _clean_image(raw: bytes) -> bytes | None:
@@ -96,6 +121,14 @@ def _store_image_bytes(data: bytes) -> str:
         with open(path, "wb") as f:
             f.write(data)
     return name
+
+
+def _image_from_template(asset: Asset) -> None:
+    """„Ähnlichen anlegen“: das Foto der Vorlage übernehmen (Bilddateien sind nach Inhalt benannt und werden
+    nie gelöscht – mehrere Gegenstände dürfen dieselbe Datei verwenden)."""
+    template = get_by_id(Asset, parse_id(request.form.get("image_from")) or 0)
+    if template is not None and template.image_file and current_user.can_manage(template):
+        asset.image_file = template.image_file
 
 
 def _apply_image(asset: Asset):
@@ -347,6 +380,9 @@ def suggest():
     if not q:
         return _json({"items": []})
     borrower = None
+    if purpose == "theke":
+        from ..models import lendable_clause
+        base = base.filter(lendable_clause())       # Gruppen mit „Kein Verleih“ an der Theke gar nicht anbieten
     if purpose == "theke" and request.args.get("benutzer"):
         borrower = User.query.filter(func.lower(User.username) == request.args["benutzer"].strip().lower()).first()
         if borrower is not None and not borrower.is_global_manager:
@@ -536,50 +572,80 @@ def _number_label(field: str) -> str:
     return _("Inventarnummer") if field == "inventory_no" else _("Seriennummer")
 
 
-def _number_conflicts(asset: Asset, previous: dict | None = None) -> tuple[str | None, str | None]:
-    """Doppelte Inventar-/Seriennummern: (Fehler, Warnung).
-
-    Neu eingegebene Nummern, die es schon gibt, werden abgelehnt. Nur eine schon vorher doppelte Nummer, die beim
-    Bearbeiten unverändert bleibt (Altbestand), blockiert das Speichern nicht – dafür gibt es eine Warnung."""
+def _number_conflicts(asset: Asset, previous: dict | None = None) -> dict:
+    """Doppelte Inventar-/Seriennummern. Ergebnis:
+      error      – neu eingegebene Nummer gibt es schon (Speichern abgelehnt)
+      warning    – schon vorher doppelte Nummer, unverändert gelassen (Altbestand: nur Hinweis)
+      offers     – {Feld: anderer Gegenstand}: Nummer steht bei einem Gegenstand, den man selbst bearbeiten darf –
+                   das Formular bietet an, sie dort zu entfernen und hier einzutragen
+      takeovers  – [(Feld, anderer Gegenstand)]: genau das wurde angekreuzt (beim Speichern ausführen)"""
     with db.session.no_autoflush:   # die Eingaben noch nicht schreiben (eindeutiger Index)
         return _number_conflicts_inner(asset, previous or {})
 
 
-def _number_conflicts_inner(asset: Asset, previous: dict) -> tuple[str | None, str | None]:
+def _number_conflicts_inner(asset: Asset, previous: dict) -> dict:
     from ..models import number_key
-    errors, warnings = [], []
+    errors, warnings, offers, takeovers = [], [], {}, []
     for field in NUMBER_FIELDS:
         value = getattr(asset, field) or ""
         other = find_number(field, value, asset.id)
         if other is None:
             continue
-        where = (_("bei „{name}“", name=other.name) if current_user.can_manage(other)
-                 else _("bei einem Gegenstand einer anderen Gruppe"))
+        mine = current_user.can_manage(other)
+        if mine and request.form.get(f"take_{field}") == str(other.id):
+            takeovers.append((field, other))
+            continue
+        where = _("bei „{name}“", name=other.name) if mine else _("bei einem Gegenstand einer anderen Gruppe")
         if asset.id and number_key(previous.get(field)) == number_key(value):
             warnings.append(_("{label} „{value}“ ist doppelt vergeben (auch {where}) – bitte bei Gelegenheit "
                               "korrigieren.", label=_number_label(field), value=value, where=where))
         else:
             errors.append(_("{label} „{value}“ ist bereits vergeben ({where}). Jede Nummer darf es nur einmal "
                             "geben.", label=_number_label(field), value=value, where=where))
-    return (" ".join(errors) or None), (" ".join(warnings) or None)
+            if mine:
+                offers[field] = other
+                errors.append(_("Steht sie dort versehentlich, kannst du sie unten übernehmen."))
+    return {"error": " ".join(errors) or None, "warning": " ".join(warnings) or None,
+            "offers": offers, "takeovers": takeovers}
+
+
+def _take_over_numbers(takeovers) -> list[str]:
+    """Nummern bei den anderen Gegenständen entfernen – vor dem Speichern dieses Gegenstands, im selben
+    Schritt (sonst greift der eindeutige Index). Liefert die Hinweise für danach."""
+    from sqlalchemy import update
+    notes = []
+    for field, other in takeovers:
+        key = "inventory_key" if field == "inventory_no" else "serial_key"
+        value = getattr(other, field)
+        with db.session.no_autoflush:      # dieser Gegenstand wird erst danach geschrieben
+            db.session.execute(update(Asset).where(Asset.id == other.id).values({field: "", key: None})
+                               .execution_options(synchronize_session=False))
+        db.session.expire(other)
+        notes.append(_("{label} „{value}“ wurde bei „{name}“ entfernt – trag dort bitte die richtige ein.",
+                       label=_number_label(field), value=value, name=other.name))
+    return notes
 
 
 @bp.route("/gegenstaende/neu", methods=["GET", "POST"])
 @manager_required
 def create():
     asset = Asset(quantity=1)
+    offers = {}
     if request.method == "POST":
         error = _fill_asset(asset)
+        _image_from_template(asset)          # auch bei einem Fehler im Formular: Foto bleibt erhalten
         if error:
             flash(error, "error")
         elif not asset.name:
             flash(_("Eine Bezeichnung ist erforderlich."), "error")
-        elif (conflict := _number_conflicts(asset))[0]:
-            flash(conflict[0], "error")
+        elif (conflict := _number_conflicts(asset))["error"]:
+            flash(conflict["error"], "error")
+            offers = conflict["offers"]
         else:
             asset.created_by_id = current_user.id
             _apply_image(asset)
             actions = _apply_secret(asset, allowed=True)
+            notes = _take_over_numbers(conflict["takeovers"])
             db.session.add(asset)
             try:
                 db.session.flush()
@@ -591,14 +657,16 @@ def create():
                 flash(_("Die Inventar- oder Seriennummer wurde gerade anderweitig vergeben – bitte prüfen."), "error")
                 return _render_form(asset, is_new=True)
             flash(_("„{name}“ wurde angelegt.", name=asset.name), "success")
+            for note in notes:
+                flash(note, "warning")
             if request.form.get("next_action") == "another":
                 return redirect(url_for("assets.create", vorlage=asset.id))
             return redirect(url_for("assets.detail", asset_id=asset.id))
     else:
-        # Vorlage: Angaben eines vorhandenen Gegenstands übernehmen (ohne Nummern, Foto und Geheimnis)
+        # Vorlage: Angaben eines vorhandenen Gegenstands übernehmen – mit Foto, ohne Nummern und Geheimnis
         template = get_by_id(Asset, parse_id(request.args.get("vorlage")) or 0)
         if template is not None and current_user.can_manage(template):
-            for field in ("name", "category", "manufacturer", "model", "location", "description"):
+            for field in ("name", "category", "manufacturer", "model", "location", "description", "image_file"):
                 setattr(asset, field, getattr(template, field))
             asset.group_id = template.group_id
         gid = parse_id(request.args.get("gruppe"))
@@ -606,7 +674,7 @@ def create():
             asset.group_id = gid
         if request.args.get("kategorie"):
             asset.category = request.args.get("kategorie", "")[:200]
-    return _render_form(asset, is_new=True)
+    return _render_form(asset, is_new=True, offers=offers)
 
 
 @bp.route("/gegenstaende/<int:asset_id>/bearbeiten", methods=["GET", "POST"])
@@ -626,13 +694,15 @@ def edit(asset_id):
             flash(error, "error")
         elif not asset.name:
             flash(_("Eine Bezeichnung ist erforderlich."), "error")
-        elif (conflict := _number_conflicts(asset, previous))[0]:
-            flash(conflict[0], "error")
+        elif (conflict := _number_conflicts(asset, previous))["error"]:
+            flash(conflict["error"], "error")
+            return _render_form(asset, is_new=False, offers=conflict["offers"])
         else:
-            warning = conflict[1]
+            warning = conflict["warning"]
             _apply_image(asset)
             for action in _apply_secret(asset, allowed=may_secret):
                 SecretAccess.record(asset, current_user, action)
+            notes = _take_over_numbers(conflict["takeovers"])
             try:
                 db.session.commit()
             except IntegrityError:
@@ -641,20 +711,25 @@ def edit(asset_id):
                 _fill_asset(asset)          # Eingaben wieder ins Formular (ohne zu speichern)
                 return _render_form(asset, is_new=False)
             flash(_("Änderungen gespeichert."), "success")
+            for note in notes:
+                flash(note, "warning")
             if warning:
                 flash(warning, "warning")
             return redirect(url_for("assets.detail", asset_id=asset.id))
     return _render_form(asset, is_new=False)
 
 
-def _render_form(asset: Asset, is_new: bool):
+def _render_form(asset: Asset, is_new: bool, offers: dict | None = None):
     """Formular anzeigen. Ohne Autoflush: Nach einem Fehler (z. B. doppelte Nummer) soll der nicht gespeicherte
     Stand nicht nebenbei in die Datenbank geschrieben werden."""
     from .locations import names as location_names
     with db.session.no_autoflush:
+        mine = manageable_assets_query(current_user)
         html = render_template("assets/form.html", asset=asset, groups=current_user.manageable_groups(),
                                is_new=is_new, location_names=location_names(),
-                               categories=category_names(manageable_assets_query(current_user)))
+                               categories=category_names(mine), offers=offers or {},
+                               known=known_values(mine),
+                               template_id=parse_id(request.values.get("vorlage") or request.form.get("image_from")))
     if db.session.dirty or db.session.new:
         db.session.rollback()   # verworfene Eingaben nicht später mit anderen Änderungen speichern
     return html

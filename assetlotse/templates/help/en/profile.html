@@ -1,9 +1,10 @@
 <p><span class="ui">My profile</span> (or your initials at the top right) shows your <b>loan history</b> and account details: username, role, sign-in type, email address and groups. Groups are assigned by the administrators{% if f.is_ldap %} or come from your institution's directory{% endif %}.</p>
 {% if f.retention_months %}<p>Completed loans are deleted automatically {{ f.retention_months }} {{ "month" if f.retention_months == 1 else "months" }} after the item was returned.</p>{% endif %}
+<p><b>My details:</b> {% if f.is_ldap %}your name and email address come from your institution's directory (Active Directory) and are taken over at every sign-in – they are changed there.{% else %}under <span class="ui">My details</span> you change your name and email address yourself, then click <span class="ui">Save</span>.{% endif %}</p>
 <p><b>Language:</b> <span class="ui">DE</span> / <span class="ui">EN</span> switches the language. It applies to the interface and to emails sent to you.</p>
 {% if f.mail_on %}
 <p><b>Email notifications:</b> the <span class="ui">Receive confirmations, reminders and overdue notices by email</span> checkbox turns emails on or off; then click <span class="ui">Save</span>.
-{% if f.is_ldap %}Your email address comes from your institution's directory and cannot be changed here.{% else %}Enter your email address in the same section.{% endif %}</p>
+{% if f.is_ldap %}Your email address comes from your institution's directory and cannot be changed here.{% else %}You enter your email address under <span class="ui">My details</span>.{% endif %}</p>
 {% else %}
 <p><b>Emails:</b> this installation does not send emails at the moment, so there are no email settings in your profile.</p>
 {% endif %}
