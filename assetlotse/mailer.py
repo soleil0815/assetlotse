@@ -206,6 +206,9 @@ def render_mail(template: str, **ctx) -> tuple[str, str, str]:
     if not lang:   # ohne Empfänger (z. B. Testmail): Sprache der laufenden Anfrage
         from .i18n import get_locale
         lang = get_locale()
+    # Nur diese Mails lassen sich im Profil abschalten („E-Mail-Benachrichtigungen“) – nur dort steht der Hinweis darauf
+    ctx.setdefault("notification", template in ("loan", "return", "reminder", "digest",
+                                                        "registration_admin", "approved"))
     with force_locale(lang):   # in der Sprache des Empfängers
         c = _ctx(**ctx)
         raw = render_template(f"mail/{template}.txt", **c).strip("\n")
@@ -402,8 +405,13 @@ def _send_digests(cfg, smtp, today) -> int:
         if MailLog.query.filter(MailLog.kind == "digest", MailLog.user_id == m.id, MailLog.status == "sent",
                                 MailLog.created_at >= day_start).first():
             continue   # heute schon verschickt (z. B. „Jetzt versenden“ oder send-reminders zusätzlich)
-        subject, text, html = render_mail("digest", user=m, loans=mine)
-        ok, _err = send_mail(m.email, subject, text, html, kind="digest", cfg=cfg, smtp=smtp, user_id=m.id)
+        try:      # ein Fehler bei einer Person (z. B. Datenbank kurz gesperrt) hält die anderen nicht auf
+            subject, text, html = render_mail("digest", user=m, loans=mine)
+            ok, _err = send_mail(m.email, subject, text, html, kind="digest", cfg=cfg, smtp=smtp, user_id=m.id)
+        except Exception:  # noqa: BLE001
+            db.session.rollback()
+            log.exception("Übersicht an %s nicht verschickt", m.username)
+            continue
         sent += 1 if ok else 0
     return sent
 

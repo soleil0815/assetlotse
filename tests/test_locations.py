@@ -48,7 +48,7 @@ class LocationTests(unittest.TestCase):
     def test_without_list_free_text_as_before(self):
         self.login("bib")
         html = self.c.get("/gegenstaende/neu").get_data(as_text=True)
-        self.assertIn('<input type="text" name="location"', html)
+        self.assertIn('<input id="f-location" type="text" name="location"', html)
         self.c.post("/gegenstaende/neu", data={"name": "Faust", "location": "irgendwo"})
         self.assertEqual(Asset.query.one().location, "irgendwo")
 

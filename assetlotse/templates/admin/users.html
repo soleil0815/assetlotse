@@ -8,7 +8,7 @@
   <div class="actions"><a class="btn primary" href="{{ url_for('admin.user_new') }}">{{ icon("plus") }} {{ _("Lokaler Benutzer") }}</a></div>
 </div>
 <form class="toolbar" method="get">
-  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _('Name, Benutzername, E-Mail …') }}">
+  <input class="grow" type="search" name="q" value="{{ q }}" aria-label="{{ _("Benutzer durchsuchen") }}" placeholder="{{ _('Name, Benutzername, E-Mail …') }}">
   <select name="status" data-autosubmit aria-label="{{ _("Status") }}">
     <option value="">{{ _("Alle Konten") }}</option>
     <option value="neu" {{ 'selected' if status == 'neu' }}>{{ _("Warten auf Freigabe") }}</option>

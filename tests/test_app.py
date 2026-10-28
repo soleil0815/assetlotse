@@ -91,6 +91,8 @@ class PermissionTests(BaseCase):
         self.admin = self.make_user("admin", "admin")
         self.lib7 = self.make_user("lehrer7", "manager", groups=[self.g7])
         self.libglobal = self.make_user("verwalter", "manager")
+        self.libglobal.manages_all = True          # ausdrücklich: verwaltet den gesamten Bestand
+        db.session.commit()
         self.r7 = self.make_user("schueler7", groups=[self.g7])
         self.r8 = self.make_user("schueler8", groups=[self.g8])
         self.b7 = Asset(name="Laptop 7a", group_id=self.g7.id, quantity=1, inventory_no="IT-0007",

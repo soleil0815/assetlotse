@@ -149,19 +149,28 @@ def _change_serializer():
     return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt="email-change")
 
 
-def send_email_change(user: User, new_email: str) -> bool:
-    """Neue Adresse eines selbst registrierten Kontos erst nach Bestätigung übernehmen (wie bei der Registrierung)."""
+EMAIL_CHANGES_PER_HOUR = 3
+
+
+def send_email_change(user: User, new_email: str) -> str:
+    """Neue Adresse eines selbst registrierten Kontos erst nach Bestätigung übernehmen (wie bei der Registrierung).
+    Merkt sie als „wartet auf Bestätigung“ vor. Ergebnis: "sent", "limit", "no_base" oder "failed"."""
+    key = f"emailchange|{user.id}"
+    if _rate_limited(key, EMAIL_CHANGES_PER_HOUR):
+        return "limit"
     base = _base_url()
-    if not base:
-        return False
-    token = _change_serializer().dumps({"uid": user.id, "old": user.email or "", "email": new_email})
-    link = f"{base}{url_for('register.confirm_email_change', token=token)}"
     from ..mailer import mail_active, render_mail, send_mail
-    if not mail_active():
-        return False
+    if not base or not mail_active():
+        return "no_base"
+    _count(key)
+    user.pending_email = new_email
+    db.session.commit()
+    # Das Token gilt nur für genau diese vorgemerkte Adresse: Eine spätere Änderung macht ältere Links ungültig.
+    token = _change_serializer().dumps({"uid": user.id, "email": new_email})
+    link = f"{base}{url_for('register.confirm_email_change', token=token)}"
     subject, text, html = render_mail("email_change", user=user, link=link)
     ok, _detail = send_mail(new_email, subject, text, html, kind="account", user_id=user.id)
-    return ok
+    return "sent" if ok else "failed"
 
 
 def email_taken(email: str, user: User) -> bool:
@@ -321,10 +330,17 @@ def confirm_email_change(token):
         abort(404)
     user = db.session.get(User, data.get("uid"))
     new = (data.get("email") or "").strip()
-    # nur gültig, solange sich die Adresse seitdem nicht geändert hat und die neue noch frei ist
-    if user is None or (user.email or "").lower() != (data.get("old") or "").lower() or not new:
+    # nur die zuletzt vorgemerkte Adresse, nur für weiterhin lokale, selbst registrierte Konten
+    if (user is None or not new or (user.pending_email or "").lower() != new.lower()
+            or user.auth_source != "local" or not user.self_registered):
         abort(404)
+    user.pending_email = ""
+    if not _allowed_domain(new):
+        db.session.commit()
+        flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
+        return redirect(url_for("main.profile"))
     if email_taken(new, user):
+        db.session.commit()
         flash(_("Diese E-Mail-Adresse wird inzwischen von einem anderen Konto verwendet."), "error")
         return redirect(url_for("main.profile"))
     user.email = new

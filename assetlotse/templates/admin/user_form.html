@@ -43,7 +43,9 @@
 
     <section class="card card-pad">
       <h3 style="margin-bottom: 6px">{{ _("Gruppen") }}</h3>
-      <p class="muted" style="font-size: 13.5px">{{ _("Bestimmt, welche Gegenstände jemand bekommen (Mitarbeiter) bzw. verwalten (Verwalter) darf. Verwalter ohne Gruppe verwalten den gesamten Bestand.") }}</p>
+      <p class="muted" style="font-size: 13.5px">{{ _("Bestimmt, welche Gegenstände jemand bekommen (Mitarbeiter) bzw. verwalten (Verwalter) darf. Allgemeine Gegenstände (ohne Gruppe) verwaltet jeder Verwalter.") }}</p>
+      <label class="check" style="margin-bottom: 12px"><input type="checkbox" name="manages_all" value="1" {{ "checked" if user.manages_all }}>
+        <span>{{ _("Verwaltet den gesamten Bestand (alle Gruppen)") }}<small class="muted">{{ _("Nur für die Rolle Verwalter. Ohne diesen Haken verwaltet ein Verwalter nur seine Gruppen – auch wenn ihm (z. B. über das Active Directory) alle Gruppen genommen werden.") }}</small></span></label>
       <div class="chips">
         {% for g in groups %}
         <label class="chip"><input type="checkbox" name="groups" value="{{ g.id }}" {{ "checked" if g in user.groups }}>

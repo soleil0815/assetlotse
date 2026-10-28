@@ -54,6 +54,10 @@ def lend_asset(asset: Asset, borrower: User, due=DEFAULT_DUE, note: str = "") ->
     limit = get_int("max_loans", 0)
     try:
         lock_asset(asset.id)
+        if limit and db.session.get_bind().dialect.name != "sqlite":
+            # Höchstzahl pro Person: auch die Person sperren, sonst zählen zwei gleichzeitige Ausgaben anderer
+            # Gegenstände beide zu wenig (SQLite schreibt ohnehin nur nacheinander)
+            db.session.query(User.id).filter(User.id == borrower.id).with_for_update().first()
         # Ab hier frisch aus der Datenbank zählen – parallele Anfragen warten bis zum Commit.
         quantity = db.session.query(Asset.quantity).filter(Asset.id == asset.id).scalar() or 0
         active = dict(db.session.query(Loan.user_id, func.count(Loan.id))
@@ -150,6 +154,11 @@ def extend(loan_id):
     own = loan.user_id == current_user.id and get_bool("self_extend")
     if not (manager or own):
         abort(404 if catalog_hidden(current_user) and loan.user_id != current_user.id else 403)
+    if not manager and not loan.asset.lendable:
+        # Gruppe mit „Kein Verleih“: zurückgeben ja, selbst verlängern nein (Verwalter entscheiden selbst)
+        flash(_("Gegenstände der Gruppe „{group}“ werden nicht verliehen – bitte zurückgeben oder an die Verwaltung "
+                "wenden.", group=loan.asset.group.name), "error")
+        return _back(url_for("loans.index"))
     max_ext, days = get_int("max_extensions", 2), get_int("extension_days", 14)
     for _attempt in range(3):
         if loan.returned_at:
@@ -358,6 +367,11 @@ def desk_ad_account():
         flash(_("Active Directory: {error}", error=str(exc)) if current_user.is_admin
               else _("Das Active Directory ist gerade nicht erreichbar."), "error")
         return redirect(back)
+    except Exception as exc:  # noqa: BLE001 – z. B. Netzwerkfehler von ldap3: Hinweis statt Fehlerseite
+        log.exception("AD-Kontoübernahme %s fehlgeschlagen", username)
+        flash(_("Active Directory: {error}", error=str(exc)) if current_user.is_admin
+              else _("Das Active Directory ist gerade nicht erreichbar."), "error")
+        return redirect(back)
     if info is None or info.role is None:
         from .. import ad_cache
         ad_cache.forget(username)          # nicht bis zum nächsten Abgleich weiter anzeigen
@@ -473,7 +487,8 @@ def desk():
                 # aus dem Bestand gekommen: zurück zum Gegenstand (bei Fehler zur Personenwahl)
                 if ok:
                     return redirect(url_for("assets.detail", asset_id=asset.id))
-                return redirect(url_for("loans.desk", modus="ausgabe", gegenstand=asset.id))
+                return redirect(url_for("loans.desk", modus="ausgabe", gegenstand=asset.id,
+                                        benutzer=borrower.username))
             # Bestandssuche bleibt erhalten – so kann man gleich das nächste Teil auswählen
             return redirect(url_for("loans.desk", modus="ausgabe", benutzer=borrower.username,
                                     **{k: v for k, v in _stock_args().items() if v}))

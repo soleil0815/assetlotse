@@ -17,7 +17,7 @@
 </div>
 
 <form class="toolbar" method="get">
-  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _("Suchen …") }}">
+  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _("Suchen …") }}" aria-label="{{ _("Bestand durchsuchen") }}">
   {% if categories %}
   <select name="kategorie" data-autosubmit aria-label="{{ _("Kategorie") }}">
     <option value="">{{ _("Alle Kategorien") }}</option>

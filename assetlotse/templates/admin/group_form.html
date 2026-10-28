@@ -13,7 +13,7 @@
         <div class="field span-1"><label for="f-color">{{ _("Farbe") }}</label><input id="f-color" class="swatch-input" type="color" name="color" value="{{ group.color or '#1f6a86' }}"></div>
         <div class="field span-6"><label for="f-description">{{ _("Beschreibung") }}</label><input id="f-description" type="text" name="description" value="{{ group.description or '' }}"></div>
         <div class="field span-6"><label for="f-ldap-dn">{{ _("AD-Gruppe (optional)") }}</label>
-          <input id="f-ldap-dn" class="mono" type="text" name="ldap_dn" value="{{ group.ldap_dn or '' }}" placeholder="{{ _('Klasse7a  oder  CN=Klasse7a,OU=Gruppen,DC=schule,DC=local') }}">
+          <input id="f-ldap-dn" class="mono" type="text" name="ldap_dn" value="{{ group.ldap_dn or '' }}" placeholder="{{ _('Abt-IT  oder  CN=Abt-IT,OU=Gruppen,DC=institut,DC=local') }}">
           <div class="hint">{{ _("Name oder DN einer AD-Gruppe. Ihre Mitglieder werden bei der Anmeldung automatisch dieser Gruppe zugeordnet (und bei Austritt wieder entfernt).") }}</div></div>
         <div class="field span-6">
           <label class="check"><input type="checkbox" name="no_lending" value="1" {{ "checked" if group.no_lending }}> <b>{{ _("Kein Verleih") }}</b></label>
@@ -22,7 +22,7 @@
     </section>
     <section class="card card-pad">
       <h3 style="margin-bottom: 12px">{{ _("Mitglieder") }}</h3>
-      <input type="search" placeholder="{{ _('Filtern …') }}" data-filter-list="#members" style="margin-bottom: 12px">
+      <input type="search" aria-label="{{ _('Mitglieder filtern') }}" placeholder="{{ _('Filtern …') }}" data-filter-list="#members" style="margin-bottom: 12px">
       <div id="members" style="max-height: 420px; overflow-y: auto">
         {% for u in users %}
         <label class="check" data-filter-item><input type="checkbox" name="members" value="{{ u.id }}" {{ "checked" if u in group.users }}>

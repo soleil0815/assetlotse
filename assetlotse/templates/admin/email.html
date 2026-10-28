@@ -52,7 +52,7 @@
         <h2 style="margin-bottom: 6px">{{ _("Testmail") }}</h2>
         <p class="muted" style="font-size: 13.5px">{{ _("Verwendet die Werte im Formular – auch ungespeichert.") }}</p>
         <div class="input-group">
-          <input type="email" name="test_to" value="{{ request.form.get('test_to', current_user.email or '') }}" placeholder="empfaenger@schule.de"
+          <input type="email" name="test_to" aria-label="{{ _("Empfänger der Testmail") }}" value="{{ request.form.get('test_to', current_user.email or '') }}" placeholder="empfaenger@example.org"
                  data-enter-clicks-next>
           <button class="btn" name="action" value="test" formnovalidate>{{ icon("send") }} {{ _("Testmail senden") }}</button>
         </div>
@@ -62,7 +62,7 @@
         <h2 style="margin-bottom: 6px">{{ _("Adresse von AssetLotse") }}</h2>
         <p class="muted" style="font-size: 13.5px">{{ _("Für Links in den Mails („Meine Gegenstände“, „Verlängern“).") }}</p>
         <div class="input-group">
-          <input class="mono" type="url" name="app_base_url" value="{{ v.app_base_url }}" placeholder="{{ suggested_url }}">
+          <input class="mono" type="url" name="app_base_url" aria-label="{{ _("Adresse von AssetLotse") }}" value="{{ v.app_base_url }}" placeholder="{{ suggested_url }}">
           <button type="button" class="btn" data-fill-previous="{{ suggested_url }}">{{ _("Aktuelle übernehmen") }}</button>
         </div>
         <div class="field" style="margin-top: 14px"><label for="f-mail-footer">{{ _("Fußzeile / Signatur") }} <small>{{ _("(optional)") }}</small></label>

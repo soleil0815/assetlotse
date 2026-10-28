@@ -15,7 +15,7 @@
 {% if mode == "ausgabe" %}
 {% if preset %}
 <section class="card card-pad preset-asset" style="margin-bottom: 18px">
-  <div class="list-row" style="padding: 0">
+  <div class="list-row preset-row" style="padding: 0">
     <div class="mini-thumb">{{ thumb(preset) }}</div>
     <div class="grow"><div class="eyebrow">{{ _("Aus dem Bestand ausgeben") }}</div>
       <b>{{ preset.name }}</b><small>{{ [preset.inventory_no, preset.serial_number]|select|join(" · ") or preset.category }}</small></div>
@@ -29,9 +29,12 @@
     <input type="hidden" name="benutzer" value="{{ borrower.username }}">
     <input type="hidden" name="gegenstand" value="{{ preset.id }}">
     <input type="hidden" name="asset_id" value="{{ preset.id }}">
-    <button class="btn primary lg" {{ "disabled" if preset.available == 0 or not borrower.can_borrow(preset) }}>{{ icon("check") }} {{ _("„{title}“ an {name} ausgeben", title=preset.name, name=borrower.name) }}</button>
-    {% if not borrower.can_borrow(preset) %}<span class="badge warn">{{ _("nicht für diese Person") }}</span>{% elif preset.available == 0 %}<span class="badge warn">{{ _("ausgegeben") }}</span>{% endif %}
+    {% set has_it = preset.id in borrower.active_loans|map(attribute="asset_id")|list %}
+    <button class="btn primary lg" autofocus {{ "disabled" if preset.available == 0 or has_it or not borrower.can_borrow(preset) }}>{{ icon("check") }} {{ _("„{title}“ an {name} ausgeben", title=preset.name, name=borrower.name) }}</button>
+    {% if not borrower.can_borrow(preset) %}<span class="badge warn">{{ _("nicht für diese Person") }}</span>{% elif has_it %}<span class="badge warn">{{ _("hat ihn schon") }}</span>{% elif preset.available == 0 %}<span class="badge warn">{{ _("ausgegeben") }}</span>{% endif %}
   </form>
+  {% elif preset.available == 0 %}
+  <p class="muted" style="margin: 10px 0 0">{{ _("Derzeit ist alles ausgegeben.") }}</p>
   {% else %}
   <p class="muted" style="margin: 10px 0 0">{{ _("Jetzt unten die Person wählen – danach nur noch bestätigen.") }}</p>
   {% endif %}
@@ -94,7 +97,7 @@
         <input type="hidden" name="benutzer" value="{{ borrower.username if borrower else '' }}">
         <label for="desk-code">{{ _("2. Gegenstand (Inventarnummer, Seriennummer, Bezeichnung oder #Nummer)") }}</label>
         <div class="input-group">
-          <input class="code-input" id="desk-code" type="text" name="code" placeholder="{{ _("Nummer scannen oder eintippen") }}" {{ ("" if focus_search else "autofocus") if borrower else "disabled" }}
+          <input class="code-input" id="desk-code" type="text" name="code" placeholder="{{ _("Nummer scannen oder eintippen") }}" {{ ("" if focus_search or preset else "autofocus") if borrower else "disabled" }}
                  {% if borrower %}data-suggest="{{ url_for('assets.suggest') }}" data-suggest-for="theke" data-suggest-action="issue" data-suggest-user="{{ borrower.username }}"
                  data-suggest-more="{{ url_for('loans.desk', modus='ausgabe', benutzer=borrower.username, fokus='suche') }}&amp;suche="{% endif %}>
           <button class="btn primary" {{ "disabled" if not borrower }}>{{ icon("check") }} {{ _("Ausgeben") }}</button>
@@ -145,7 +148,7 @@
   </section>
 </div>
 
-    <section class="card" id="bestand" style="margin-top: 18px;{% if not borrower %} opacity:.55{% endif %}">
+    <section class="card" id="bestand" style="margin-top: 18px">
       <div class="card-head"><h3>{{ icon("search") }} {{ _("Im Bestand suchen") }}</h3>
         {% if stock_results is not none %}<a class="btn ghost sm" href="{{ url_for('loans.desk', modus='ausgabe', benutzer=borrower.username if borrower else None) }}#bestand">{{ _("Zurücksetzen") }}</a>{% endif %}</div>
       <div class="card-body">
@@ -153,14 +156,14 @@
           <input type="hidden" name="modus" value="ausgabe">
           {% if borrower %}<input type="hidden" name="benutzer" value="{{ borrower.username }}">{% endif %}
           <input type="hidden" name="fokus" value="suche">
-          <input class="grow" type="search" name="suche" value="{{ stock.suche }}" placeholder="{{ _("Bezeichnung, Hersteller, Modell, Nummer …") }}" {{ "autofocus" if focus_search or not borrower and stock_results is not none }}>
+          <input class="grow" type="search" name="suche" aria-label="{{ _("Im Bestand suchen") }}" value="{{ stock.suche }}" placeholder="{{ _("Bezeichnung, Hersteller, Modell, Nummer …") }}" {{ "autofocus" if focus_search or not borrower and stock_results is not none }}>
           {% if categories %}
-          <select name="kategorie">
+          <select name="kategorie" aria-label="{{ _("Kategorie") }}">
             <option value="">{{ _("Alle Kategorien") }}</option>
             {% for c in categories %}<option value="{{ c }}" {{ 'selected' if stock.kategorie == c }}>{{ c }}</option>{% endfor %}
           </select>
           {% endif %}
-          <select name="frei">
+          <select name="frei" aria-label="{{ _("Verfügbarkeit") }}">
             <option value="1" {{ 'selected' if stock.frei == '1' }}>{{ _("Nur verfügbare") }}</option>
             <option value="0" {{ 'selected' if stock.frei == '0' }}>{{ _("Alle") }}</option>
           </select>

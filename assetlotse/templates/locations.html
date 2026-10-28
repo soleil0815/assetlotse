@@ -62,7 +62,7 @@
     <div class="grow" style="min-width: 160px"><b style="white-space: pre">{{ u.value }}</b>
       <a class="muted" href="{{ url_for('assets.index', standort=u.value) }}"><small>{{ _n("{n} Gegenstand", "{n} Gegenstände", u.count) }}</small></a>
       {% if u.suggest %}{% set sname = (locations|selectattr('id', 'equalto', u.suggest)|first).name %}<br><small class="muted">{{ _("Andere Schreibweise von „{name}“", name=sname) if u.variant else _("Tippfehler? Ähnlich wie „{name}“", name=sname) }}</small>{% endif %}</div>
-    <form method="post" action="{{ url_for('locations.adopt') }}" style="display: flex; gap: 8px; align-items: center">
+    <form method="post" action="{{ url_for('locations.adopt') }}" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="value" value="{{ u.value }}">
       <select name="target" aria-label="{{ _("Aktion") }}" style="width: auto; max-width: 280px">

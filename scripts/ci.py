@@ -189,16 +189,23 @@ class Registry:
             with urllib.request.urlopen(e.headers["Location"], timeout=60) as r:
                 return json.load(r)
 
-    def build_label(self, tag: str) -> str | None:
-        """The label io.assetlotse.build of an image (None if it has none)."""
-        def get(path):
-            with self._get(f"https://{self.host}/v2/{self.repo}/{path}") as r:
-                return json.load(r)
-        m = get(f"manifests/{tag}")
+    def _manifest(self, tag: str) -> dict:
+        with self._get(f"https://{self.host}/v2/{self.repo}/manifests/{tag}") as r:
+            m = json.load(r)
         if "manifests" in m:                                   # an index: take the image for linux/amd64
             ref = next((x for x in m["manifests"] if x.get("platform", {}).get("architecture") == "amd64"),
                        m["manifests"][0])
-            m = get(f"manifests/{ref['digest']}")
+            with self._get(f"https://{self.host}/v2/{self.repo}/manifests/{ref['digest']}") as r:
+                m = json.load(r)
+        return m
+
+    def config_digest(self, tag: str) -> str:
+        """sha256 of the image config – the same as `docker inspect -f {{.Id}}` of the loaded image."""
+        return self._manifest(tag)["config"]["digest"]
+
+    def build_label(self, tag: str) -> str | None:
+        """The label io.assetlotse.build of an image (None if it has none)."""
+        m = self._manifest(tag)
         config = self._blob(m["config"]["digest"])
         return (config.get("config", {}).get("Labels") or {}).get("io.assetlotse.build")
 
@@ -309,7 +316,30 @@ def _lines(path: str | None) -> list[str]:
     return [l.strip() for l in Path(path).read_text().splitlines() if l.strip()] if path else []
 
 
+def _release_missing(repo: str, tag: str, token: str) -> bool:
+    """GitHub release for a tag missing? (404 = missing; any other error stops – never guess.)"""
+    req = urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/tags/{tag}",
+                                 headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
+    try:
+        with urllib.request.urlopen(req, timeout=60):
+            return False
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return True
+        raise SystemExit(f"GitHub API: release {tag}: HTTP {e.code} – stopped")
+
+
 def main(argv=None) -> int:
+    try:
+        return _main(argv)
+    except SystemExit as e:
+        if isinstance(e.code, str) and os.environ.get("GITHUB_ACTIONS"):
+            print(f"::error title=scripts/ci.py::{e.code}")     # the cause readable on the run page
+            return 1
+        raise
+
+
+def _main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     m = sub.add_parser("mode")
@@ -348,6 +378,9 @@ def main(argv=None) -> int:
     d = sub.add_parser("registry-digest")
     d.add_argument("--image", required=True)
     d.add_argument("--tag", required=True)
+    g2 = sub.add_parser("registry-config", help="config digest (= image ID) of a published tag, or 'missing'")
+    g2.add_argument("--image", required=True)
+    g2.add_argument("--tag", required=True)
     a = ap.parse_args(argv)
 
     if a.cmd == "mode":
@@ -371,11 +404,18 @@ def main(argv=None) -> int:
         git_tags = _lines(a.git_tags)
         repair = plan_repair(a.image, a.version, git_tags, lambda ref: reg.digest(ref.rsplit(":", 1)[1]),
                              lambda ref: reg.build_label(ref.rsplit(":", 1)[1]))
+        newest = expected_build(a.version, git_tags)
+        # published, but its GitHub release page missing (a run stopped after pushing the image)?
+        release_missing = (f"v{newest}" in git_tags and reg.digest(newest) is not None
+                           and _release_missing(os.environ["GITHUB_REPOSITORY"], f"v{newest}", os.environ["GH_TOKEN"]))
         _out({"version_exists": reg.digest(a.version) is not None, "repair_source": repair["source"],
-              "repair_tags": ",".join(repair["tags"])})
+              "repair_tags": ",".join(repair["tags"]), "newest": newest, "release_missing": release_missing})
     elif a.cmd == "registry-digest":
         reg = Registry(a.image.split("/", 1)[1], os.environ["GITHUB_ACTOR"], os.environ["GH_TOKEN"])
         print(reg.digest(a.tag) or "missing")
+    elif a.cmd == "registry-config":
+        reg = Registry(a.image.split("/", 1)[1], os.environ["GITHUB_ACTOR"], os.environ["GH_TOKEN"])
+        print(reg.config_digest(a.tag) if reg.digest(a.tag) else "missing")
     elif a.cmd == "check-changes":
         names = subprocess.run(["git", "diff", "--name-only", "HEAD"], check=True, text=True,
                                stdout=subprocess.PIPE).stdout.split()

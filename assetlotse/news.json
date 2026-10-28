@@ -2,6 +2,34 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "1.12.0",
+      "date": "2026-10-28",
+      "kind": "fix",
+      "audience": "all",
+      "de": {
+        "title": "Kleinere Verbesserungen",
+        "text": "Geräte aus Gruppen mit „Kein Verleih“ zählen nicht mehr als „verfügbar“ und lassen sich nicht selbst verlängern. Eine geänderte E-Mail-Adresse wird im Profil als „wartet auf Bestätigung“ angezeigt; ältere Bestätigungslinks verfallen dabei. Hinweise oben auf der Seite verschwinden nach einer Weile von selbst."
+      },
+      "en": {
+        "title": "Smaller improvements",
+        "text": "Items in groups with “No lending” no longer count as “available” and cannot be extended by the borrower. A changed e-mail address is shown in your profile as “waiting for confirmation”; older confirmation links stop working. Notices at the top of the page now fade out after a while."
+      }
+    },
+    {
+      "version": "1.12.0",
+      "date": "2026-10-28",
+      "kind": "security",
+      "audience": "admin",
+      "de": {
+        "title": "Verwalter und Ersteinrichtung genauer",
+        "text": "Wer den gesamten Bestand verwaltet, ist jetzt ein eigener Haken beim Benutzer („Verwaltet den gesamten Bestand“). Verliert ein Verwalter seine letzte Gruppe – etwa durch den AD-Abgleich –, verwaltet er nichts mehr statt alles. Bestehende Verwalter ohne Gruppe bekamen den Haken beim Update automatisch. Die Ersteinrichtung ist nur noch direkt aus dem internen Netz möglich, nicht über einen Proxy. Das Image enthält kein apt mehr."
+      },
+      "en": {
+        "title": "Managers and first setup tightened",
+        "text": "Managing the whole inventory is now its own checkbox on the user (“Manages the whole inventory”). If a manager loses their last group – for example through the AD sync – they manage nothing instead of everything. Existing managers without a group got the checkbox automatically during the update. First setup only works directly from the internal network, not through a proxy. The image no longer contains apt."
+      }
+    },
+    {
       "version": "1.11.0",
       "date": "2026-10-27",
       "kind": "feature",

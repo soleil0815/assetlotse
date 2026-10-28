@@ -213,14 +213,14 @@
         <hr>
         <h3 style="margin-bottom: 8px">{{ _("Gruppen aus dem AD auswählen") }}</h3>
         <div class="input-group">
-          <input type="search" name="group_query" value="{{ group_query }}" placeholder="{{ _('Name enthält … (leer = alle)') }}"
+          <input type="search" name="group_query" aria-label="{{ _("AD-Gruppen suchen") }}" value="{{ group_query }}" placeholder="{{ _('Name enthält … (leer = alle)') }}"
                  data-enter-clicks-next>
           <button class="btn" name="action" value="list_groups" formnovalidate>{{ icon("search") }} {{ _("Gruppen laden") }}</button>
         </div>
         {% if ad_groups is not none %}
         <div id="ad-groups" style="margin-top: 12px">
           {% if ad_groups %}
-          <input type="search" placeholder="{{ _('In {n} Gruppen filtern …', n=ad_groups|length) }}" data-filter-list="#ad-group-list" style="margin-bottom: 8px">
+          <input type="search" aria-label="{{ _('AD-Gruppen filtern') }}" placeholder="{{ _('In {n} Gruppen filtern …', n=ad_groups|length) }}" data-filter-list="#ad-group-list" style="margin-bottom: 8px">
           <div id="ad-group-list" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px">
             {% for g in ad_groups %}
             <div class="list-row" data-filter-item style="padding: 9px 12px">

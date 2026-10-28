@@ -105,7 +105,8 @@ if [ -n "$WANT_IMAGE" ]; then
     [[ "$WANT_IMAGE" =~ ^[a-z0-9]([a-z0-9._-]*[a-z0-9])?(:[0-9]+)?(/[a-z0-9]([a-z0-9._-]*[a-z0-9])?)+$ ]] \
         || die "Invalid image address: $WANT_IMAGE  (lower case, e.g. ghcr.io/owner/repo)"
 fi
-[ -z "$WANT_VERSION" ] || [[ "$WANT_VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Invalid version: $WANT_VERSION  (e.g. 1.7.0)"
+# a program version (1.7.0) or one of its security updates (1.7.0-s2: same program, newer packages)
+[ -z "$WANT_VERSION" ] || [[ "$WANT_VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-s[0-9]+)?$ ]] || die "Invalid version: $WANT_VERSION  (e.g. 1.7.0 or 1.7.0-s2)"
 WANT_VERSION="${WANT_VERSION#v}"
 
 # Resolve the package path BEFORE changing into the program folder (also relative paths like ../x.zip)
@@ -372,7 +373,7 @@ cleanup_install() {  # after a successful update, or with --cleanup
     active="${active_repo}:${current}"
     for repo in assetlotse "$REGISTRY_IMAGE"; do
         r="$(docker image ls --format '{{.Repository}}:{{.Tag}}' "$repo" 2>/dev/null || true)"
-        refs+="$(grep -E ':[0-9]+\.[0-9]+\.[0-9]+$' <<<"$r" || true)"$'\n'
+        refs+="$(grep -E ':[0-9]+\.[0-9]+\.[0-9]+(-s[0-9]+)?$' <<<"$r" || true)"$'\n'
     done
     if [ -n "${OLD_VERSION:-}" ] && [ "$OLD_VERSION" != "$current" ] \
             && grep -qxF "${OLD_IMAGE}:${OLD_VERSION}" <<<"$refs"; then
@@ -422,12 +423,21 @@ if [ "$PULL" = 1 ] && [ "$AFTER_SWAP" = 0 ]; then
         RESTORE_LATEST="$(docker image inspect -f '{{.Id}}' "${REGISTRY_IMAGE}:latest" 2>/dev/null || true)"
         RESTORE_LATEST="${RESTORE_LATEST:-none}"
     fi
+    # which build runs now (e.g. 1.7.0-s2) – for the way back after the update (survives the handover)
+    if [ "$OLD_IMAGE" != assetlotse ]; then
+        OLD_BUILD="$(docker image inspect -f '{{index .Config.Labels "io.assetlotse.build"}}' "${OLD_IMAGE}:$(env_value ASSETLOTSE_TAG)" 2>/dev/null || true)"
+        [[ "$OLD_BUILD" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-s[0-9]+)?$ ]] && export ASSETLOTSE_OLD_BUILD="$OLD_BUILD"
+    fi
     step "Pulling ready-made image: ${REGISTRY_IMAGE}:${PULL_TAG}"
     docker pull "${REGISTRY_IMAGE}:${PULL_TAG}" \
         || die "Pull failed – nothing changed. Is the address/version right? For a private repository log in once:  docker login ghcr.io -u <github-user>  (password: a token with read:packages)."
     NEW_VERSION="$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' "${REGISTRY_IMAGE}:${PULL_TAG}" 2>/dev/null || true)"
     [[ "$NEW_VERSION" =~ ^[0-9]+(\.[0-9]+)*$ ]] || die "The image has no valid version label – nothing changed."
     PULLED_REF="${REGISTRY_IMAGE}:${NEW_VERSION}"
+    if [[ "$PULL_TAG" == *-s* ]]; then        # a pinned security update keeps its own tag
+        [ "${PULL_TAG%-s*}" = "$NEW_VERSION" ] || die "Image ${PULL_TAG} has the version label ${NEW_VERSION} – nothing changed."
+        PULLED_REF="${REGISTRY_IMAGE}:${PULL_TAG}"
+    fi
     # Trust: the image's update.sh will run here as root. Check that it was built from the expected
     # repository and show what was pulled; a new image address always needs an explicit "yes".
     SOURCE="$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.source"}}' "${REGISTRY_IMAGE}:${PULL_TAG}" 2>/dev/null || true)"
@@ -446,7 +456,7 @@ if [ "$PULL" = 1 ] && [ "$AFTER_SWAP" = 0 ]; then
         confirm "Trust this image?" || die "Aborted – nothing changed."
         YES="$YES_SAVED"
     fi
-    if [ "$PULL_TAG" != "$NEW_VERSION" ]; then
+    if [ "${REGISTRY_IMAGE}:${PULL_TAG}" != "$PULLED_REF" ]; then
         docker tag "${REGISTRY_IMAGE}:${PULL_TAG}" "$PULLED_REF" || die "Could not tag the image – nothing changed."
     fi
     # The image carries update.sh, docker-compose.yml & co. – take them out and install them like a package
@@ -511,11 +521,18 @@ if { [ -n "$ZIP" ] || [ "$PULL" = 1 ]; } && [ "$AFTER_SWAP" = 0 ]; then
     for f in docker-compose.yml Dockerfile docker-entrypoint.sh wsgi.py requirements.txt update.sh; do
         [ -f "$SRC/$f" ] || die "The package is incomplete ($f is missing) – nothing changed."
     done
+    # everything else the package's own Dockerfile copies – checked BEFORE the files are swapped
+    for f in requirements.in .env.example .dockerignore README.md README.en.md CHANGELOG.md gunicorn.conf.py LICENSE \
+             build/apt-snapshot.sh build/os-install.sh build/debian-packages.lock; do
+        grep -qF "$f" "$SRC/Dockerfile" || continue
+        [ -f "$SRC/$f" ] || die "The package is incomplete ($f is missing) – nothing changed."
+    done
     bash -n "$SRC/update.sh" 2>/dev/null || die "The package is damaged (update.sh) – nothing changed."
     NEW_VERSION="$(version_of "$SRC")"
     [ -n "$NEW_VERSION" ] || die "Cannot read the version number in the package – nothing changed."
-    if [ "$PULL" = 1 ] && [ "$NEW_VERSION" != "${PULLED_REF##*:}" ]; then
-        die "The files in the image ($NEW_VERSION) do not match its version label (${PULLED_REF##*:}) – nothing changed."
+    PULLED_TAG="${PULLED_REF##*:}"
+    if [ "$PULL" = 1 ] && [ "$NEW_VERSION" != "${PULLED_TAG%-s*}" ]; then
+        die "The files in the image ($NEW_VERSION) do not match its version label (${PULLED_TAG%-s*}) – nothing changed."
     fi
     echo "Installed: ${OLD_VERSION:-none}   Package: ${NEW_VERSION}"
     if [ -z "$OLD_VERSION" ]; then
@@ -603,13 +620,14 @@ fi
 # Image source in .env: ready-made from GitHub, or built locally
 if [ "$PULL" = 1 ]; then
     REGISTRY_IMAGE="${PULLED_REF%:*}"
-    [ "$VERSION" = "${PULLED_REF##*:}" ] || die "Version mismatch: files $VERSION, image $PULLED_REF."
+    PULLED_TAG="${PULLED_REF##*:}"
+    [ "$VERSION" = "${PULLED_TAG%-s*}" ] || die "Version mismatch: files $VERSION, image $PULLED_REF."
     set_env ASSETLOTSE_REGISTRY_IMAGE "$REGISTRY_IMAGE"
     set_env ASSETLOTSE_IMAGE "$REGISTRY_IMAGE"
     if [ "$PINNED" = 1 ] || [ -n "$WANT_VERSION" ]; then
         # pinned: update tools leave it alone until the next plain ./update.sh --pull
-        set_env ASSETLOTSE_TAG "$VERSION"
-        ok "Pinned to version ${VERSION}. Back to the newest version with:  ./update.sh --pull"
+        set_env ASSETLOTSE_TAG "$PULLED_TAG"
+        ok "Pinned to version ${PULLED_TAG}. Back to the newest version with:  ./update.sh --pull"
     else
         # follows "latest": ./update.sh --pull or another update tool installs new versions
         docker tag "$PULLED_REF" "${REGISTRY_IMAGE}:latest" >/dev/null 2>&1 || true
@@ -629,7 +647,8 @@ fi
 if [ -n "$OLD_VERSION" ] && [ -f "packages/assetlotse-${OLD_VERSION}.zip" ]; then
     GO_BACK="./update.sh packages/assetlotse-${OLD_VERSION}.zip"
 elif [ "$OLD_IMAGE" != assetlotse ] && [ -n "$OLD_VERSION" ]; then
-    GO_BACK="./update.sh --pull --version ${OLD_VERSION}"
+    # exactly the build that ran before (e.g. 1.7.0-s2), not the unpatched original release
+    GO_BACK="./update.sh --pull --version ${ASSETLOTSE_OLD_BUILD:-$OLD_VERSION}"
 else
     GO_BACK="./update.sh packages/assetlotse-OLD.zip"
 fi

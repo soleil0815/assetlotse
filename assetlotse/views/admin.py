@@ -135,6 +135,8 @@ def _save_user(user: User, is_new: bool):
     if email and not valid_email(email):
         return _("Bitte eine gültige E-Mail-Adresse eingeben (nur eine Adresse).")
     user.display_name = form_str("display_name", 200)
+    if email != (user.email or ""):
+        user.pending_email = ""      # ein offener Bestätigungslink überschreibt die Adresse des Admins nicht
     user.email = email
     if user.auth_source == "local" or is_new:
         user.role = role
@@ -150,10 +152,11 @@ def _save_user(user: User, is_new: bool):
         user.auth_source = "local"
         user.set_password(password)
     ids = _ids(request.form.getlist("groups"))
-    had_groups = bool(user.groups)
     user.groups = Group.query.filter(Group.id.in_(ids)).all() if ids else []
-    if user.role == ROLE_MANAGER and had_groups and not user.groups:
-        flash(_("Hinweis: Ein Verwalter ohne Gruppe verwaltet den gesamten Bestand."), "warning")
+    user.manages_all = user.role == ROLE_MANAGER and form_bool("manages_all")
+    if user.role == ROLE_MANAGER and not user.manages_all and not user.groups:
+        flash(_("Hinweis: Dieser Verwalter hat keine Gruppe und verwaltet deshalb nur allgemeine Gegenstände."),
+              "warning")
     return None
 
 
@@ -455,13 +458,6 @@ def group_edit(group_id):
 @admin_required
 def group_delete(group_id):
     group = db.session.get(Group, group_id) or abort(404)
-    # Ein Verwalter ohne Gruppe verwaltet den ganzen Bestand – das darf nicht nebenbei durch Löschen passieren
-    orphaned = [u.name for u in group.users if u.role == ROLE_MANAGER and len(u.groups) == 1]
-    if orphaned:
-        flash(_("Gruppe {name} nicht gelöscht: {people} hätte(n) danach keine Gruppe mehr und würde(n) damit den "
-                "gesamten Bestand verwalten. Bitte zuerst eine andere Gruppe zuweisen.",
-                name=group.name, people=", ".join(orphaned)), "error")
-        return redirect(url_for("admin.groups"))
     n = len(group.assets)
     for b in group.assets:
         b.group_id = None

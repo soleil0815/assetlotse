@@ -47,8 +47,9 @@ on:
 permissions: {}
 
 concurrency:
-  # one release run at a time; scans and the base check do not publish and run separately
-  group: ${{ (github.event.schedule == '43 5 * * *' || inputs.mode == 'scan-latest' || inputs.mode == 'eol-check') && 'docker-scan' || 'docker-release' }}
+  # one PUBLISHING run at a time (release, security update, relock); everything else – check runs, scans, the
+  # base check – runs on its own, so it can never push a waiting release or security run out of the queue
+  group: ${{ (github.event_name == 'push' || github.event.schedule == '17 4 * * 1' || inputs.mode == 'security-update' || inputs.mode == 'relock') && 'docker-release' || format('docker-other-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
@@ -93,6 +94,7 @@ jobs:
       repair: ${{ needs.mode.outputs.publish == 'true' && steps.prep.outputs.repair == 'true' }}
       repair_source: ${{ steps.reg.outputs.repair_source }}
       repair_tags: ${{ steps.reg.outputs.repair_tags }}
+      repair_release: ${{ steps.reg.outputs.release_missing == 'true' && steps.reg.outputs.newest || '' }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -127,6 +129,8 @@ jobs:
           KIND: ${{ needs.mode.outputs.kind }}
           VERSION_EXISTS: ${{ steps.reg.outputs.version_exists }}
           REPAIR_TAGS: ${{ steps.reg.outputs.repair_tags }}
+          RELEASE_MISSING: ${{ steps.reg.outputs.release_missing }}
+          NEWEST: ${{ steps.reg.outputs.newest }}
         run: |
           set -euo pipefail
           version="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' assetlotse/__init__.py)"
@@ -134,14 +138,15 @@ jobs:
             || { echo "::error::Dockerfile LABEL org.opencontainers.image.version is not ${version}"; exit 1; }
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
           { echo "version=${version}"; echo "name=${version}"; echo "create_tag=false"; echo "repair=false"; } >> "$GITHUB_OUTPUT"
-          repair() {   # a previous run stopped halfway: only move <minor>/latest, rebuild nothing
-            echo "::notice title=Repair::${REPAIR_TAGS//,/, } do not point to the newest build yet – fixed in this run, nothing is rebuilt"
+          repair() {   # a previous run stopped halfway: move <minor>/latest, add the release page – rebuild nothing
+            echo "::notice title=Repair::a previous run stopped halfway (${REPAIR_TAGS:-release page of v${NEWEST} missing}) – completed in this run, nothing is rebuilt"
             { echo "repair=true"; echo "skip=true"; } >> "$GITHUB_OUTPUT"; exit 0
           }
+          incomplete() { [ -n "$REPAIR_TAGS" ] || [ "$RELEASE_MISSING" = true ]; }
 
           if [ "$KIND" = release ]; then
             if [ "$VERSION_EXISTS" = true ]; then
-              [ -z "$REPAIR_TAGS" ] || repair
+              ! incomplete || repair
               echo "::notice::${version} is already published – nothing to build (raise the version to release)."
               echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
             fi
@@ -152,16 +157,25 @@ jobs:
               echo "create_tag=true" >> "$GITHUB_OUTPUT"
             fi
             python3 scripts/ci.py plan-release --image "$image" --version "$version" --git-tags "${RUNNER_TEMP}/git-tags.txt"
+            # never older packages than the newest published build (e.g. after unpacking an older copy over main)
+            previous="$(python3 -c 'import sys; sys.path.insert(0, "scripts"); import ci
+          t = open(sys.argv[1]).read().split(); h = ci.highest_release(t); print(ci.expected_build(h, t) if h else "")' "${RUNNER_TEMP}/git-tags.txt")"
+            if [ -n "$previous" ]; then
+              python3 scripts/lock.py not-older --than "v${previous}"
+              if [ "$previous" != "${previous%-s*}" ] && ! grep -q "^## ${previous} " CHANGELOG.md; then
+                echo "::error title=Release::CHANGELOG.md lacks the entry of the security update ${previous} – merge the newest main (git pull) and push again"; exit 1
+              fi
+            fi
 
           elif [ "$KIND" = security ]; then
-            [ -z "$REPAIR_TAGS" ] || repair
+            ! incomplete || repair
             # same program as the release: only lock files, changelog, docs, tests and CI may differ
             git rev-parse -q --verify "refs/tags/v${version}" >/dev/null && [ "$VERSION_EXISTS" = true ] \
               || { echo "::error title=Security update::${version} is not released yet – push a new version first"; exit 1; }
             changed="$(git diff --name-only "v${version}" HEAD -- . ':(exclude)requirements.txt' \
               ':(exclude)build/debian-packages.lock' ':(exclude)CHANGELOG.md' ':(exclude)README.md' \
               ':(exclude)README.en.md' ':(exclude)docs' ':(exclude)tests' ':(exclude)scripts' \
-              ':(exclude).github' ':(exclude)Dockerfile')"
+              ':(exclude).github' ':(exclude)Dockerfile' ':(exclude).trivyignore' ':(exclude).gitignore')"
             if ! diff -q <(git show "v${version}:Dockerfile" | grep -vE '^ARG (PYTHON_IMAGE|PIP_VERSION)=') \
                          <(grep -vE '^ARG (PYTHON_IMAGE|PIP_VERSION)=' Dockerfile) >/dev/null; then
               changed="${changed} Dockerfile"
@@ -360,29 +374,41 @@ jobs:
         run: |
           set -euo pipefail
           docker load -q -i "${RUNNER_TEMP}/artifacts/image/image.tar"
+          # config digest from the archive itself – "docker inspect .Id" is the manifest digest with containerd
+          local_id="$(tar -xOf "${RUNNER_TEMP}/artifacts/image/image.tar" manifest.json | python3 -c \
+            'import json,sys; c=json.load(sys.stdin)[0]["Config"]; print("sha256:" + c.rsplit("/", 1)[-1].removesuffix(".json"))')"
           IFS=, read -ra tags <<< "$TAGS"
           first="${tags[0]}"                       # <version> or <version>-s<n> – never overwritten
-          state="$(python3 scripts/ci.py registry-digest --image "${first%:*}" --tag "${first##*:}")"
-          if [ "$state" != missing ]; then
-            echo "::error title=Publish::${first} exists already – a published version is never overwritten"; exit 1
+          state="$(python3 scripts/ci.py registry-config --image "${first%:*}" --tag "${first##*:}")"
+          pushed=false
+          if [ "$state" = "$local_id" ]; then        # "Re-run failed jobs" after a step further down failed
+            echo "::notice title=Publish::${first} was already pushed by an earlier attempt of this run – continuing"
+            pushed=true
+          elif [ "$state" != missing ]; then
+            echo "::error title=Publish::${first} exists already with another image – a published version is never overwritten (raise the version number)"; exit 1
           fi
-          # git: credentials only for this one command, never stored
+          # git: credentials only for these commands, never stored
           auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git_auth() { git -c http.https://github.com/.extraheader="$auth" "$@"; }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [ "$KIND" = release ]; then
-            # tag first: if a later step fails, the next push resumes (image still missing, tag already right)
+            # tag first: if a later step fails, the next run resumes (the image is still missing, the tag is right)
             if [ "$CREATE_TAG" = true ]; then
-              git tag "v${VERSION}" "${GITHUB_SHA}"
-              git -c http.https://github.com/.extraheader="$auth" push origin "refs/tags/v${VERSION}"
+              git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null || git tag "v${VERSION}" "${GITHUB_SHA}"
+              git_auth push origin "refs/tags/v${VERSION}"
             fi
-            docker tag assetlotse:scan "$first"; docker push -q "$first"
+            [ "$pushed" = true ] || { docker tag assetlotse:scan "$first"; docker push -q "$first"; }
+          elif [ -n "$(git_auth ls-remote --tags origin "refs/tags/v${NAME}")" ]; then
+            echo "::notice title=Publish::v${NAME} is already committed and tagged – continuing with the floating tags"
           else
-            docker tag assetlotse:scan "$first"; docker push -q "$first"
+            # main must still be where this run started – checked BEFORE the image is pushed
+            [ "$(git_auth ls-remote origin refs/heads/main | cut -f1)" = "${GITHUB_SHA}" ] \
+              || { echo "::error title=Security update::main changed while this run was going – nothing published; the next run (Monday or by hand) repeats it"; exit 1; }
+            [ "$pushed" = true ] || { docker tag assetlotse:scan "$first"; docker push -q "$first"; }
             git commit -q -am "Sicherheitsupdate ${NAME}: aktualisierte Pakete (gleiches Programm wie ${VERSION})"
             git tag "v${NAME}"
-            # fails if main moved on meanwhile – then latest stays unchanged and the next run repeats it
-            git -c http.https://github.com/.extraheader="$auth" push --atomic origin HEAD:refs/heads/main "refs/tags/v${NAME}"
+            git_auth push --atomic origin HEAD:refs/heads/main "refs/tags/v${NAME}"
           fi
           for t in "${tags[@]:1}"; do              # <minor> and latest (latest only for the highest version)
             docker tag assetlotse:scan "$t"; docker push -q "$t"
@@ -407,19 +433,21 @@ jobs:
           gh release create "v${NAME}" --verify-tag --title "$title" --notes-file "${RUNNER_TEMP}/notes.md" --latest="$latest"
           echo "::notice title=Release::${title}"
 
-  # a run that stopped halfway: point <minor>/latest to the newest build (nothing is rebuilt)
+  # a run that stopped halfway: point <minor>/latest to the newest build and add a missing release page
+  # (nothing is rebuilt)
   repair:
     needs: build
     if: needs.build.outputs.repair == 'true'
     runs-on: ubuntu-latest
     environment: release
     permissions:
-      contents: read
+      contents: write          # create a missing GitHub release
       packages: write
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
@@ -428,6 +456,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Move the floating tags
+        if: needs.build.outputs.repair_tags != ''
         env:
           SOURCE: ${{ needs.build.outputs.repair_source }}
           REPAIR_TAGS: ${{ needs.build.outputs.repair_tags }}
@@ -438,6 +467,22 @@ jobs:
             docker buildx imagetools create --tag "$t" "$SOURCE"
           done
           echo "::notice title=Repair::${REPAIR_TAGS//,/, } → ${SOURCE}"
+      - name: Missing GitHub release
+        if: needs.build.outputs.repair_release != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NAME: ${{ needs.build.outputs.repair_release }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          python3 scripts/ci.py release-notes --name "$NAME" --image "${image}:${NAME}" > "${RUNNER_TEMP}/notes.md"
+          highest="$(python3 -c 'import sys; sys.path.insert(0, "scripts"); import ci; print(ci.highest_release(sys.stdin.read().split()))' <<< "$(git tag -l)")"
+          latest=false; [ "$highest" != "$VERSION" ] || latest=true
+          title="AssetLotse ${NAME}"; [ "$NAME" = "$VERSION" ] || title="${title} (Sicherheitsupdate)"
+          gh release create "v${NAME}" --verify-tag --title "$title" --notes-file "${RUNNER_TEMP}/notes.md" --latest="$latest"
+          echo "::notice title=Repair::release page ${title} created"
 
   # ------------------------------------------------------------------ relock: set new versions, commit (no release)
   relock:

@@ -108,8 +108,13 @@ def run_daily(now: datetime | None = None) -> dict | None:
     from .mailer import _claim_today
     from .models import get_bool, get_int
     now = now or datetime.now()
-    if get_bool("backup_enabled") and backup_supported() and now.hour < get_int("backup_hour", 2):
-        return None            # erst nach der täglichen Sicherung löschen
+    if get_bool("backup_enabled") and backup_supported():
+        if now.hour < get_int("backup_hour", 2):
+            return None        # erst nach der täglichen Sicherung löschen
+        from .models import get_setting
+        ok, failed = get_setting("backup_last_ok") or "", get_setting("backup_last_error") or ""
+        if not ok.startswith(now.date().isoformat()) or failed > ok:
+            return None        # heute keine erfolgreiche Sicherung oder die letzte ist gescheitert – lieber nichts löschen
     if not _claim_today(now.date().isoformat(), key="retention_last_run"):
         return None
     res = run_retention(now)

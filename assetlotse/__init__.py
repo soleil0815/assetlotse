@@ -28,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "1.11.0"
+__version__ = "1.12.0"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Wo der Quellcode zu finden ist (AGPL § 13). Wer AssetLotse verändert betreibt, trägt hier
@@ -381,8 +381,15 @@ def create_app(test_config: dict | None = None) -> Flask:
         previous_version = _backup_before_upgrade()
         db.create_all()
         from .models import ensure_columns
-        for col in ensure_columns():
+        added = ensure_columns()
+        for col in added:
             logging.getLogger(__name__).info("Datenbank aktualisiert: Spalte %s ergänzt", col)
+        if "users.manages_all" in added:
+            from .models import migrate_manages_all
+            n = migrate_manages_all()
+            if n:
+                logging.getLogger(__name__).info("%d Verwalter ohne Gruppe verwalten weiterhin den gesamten Bestand "
+                                                 "(jetzt als ausdrückliche Einstellung)", n)
         from .models import ensure_indexes; ensure_indexes()  # noqa: E702
         _check_secret_key(app)
         from .models import set_setting

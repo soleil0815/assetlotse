@@ -5,7 +5,7 @@ ARG PYTHON_IMAGE=python:3.13.17-slim-trixie@sha256:d98cc29d3266e535dd9da1099688d
 FROM ${PYTHON_IMAGE}
 
 LABEL org.opencontainers.image.title="AssetLotse" \
-      org.opencontainers.image.version="1.11.0" \
+      org.opencontainers.image.version="1.12.0" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -22,6 +22,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # build/debian-packages.lock – one fixed snapshot of the Debian archive. The build stops if anything differs.
 COPY build/apt-snapshot.sh build/os-install.sh build/debian-packages.lock /tmp/build/
 RUN sh /tmp/build/os-install.sh && rm -rf /tmp/build
+# The package manager apt is not needed at runtime – removed (after the check above). dpkg and its package list
+# stay: they belong to the base system, and the vulnerability scan reads the installed packages from there.
+RUN dpkg --purge --force-remove-essential --force-remove-protected --force-depends \
+      apt $(dpkg-query -W -f '${Package}\n' 'libapt-pkg*' 2>/dev/null) \
+ && rm -rf /var/lib/apt /var/cache/apt /etc/apt \
+ && ! command -v apt-get >/dev/null
 
 WORKDIR /app
 COPY requirements.txt requirements.in ./

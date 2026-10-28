@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.11.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 1.12.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -92,8 +92,9 @@ docker login ghcr.io -u soleil0815        # Passwort = das Token
 ```bash
 ./update.sh --pull                  # neueste Version (folgt danach latest)
 ./update.sh --pull --version 1.8.1  # Version festlegen, auch zum Zurückgehen
+./update.sh --pull --version 1.12.0-s2  # genau ein Sicherheitsupdate festlegen
 ```
-Das Skript sichert die Datenbank, lädt das Image, holt `update.sh`, `docker-compose.yml` & Co. aus dem Image (die Installationsdateien bleiben so aktuell), startet neu und räumt alte Images auf. Welches Image läuft, steht in der `.env` (`ASSETLOTSE_IMAGE`, `ASSETLOTSE_TAG` – verwaltet `update.sh`). Ein anderes Repository (z. B. ein Fork): `--image ghcr.io/NAME/REPO`.
+Das Skript sichert die Datenbank, lädt das Image, holt `update.sh`, `docker-compose.yml` & Co. aus dem Image (die Installationsdateien bleiben so aktuell), startet neu und räumt alte Images auf. Ein Sicherheitsupdate (`-sN`) lässt sich erst ab 1.12.0 gezielt festlegen – vorher einmal `./update.sh --pull`. Welches Image läuft, steht in der `.env` (`ASSETLOTSE_IMAGE`, `ASSETLOTSE_TAG` – verwaltet `update.sh`). Ein anderes Repository (z. B. ein Fork): `--image ghcr.io/NAME/REPO`.
 
 **Beide Wege bleiben möglich:** `./update.sh assetlotse-X.Y.Z.zip` baut wie bisher lokal – das Image heißt dann `assetlotse:X.Y.Z`, nie wie das GitHub-Image, damit es kein Update-Tool ersetzt. Das nächste `--pull` wechselt zurück auf GitHub.
 
@@ -109,7 +110,7 @@ Ziel: Das Image bleibt von selbst sicher und aktuell, **ohne Versionssprünge**.
 - **Basis-Image** mit fester Version **und** Prüfsumme: `ARG PYTHON_IMAGE=python:3.13.<n>-slim-trixie@sha256:…` im `Dockerfile`.
 - **Alle Debian-Pakete** des Images – auch die des Basis-Images – stehen mit exakter Version in `build/debian-packages.lock`. Installiert wird aus einem festen Stand des Debian-Archivs (`snapshot.debian.org`, Zeitpunkt in der Datei); weicht ein Paket ab, bricht der Bau ab.
 - **Alle Python-Pakete** einschließlich aller Unterabhängigkeiten stehen exakt in `requirements.txt`, `pip` selbst als `ARG PIP_VERSION` im `Dockerfile`. Installiert wird mit `--no-deps` und `--only-binary`, danach prüft `pip check`.
-- **Was zur Laufzeit nicht gebraucht wird, ist nicht im Image:** `pip` und `ensurepip` werden nach der Installation entfernt. (Die Debian-Paketverwaltung bleibt: Sie gehört zum Betriebssystem, und die Paketliste braucht die Schwachstellenprüfung.)
+- **Was zur Laufzeit nicht gebraucht wird, ist nicht im Image:** die Paketverwaltungen `pip`, `ensurepip` und `apt` werden nach der Installation entfernt. (`dpkg` mit seiner Paketliste bleibt: Es gehört zum Grundsystem, und die Schwachstellenprüfung liest daraus die installierten Pakete.)
 - **Neu festlegen** – innerhalb der Grenzen unten – macht das Skript `scripts/lock.py refresh` (braucht Docker und Internet). Auf GitHub ohne eigenes Docker: *Actions → Docker image → Run workflow → relock*; das Ergebnis wird auf `main` eingetragen und mit der nächsten Version getestet und veröffentlicht. `scripts/lock.py check` prüft die Dateien ohne Netz.
 
 **Grenzen („Unterbau“).** Automatisch angehoben wird nur **innerhalb** des Unterbaus:
@@ -130,11 +131,11 @@ Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion e
 
 **Sicherheit des Workflows.** Alle Actions sind auf Commit-Prüfsummen festgelegt; jeder Job hat nur die Rechte, die er braucht (Schreibrechte nur die Schritte, die veröffentlichen); Tests und Trivy laufen nie in einem Job mit Schreibrechten; Git-Anmeldedaten werden nicht gespeichert; veröffentlicht wird nur vom Zweig `main`, nie zwei Läufe gleichzeitig; eine veröffentlichte Version wird nie überschrieben, `latest` zeigt nur auf die höchste Version.
 
-**Einmalig einrichten** (auf GitHub, *Settings → Environments*): Die Umgebung `release` – sie entsteht beim ersten Lauf von selbst – unter *Deployment branches and tags* auf den Zweig `main` beschränken. Dann kann auch ein geänderter Workflow auf einem anderen Zweig nichts veröffentlichen.
+**Nur vom Zweig `main`:** Der Workflow veröffentlicht nur Läufe von `main` (Prüfung in `scripts/ci.py`). Die zusätzliche Sperre über die Umgebung `release` (*Settings → Environments → Deployment branches*) bietet GitHub für private Repositorys nur mit GitHub Pro, Team oder Enterprise an; ohne sie könnte ein auf einem anderen Zweig geänderter Workflow, von Hand gestartet, trotzdem veröffentlichen. Schreibrechte am Repository daher nur vertrauenswürdigen Personen geben.
 
 **Bauen auf dem eigenen Server** (`./update.sh` mit Zip, ohne `--pull`) nutzt dieselben festen Versionen und braucht deshalb HTTPS-Zugang zu `snapshot.debian.org`. Die Debian-Paketliste gilt für `amd64`; auf einem anderen Prozessor (z. B. `arm64`) wird derselbe Stand installiert, die Liste aber nicht verglichen. Bricht ein Lauf mitten im Veröffentlichen ab, holt der nächste Lauf das Fehlende nach (`latest` und `<Minor>` werden nachgezogen, nichts wird neu gebaut).
 
-**Wenn ein Lauf rot ist.** Rot heißt immer: **nichts wurde veröffentlicht**, die Server behalten die bisherige Version. GitHub schickt eine E-Mail; die Ursache steht kurz am Lauf (*Actions* → Lauf → Hinweise oben und Zusammenfassung).
+**Wenn ein Lauf rot ist.** Rot vor dem Schritt *publish* heißt: **nichts wurde veröffentlicht**, die Server behalten die bisherige Version. Bricht ein Lauf erst beim Veröffentlichen ab (z. B. Netzwerkfehler), holt *Re-run failed jobs* oder der nächste Lauf das Fehlende nach – fehlende Tags (`latest`, `<Minor>`) und die Release-Seite werden ergänzt, nichts wird neu gebaut. GitHub schickt eine E-Mail; die Ursache steht kurz am Lauf (*Actions* → Lauf → Hinweise oben und Zusammenfassung).
 
 | Was am Lauf steht | Was zu tun ist |
 |---|---|
@@ -144,7 +145,9 @@ Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion e
 | *Base ends soon* (rot) / *within a year* (gelb) | Debian oder Python bekommen bald keine Sicherheitsupdates mehr: den Wechsel auf den nächsten Unterbau als neue Version planen. |
 | *unreleased program changes* | Auf `main` liegen Änderungen ohne neue Versionsnummer: Versionsnummer erhöhen und hochladen. |
 | *the scan itself failed*, Netzwerk- oder Download-Fehler | Meist vorübergehend: Lauf erneut starten (*Re-run jobs*). |
-| *exists already* | Diese Version gibt es schon – Versionsnummer erhöhen. |
+| *exists already with another image* | Diese Versionsnummer ist schon mit einem anderen Image veröffentlicht – Versionsnummer erhöhen. |
+| *would ship OLDER packages* | Die neue Version hätte ältere Pakete als das zuletzt veröffentlichte Sicherheitsupdate (z. B. weil ein älterer Stand hochgeladen wurde): `git pull`, damit die neuesten festen Versionen und der CHANGELOG dabei sind, dann erneut hochladen. |
+| *main changed while this run was going* | Während des Sicherheitsupdates kam etwas Neues auf `main` – nichts veröffentlicht; der nächste Lauf wiederholt es. |
 
 ### Ohne Docker (Linux)
 
@@ -273,7 +276,7 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 
 - **Umbenennen** ändert den Standort bei allen betroffenen Gegenständen mit. **Löschen** geht erst, wenn dort kein Gegenstand mehr steht.
 - **Früher frei getippte Standorte** erscheinen unter *Im Bestand, aber nicht festgelegt*. Ihr könnt sie als Standort übernehmen oder durch einen festgelegten ersetzen – die Gegenstände werden mit umgestellt. Bei anderer Schreibweise („raum 2.14“) oder einem Tippfehler („Rau 2.14“) ist der passende Standort schon vorausgewählt.
-- Gruppen-Verwalter können Standorte anlegen; Umbenennen und Ersetzen, das Gegenstände anderer Gruppen betrifft, bleibt Administratoren und Verwaltern ohne Gruppe vorbehalten.
+- Gruppen-Verwalter können Standorte anlegen; Umbenennen und Ersetzen, das Gegenstände anderer Gruppen betrifft, bleibt Administratoren und Verwaltern des gesamten Bestands vorbehalten.
 - Im **Bestand** lässt sich nach Standort filtern.
 - Ohne festgelegte Standorte bleibt das Feld ein freies Textfeld.
 
@@ -282,7 +285,7 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 | Rolle | Darf |
 |---|---|
 | **Mitarbeiter** | „Meine Gegenstände“ (standardmäßig nur diese, kein Bestand); je nach Einstellung den Bestand ansehen und bei eingeschalteter Selbstausleihe selbst ausleihen, verlängern, zurückgeben |
-| **Verwalter** | Gegenstände anlegen/bearbeiten/löschen, ausgeben, zurücknehmen, Ausgabetheke, vertrauliche Angaben, Export – für die Gegenstände **seiner Gruppen** und allgemeine Gegenstände. Ein Verwalter **ohne** Gruppe verwaltet den gesamten Bestand. |
+| **Verwalter** | Gegenstände anlegen/bearbeiten/löschen, ausgeben, zurücknehmen, Ausgabetheke, vertrauliche Angaben, Export – für die Gegenstände **seiner Gruppen** und allgemeine Gegenstände. Den **gesamten** Bestand verwaltet ein Verwalter nur mit dem Haken *Verwaltet den gesamten Bestand* im Benutzerkonto – nie nebenbei, z. B. weil ihm das AD alle Gruppen nimmt (beim Update auf 1.12.0 bekamen bisherige Verwalter ohne Gruppe den Haken automatisch). |
 | **Administrator** | Alles, dazu Benutzer, Gruppen, Einstellungen und Active Directory |
 
 **Gruppen** sind z. B. Abteilungen oder Arbeitsgruppen. Jeder Gegenstand gehört entweder zu einer Gruppe oder ist **allgemein**. Allgemeine Gegenstände kann jeder bekommen, Gruppengegenstände nur Mitglieder der Gruppe. Unter *Einstellungen → Sichtbarkeit des Bestands* legst du fest, ob Mitarbeiter nur ihre eigenen Gegenstände sehen (Standard), die Gegenstände ihrer Gruppen und allgemeine oder den ganzen Bestand (die Ausgabe bleibt trotzdem beschränkt).

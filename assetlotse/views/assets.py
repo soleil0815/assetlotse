@@ -185,6 +185,9 @@ def _apply_filters(query, f: dict):
         lent = func.coalesce(active.c.n, 0)
         query = query.outerjoin(active, active.c.asset_id == Asset.id)
         query = query.filter(Asset.quantity > lent if f["status"] == "verfuegbar" else lent > 0)
+        if f["status"] == "verfuegbar":            # „Kein Verleih“ ist nie verfügbar
+            from ..models import lendable_clause
+            query = query.filter(lendable_clause())
     return query
 
 
@@ -232,7 +235,8 @@ def _render_detail(asset: Asset, secret: str | None = None, own_secret: str | No
                            self_return=get_bool("self_return"),
                            can_extend=bool(own_loan) and own_loan.due_at is not None and (
                                current_user.can_manage(asset) or (
-                                   get_bool("self_extend") and own_loan.extensions < get_int("max_extensions", 2))),
+                                   asset.lendable and get_bool("self_extend")
+                                   and own_loan.extensions < get_int("max_extensions", 2))),
                            loan_days=get_int("loan_days", 0), secret=secret)
 
 
@@ -637,6 +641,8 @@ def create():
     if request.method == "POST":
         error = _fill_asset(asset)
         _image_from_template(asset)          # auch bei einem Fehler im Formular: Foto bleibt erhalten
+        if request.form.get("remove_image"):
+            asset.image_file = ""            # abgewählt: auch die Vorschau zeigt es nicht mehr
         if error:
             flash(error, "error")
         elif not asset.name:

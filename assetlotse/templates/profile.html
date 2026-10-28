@@ -40,6 +40,7 @@
         <input type="hidden" name="action" value="data">
         <div class="field"><label for="f-display-name">{{ _("Name") }}</label><input id="f-display-name" type="text" name="display_name" value="{{ current_user.display_name or '' }}" maxlength="200" autocomplete="name"></div>
         <div class="field"><label for="f-email">{{ _("E-Mail-Adresse") }}</label><input id="f-email" type="email" name="email" value="{{ current_user.email or '' }}" maxlength="200" autocomplete="email" {{ "required" if current_user.self_registered }}></div>
+        {% if current_user.pending_email %}<div class="notice" style="margin-bottom: 12px">{{ icon("mail") }}<div>{{ _("Wartet auf Bestätigung: <b>{email}</b> – bitte den Link in der E-Mail an diese Adresse öffnen. Bis dahin gilt die bisherige Adresse.", email=current_user.pending_email) }}</div></div>{% endif %}
         <button class="btn">{{ icon("check") }} {{ _("Speichern") }}</button>
       </form>
       {% else %}

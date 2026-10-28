@@ -84,10 +84,18 @@
     if (el) el.scrollIntoView({ block: scrollTarget.dataset.scrollBlock || "start" });
   }
 
-  // Hinweise blenden sich aus – Fehler und Warnungen bleiben stehen, bis sie geschlossen werden
+  // Hinweise blenden sich nach 20 s aus – aber nicht, solange Maus oder Fokus darauf liegen.
+  // Fehler und Warnungen bleiben stehen, bis sie geschlossen werden.
   $$(".flash").forEach((el) => {
     if (el.classList.contains("error") || el.classList.contains("warning")) return;
-    setTimeout(() => { el.style.transition = "opacity .4s"; el.style.opacity = "0"; setTimeout(() => el.remove(), 400); }, 6000);
+    let hold = false;
+    const fade = () => {
+      if (hold) { setTimeout(fade, 2000); return; }
+      el.style.transition = "opacity .4s"; el.style.opacity = "0"; setTimeout(() => el.remove(), 400);
+    };
+    ["mouseenter", "focusin"].forEach((ev) => el.addEventListener(ev, () => { hold = true; }));
+    ["mouseleave", "focusout"].forEach((ev) => el.addEventListener(ev, () => { hold = false; }));
+    setTimeout(fade, 20000);
   });
 
   // Kachel-/Listenansicht im Katalog
@@ -96,7 +104,7 @@
     const apply = (v) => {
       $(".view-grid", viewTarget).classList.toggle("hide", v === "list");
       $(".view-list", viewTarget).classList.toggle("hide", v !== "list");
-      $$("[data-view]").forEach((b) => b.classList.toggle("on", b.dataset.view === v));
+      $$("[data-view]").forEach((b) => { b.classList.toggle("on", b.dataset.view === v); b.setAttribute("aria-pressed", String(b.dataset.view === v)); });
     };
     apply(store.get("inventoryView") || "list");
     $$("[data-view]").forEach((b) => b.addEventListener("click", () => { store.set("inventoryView", b.dataset.view); apply(b.dataset.view); }));
@@ -396,6 +404,9 @@
         const hit = table && Object.prototype.hasOwnProperty.call(table, input.value.trim()) ? table[input.value.trim()] : null;
         if (hit) Object.entries(hit).forEach(([k, v]) => fill(k, v));
       };
+      // „input“: Auswahl aus der Liste füllt sofort aus (Chrome meldet „change“ erst beim Verlassen des Felds);
+      // nur bei genau passendem Eintrag – beim Tippen eines Anfangs passiert nichts
+      input.addEventListener("input", apply);
       input.addEventListener("change", apply);
     });
   }

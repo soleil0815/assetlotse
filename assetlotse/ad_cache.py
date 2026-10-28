@@ -246,7 +246,7 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
             persons[id(person)] = person
 
     # 2) je Person genau ein Konto pflegen
-    demoted: list[tuple[User, str]] = []
+    demoted: list[tuple[User, str, bool]] = []
     with db.session.no_autoflush:
         for pid, users in claims.items():
             person = persons[pid]
@@ -272,15 +272,15 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
                     keep_name = user.username
                 else:
                     stats["renamed"] += 1
-            role = user.role
+            role, manages_all = user.role, bool(user.manages_all)
             reactivate = not user.active and may_reactivate(user)    # vor dem Abgleich (Kennung!) prüfen
             sync_ldap_user(person, user, ldap_groups=ldap_groups, group_sync=group_sync)
             if keep_name:
                 user.username = keep_name
             if user.last_login is None:
-                user.role = role          # noch nie selbst angemeldet: Rolle bleibt (siehe Kontoübernahme)
+                user.role, user.manages_all = role, manages_all   # noch nie selbst angemeldet: Rolle bleibt (siehe Kontoübernahme)
             elif ROLE_RANK.get(user.role, 0) < ROLE_RANK.get(role, 0):
-                demoted.append((user, role))
+                demoted.append((user, role, manages_all))
             if reactivate:
                 user.active, user.deactivated_by_sync = True, False
                 stats["reactivated"] += 1
@@ -295,9 +295,9 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
         db.session.flush()
         no_admin = User.query.filter(User.active.is_(True), User.role == ROLE_ADMIN).count() == 0
         if mass or no_admin:
-            for user, old_role in demoted:
+            for user, old_role, old_all in demoted:
                 if mass or old_role == ROLE_ADMIN:
-                    user.role = old_role
+                    user.role, user.manages_all = old_role, old_all
                     stats["roles_kept"].append(user.username)
             log.warning("AD-Abgleich: Herabstufung von %s nicht übernommen (%s) – AD-Regeln prüfen",
                         ", ".join(stats["roles_kept"]), "viele auf einmal" if mass else "kein Administrator mehr")

@@ -208,12 +208,8 @@ class SecretTests(Base):
         self.assertEqual(self.c.post(f"/gegenstaende/{other.id}/vertraulich").status_code, 200)
         self.c.post("/logout")
         self.login("admin")
-        r = self.c.post(f"/admin/gruppen/{self.hr.id}/loeschen", follow_redirects=True)
-        self.assertIn("nicht gelöscht", r.get_data(as_text=True))   # würde hans zum Verwalter von allem machen
-        self.assertIsNotNone(db.session.get(Group, self.hr.id))
-        hans = User.query.filter_by(username="hans").first()
-        hans.groups = []                                         # hans verliert seine einzige Gruppe trotzdem
-        db.session.commit()
+        self.c.post(f"/admin/gruppen/{self.hr.id}/loeschen", follow_redirects=True)
+        self.assertIsNone(db.session.get(Group, self.hr.id))     # hans verliert so seine einzige Gruppe
         self.c.post("/logout")
         self.login("hans")
         for x in (a, other):

@@ -20,7 +20,7 @@
 <form class="toolbar" method="get">
   <input type="hidden" name="ansicht" value="{{ view }}">
   {% if nur %}<input type="hidden" name="nur" value="meine">{% endif %}
-  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _('Bezeichnung, Nummer, Person …') if scope == 'alle' else _('Bezeichnung, Nummer …') }}">
+  <input class="grow" type="search" name="q" value="{{ q }}" aria-label="{{ _("Ausleihen durchsuchen") }}" placeholder="{{ _('Bezeichnung, Nummer, Person …') if scope == 'alle' else _('Bezeichnung, Nummer …') }}">
   <button class="btn">{{ icon("search") }} {{ _("Suchen") }}</button>
 </form>
 
@@ -43,7 +43,7 @@
         <td class="actions-cell">
           {% if loan.is_active %}
             {% set manager = current_user.can_manage(loan.asset) %}
-            {% if loan.due_at and (manager or (self_extend and loan.user_id == current_user.id and loan.extensions < max_ext)) %}
+            {% if loan.due_at and (manager or (self_extend and loan.asset.lendable and loan.user_id == current_user.id and loan.extensions < max_ext)) %}
             <form method="post" action="{{ url_for('loans.extend', loan_id=loan.id) }}" style="display:inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="next" value="{{ request.full_path }}">

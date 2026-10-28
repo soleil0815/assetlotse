@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from ..ldap_auth import LDAPError, authenticate, ldap_enabled, normalize_dn, rule_matches
 from .. import lockout
 from ..i18n import _
-from ..models import (MIN_PASSWORD_LENGTH, ROLE_ADMIN, Asset, Group, Loan, User, db, get_bool, get_setting,
+from ..models import (MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLE_MANAGER, Asset, Group, Loan, User, db, get_bool, get_setting,
                       manageable_assets_query, set_setting, visible_assets_query, catalog_hidden)
 from . import form_str, safe_next
 
@@ -83,6 +83,8 @@ def sync_ldap_user(info, existing: User | None, ldap_groups: list | None = None,
         # wurde, entscheidet ein Administrator (Konto von Hand aktivieren – danach wird die Kennung übernommen).
         user.ldap_guid = info.guid
     user.role = info.role
+    if info.role != ROLE_MANAGER:
+        user.manages_all = False      # sonst lebt der Haken bei einer späteren Beförderung wieder auf
     if group_sync if group_sync is not None else get_bool("ldap_group_sync"):
         user_groups = {normalize_dn(g) for g in info.groups}
         for group in (ldap_groups if ldap_groups is not None else Group.query.filter(Group.ldap_dn != "").all()):
@@ -215,22 +217,27 @@ def logout():
 
 
 def _setup_allowed() -> bool:
+    """Ersteinrichtung nur über eine DIREKTE Verbindung aus dem internen Netz (oder von localhost).
+
+    Bewusst ohne Weiterleitungs-Angaben wie X-Forwarded-For: Die kann jeder mitschicken, und von der Docker-
+    Bridge kommende Verbindungen gelten sonst als vertrauenswürdiger Proxy. Über einen Reverse-Proxy geht die
+    Einrichtung daher nicht – dann direkt im LAN öffnen oder per Befehl ein Admin-Konto anlegen (README)."""
     import ipaddress
 
     from .. import netzone
-    if netzone.is_internal():
-        return True
     env = request.environ
     orig = env.get("werkzeug.proxy_fix.orig") or {}
     proxy_headers = ("HTTP_X_FORWARDED_FOR", "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST", "HTTP_X_REAL_IP",
                      "HTTP_FORWARDED")
     if any(orig.get(h) or env.get(h) for h in proxy_headers):
-        return False          # nur echte direkte Verbindungen von localhost – nichts, was über einen Proxy kam
+        return False
     try:
-        peer = orig.get("REMOTE_ADDR") or env.get("REMOTE_ADDR") or ""
-        return ipaddress.ip_address(peer.split("%")[0]).is_loopback
+        peer = ipaddress.ip_address((orig.get("REMOTE_ADDR") or env.get("REMOTE_ADDR") or "").split("%")[0])
     except ValueError:
         return False
+    if getattr(peer, "ipv4_mapped", None):
+        peer = peer.ipv4_mapped
+    return peer.is_loopback or any(peer in n for n in netzone.internal_networks())
 
 
 @bp.route("/setup", methods=["GET", "POST"])
@@ -288,7 +295,9 @@ def dashboard():
         lent = (db.session.query(Loan.asset_id, func.count(Loan.id).label("n"))
                 .filter(Loan.returned_at.is_(None)).group_by(Loan.asset_id).subquery())
         n_lent = func.coalesce(lent.c.n, 0)
-        free = case((Asset.quantity > n_lent, Asset.quantity - n_lent), else_=0)   # nie negativ (Altdaten)
+        from ..models import lendable_clause
+        # frei = verleihbar und nicht ausgegeben (nie negativ bei Altdaten; „Kein Verleih“ zählt nie als frei)
+        free = case((lendable_clause() & (Asset.quantity > n_lent), Asset.quantity - n_lent), else_=0)
         joined = assets_q.outerjoin(lent, lent.c.asset_id == Asset.id)
         pieces, available = joined.with_entities(func.coalesce(func.sum(Asset.quantity), 0),
                                                  func.coalesce(func.sum(free), 0)).one()
@@ -343,26 +352,37 @@ def profile():
             return redirect(url_for("main.profile"))
         current_user.display_name = name
         if mail.lower() != (current_user.email or "").lower():
+            from .register import _allowed_domain, email_taken, needs_verification, send_email_change
+            if mail and email_taken(mail, current_user):
+                db.session.rollback()
+                flash(_("Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet."), "error")
+                return redirect(url_for("main.profile"))
             if current_user.self_registered:
-                # gleiche Regeln wie bei der Registrierung: Adresse Pflicht, erlaubte Domain, nur einmal vergeben,
-                # und – wenn dort eine Bestätigung verlangt wird – erst nach Klick auf den Link übernommen
-                from .register import _allowed_domain, email_taken, needs_verification, send_email_change
+                # gleiche Regeln wie bei der Registrierung: Adresse Pflicht, erlaubte Domain und – wenn dort eine
+                # Bestätigung verlangt wird – erst nach Klick auf den Link übernommen
                 if not mail or not _allowed_domain(mail):
+                    db.session.rollback()
                     flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
-                    return redirect(url_for("main.profile"))
-                if email_taken(mail, current_user):
-                    flash(_("Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet."), "error")
                     return redirect(url_for("main.profile"))
                 if needs_verification():
                     db.session.commit()                    # der Name gilt sofort
-                    if send_email_change(current_user, mail):
-                        flash(_("Wir haben einen Bestätigungslink an {email} geschickt. Die neue Adresse gilt, "
-                                "sobald du ihn öffnest.", email=mail), "info")
+                    result = send_email_change(current_user, mail)
+                    if result == "sent":
+                        flash(_("Gespeichert. Wir haben einen Bestätigungslink an {email} geschickt – die neue "
+                                "Adresse gilt, sobald du ihn öffnest.", email=mail), "info")
+                    elif result == "limit":
+                        flash(_("Name gespeichert. Zu viele Änderungen der E-Mail-Adresse – bitte in einer Stunde "
+                                "noch einmal versuchen."), "error")
+                    elif result == "no_base":
+                        flash(_("Name gespeichert. Die neue E-Mail-Adresse kann gerade nicht bestätigt werden, weil "
+                                "der Mailversand nicht vollständig eingerichtet ist – bitte die Administration "
+                                "informieren."), "error")
                     else:
-                        flash(_("Die Bestätigungs-E-Mail konnte nicht gesendet werden – die Adresse bleibt "
-                                "unverändert. Bitte später noch einmal versuchen."), "error")
+                        flash(_("Name gespeichert. Die Bestätigungs-E-Mail konnte nicht gesendet werden – die Adresse "
+                                "bleibt unverändert. Bitte später noch einmal versuchen."), "error")
                     return redirect(url_for("main.profile"))
             current_user.email = mail
+            current_user.pending_email = ""
         db.session.commit()
         flash(_("Deine Angaben wurden gespeichert."), "success")
         return redirect(url_for("main.profile"))

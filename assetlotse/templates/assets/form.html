@@ -33,13 +33,13 @@
             <div class="number-hint" data-number-hint aria-live="polite"></div>
             {% if offers.inventory_no %}{% set o = offers.inventory_no %}<label class="check take-over"><input type="checkbox" name="take_inventory_no" value="{{ o.asset.id }}" {{ "checked" if o.checked }}>
               {{ _("Bei „{name}“ entfernen und hier eintragen", name=o.asset.name) }}</label>
-              <a class="hint" href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=o.asset.name) }}</a>{% endif %}</div>
+              <a href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=o.asset.name) }}</a>{% endif %}</div>
           <div class="field span-3"><label for="f-serial-number">{{ _("Seriennummer") }}</label><input id="f-serial-number" class="code-input" type="text" name="serial_number" value="{{ asset.serial_number or '' }}" maxlength="200"
                    autocomplete="off" data-number-check="{{ url_for('assets.check_number') }}" data-field="serial_number" data-except="{{ asset.id or '' }}">
             <div class="number-hint" data-number-hint aria-live="polite"></div>
             {% if offers.serial_number %}{% set o = offers.serial_number %}<label class="check take-over"><input type="checkbox" name="take_serial_number" value="{{ o.asset.id }}" {{ "checked" if o.checked }}>
               {{ _("Bei „{name}“ entfernen und hier eintragen", name=o.asset.name) }}</label>
-              <a class="hint" href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=o.asset.name) }}</a>{% endif %}</div>
+              <a href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=o.asset.name) }}</a>{% endif %}</div>
           <div class="field span-6"><label for="f-description">{{ _("Beschreibung / Zubehör") }}</label><textarea id="f-description" name="description" placeholder="{{ _("z. B. mit Netzteil und Tasche; Zustand; Garantie bis …") }}">{{ asset.description or '' }}</textarea></div>
         </div>
         <div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">
@@ -55,7 +55,7 @@
         {% if asset.has_secret %}
         <div class="notice accent" style="margin-bottom: 12px">{{ icon("lock") }}<div>{{ _("Es sind bereits vertrauliche Angaben hinterlegt. Das Feld bleibt leer – nur ausfüllen, um sie zu ersetzen.") }}</div></div>
         {% endif %}
-        <div class="field"><textarea name="secret" rows="3" maxlength="4000" class="code-input" spellcheck="false" autocomplete="off"
+        <div class="field"><textarea name="secret" aria-label="{{ _("Vertrauliche Angaben") }}" rows="3" maxlength="4000" class="code-input" spellcheck="false" autocomplete="off"
              placeholder="{{ _("neu eingeben, um zu ersetzen") if asset.has_secret else _("z. B. 123456-123456-123456-123456-123456-123456-123456-123456") }}"></textarea></div>
         <input type="hidden" name="secret_holder_view_shown" value="1">
         <label class="check" style="margin-top: 10px"><input type="checkbox" name="secret_holder_view" value="1" {{ "checked" if asset.secret_holder_view }}>
@@ -87,14 +87,14 @@
           </select>
           <div class="hint">{{ _('Fehlt ein Standort? <a href="{url}" target="_blank">Standorte verwalten</a>', url=url_for('locations.index')) }}</div>
           {% else %}
-          <input type="text" name="location" value="{{ asset.location or '' }}" placeholder="{{ _("z. B. Raum 2.14, Schrank B") }}">
+          <input id="f-location" type="text" name="location" value="{{ asset.location or '' }}" placeholder="{{ _("z. B. Raum 2.14, Schrank B") }}">
           <div class="hint">{{ _('Tipp: Unter <a href="{url}">Standorte</a> eine feste Liste anlegen – dann wird hier ausgewählt statt getippt.', url=url_for('locations.index')) }}</div>
           {% endif %}</div>
       </section>
 
       <section class="card card-pad">
         <h3 style="margin-bottom: 14px">{{ _("Foto") }}</h3>
-        <div style="display: grid; grid-template-columns: 90px 1fr; gap: 14px; align-items: start">
+        <div class="photo-grid" style="display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 14px; align-items: start">
           <div>{{ thumb(asset) }}</div>
           <div>
             <div class="field"><label for="f-image-upload">{{ _("Bild hochladen") }}</label><input id="f-image-upload" type="file" name="image_upload" accept="image/*"></div>

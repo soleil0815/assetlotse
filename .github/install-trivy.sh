@@ -12,7 +12,8 @@ url="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/t
 mkdir -p "$dest"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
-curl -fsSL --retry 3 -o "$tmp/trivy.tar.gz" "$url"
+curl -fsSL --retry 3 -o "$tmp/trivy.tar.gz" "$url" \
+  || { echo "::error title=Trivy::download of Trivy ${TRIVY_VERSION} failed – usually temporary: run the workflow again"; exit 1; }
 if ! echo "${TRIVY_SHA256}  $tmp/trivy.tar.gz" | sha256sum -c --quiet -; then
   echo "::error title=Trivy::download does not match the fixed SHA-256 – not run"
   exit 1

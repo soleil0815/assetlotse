@@ -49,14 +49,17 @@ def norm(name: str) -> str:
 
 
 # ---------------------------------------------------------------- version limits
-def upper_bound(version: str) -> str | None:
+CALENDAR_NAMES = {"pip"}    # calendar versions by name: pip counts YY.N (26.2 = 2026)
+
+
+def upper_bound(version: str, name: str = "") -> str | None:
     """Exclusive upper limit for updates: same major version, before 1.0 the same minor version,
     no limit for calendar versions."""
     m = re.match(r"(\d+)(?:\.(\d+))?", version)
     if not m:
         raise ValueError(f"cannot read version {version!r}")
     major, minor = int(m.group(1)), int(m.group(2) or 0)
-    if major >= CALENDAR_FROM:
+    if major >= CALENDAR_FROM or norm(name) in CALENDAR_NAMES:
         return None
     if major == 0:
         return f"0.{minor + 1}"
@@ -64,7 +67,7 @@ def upper_bound(version: str) -> str | None:
 
 
 def constraint(name: str, version: str) -> str:
-    upper = upper_bound(version)
+    upper = upper_bound(version, name)
     return f"{name}>={version}" + (f",<{upper}" if upper else "")
 
 
@@ -72,11 +75,11 @@ def _key(version: str) -> tuple:
     return tuple(int(x) for x in re.findall(r"\d+", version))
 
 
-def within_limits(old: str, new: str) -> bool:
+def within_limits(old: str, new: str, name: str = "") -> bool:
     """True if `new` is allowed as an update of `old` (not lower, not beyond the limit)."""
     if _key(new) < _key(old):
         return False
-    upper = upper_bound(old)
+    upper = upper_bound(old, name)
     return upper is None or _key(new) < _key(upper)
 
 
@@ -326,9 +329,9 @@ def refresh(root: Path = ROOT, report_path: str | None = None) -> list[dict]:
     if not new["debian"].endswith(" " + codename):
         raise SystemExit(f"Debian {new['debian']} is not {codename} – stopped")
     for name, (_, version) in new["pins"].items():
-        if name in state["pins"] and not within_limits(state["pins"][name][1], version):
+        if name in state["pins"] and not within_limits(state["pins"][name][1], version, name):
             raise SystemExit(f"{name} {state['pins'][name][1]} -> {version} is outside the limit – stopped")
-    if not within_limits(state["pip"], new["pip"]):
+    if not within_limits(state["pip"], new["pip"], "pip"):
         raise SystemExit(f"pip {state['pip']} -> {new['pip']} is outside the limit – stopped")
 
     changes = []
@@ -359,16 +362,67 @@ def refresh(root: Path = ROOT, report_path: str | None = None) -> list[dict]:
     return changes
 
 
+def older_than(old: dict, new: dict) -> list[str]:
+    """What in `new` is OLDER than in `old` (the newest published build) – a new program version must never
+    ship older packages than what servers already run."""
+    problems = []
+    if (new["major"], new["minor"], new["patch"]) < (old["major"], old["minor"], old["patch"]):
+        problems.append(f"base image Python {new['major']}.{new['minor']}.{new['patch']} is older than "
+                        f"{old['major']}.{old['minor']}.{old['patch']}")
+    for key, label in (("snapshot", "Debian snapshot"), ("security", "Debian security snapshot")):
+        if old[key] != "none" and new[key] != "none" and new[key] < old[key]:
+            problems.append(f"{label} {new[key]} is older than {old[key]}")
+    if _key(new["pip"]) < _key(old["pip"]):
+        problems.append(f"pip {new['pip']} is older than {old['pip']}")
+    for name, (_, version) in old["pins"].items():
+        if name in new["pins"] and _key(new["pins"][name][1]) < _key(version):
+            problems.append(f"{name} {new['pins'][name][1]} is older than {version}")
+    return problems
+
+
+def _github_error(title: str):
+    """Exit messages as annotations on the run page (GitHub Actions), so the cause is readable there."""
+    def wrap(fn):
+        def run(*a, **k):
+            try:
+                return fn(*a, **k)
+            except SystemExit as e:
+                if isinstance(e.code, str) and os.environ.get("GITHUB_ACTIONS"):
+                    print(f"::error title={title}::{e.code}")
+                    raise SystemExit(1) from None
+                raise
+            except Exception as e:  # noqa: BLE001 – network, Docker, pip: one readable line on the run page
+                if os.environ.get("GITHUB_ACTIONS"):
+                    print(f"::error title={title}::{type(e).__name__}: {e}")
+                raise
+        return run
+    return wrap
+
+
+@_github_error("scripts/lock.py")
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("refresh", help="set new versions within the limits (Docker + Internet)")
     r.add_argument("--report", help="write the list of changes as JSON")
     sub.add_parser("check", help="offline consistency check")
+    o = sub.add_parser("not-older", help="fail if anything is older than in a git commit (the newest published build)")
+    o.add_argument("--than", required=True)
     c = sub.add_parser("changes", help="content changes against a git commit (e.g. the last published release)")
     c.add_argument("--since", required=True)
     c.add_argument("--report", required=True)
     args = ap.parse_args(argv)
+    if args.cmd == "not-older":
+        try:
+            old = state_at(args.than, ROOT)
+        except (SystemExit, subprocess.CalledProcessError):
+            print(f"{args.than}: no locked state to compare with – skipped", file=sys.stderr)
+            return 0
+        problems = older_than(old, read_state(ROOT))
+        if problems:
+            raise SystemExit(f"This version would ship OLDER packages than the published {args.than}: "
+                             + "; ".join(problems) + " – merge the newest lock files (git pull) and push again")
+        return 0
     if args.cmd == "changes":
         changes = compare(state_at(args.since, ROOT), read_state(ROOT))
         Path(args.report).write_text(json.dumps({"changed": bool(changes), "changes": changes}, indent=1) + "\n")

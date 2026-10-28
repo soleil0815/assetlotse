@@ -77,6 +77,10 @@ class User(UserMixin, db.Model):
     # sobald die Person im AD wieder berechtigt ist. Von Hand gesperrte Konten bleiben gesperrt.
     deactivated_by_sync = db.Column(db.Boolean, default=False, nullable=False)
     role = db.Column(db.String(20), default=ROLE_READER, nullable=False)
+    # Verwalter des gesamten Bestands (alle Gruppen) – nur ausdrücklich gesetzt, nie nebenbei: Früher galt
+    # „Verwalter ohne Gruppe“ als Verwalter von allem; dann reichte es, jemandem die letzte Gruppe zu nehmen
+    # (z. B. über den AD-Abgleich), und er verwaltete plötzlich alle Gruppen.
+    manages_all = db.Column(db.Boolean, default=False, nullable=False)
     active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     last_login = db.Column(db.DateTime)
@@ -96,6 +100,8 @@ class User(UserMixin, db.Model):
     language = db.Column(db.String(5), default="", nullable=False)
     # Neuigkeiten: bis zu dieser Programmversion gelesen ("" = noch nie geöffnet)
     news_seen = db.Column(db.String(20), default="", nullable=False)
+    # Neue E-Mail-Adresse, die noch per Link bestätigt werden muss (selbst registrierte Konten)
+    pending_email = db.Column(db.String(200), default="", nullable=False)
 
     groups = db.relationship("Group", secondary=user_groups, back_populates="users")
     loans = db.relationship("Loan", back_populates="user", foreign_keys="Loan.user_id")
@@ -150,8 +156,9 @@ class User(UserMixin, db.Model):
 
     @property
     def is_global_manager(self) -> bool:
-        """Admins und Verwalter ohne Gruppenzuordnung verwalten den gesamten Bestand."""
-        return self.is_admin or (self.role == ROLE_MANAGER and not self.groups)
+        """Admins und ausdrücklich so eingestellte Verwalter („gesamter Bestand“) verwalten alles. Ein Verwalter
+        ohne Gruppe und ohne diesen Haken verwaltet nur allgemeine Gegenstände."""
+        return self.is_admin or (self.role == ROLE_MANAGER and bool(self.manages_all))
 
     def can_see(self, asset: "Asset", catalog_all: bool = False) -> bool:
         if catalog_all or self.is_global_manager or asset.group_id is None:
@@ -720,6 +727,17 @@ def ensure_indexes() -> bool:
             "Eindeutiger Index für offene Ausleihen nicht angelegt (doppelte offene Ausleihen vorhanden?): %s", exc)
         ok = False
     return ok
+
+
+def migrate_manages_all() -> int:
+    """Einmalig beim Nachrüsten der Spalte users.manages_all: Wer bisher als Verwalter ohne Gruppe den gesamten
+    Bestand verwaltet hat, behält das – ausdrücklich gesetzt. Ab dann zählt nur noch der Haken."""
+    from sqlalchemy import exists, select, true, update
+    no_group = ~exists(select(user_groups.c.user_id).where(user_groups.c.user_id == User.id))
+    res = db.session.execute(update(User).where(User.role == ROLE_MANAGER, no_group).values(manages_all=true())
+                             .execution_options(synchronize_session=False))
+    db.session.commit()
+    return res.rowcount or 0
 
 
 def ensure_columns() -> list[str]:

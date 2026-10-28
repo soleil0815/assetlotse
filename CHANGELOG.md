@@ -2,6 +2,46 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 1.12.0 – 2026-10-28
+
+Ergebnis eines vollständigen Code-Reviews.
+
+**Geändert**
+- **„Verwaltet den gesamten Bestand“ ist ein eigener Haken** beim Benutzer. Bisher galt ein Verwalter ohne Gruppe
+  automatisch als zuständig für alles – verlor er seine letzte Gruppe (etwa durch den AD-Abgleich), sah er plötzlich
+  den ganzen Bestand. Jetzt verwaltet er dann nichts. Verwalter, die beim Update keine Gruppe haben, bekommen den
+  Haken einmalig automatisch, damit sich für sie nichts ändert. Wird jemand (auch über das AD) zu einer anderen
+  Rolle, verschwindet der Haken.
+- **Ersteinrichtung nur direkt:** `/setup` ist nur noch von localhost oder direkt aus dem internen Netz erreichbar;
+  Proxy-Kopfzeilen (`X-Forwarded-For`) werden dafür nicht mehr beachtet.
+- **Image ohne apt:** Paketverwaltung (apt, libapt-pkg) wird nach der Installation entfernt.
+- Hinweise oben auf der Seite verschwinden nach 20 Sekunden (bleiben stehen, solange die Maus darauf ist).
+  Fehler bleiben stehen.
+
+**Korrigiert**
+- **E-Mail-Änderung im Profil:** höchstens drei Bestätigungsmails pro Stunde; nur der neueste Link gilt und nur
+  einmal; Domain und Eindeutigkeit werden beim Klick erneut geprüft; die wartende Adresse steht im Profil. Die Mail
+  enthält keinen frei wählbaren Text mehr. Jede Adresse gilt jetzt für alle lokalen Konten nur einmal.
+- Gegenstände in Gruppen mit „Kein Verleih“ zählen nicht mehr als „verfügbar“ (Filter und Startseite) und lassen
+  sich von Ausleihenden nicht selbst verlängern.
+- Ausgabetheke: Hat die gewählte Person den Gegenstand schon, ist „Ausgeben“ gesperrt („hat ihn schon“); ein
+  nicht erreichbares AD führt zu einer Meldung statt eines Fehlers; nach einer abgelehnten Ausgabe bleibt die Person
+  gewählt; Höchstzahl an Ausleihen auch bei gleichzeitigen Ausgaben (PostgreSQL) eingehalten.
+- Aufbewahrungsfristen löschen nur, wenn die Sicherung am selben Tag erfolgreich war und danach keine scheiterte.
+- Die tägliche Übersicht an Verwalter läuft weiter, wenn sie für einen einzelnen Verwalter scheitert.
+- Der Hinweis zum Abschalten von Benachrichtigungen steht nur noch in Ausleih-Mails.
+- Bedienung: Beschriftungen für Bildschirmleser an Such- und Filterfeldern, Fotos und Ausgabezeile auch auf schmalen
+  Bildschirmen, „Foto entfernen“ bleibt nach einem Fehler gewählt.
+
+**Build und Update**
+- Ein Release darf keine älteren Pakete enthalten als das zuletzt veröffentlichte Sicherheitsupdate.
+- Wiederholte Läufe veröffentlichen nicht doppelt; fehlende GitHub-Releases werden nachgetragen; ein
+  Sicherheitsupdate wird nicht veröffentlicht, wenn sich `main` während des Laufs geändert hat.
+- Prüfläufe (Scan, manuell) warten nicht mehr auf Veröffentlichungen. Fehler zeigen eine lesbare Meldung.
+- pip wird als Kalenderversion behandelt (neue Jahresversion ist kein Versionssprung).
+- `update.sh` kennt Sicherheitsupdates (`--version 1.12.0-s1`), kehrt bei Problemen zum vorher laufenden Build zurück
+  und prüft, ob alle Build-Dateien vorhanden sind.
+
 ## 1.11.0 – 2026-10-27
 
 **Neu**

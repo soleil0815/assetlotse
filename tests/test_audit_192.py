@@ -65,16 +65,31 @@ class DataIntegrityTests(Base):
         self.assertEqual(note.call_count, 1)
         self.assertEqual(db.session.get(Loan, loan.id).returned_at, stamp)
 
-    def test_group_delete_does_not_turn_manager_into_global_manager(self):
+    def test_losing_the_last_group_never_makes_a_global_manager(self):
+        """Ohne ausdrücklichen Haken „gesamter Bestand“ verwaltet ein Verwalter ohne Gruppe nur Allgemeines –
+        egal ob die Gruppe gelöscht, im Formular entfernt oder vom AD-Abgleich genommen wird."""
+        other = self.laptop(secret=None, group_id=self.it.id)
         self.login("admin")
-        r = self.c.post(f"/admin/gruppen/{self.hr.id}/loeschen", follow_redirects=True)
-        self.assertIn("nicht gelöscht", r.get_data(as_text=True))
-        self.assertIsNotNone(db.session.get(Group, self.hr.id))
-        empty = Group(name="Leer")
-        db.session.add(empty)
+        self.c.post(f"/admin/gruppen/{self.hr.id}/loeschen")
+        self.assertIsNone(db.session.get(Group, self.hr.id))
+        hans = User.query.filter_by(username="hans").one()
+        self.assertFalse(hans.groups)
+        self.assertFalse(hans.is_global_manager)
+        self.assertFalse(hans.can_manage(other))
+        self.login("hans")
+        self.assertEqual(self.c.get(f"/gegenstaende/{other.id}/bearbeiten").status_code, 403)
+
+    def test_manages_all_only_when_ticked_and_kept_on_update(self):
+        from assetlotse.models import migrate_manages_all, user_groups
+        lone = User(username="lone", role="manager")
+        db.session.add(lone)
         db.session.commit()
-        self.c.post(f"/admin/gruppen/{empty.id}/loeschen")
-        self.assertIsNone(db.session.get(Group, empty.id))
+        self.assertFalse(lone.is_global_manager)
+        self.assertEqual(migrate_manages_all(), 1)       # beim Update: wer bisher alles verwaltet hat, behält es
+        db.session.expire_all()
+        self.assertTrue(User.query.filter_by(username="lone").one().is_global_manager)
+        self.assertFalse(User.query.filter_by(username="vera").one().manages_all)   # hat Gruppen: unverändert
+        del user_groups
 
     def test_unique_conflict_gives_message_not_500(self):
         from sqlalchemy.exc import IntegrityError

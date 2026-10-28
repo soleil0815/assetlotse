@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.11.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 1.12.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -92,8 +92,9 @@ docker login ghcr.io -u soleil0815        # password = the token
 ```bash
 ./update.sh --pull                  # newest version (then follows latest)
 ./update.sh --pull --version 1.8.1  # pin a version, also to go back
+./update.sh --pull --version 1.12.0-s2  # pin exactly one security update
 ```
-The script backs up the database, pulls the image, takes `update.sh`, `docker-compose.yml` & co. out of the image (so the installation files stay current), restarts and removes old images. Which image runs is recorded in `.env` (`ASSETLOTSE_IMAGE`, `ASSETLOTSE_TAG` – managed by `update.sh`). Another repository (e.g. a fork): `--image ghcr.io/NAME/REPO`.
+The script backs up the database, pulls the image, takes `update.sh`, `docker-compose.yml` & co. out of the image (so the installation files stay current), restarts and removes old images. Pinning a security update (`-sN`) needs 1.12.0 or newer – run `./update.sh --pull` once first. Which image runs is recorded in `.env` (`ASSETLOTSE_IMAGE`, `ASSETLOTSE_TAG` – managed by `update.sh`). Another repository (e.g. a fork): `--image ghcr.io/NAME/REPO`.
 
 **Both ways keep working:** `./update.sh assetlotse-X.Y.Z.zip` builds locally as before – the image is then called `assetlotse:X.Y.Z`, never like the GitHub image, so no update tool replaces it. The next `--pull` switches back to GitHub.
 
@@ -109,7 +110,7 @@ Goal: the image stays secure and up to date by itself, **without version jumps**
 - **Base image** with a fixed version **and** checksum: `ARG PYTHON_IMAGE=python:3.13.<n>-slim-trixie@sha256:…` in the `Dockerfile`.
 - **All Debian packages** of the image – including those of the base image – are listed with exact versions in `build/debian-packages.lock`. They are installed from one fixed state of the Debian archive (`snapshot.debian.org`, the timestamp is in the file); if any package differs, the build stops.
 - **All Python packages** including all sub-dependencies are pinned exactly in `requirements.txt`, `pip` itself as `ARG PIP_VERSION` in the `Dockerfile`. They are installed with `--no-deps` and `--only-binary`, then `pip check` runs.
-- **Nothing that is not needed at runtime stays in the image:** `pip` and `ensurepip` are removed after the installation. (Debian's package management stays: it is part of the operating system, and the vulnerability scan needs its package list.)
+- **Nothing that is not needed at runtime stays in the image:** the package managers `pip`, `ensurepip` and `apt` are removed after the installation. (`dpkg` with its package list stays: it is part of the base system, and the vulnerability scan reads the installed packages from it.)
 - **Setting new versions** – within the limits below – is done by `scripts/lock.py refresh` (needs Docker and Internet). On GitHub without a local Docker: *Actions → Docker image → Run workflow → relock*; the result is committed to `main` and tested and published with the next version. `scripts/lock.py check` checks the files offline.
 
 **Limits (the "base").** Automatic updates only happen **within** the base:
@@ -130,11 +131,11 @@ Nobody raises the base silently (e.g. Python 3.14, Debian 14 or a new major vers
 
 **Security of the workflow.** All actions are pinned to commit checksums; every job has only the permissions it needs (write access only for the steps that publish); tests and Trivy never run in a job with write access; git credentials are not stored; publishing only from the branch `main`, never two runs at the same time; a published version is never overwritten, `latest` only points to the highest version.
 
-**One-time setup** (on GitHub, *Settings → Environments*): restrict the environment `release` – it is created by the first run – to the branch `main` under *Deployment branches and tags*. Then not even a changed workflow on another branch can publish anything.
+**Only from the branch `main`:** the workflow only publishes runs from `main` (checked in `scripts/ci.py`). GitHub offers the additional lock via the environment `release` (*Settings → Environments → Deployment branches*) for private repositories only with GitHub Pro, Team or Enterprise; without it, a workflow changed on another branch and started by hand could still publish. So only give trusted people write access to the repository.
 
 **Building on your own server** (`./update.sh` with a zip, without `--pull`) uses the same pinned versions and therefore needs HTTPS access to `snapshot.debian.org`. The Debian package list applies to `amd64`; on another processor (e.g. `arm64`) the same state is installed, but the list is not compared. If a run stops in the middle of publishing, the next run completes what is missing (`latest` and `<minor>` are moved, nothing is rebuilt).
 
-**When a run is red.** Red always means: **nothing was published**, the servers keep the previous version. GitHub sends an e-mail; the cause is shown briefly on the run (*Actions* → run → annotations at the top and summary).
+**When a run is red.** Red before the *publish* step means: **nothing was published**, the servers keep the previous version. If a run stops while publishing (e.g. a network error), *Re-run failed jobs* or the next run completes what is missing – missing tags (`latest`, `<minor>`) and the release page are added, nothing is rebuilt. GitHub sends an e-mail; the cause is shown briefly on the run (*Actions* → run → annotations at the top and summary).
 
 | What the run says | What to do |
 |---|---|
@@ -144,7 +145,9 @@ Nobody raises the base silently (e.g. Python 3.14, Debian 14 or a new major vers
 | *Base ends soon* (red) / *within a year* (yellow) | Debian or Python will soon stop getting security updates: plan the switch to the next base as a new version. |
 | *unreleased program changes* | `main` holds changes without a new version number: raise the version and push. |
 | *the scan itself failed*, network or download errors | Usually temporary: run it again (*Re-run jobs*). |
-| *exists already* | This version exists already – raise the version number. |
+| *exists already with another image* | This version number is already published with another image – raise the version number. |
+| *would ship OLDER packages* | The new version would have older packages than the last published security update (e.g. because an older copy was pushed): `git pull` so the newest pinned versions and the CHANGELOG are included, then push again. |
+| *main changed while this run was going* | Something new arrived on `main` during the security update – nothing published; the next run repeats it. |
 
 ### Without Docker (Linux)
 
@@ -273,7 +276,7 @@ Under *Inventory*, managers can download the inventory of their groups as **CSV*
 
 - **Renaming** updates all affected items. **Deleting** is only possible once no item is located there.
 - **Locations typed freely earlier** appear under *In stock, but not defined*. Adopt them as a location or replace them with a defined one – the items are updated too. For a different spelling (“room 2.14”) or a typo (“rom 2.14”) the matching location is preselected.
-- Group managers can add locations; renaming and replacing that affects items of other groups is reserved for administrators and managers without a group.
+- Group managers can add locations; renaming and replacing that affects items of other groups is reserved for administrators and managers of the entire inventory.
 - The **inventory** can be filtered by location.
 - Without defined locations the field stays a free text field.
 
@@ -282,7 +285,7 @@ Under *Inventory*, managers can download the inventory of their groups as **CSV*
 | Role | Can |
 |---|---|
 | **Staff member** | “My items” (by default only these, no inventory); depending on the setting view the inventory and, with self-service checkout enabled, check out, extend and return items |
-| **Manager** | Add/edit/delete items, issue, check in, use the issue desk, confidential details, export – for the items of **their groups** and general items. A manager **without** a group manages the entire inventory. |
+| **Manager** | Add/edit/delete items, issue, check in, use the issue desk, confidential details, export – for the items of **their groups** and general items. A manager manages the **entire** inventory only with *Manages the entire inventory* ticked in the user account – never as a side effect, e.g. because AD removed all their groups (on the update to 1.12.0, existing managers without a group got the box ticked automatically). |
 | **Administrator** | Everything, plus users, groups, settings and Active Directory |
 
 **Groups** are e.g. departments or teams. Every item either belongs to a group or is **general**. General items can be issued to everyone, group items only to members of that group. Under *Settings → Inventory visibility* you decide whether staff members see only their own items (default), their groups' items and general items, or the whole inventory (issuing stays restricted either way).

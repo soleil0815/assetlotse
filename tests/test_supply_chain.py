@@ -175,7 +175,7 @@ class RefreshTests(unittest.TestCase):
         before = self.files()
         for change in ({"pins": {"flask": ("Flask", "4.0.0"), "certifi": ("certifi", "2026.10.19")}},
                        {"pins": {"flask": ("Flask", "3.1.2"), "certifi": ("certifi", "2026.10.19")}},
-                       {"python": "3.14.0"}, {"debian": "14 forky"}, {"pip": "27.0"}):
+                       {"python": "3.14.0"}, {"debian": "14 forky"}, {"pip": "26.1"}):
             with self.subTest(change=change):
                 saved = json.loads(json.dumps(self.result))
                 self.result.update(change)
@@ -564,11 +564,12 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue("--entrypoint python assetlotse:scan -m pytest" in self.J["test"])
         self.assertIn(".github/trivy-scan.sh", self.J["scan"])
         for name in ("build", "publish"):
-            self.assertNotIn("trivy", self.J[name].lower())
+            self.assertNotIn("install-trivy", self.J[name])
+            self.assertNotIn("trivy-scan", self.J[name])
 
     def test_never_overwrite_and_latest_last(self):
         pub = self.J["publish"]
-        check = pub.index('python3 scripts/ci.py registry-digest')
+        check = pub.index('python3 scripts/ci.py registry-config')
         self.assertLess(check, pub.index('docker push -q "$first"'))
         self.assertIn('if [ "$state" != missing ]', pub)                     # fails closed
         self.assertNotIn("imagetools inspect", WF)                            # its errors would look like "missing"
@@ -583,7 +584,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertLess(pub.index('for t in "${tags[@]:1}"'), pub.index("gh release create"))
         self.assertIn('--verify-tag', pub)
         self.assertIn('[[ ",${TAGS}," != *":latest,"* ]] || latest=true', pub)
-        self.assertNotIn("gh release", "".join(v for k, v in self.J.items() if k != "publish"))
+        self.assertNotIn("gh release", "".join(v for k, v in self.J.items() if k not in ("publish", "repair")))
         self.assertIn('[ "$VERSION_EXISTS" = true ]', self.J["build"])
         self.assertIn("points to another commit", self.J["build"])
 
