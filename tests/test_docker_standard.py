@@ -231,6 +231,47 @@ class UpdateTests(FakeDocker):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertEqual(self.env()["ASSETLOTSE_TAG"], "2.0.0")
 
+    def test_clean_install_gets_no_cleanup_hint(self):
+        r = self.run_update("-y")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertNotIn("--cleanup", r.stdout)                 # its own temporary folder does not count
+        self.assertEqual([p.name for p in self.inst.iterdir() if p.name.startswith(".update")], [])
+
+    def test_offline_file_relative_to_where_it_is_called(self):
+        (self.tmp / "dl").mkdir()
+        (self.tmp / "dl" / "img.tar.gz").write_text(f"{IMAGE}:2.1.0 v21\n")
+        e = dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}", FAKE_STATE=str(self.state),
+                 ASSETLOTSE_HEALTH_TIMEOUT="3")
+        r = subprocess.run([SH, str(self.inst / "update.sh"), "-y", "--offline", "img.tar.gz"], cwd=self.tmp / "dl",
+                           env=e, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.running(), "v21")
+
+    def test_previous_is_only_moved_by_a_real_change(self):
+        prev = self.state / "tags" / f"{IMAGE}:previous".replace("/", "_")
+        self.assertEqual(self.run_update("-y").returncode, 0)
+        self.assertEqual(prev.read_text().strip(), "old")
+        r = self.run_update("-y")                                # nothing new: previous stays the old version
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(prev.read_text().strip(), "old")
+        r = self.run_update("--rollback")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.running(), "old")
+
+    def test_going_back_also_takes_the_previous_compose_file(self):
+        v2 = (ROOT / "docker-compose.yml").read_text()
+        v3 = v2.replace('ASSETLOTSE_COMPOSE_VERSION: "2"', 'ASSETLOTSE_COMPOSE_VERSION: "3"') + "# v3\n"
+        (self.inst / "docker-compose.yml").write_text(v2)
+        self.image("cur", "2.0.0", compose=v2)
+        (self.state / "running").write_text("cur\n")
+        self.image("v3img", "3.0.0", compose=v3, health="unhealthy")
+        self.publish("v3img", "latest")
+        r = self.run_update("-y")
+        self.assertEqual(r.returncode, 1)
+        self.assertEqual(self.running(), "cur")
+        self.assertEqual((self.inst / "docker-compose.yml").read_text(), v2)
+        self.assertEqual((self.inst / "docker-compose.yml.alt").read_text(), v3)
+
     def test_script_is_plain_sh_and_builds_nothing(self):
         s = (ROOT / "update.sh").read_text()
         self.assertTrue(s.startswith("#!/bin/sh\n"))
@@ -254,7 +295,8 @@ class CleanupTests(FakeDocker):
                   "assetlotse-1.2 (1).zip", "assetlotse-1.9.0.zip.sha256"):
             (i / f).write_text("x")
         (i / ".assetlotse-update.abc").mkdir()
-        (i / "assetlotse-1.8.0").mkdir()                      # an unpacked package
+        (i / "assetlotse-1.8.0" / "assetlotse").mkdir(parents=True)     # an unpacked package
+        (i / "assetlotse-1.8.0" / "assetlotse" / "__init__.py").write_text("x")
         (i / "data" / "backups").mkdir()
         (i / "data" / "backups" / "b.db").write_text("backup")
         (i / "instance").mkdir()                              # data folder of very old versions
@@ -304,6 +346,28 @@ class CleanupTests(FakeDocker):
         self.assertIn("packages  (protected", r.stdout)
         self.assertIn("tests  (contains links", r.stdout)
         self.assertEqual((self.state / "removed_images").read_text(), "assetlotse:1.11.0\n")
+
+    def test_a_mount_of_a_folder_above_does_not_block_everything(self):
+        # e.g. a container manager with its stacks folder, or a monitoring agent with "/"
+        (self.state / "mounts").write_text(f"/\n{self.tmp}\n{self.inst}\n{self.inst / 'data'}\n")
+        r = self.run_update("--cleanup", "-y")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertFalse((self.inst / "assetlotse").exists())
+        self.assertFalse((self.inst / "packages").exists())          # no longer mounted here
+        self.assertEqual((self.inst / "data" / "assetlotse.db").read_text(), "db")
+
+    def test_only_real_unpacked_packages_without_data(self):
+        own = self.inst / "assetlotse-1.11-backup"                   # made by hand, holds a database
+        (own / "assetlotse").mkdir(parents=True)
+        (own / "assetlotse" / "__init__.py").write_text("x")
+        (own / "assetlotse.db").write_text("db")
+        other = self.inst / "assetlotse-2-notes"                     # not a package
+        other.mkdir()
+        r = self.run_update("--cleanup", "-y")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertTrue((own / "assetlotse.db").exists())
+        self.assertTrue(other.exists())
+        self.assertFalse((self.inst / "assetlotse-1.8.0").exists())
 
     def test_backup_dir_from_env_is_protected(self):
         (self.state / "mounts").write_text("")

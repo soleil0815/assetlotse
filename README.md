@@ -32,7 +32,7 @@ AssetLotse läuft als Docker-Container. Das Programm steckt komplett im fertigen
 ### Installation
 
 1. Einen Ordner anlegen, z. B. `/opt/assetlotse` (auf einer Synology z. B. `/volume1/docker/assetlotse`).
-2. Aus dem neuesten [Release](https://github.com/soleil0815/assetlotse/releases/latest) **`docker-compose.yml`** und **`.env.example`** dort ablegen, `.env.example` als **`.env`** speichern und nach Bedarf anpassen (Port, Zeitzone, …). Ohne Einträge gelten die Vorgaben.
+2. Aus dem neuesten [Release](https://github.com/soleil0815/assetlotse/releases/latest) **`docker-compose.yml`** und **`env.example`** dort ablegen, `env.example` als **`.env`** speichern und nach Bedarf anpassen (Port, Zeitzone, …). Ohne Einträge gelten die Vorgaben.
 3. Ist das Image privat: einmalig `docker login ghcr.io` (Benutzer: GitHub-Name, Passwort: ein Token mit dem Recht `read:packages`).
 4. Starten:
    ```bash
@@ -108,7 +108,7 @@ Wer AssetLotse über eine Container-Verwaltung aktualisiert, ersetzt dort einfac
 Der Workflow `.github/workflows/docker.yml` baut die Images auf GitHub – für **amd64 und arm64**, jeweils auf einem eigenen Rechner dieser Architektur, dort auch getestet – und legt sie unter **`ghcr.io/soleil0815/assetlotse`** ab (Tags z. B. `2.0.0`, `2.0` und `latest`; Sicherheitsupdates als `2.0.0-s1` usw.; dazu je Architektur `2.0.0-amd64` und `2.0.0-arm64`).
 
 - **Jeder Push auf `main` und jeder Pull Request** wird geprüft: bauen, Tests im Image, Trivy – **veröffentlicht wird nichts**.
-- **Veröffentlicht wird nur von Hand:** *Actions → Docker image → Run workflow → release* (auf `main`). Gibt es die Versionsnummer noch nicht, wird gebaut, getestet, geprüft und nur bei Erfolg veröffentlicht – `latest` nur für die höchste Version. Dazu kommen der Tag `v<Version>` und ein Release auf GitHub mit dem Text aus dem CHANGELOG und den Installationsdateien (`docker-compose.yml`, `.env.example`, `update.sh`, Image-Dateien für den Weg ohne Internet). Eine veröffentlichte Version wird nie neu gebaut oder überschrieben.
+- **Veröffentlicht wird nur von Hand:** *Actions → Docker image → Run workflow → release* (auf `main`). Gibt es die Versionsnummer noch nicht, wird gebaut, getestet, geprüft und nur bei Erfolg veröffentlicht – `latest` nur für die höchste Version. Dazu kommen der Tag `v<Version>` und ein Release auf GitHub mit dem Text aus dem CHANGELOG und den Installationsdateien (`docker-compose.yml`, `env.example`, `update.sh`, Image-Dateien für den Weg ohne Internet). Eine veröffentlichte Version wird nie neu gebaut oder überschrieben.
 - **Neue Version:** Versionsnummer in `assetlotse/__init__.py` und `Dockerfile` erhöhen, CHANGELOG-Eintrag schreiben, per Pull Request auf `main` bringen, dann *Run workflow → release*.
 
 ### Sicherheit und Aktualität des Images

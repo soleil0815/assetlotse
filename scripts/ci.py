@@ -296,7 +296,8 @@ def release_notes(changelog: str, name: str, image_ref: str) -> str:
     return (f"{body}\n\n---\n**Image:** `{image_ref}` (amd64 und arm64)\n\n"
             "**Update:** automatisch mit einer Container-Verwaltung (Dockhand, Watchtower …), sonst auf dem Server "
             "`docker compose pull && docker compose up -d` oder `./update.sh`.\n\n"
-            "**Neu installieren:** `docker-compose.yml` und `.env.example` (als `.env`) von hier herunterladen, "
+            "**Neu installieren:** `docker-compose.yml` und `env.example` von hier herunterladen, `env.example` als "
+            "`.env` speichern, "
             "`docker compose up -d`.\n\n"
             "**Ohne Internet:** die Image-Datei für den Server (`…-amd64.tar.gz` oder `…-arm64.tar.gz`) und "
             "`update.sh` herunterladen, dann `./update.sh --offline <Datei>`.\n")

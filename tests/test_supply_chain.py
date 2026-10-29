@@ -632,7 +632,7 @@ class WorkflowTests(unittest.TestCase):
         pub = self.J["publish"]
         self.assertIn('imagetools create --tag "$first" "${first}-amd64" "${first}-arm64"', pub)
         self.assertIn("assetlotse-${NAME}-${a}.tar.gz", pub)                 # files for installing without internet
-        self.assertIn('"$assets/.env.example"', pub)
+        self.assertIn('"$assets/env.example"', pub)                         # GitHub renames ".env.example"
         self.assertIn('"$assets/update.sh"', pub)
 
     def test_never_overwrite_and_latest_last(self):

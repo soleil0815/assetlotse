@@ -562,8 +562,9 @@ jobs:
           fi
           python3 scripts/ci.py release-notes --name "$NAME" --image "${IMAGE}:${NAME}" > "${RUNNER_TEMP}/notes.md"
           assets="${RUNNER_TEMP}/assets"; mkdir -p "$assets"
-          cp docker-compose.yml .env.example update.sh "$assets/"
-          files=("$assets/docker-compose.yml" "$assets/.env.example" "$assets/update.sh")
+          # GitHub renames uploads that start with a dot – the template goes up as env.example
+          cp docker-compose.yml update.sh "$assets/"; cp .env.example "$assets/env.example"
+          files=("$assets/docker-compose.yml" "$assets/env.example" "$assets/update.sh")
           for a in amd64 arm64; do               # for installing without internet: ./update.sh --offline <file>
             f="assetlotse-${NAME}-${a}.tar.gz"
             gzip -c "${RUNNER_TEMP}/images/image-${a}.tar" > "$assets/$f"
@@ -626,7 +627,9 @@ jobs:
           # the installation files as they were at that version; the image files from the registry
           assets="${RUNNER_TEMP}/assets"; mkdir -p "$assets"
           files=()
-          for f in docker-compose.yml .env.example update.sh; do git show "v${NAME}:$f" > "$assets/$f"; files+=("$assets/$f"); done
+          for f in docker-compose.yml .env.example update.sh; do
+            git show "v${NAME}:$f" > "$assets/${f#.}"; files+=("$assets/${f#.}")     # .env.example → env.example
+          done
           for a in amd64 arm64; do
             f="assetlotse-${NAME}-${a}.tar.gz"
             docker pull -q --platform "linux/${a}" "${image}:${NAME}"
@@ -746,7 +749,11 @@ jobs:
           set -euo pipefail
           ref="ghcr.io/${GITHUB_REPOSITORY,,}:latest"
           for a in amd64 arm64; do
-            docker pull -q --platform "linux/${a}" "$ref"
+            if ! docker pull -q --platform "linux/${a}" "$ref"; then
+              # releases before 2.0.0 were amd64 only
+              [ "$a" = arm64 ] || exit 1
+              echo "::notice title=Daily scan::latest has no ${a} image yet – scanned amd64 only"; continue
+            fi
             docker save -o "${RUNNER_TEMP}/latest-${a}.tar" "$ref"
             [ "$a" != amd64 ] || echo "build=$(docker inspect -f '{{ index .Config.Labels "io.assetlotse.build" }}' "$ref")" >> "$GITHUB_OUTPUT"
             docker image rm "$ref" >/dev/null
@@ -765,6 +772,7 @@ jobs:
         run: |
           rc=0
           for a in amd64 arm64; do
+            [ -f "${RUNNER_TEMP}/latest-${a}.tar" ] || continue
             .github/trivy-scan.sh "${RUNNER_TEMP}/latest-${a}.tar" "Trivy – latest ${a} (${BUILD:-unknown})" || rc=1
           done
           exit "$rc"

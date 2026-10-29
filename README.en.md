@@ -32,7 +32,7 @@ AssetLotse runs as a Docker container. The whole program is inside the ready-mad
 ### Installation
 
 1. Create a folder, e.g. `/opt/assetlotse` (on a Synology e.g. `/volume1/docker/assetlotse`).
-2. Put **`docker-compose.yml`** and **`.env.example`** from the newest [release](https://github.com/soleil0815/assetlotse/releases/latest) there, save `.env.example` as **`.env`** and adjust it as needed (port, time zone, …). Without entries the defaults apply.
+2. Put **`docker-compose.yml`** and **`env.example`** from the newest [release](https://github.com/soleil0815/assetlotse/releases/latest) there, save `env.example` as **`.env`** and adjust it as needed (port, time zone, …). Without entries the defaults apply.
 3. If the image is private: once `docker login ghcr.io` (user: GitHub name, password: a token with the permission `read:packages`).
 4. Start:
    ```bash
@@ -108,7 +108,7 @@ If a container manager updates AssetLotse, just replace `docker-compose.yml` the
 The workflow `.github/workflows/docker.yml` builds the images on GitHub – for **amd64 and arm64**, each on a machine of that architecture and tested there – and puts them under **`ghcr.io/soleil0815/assetlotse`** (tags e.g. `2.0.0`, `2.0` and `latest`; security updates as `2.0.0-s1` and so on; plus `2.0.0-amd64` and `2.0.0-arm64` per architecture).
 
 - **Every push to `main` and every pull request** is checked: build, tests in the image, Trivy – **nothing is published**.
-- **Publishing is by hand only:** *Actions → Docker image → Run workflow → release* (on `main`). If the version number does not exist yet, it is built, tested, scanned and published only on success – `latest` only for the highest version. Plus the tag `v<version>` and a GitHub release with the text from the CHANGELOG and the installation files (`docker-compose.yml`, `.env.example`, `update.sh`, image files for installing without internet). A published version is never rebuilt or overwritten.
+- **Publishing is by hand only:** *Actions → Docker image → Run workflow → release* (on `main`). If the version number does not exist yet, it is built, tested, scanned and published only on success – `latest` only for the highest version. Plus the tag `v<version>` and a GitHub release with the text from the CHANGELOG and the installation files (`docker-compose.yml`, `env.example`, `update.sh`, image files for installing without internet). A published version is never rebuilt or overwritten.
 - **New version:** raise the version number in `assetlotse/__init__.py` and `Dockerfile`, write a CHANGELOG entry, bring it to `main` by pull request, then *Run workflow → release*.
 
 ### Security and freshness of the image

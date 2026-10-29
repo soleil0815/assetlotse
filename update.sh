@@ -63,6 +63,8 @@ case "$WANT" in
     *[!0-9.s-]*|.*|*..*) die "Invalid version: $WANT (e.g. 2.0.0 or 2.0.0-s1)" ;;
 esac
 
+# a relative file name means: relative to where the script was called from
+case "$OFFLINE" in ""|/*) ;; *) OFFLINE="$(pwd)/$OFFLINE" ;; esac
 cd "$(dirname "$0")" || die "Cannot change into the folder of this script."
 INSTALL_DIR="$(pwd -P)"
 [ -f docker-compose.yml ] || die "docker-compose.yml not found – update.sh belongs next to it."
@@ -153,17 +155,28 @@ protected_paths() {   # one resolved path per line
     for p in "$(env_value ASSETLOTSE_BACKUP_DIR)" "$(env_value ASSETLOTSE_DATA_DIR)"; do
         case "$p" in /*) real "$p" ;; esac
     done
-    # everything that containers use (bind mounts and volumes) – also stopped ones
+    # everything that containers use (bind mounts and volumes) – also stopped ones. A mount of this folder itself
+    # or of a folder above it (a container manager's stacks folder, a monitoring agent with "/") is left out:
+    # it would protect every file here – data in here is protected by the list above and by its own mounts.
     for c in $(docker ps -aq 2>/dev/null); do
         docker inspect -f '{{range .Mounts}}{{.Source}}{{"\n"}}{{end}}' "$c" 2>/dev/null
-    done | while IFS= read -r m; do [ -n "$m" ] && real "$m"; done
+    done | while IFS= read -r m; do
+        [ -n "$m" ] || continue
+        r="$(real "$m")"
+        [ -n "$r" ] && ! inside "$INSTALL_DIR" "$r" && printf '%s\n' "$r"
+    done
 }
 cleanup_candidates() {   # one name per line (names may contain spaces)
     for e in $PROGRAM_ENTRIES; do
         if [ -e "$e" ] || [ -L "$e" ]; then echo "$e"; fi
     done
-    for e in assetlotse-[0-9]* .assetlotse-update.* .update-tmp.*; do
+    for e in assetlotse-[0-9]*.zip assetlotse-[0-9]*.zip.sha256 .assetlotse-update.* .update-tmp.*; do
         if [ -e "$e" ] || [ -L "$e" ]; then echo "$e"; fi
+    done
+    # unpacked packages (assetlotse-1.9.0/): only if they really are one and hold no database
+    for e in assetlotse-[0-9]*; do
+        [ -d "$e" ] && [ ! -L "$e" ] && [ -f "$e/assetlotse/__init__.py" ] || continue
+        [ -z "$(find "$e" \( -name '*.db' -o -name '*.sqlite*' -o -name secret_key \) -print 2>/dev/null | head -n 1)" ] && echo "$e"
     done
 }
 is_protected() {   # is_protected RESOLVED FILE_WITH_PROTECTED → prints the protected path
@@ -243,11 +256,22 @@ running_image_id() {
     cid="$(container_id)"
     [ -n "$cid" ] && docker inspect -f '{{.Image}}' "$cid" 2>/dev/null
 }
-remember_previous() {   # the image that runs now becomes IMAGE:previous
-    PREV_ID="$(running_image_id)"
-    if [ -n "$PREV_ID" ]; then
+remember_previous() {   # the image that ran so far becomes IMAGE:previous – only if a different one comes now
+    if [ -n "$PREV_ID" ] && [ "$PREV_ID" != "$1" ]; then
         docker tag "$PREV_ID" "${IMAGE}:previous" 2>/dev/null || PREV_ID=""
     fi
+}
+previous_compose() {    # the previous image's own docker-compose.yml back, if it differs from today's (2.0.0 and newer)
+    t="$(mktemp -d "${INSTALL_DIR}/.update-tmp.XXXXXX")" || return 0
+    c="$(docker create "${IMAGE}:previous" 2>/dev/null)" || { rm -rf "$t"; return 0; }
+    docker cp "$c:/app/docker-compose.yml" "$t/docker-compose.yml" >/dev/null 2>&1
+    docker rm -v "$c" >/dev/null 2>&1 || true
+    if [ -s "$t/docker-compose.yml" ] && [ "$(compose_version "$t/docker-compose.yml")" -ge 2 ] \
+            && [ "$(compose_version "$t/docker-compose.yml")" != "$(compose_version docker-compose.yml)" ]; then
+        cp -p docker-compose.yml docker-compose.yml.alt && cat "$t/docker-compose.yml" > docker-compose.yml \
+            && ok "docker-compose.yml of the previous version restored (the newer one is kept as docker-compose.yml.alt)."
+    fi
+    rm -rf "$t"
 }
 start_previous() {
     docker image inspect "${IMAGE}:previous" >/dev/null 2>&1 || die "There is no previous image to go back to."
@@ -257,6 +281,7 @@ start_previous() {
     docker tag "${IMAGE}:previous" "${IMAGE}:${build}" || die "Could not tag the previous image."
     set_env ASSETLOTSE_IMAGE "$IMAGE"
     set_env ASSETLOTSE_TAG "$build"
+    previous_compose
     step "Starting the previous version ${build}"
     if start; then
         ok "Version ${build} is running again – fixed in .env (ASSETLOTSE_TAG=${build}); update tools leave it alone."
@@ -270,7 +295,7 @@ start_previous() {
 if [ "$MODE" = rollback ]; then start_previous || exit 1; exit 0; fi
 
 # ---------------------------------------------------------------- Get the image
-remember_previous
+PREV_ID="$(running_image_id)"
 OLD_VERSION=""
 [ -z "${PREV_ID:-}" ] || OLD_VERSION="$(image_label "$PREV_ID" io.assetlotse.build)"
 case "$MODE" in
@@ -302,6 +327,7 @@ case "$MODE" in
 esac
 REF="${IMAGE}:${TAG}"
 [ "$(image_label "$REF" org.opencontainers.image.title)" = "$IMAGE_TITLE" ] || die "${REF} is not an AssetLotse image – nothing changed."
+remember_previous "$(docker image inspect -f '{{.Id}}' "$REF" 2>/dev/null)"
 NEW_VERSION="$(image_label "$REF" io.assetlotse.build)"
 [ -n "$NEW_VERSION" ] || NEW_VERSION="$(image_label "$REF" org.opencontainers.image.version)"
 echo "Running now: ${OLD_VERSION:-–}   new: ${NEW_VERSION}"
@@ -353,6 +379,7 @@ fi
 # dangling AssetLotse images (an old "latest" after the pull) – the previous one keeps its tag
 docker image prune -f --filter "label=org.opencontainers.image.title=${IMAGE_TITLE}" >/dev/null 2>&1 || true
 
+rm -rf "$TMPD"; TMPD=""
 if [ "$MODE" = handover ] || [ -n "$(cleanup_candidates)" ]; then
     echo
     warn "Program files of the old installation are still in this folder – they are no longer needed."

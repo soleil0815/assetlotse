@@ -8,7 +8,7 @@ Umstellung auf den Docker-Standard: Das Programm steckt komplett im Image. Auf d
 `docker-compose.yml`, `.env` und der Ordner `data`.
 
 **Neu**
-- **Installation:** `docker-compose.yml` und `.env.example` (als `.env`) aus dem Release, `docker compose up -d` –
+- **Installation:** `docker-compose.yml` und `env.example` (als `.env`) aus dem Release, `docker compose up -d` –
   kein Zip, kein Programmordner, nichts wird auf dem Server gebaut.
 - **Updates wie bei jedem Docker-Programm:** mit Dockhand, Watchtower, Tugtainer & Co. oder
   `docker compose pull && docker compose up -d`. Die `docker-compose.yml` folgt `latest`.
@@ -34,8 +34,10 @@ Umstellung auf den Docker-Standard: Das Programm steckt komplett im Image. Auf d
   Sicherungen, `.env`, `docker-compose.yml` oder eingebundene Ordner, auch nicht über Links.
 - **Veröffentlicht wird nur noch von Hand** (*Run workflow → release*). Jeder Push und jeder Pull Request wird nur
   geprüft (bauen, testen, Trivy). Die wöchentlichen Sicherheitsupdates erscheinen weiter automatisch.
-- Jedes GitHub-Release enthält die Installationsdateien (`docker-compose.yml`, `.env.example`, `update.sh`) und die
+- Jedes GitHub-Release enthält die Installationsdateien (`docker-compose.yml`, `env.example`, `update.sh`) und die
   Image-Dateien.
+
+- Pakete auf aktuellem Stand (u. a. Python 3.13.18).
 
 **Entfernt**
 - Der Zip-Weg (`./update.sh assetlotse-X.Y.Z.zip`), das lokale Bauen auf dem Server und die Anleitung für den
