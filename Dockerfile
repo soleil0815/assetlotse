@@ -5,7 +5,7 @@ ARG PYTHON_IMAGE=python:3.13.17-slim-trixie@sha256:d98cc29d3266e535dd9da1099688d
 FROM ${PYTHON_IMAGE}
 
 LABEL org.opencontainers.image.title="AssetLotse" \
-      org.opencontainers.image.version="1.12.0" \
+      org.opencontainers.image.version="2.0.0" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -15,12 +15,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     ASSETLOTSE_DATA_DIR=/data \
     HOME=/tmp \
     ASSETLOTSE_PORT=9343 \
+    ASSETLOTSE_CONTAINER=1 \
+    TZ=Europe/Berlin \
     PUID=1000 \
     PGID=1000
 
 # Debian packages: ALL packages of the image (also those of the base image) exactly as listed in
-# build/debian-packages.lock – one fixed snapshot of the Debian archive. The build stops if anything differs.
-COPY build/apt-snapshot.sh build/os-install.sh build/debian-packages.lock /tmp/build/
+# build/debian-packages.lock (amd64) or build/debian-packages.arm64.lock – one fixed snapshot of the Debian
+# archive. The build stops if anything differs.
+COPY build/apt-snapshot.sh build/os-install.sh build/debian-packages.lock build/debian-packages.arm64.lock /tmp/build/
 RUN sh /tmp/build/os-install.sh && rm -rf /tmp/build
 # The package manager apt is not needed at runtime – removed (after the check above). dpkg and its package list
 # stay: they belong to the base system, and the vulnerability scan reads the installed packages from there.
@@ -53,10 +56,11 @@ COPY wsgi.py gunicorn.conf.py LICENSE ./
 COPY docs ./docs
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod 755 /usr/local/bin/docker-entrypoint.sh && mkdir -p /data
-# Installation files: "./update.sh --pull" takes them out of the image, so a server that pulls
-# ready-made images keeps its update.sh, docker-compose.yml etc. up to date (last layer: small).
+# Installation files: ./update.sh takes docker-compose.yml and update.sh out of the image, so the files on the
+# server stay current. The other files only serve the one-time switch from installations before 2.0.0:
+# their update.sh checks that these files are in the image before it hands over to the new update.sh.
 COPY docker-compose.yml Dockerfile docker-entrypoint.sh update.sh requirements.txt requirements.in \
-     .env.example .dockerignore README.md README.en.md CHANGELOG.md ./
+     .env.example ./
 COPY build ./build
 
 # The container starts as root, fixes the permissions of /data and

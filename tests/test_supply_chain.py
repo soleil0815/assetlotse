@@ -121,8 +121,9 @@ class RefreshTests(unittest.TestCase):
         (self.tmp / "Dockerfile").write_text(
             f"ARG PYTHON_IMAGE=python:3.13.16-slim-trixie@sha256:{DIGEST_A}\nFROM ${{PYTHON_IMAGE}}\n"
             "ARG PIP_VERSION=26.2.2\n")
-        (self.tmp / lock.OS_LOCK).write_text(lock.render_os_lock(
-            "20261019T000000Z", "20261019T010000Z", "13 trixie", "amd64", {"bash": "5.2.37-2", "libssl3t64": "3.5.1-1"}))
+        for arch in lock.ARCHES:
+            (self.tmp / lock.OS_LOCKS[arch]).write_text(lock.render_os_lock(
+                "20261019T000000Z", "20261019T010000Z", "13 trixie", arch, {"bash": "5.2.37-2", "libssl3t64": "3.5.1-1"}))
         (self.tmp / "requirements.txt").write_text("# on Python 3.13.16.\nFlask==3.1.3\ncertifi==2026.10.19\n")
         (self.tmp / "requirements.in").write_text("Flask>=3.1,<4\n")
         self.result = {"python": "3.13.16", "pip": "26.2.2", "debian": "13 trixie", "arch": "amd64",
@@ -135,11 +136,13 @@ class RefreshTests(unittest.TestCase):
         lock.hub_tags = lambda major, minor: [f"{major}.{minor}.{self.patch}-slim-trixie"]
         lock.digest_of = lambda ref: DIGEST_B                      # the registry always has a new digest
         lock.latest_snapshots = lambda: ("20261026T021503Z", "20261026T031000Z")   # completed imports
-        lock.resolve = lambda image, snap, sec, state, root: (self.calls.append((image, snap, sec))
-                                                               or json.loads(json.dumps(self.result)))
+        self.per_arch = {}                                      # differences of one architecture
+        lock.resolve = lambda image, snap, sec, state, root, arch=None: (
+            self.calls.append((image, snap, sec, arch))
+            or dict(json.loads(json.dumps(self.result)), arch=arch or "amd64", **self.per_arch.get(arch, {})))
 
     def files(self):
-        return {p: (self.tmp / p).read_text() for p in ("Dockerfile", lock.OS_LOCK, "requirements.txt")}
+        return {p: (self.tmp / p).read_text() for p in ("Dockerfile", *lock.OS_LOCKS.values(), "requirements.txt")}
 
     def test_nothing_new_changes_nothing(self):
         before = self.files()
@@ -147,7 +150,41 @@ class RefreshTests(unittest.TestCase):
         self.assertEqual(self.files(), before)          # new snapshot or digest alone is not a change
         self.assertFalse(json.loads((self.tmp / "r.json").read_text())["changed"])
         self.assertTrue(self.calls[0][0].startswith("python:3.13.16-slim-trixie@sha256:"))
+        self.assertEqual([c[3] for c in self.calls], ["amd64", "arm64"])        # every architecture, same targets
+        self.assertEqual(len({c[:3] for c in self.calls}), 1)
 
+    def test_arm64_differences(self):
+        self.per_arch["arm64"] = {"packages": {"bash": "5.2.37-2+b1", "libssl3t64": "3.5.1-1"}}
+        changes = lock.refresh(self.tmp)
+        self.assertEqual([(c["name"], c["old"], c["new"]) for c in changes], [("bash (arm64)", "5.2.37-2", "5.2.37-2+b1")])
+        st = lock.read_os_lock((self.tmp / lock.OS_LOCKS["arm64"]).read_text())
+        self.assertEqual((st["arch"], st["packages"]["bash"]), ("arm64", "5.2.37-2+b1"))
+
+    def test_architectures_must_get_the_same_python_packages(self):
+        before = self.files()
+        self.per_arch["arm64"] = {"pins": {"flask": ["Flask", "3.1.4"], "certifi": ["certifi", "2026.10.19"]}}
+        with self.assertRaises(SystemExit) as cm:
+            lock.refresh(self.tmp)
+        self.assertIn("arm64 resolved other Python packages", str(cm.exception))
+        self.assertEqual(self.files(), before)
+
+    def test_first_arm64_lock_is_written(self):
+        (self.tmp / lock.OS_LOCKS["arm64"]).write_text("# not locked yet\n")
+        self.assertEqual(lock.refresh(self.tmp, str(self.tmp / "r.json")), [])      # nothing new in content …
+        st = lock.read_os_lock((self.tmp / lock.OS_LOCKS["arm64"]).read_text())
+        self.assertEqual((st["arch"], st["snapshot"]), ("arm64", "20261026T021503Z"))   # … but the list is there
+        self.assertEqual(json.loads((self.tmp / "r.json").read_text())["added"], ["arm64"])
+
+    def test_steps_on_separate_machines(self):
+        t = {"patch": 16, "digest": DIGEST_B, "image": f"python:3.13.16-slim-trixie@sha256:{DIGEST_B}",
+             "snapshot": "20261026T021503Z", "security": "20261026T031000Z"}
+        self.result["packages"] = {"bash": "5.2.37-3"}
+        resolved = [lock.resolve_arch(t, self.tmp, a) for a in lock.ARCHES]
+        json.dumps(resolved)                                          # what goes into the artifacts
+        changes = lock.apply(t, json.loads(json.dumps(resolved)), self.tmp)
+        self.assertIn(("bash", "5.2.37-2", "5.2.37-3"), [(c["name"], c["old"], c["new"]) for c in changes])
+        with self.assertRaises(SystemExit):
+            lock.apply(t, resolved[:1], self.tmp)                     # arm64 missing
     def test_new_debian_packages(self):
         self.result["packages"] = {"bash": "5.2.37-2", "libssl3t64": "3.5.1-1+deb13u1", "newpkg": "1"}
         changes = lock.refresh(self.tmp)
@@ -211,7 +248,8 @@ class DockerfileTests(unittest.TestCase):
         self.assertRegex(self.df, r"(?m)^ARG PIP_VERSION=\d+\.\d+(\.\d+)?$")
 
     def test_os_packages_from_lock(self):
-        self.assertIn("COPY build/apt-snapshot.sh build/os-install.sh build/debian-packages.lock /tmp/build/", self.df)
+        self.assertIn("COPY build/apt-snapshot.sh build/os-install.sh build/debian-packages.lock "
+                      "build/debian-packages.arm64.lock /tmp/build/", self.df)
         self.assertIn("RUN sh /tmp/build/os-install.sh", self.df)
         snap = (ROOT / "build" / "apt-snapshot.sh").read_text()
         self.assertIn("https://snapshot.debian.org/archive/debian/${ts}", snap)
@@ -221,6 +259,8 @@ class DockerfileTests(unittest.TestCase):
         self.assertIn("diff -u /tmp/locked-packages /tmp/installed-packages", inst)
         self.assertIn('sh "$dir/apt-snapshot.sh" "$ts" "$sec"', inst)
         self.assertIn("dpkg --print-architecture", inst)                    # list compared on its own CPU type
+        self.assertIn('lock="$dir/debian-packages.$here.lock"', inst)        # one list per architecture
+        self.assertNotIn("list not compared", inst)                          # never skipped
         self.assertIn("mr/timestamp", (ROOT / "scripts" / "lock.py").read_text())   # only completed imports
 
     def test_python_packages_exact_and_no_package_manager_left(self):
@@ -249,11 +289,19 @@ class ModeTests(unittest.TestCase):
 
     def test_modes(self):
         main = ci.MAIN_REF
-        m = ci.mode("push", ref=main)
+        m = ci.mode("push", ref=main)                                   # merged: checked, NOT published
+        self.assertEqual((m["kind"], m["build"], m["publish"]), ("check", True, False))
+        m = ci.mode("pull_request", ref="refs/pull/7/merge")
+        self.assertEqual((m["kind"], m["build"], m["publish"], m["lock"]), ("check", True, False, False))
+        m = ci.mode("workflow_dispatch", input_mode="release", ref=main)  # "veröffentlichen": by hand
         self.assertEqual((m["kind"], m["build"], m["publish"]), ("release", True, True))
-        self.assertFalse(ci.mode("push", ref="refs/heads/feature")["publish"])     # only from main
+        with self.assertRaises(SystemExit):
+            ci.mode("workflow_dispatch", input_mode="release", ref="refs/heads/feature")   # only from main
+        m = ci.mode("workflow_dispatch", input_mode="relock", ref="refs/heads/feature")
+        self.assertEqual((m["relock"], m["publish"], m["lock"]), (True, True, True))   # commits to that branch
+        self.assertFalse(ci.mode("workflow_dispatch", input_mode="relock", ref="refs/heads/x", input_publish="false")["publish"])
         m = ci.mode("schedule", ci.WEEKLY_CRON, ref=main)
-        self.assertEqual((m["kind"], m["publish"], m["eol"], m["scan_latest"]), ("security", True, True, False))
+        self.assertEqual((m["kind"], m["publish"], m["eol"], m["scan_latest"], m["lock"]), ("security", True, True, False, True))
         m = ci.mode("schedule", ci.DAILY_CRON, ref=main)
         self.assertEqual((m["build"], m["scan_latest"], m["publish"]), (False, True, False))
         m = ci.mode("workflow_dispatch", input_mode="check", ref=main)
@@ -378,6 +426,9 @@ class VersionPlanTests(unittest.TestCase):
         notes = ci.release_notes(cl, "1.10.0-s1", "ghcr.io/o/r:1.10.0-s1")
         self.assertTrue(notes.startswith("Sicherheitsupdate: x\n\n- Debian: a 1 → 2\n\n---\n"))
         self.assertIn("`ghcr.io/o/r:1.10.0-s1`", notes)
+        self.assertIn("./update.sh --offline", notes)
+        self.assertIn("docker compose pull && docker compose up -d", notes)
+        self.assertNotIn("--pull`", notes)
         self.assertNotIn("**Neu**", notes)
         self.assertIn("**Neu**\n- y", ci.release_notes(cl, "1.10.0", "i"))
         with self.assertRaises(SystemExit):
@@ -513,14 +564,15 @@ class WorkflowTests(unittest.TestCase):
     J = jobs()
 
     def test_jobs(self):
-        self.assertEqual(list(self.J), ["mode", "build", "test", "scan", "publish", "repair", "relock",
-                                        "relock-commit", "scan-latest", "eol"])
+        self.assertEqual(list(self.J), ["mode", "targets", "resolve", "prepare", "build", "test", "scan", "publish",
+                                        "repair", "relock", "relock-commit", "scan-latest", "eol"])
         for name, text in self.J.items():
             self.assertRegex(text, r"\n    timeout-minutes: \d+\n", name)
 
     def test_triggers_only_main_branch(self):
         on = WF.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
         self.assertIn("  push:\n    branches: [main]\n", on)
+        self.assertIn("  pull_request:\n    branches: [main]\n", on)
         self.assertNotIn("tags:", on)
         self.assertIn("workflow_dispatch:", on)
 
@@ -552,31 +604,47 @@ class WorkflowTests(unittest.TestCase):
         self.assertNotIn("git config --global", WF)
 
     def test_order_build_test_scan_publish(self):
-        self.assertIn("needs: build\n", self.J["test"])
-        self.assertIn("needs: build\n", self.J["scan"])
-        self.assertIn("needs: [build, test, scan]", self.J["publish"])
-        self.assertIn("if: needs.build.outputs.publish == 'true'", self.J["publish"])
+        self.assertIn("needs: [prepare, build]\n", self.J["test"])
+        self.assertIn("needs: [prepare, build]\n", self.J["scan"])
+        self.assertIn("needs: [prepare, build, test, scan]", self.J["publish"])
+        self.assertIn("needs.prepare.outputs.publish == 'true' && needs.build.result == 'success' && "
+                      "needs.test.result == 'success' && needs.scan.result == 'success'", self.J["publish"])
         self.assertIn("publish: ${{ needs.mode.outputs.publish == 'true' && steps.prep.outputs.skip != 'true' }}",
-                      self.J["build"])
+                      self.J["prepare"])
         self.assertIn("push: false", self.J["build"])
         self.assertIn("no-cache: true", self.J["build"])
         self.assertNotIn("cache-from", WF)
-        self.assertTrue("--entrypoint python assetlotse:scan -m pytest" in self.J["test"])
+        self.assertIn('--entrypoint python "$REF" -m pytest', self.J["test"])
         self.assertIn(".github/trivy-scan.sh", self.J["scan"])
-        for name in ("build", "publish"):
+        for name in ("prepare", "build", "publish"):
             self.assertNotIn("install-trivy", self.J[name])
             self.assertNotIn("trivy-scan", self.J[name])
 
+    def test_both_architectures_natively(self):
+        for job in ("resolve", "build", "test"):
+            self.assertIn("- { arch: amd64, runner: ubuntu-latest }", self.J[job])
+            self.assertIn("- { arch: arm64, runner: ubuntu-24.04-arm }", self.J[job])
+            self.assertIn("runs-on: ${{ matrix.runner }}", self.J[job])
+        self.assertIn("platforms: linux/${{ matrix.arch }}", self.J["build"])
+        self.assertIn("arch: [amd64, arm64]", self.J["scan"])
+        self.assertIn("is not ${ARCH}", self.J["test"])                      # really tested on that architecture
+        self.assertNotIn("setup-qemu", WF)                                   # no emulation
+        pub = self.J["publish"]
+        self.assertIn('imagetools create --tag "$first" "${first}-amd64" "${first}-arm64"', pub)
+        self.assertIn("assetlotse-${NAME}-${a}.tar.gz", pub)                 # files for installing without internet
+        self.assertIn('"$assets/.env.example"', pub)
+        self.assertIn('"$assets/update.sh"', pub)
+
     def test_never_overwrite_and_latest_last(self):
         pub = self.J["publish"]
-        check = pub.index('python3 scripts/ci.py registry-config')
-        self.assertLess(check, pub.index('docker push -q "$first"'))
+        check = pub.index('python3 scripts/ci.py registry-platforms')
+        self.assertLess(check, pub.index('[ "$pushed" = true ] || push_image'))
         self.assertIn('if [ "$state" != missing ]', pub)                     # fails closed
         self.assertNotIn("imagetools inspect", WF)                            # its errors would look like "missing"
         self.assertLess(pub.index("check-changes"), pub.index("docker/login-action"))
         self.assertLess(pub.index("git apply"), pub.index('for t in "${tags[@]:1}"'))
         release = pub[pub.index('if [ "$KIND" = release ]'):pub.index("          else\n")]
-        self.assertLess(release.index("git tag"), release.index("docker push"))   # tag first: a re-run resumes
+        self.assertLess(release.index("git tag"), release.index("push_image"))    # tag first: a re-run resumes
         self.assertIn("push --atomic origin HEAD:refs/heads/main", pub)
         self.assertIn('http.https://github.com/.extraheader="$auth"', pub)
         self.assertIn("check-changes", self.J["relock-commit"])
@@ -585,22 +653,29 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn('--verify-tag', pub)
         self.assertIn('[[ ",${TAGS}," != *":latest,"* ]] || latest=true', pub)
         self.assertNotIn("gh release", "".join(v for k, v in self.J.items() if k not in ("publish", "repair")))
-        self.assertIn('[ "$VERSION_EXISTS" = true ]', self.J["build"])
-        self.assertIn("points to another commit", self.J["build"])
+        self.assertIn('[ "$VERSION_EXISTS" = true ]', self.J["prepare"])
+        self.assertIn("points to another commit", self.J["prepare"])
 
     def test_security_update_flow(self):
-        b = self.J["build"]
-        refresh = b.index("python3 scripts/lock.py refresh")
+        b = self.J["prepare"]
+        refresh = b.index("python3 scripts/lock.py apply")
         self.assertLess(b.index("unreleased program changes"), refresh)
         self.assertLess(refresh, b.index('lock.py changes --since "$published"'))   # against what is published
         self.assertLess(b.index("plan-security"), b.index("ci.py changelog"))
         self.assertIn("nothing to do.", b)
-        prep = b[b.index("- name: Prepare"):b.index("- name: Build")]
-        self.assertNotIn("GH_TOKEN", prep)                     # no token while third-party containers run
+        prep = b[b.index("- name: Prepare"):]
+        self.assertNotIn("GH_TOKEN", prep)
+        # third-party containers (base image) only run where there is no token at all
+        for job in ("targets", "resolve"):
+            self.assertNotIn("secrets.", self.J[job])
+            self.assertNotIn("login-action", self.J[job])
+        self.assertIn("lock.py resolve", self.J["resolve"])
+        self.assertIn("lock.py targets", self.J["targets"])
 
     def test_artifacts_downloaded_by_name(self):
         for block in re.findall(r"uses: actions/download-artifact@\S+.*?(?=\n      - |\Z)", WF, re.S):
-            self.assertIn("name:", block)                 # downloading "all" failed on GitHub
+            # downloading "all" failed on GitHub: always by name or a narrow pattern
+            self.assertTrue("name:" in block or re.search(r"pattern: (resolved|image)-\*", block), block)
 
     def test_selftests_on_runner_others_in_image(self):
         t = self.J["test"]

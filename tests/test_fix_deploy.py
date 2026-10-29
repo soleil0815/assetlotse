@@ -6,7 +6,6 @@ import subprocess
 import sys
 import tempfile
 import unittest
-import zipfile
 from pathlib import Path
 from unittest import mock
 
@@ -303,15 +302,8 @@ class TimezoneFallbackTest(TmpDir):
 # ------------------------------------------------------------------ 3./4./5. Skripte und Doku
 class ScriptsAndDocsTest(unittest.TestCase):
     def test_shell_syntax(self):
-        subprocess.run(["bash", "-n", str(ROOT / "update.sh")], check=True)
+        subprocess.run(["sh", "-n", str(ROOT / "update.sh")], check=True)
         subprocess.run(["sh", "-n", str(ROOT / "docker-entrypoint.sh")], check=True)
-
-    def test_update_script_never_deletes_before_copy_and_backs_up_via_entrypoint(self):
-        s = (ROOT / "update.sh").read_text()
-        self.assertNotIn("rm -rf ./assetlotse", s)
-        self.assertIn('exec -T "$SERVICE" docker-entrypoint.sh flask --app wsgi backup', s)
-        self.assertLess(s.index("2. Backup"), s.index("3. Swap the files"))
-        self.assertNotIn("-cf - . |", s)
 
     def test_docs_use_entrypoint_for_exec(self):
         for p in ["README.md", "README.en.md", "assetlotse/templates/help/de/maintenance.html",
@@ -331,111 +323,6 @@ class ScriptsAndDocsTest(unittest.TestCase):
     def test_entrypoint_handles_backup_dir(self):
         s = (ROOT / "docker-entrypoint.sh").read_text()
         self.assertIn("ASSETLOTSE_BACKUP_DIR", s)
-
-
-@unittest.skipUnless(shutil.which("bash") and shutil.which("unzip"), "braucht bash und unzip")
-class UpdateScriptRunTest(TmpDir):
-    """update.sh mit Fake-docker: normales Update und Fehler mitten im Austausch."""
-
-    def setUp(self):
-        super().setUp()
-        t = Path(self.tmp)
-        self.bin = t / "bin"
-        self.bin.mkdir()
-        self.log = t / "docker.log"
-        (self.bin / "docker").write_text(
-            '#!/bin/bash\necho "docker $*" >> "$DOCKER_LOG"\n'
-            'args="$*"; args="${args/compose -p assetlotse-prod /compose }"\n'
-            'case "$args" in\n  "compose ps -q --status running assetlotse") echo abc;;\n'
-            '  "compose ps -q assetlotse") echo abc;;\n'
-            '  *com.docker.compose.project*) echo assetlotse-prod;;\n'
-            '  *State.Running*) echo true;;\n'
-            '  "image ls"*) printf "assetlotse:0.8.0\\nassetlotse:1.0.0\\nassetlotse:2.0.0\\n";;\n'
-            '  "compose version") [ -n "$NO_COMPOSE_PLUGIN" ] && exit 1;;\n'
-            '  inspect*) echo healthy;;\nesac\nexit 0\n')
-        # altes eigenständiges docker-compose (ruft für die Protokollierung das Fake-docker auf)
-        (self.bin / "docker-compose").write_text('#!/bin/bash\necho "standalone $*" >> "$DOCKER_LOG"\nexec docker compose "$@"\n')
-        (self.bin / "docker-compose").chmod(0o755)
-        (self.bin / "docker").chmod(0o755)
-        # alte Installation
-        self.inst = t / "inst mit leer"
-        self._tree(self.inst, "1.0.0", extra="ALT")
-        shutil.copy(ROOT / "update.sh", self.inst / "update.sh")
-        (self.inst / "data").mkdir()
-        (self.inst / "data" / "assetlotse.db").write_text("db")
-        (self.inst / ".env").write_text("X=1\n")
-        os.chmod(self.inst, 0o750)
-        # Paket 2.0.0 mit Oberordner
-        pkg = t / "pkg" / "assetlotse"
-        self._tree(pkg, "2.0.0", extra="NEU")
-        shutil.copy(ROOT / "update.sh", pkg / "update.sh")
-        self.zip = t / "pakete" / "assetlotse-2.0.0.zip"
-        self.zip.parent.mkdir()
-        with zipfile.ZipFile(self.zip, "w") as z:
-            for f in pkg.rglob("*"):
-                z.write(f, f.relative_to(pkg.parent))
-
-    @staticmethod
-    def _tree(d, version, extra):
-        (d / "assetlotse").mkdir(parents=True)
-        (d / "assetlotse" / "__init__.py").write_text(f'__version__ = "{version}"\n')
-        (d / "assetlotse" / extra).write_text(extra)
-        for f in ("docker-compose.yml", "Dockerfile", "docker-entrypoint.sh", "wsgi.py", "requirements.txt"):
-            (d / f).write_text("x\n")
-
-    def run_update(self, extra_path=None):
-        env = dict(os.environ, PATH=f"{extra_path + ':' if extra_path else ''}{self.bin}:{os.environ['PATH']}",
-                   DOCKER_LOG=str(self.log))
-        # relative Paketangabe aus einem anderen Ordner, Aufruf mit „sh“
-        return subprocess.run(["sh", str(self.inst / "update.sh"), "-y", "../pakete/assetlotse-2.0.0.zip"],
-                              cwd=self.zip.parent.parent / "pkg", env=env, capture_output=True, text=True)
-
-    def version(self):
-        return (self.inst / "assetlotse" / "__init__.py").read_text()
-
-    def test_normal_update(self):
-        r = self.run_update()
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("2.0.0", self.version())
-        self.assertFalse((self.inst / "assetlotse" / "ALT").exists())
-        self.assertTrue((self.inst / "assetlotse" / "NEU").exists())
-        self.assertEqual((self.inst / "data" / "assetlotse.db").read_text(), "db")
-        self.assertTrue((self.inst / ".env").exists())
-        self.assertEqual(os.stat(self.inst).st_mode & 0o777, 0o750)
-        self.assertEqual(list(self.inst.glob(".assetlotse-update.*")), [])
-        log = self.log.read_text()
-        # Projektname des laufenden Containers wird übernommen (verlinkte Ordner, anderer Ordnername)
-        self.assertIn("compose -p assetlotse-prod exec -T assetlotse docker-entrypoint.sh flask --app wsgi backup", log)
-        self.assertIn("compose -p assetlotse-prod up -d", log)
-
-    def test_works_with_standalone_docker_compose(self):
-        with mock.patch.dict(os.environ, {"NO_COMPOSE_PLUGIN": "1"}):
-            r = self.run_update()
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("2.0.0", self.version())
-        self.assertIn("standalone -p assetlotse-prod up -d", self.log.read_text())
-
-    def test_creates_missing_env(self):
-        (self.inst / ".env").unlink()
-        r = self.run_update()
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertTrue((self.inst / ".env").exists())
-
-    def test_failure_mid_swap_keeps_old_install(self):
-        stub = Path(self.tmp, "badmv")
-        stub.mkdir()
-        (stub / "mv").write_text(
-            '#!/bin/bash\nn=$(( $(cat "$MVCOUNT" 2>/dev/null || echo 0) + 1 )); echo $n > "$MVCOUNT"\n'
-            'if [ "$n" = 4 ]; then echo "mv: simulierter Fehler" >&2; exit 1; fi\nexec /bin/mv "$@"\n')
-        (stub / "mv").chmod(0o755)
-        before = sorted(str(p.relative_to(self.inst)) for p in self.inst.rglob("*"))
-        with mock.patch.dict(os.environ, {"MVCOUNT": str(Path(self.tmp, "mvcount"))}):
-            r = self.run_update(str(stub))
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("restored", r.stdout + r.stderr)
-        self.assertIn("1.0.0", self.version())
-        after = sorted(str(p.relative_to(self.inst)) for p in self.inst.rglob("*") if p.name != ".assetlotse.lock")
-        self.assertEqual(after, before)
 
 
 @unittest.skipUnless(hasattr(os, "geteuid") and os.geteuid() == 0 and shutil.which("setpriv")
@@ -489,344 +376,14 @@ class EntrypointBackupDirTest(unittest.TestCase):
 
 
 
-class UpdatePackageCheckTest(UpdateScriptRunTest):
-    """Paketprüfung: Prüfsumme, symbolische Links, Rechte aus dem Zip."""
-
-    def run_plain(self):
-        env = dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}", DOCKER_LOG=str(self.log))
-        return subprocess.run(["bash", str(self.inst / "update.sh"), "-y", str(self.zip)],
-                              env=env, capture_output=True, text=True)
-
-    def test_checksum_mismatch_changes_nothing(self):
-        Path(str(self.zip) + ".sha256").write_text("0" * 64 + "  assetlotse-2.0.0.zip\n")
-        r = self.run_plain()
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("Checksum", r.stdout + r.stderr)
-        self.assertIn("1.0.0", self.version())
-
-    def test_checksum_ok_and_archived(self):
-        import hashlib
-        digest = hashlib.sha256(self.zip.read_bytes()).hexdigest()
-        Path(str(self.zip) + ".sha256").write_text(f"{digest}  assetlotse-2.0.0.zip\n")
-        r = self.run_plain()
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("Checksum matches", r.stdout)
-        self.assertTrue((self.inst / "packages" / "assetlotse-2.0.0.zip.sha256").exists())
-
-    def test_symlink_in_package_is_refused(self):
-        info = zipfile.ZipInfo("assetlotse/link")
-        info.create_system = 3
-        info.external_attr = (0o120777 << 16)
-        with zipfile.ZipFile(self.zip, "a") as z:
-            z.writestr(info, "/etc/passwd")
-        r = self.run_plain()
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("symbolic links", r.stdout + r.stderr)
-        self.assertIn("1.0.0", self.version())
-
-    def test_world_writable_modes_are_dropped(self):
-        info = zipfile.ZipInfo("assetlotse/assetlotse/offen.py")
-        info.create_system = 3
-        info.external_attr = (0o100777 << 16)
-        with zipfile.ZipFile(self.zip, "a") as z:
-            z.writestr(info, "x")
-        r = self.run_plain()
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        mode = (self.inst / "assetlotse" / "offen.py").stat().st_mode & 0o777
-        self.assertEqual(mode & 0o022, 0)
-
-
-
-@unittest.skipUnless(shutil.which("bash") and shutil.which("unzip"), "braucht bash und unzip")
-class UpdateCleanupTest(UpdateScriptRunTest):
-    """Übergabe an das neue update.sh und Aufräumen nach dem Update."""
-
-    def _pkg(self, version, where):
-        pkg = Path(self.tmp) / f"pkg-{version}" / "assetlotse"
-        self._tree(pkg, version, extra="X")
-        shutil.copy(ROOT / "update.sh", pkg / "update.sh")
-        with zipfile.ZipFile(where, "w") as z:
-            for f in pkg.rglob("*"):
-                z.write(f, f.relative_to(pkg.parent))
-        return where
-
-    def test_handover_archives_package_and_cleans_up(self):
-        (self.inst / ".assetlotse-update.alt1").mkdir()                     # Rest eines abgebrochenen Updates
-        self._pkg("1.0.0", self.inst / "assetlotse-1.0.0.zip")              # loses Paket im Programmordner
-        (self.inst / "pakete").mkdir()                                       # Archiv unter altem Namen (1.6.2)
-        self._pkg("0.8.0", self.inst / "pakete" / "assetlotse-0.8.0.zip")   # altes Archiv
-        r = self.run_update()
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        log = self.log.read_text()
-        self.assertEqual(log.count(" build "), 1, log)                      # nur einmal gebaut – nach der Übergabe
-        self.assertIn("Cleaning up", r.stdout)
-        self.assertFalse((self.inst / "pakete").exists())                  # umbenannt in packages/
-        archive = sorted(p.name for p in (self.inst / "packages").iterdir())
-        self.assertEqual(archive, ["assetlotse-1.0.0.zip", "assetlotse-2.0.0.zip"])   # aktuelles + voriges
-        self.assertTrue(self.zip.exists())                                  # Paket von außerhalb: Original bleibt
-        self.assertFalse((self.inst / "assetlotse-1.0.0.zip").exists())
-        self.assertEqual(list(self.inst.glob(".assetlotse-update.*")), [])
-        self.assertIn("image rm assetlotse:0.8.0", log)                     # alte Images weg …
-        self.assertNotIn("image rm assetlotse:1.0.0", log)                  # … das vorige bleibt
-        self.assertNotIn("image rm assetlotse:2.0.0", log)
-        self.assertEqual((self.data_db()), "db")
-
-    def data_db(self):
-        return (self.inst / "data" / "assetlotse.db").read_text()
-
-    def test_prune_removes_previous_image_too(self):
-        env_args = ["--prune"]
-        r = subprocess.run(["bash", str(self.inst / "update.sh"), "-y", *env_args, str(self.zip)],
-                           env=dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}", DOCKER_LOG=str(self.log)),
-                           capture_output=True, text=True)
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        log = self.log.read_text()
-        self.assertIn("image rm assetlotse:1.0.0", log)
-        self.assertNotIn("image rm assetlotse:2.0.0", log)
-
-    def test_no_cleanup(self):
-        (self.inst / ".assetlotse-update.alt1").mkdir()
-        r = subprocess.run(["bash", str(self.inst / "update.sh"), "-y", "--no-cleanup", str(self.zip)],
-                           env=dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}", DOCKER_LOG=str(self.log)),
-                           capture_output=True, text=True)
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertTrue((self.inst / ".assetlotse-update.alt1").exists())
-        self.assertNotIn("image rm", self.log.read_text())
-        self.assertTrue((self.inst / "packages" / "assetlotse-2.0.0.zip").exists())   # archiviert wird trotzdem
-
-    def test_cleanup_only(self):
-        (self.inst / ".assetlotse-update.alt1").mkdir()
-        self._pkg("0.9.0", self.inst / "assetlotse-0.9.0.zip")
-        r = subprocess.run(["bash", str(self.inst / "update.sh"), "--cleanup"],
-                           env=dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}", DOCKER_LOG=str(self.log)),
-                           capture_output=True, text=True)
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        log = self.log.read_text()
-        self.assertNotIn(" build ", log)
-        self.assertNotIn(" up ", log)
-        self.assertFalse((self.inst / ".assetlotse-update.alt1").exists())
-        self.assertTrue((self.inst / "packages" / "assetlotse-0.9.0.zip").exists())
-        self.assertNotIn("image rm assetlotse:0.8.0", log)      # jüngstes vorhandenes älteres Image bleibt
-        self.assertNotIn("image rm assetlotse:1.0.0", log)      # installierte Version
-
-    def test_cleanup_only_without_archive_keeps_previous_image(self):
-        # erstes Aufräumen nach dem Update von einer Version ohne Aufräumen: kein Archiv, Vorversion unbekannt
-        r = subprocess.run(["bash", str(self.inst / "update.sh"), "--cleanup"],
-                           env=dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}", DOCKER_LOG=str(self.log)),
-                           capture_output=True, text=True)
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertNotIn("image rm assetlotse:0.8.0", self.log.read_text())   # jüngstes älteres Image bleibt
-
-    def test_old_package_without_handover_still_works(self):
-        # Paket, dessen update.sh die Übergabe nicht kennt (z. B. Rückweg zu einer alten Version)
-        pkg = Path(self.tmp) / "pkg-old" / "assetlotse"
-        self._tree(pkg, "2.0.0", extra="NEU")
-        (pkg / "update.sh").write_text("#!/usr/bin/env bash\necho altes Skript\n")
-        old_zip = Path(self.tmp) / "alt.zip"
-        with zipfile.ZipFile(old_zip, "w") as z:
-            for f in pkg.rglob("*"):
-                z.write(f, f.relative_to(pkg.parent))
-        r = subprocess.run(["bash", str(self.inst / "update.sh"), "-y", str(old_zip)],
-                           env=dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}", DOCKER_LOG=str(self.log)),
-                           capture_output=True, text=True)
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertNotIn("altes Skript", r.stdout)
-        self.assertEqual(self.log.read_text().count(" build "), 1)
-
-
-class UpdatePullTest(UpdateScriptRunTest):
-    """./update.sh --pull: fertiges Image von GitHub statt lokal bauen (Fake-docker mit pull/create/cp)."""
-
-    REG = "ghcr.io/soleil0815/assetlotse"
-
-    def setUp(self):
-        super().setUp()
-        t = Path(self.tmp)
-        self.app = t / "app"                                  # Inhalt von /app im Image
-        self._tree(self.app, "2.0.0", extra="AUS-IMAGE")
-        shutil.copy(ROOT / "update.sh", self.app / "update.sh")
-        (self.bin / "docker").write_text(
-            '#!/bin/bash\necho "docker $*" >> "$DOCKER_LOG"\n'
-            'args="$*"; args="${args/compose -p assetlotse-prod /compose }"\n'
-            'case "$args" in\n'
-            '  *com.docker.compose.project*) echo assetlotse-prod;;\n'
-            '  "pull "*) [ -n "$FAKE_PULL_FAIL" ] && exit 1; exit 0;;\n'
-            '  *image.source*) echo "${FAKE_SOURCE-https://github.com/soleil0815/assetlotse}";;\n'
-            '  *RepoDigests*) echo "ghcr.io/x@sha256:abc";;\n'
-            '  "image inspect -f {{index .Config.Labels"*) echo "$FAKE_VERSION";;\n'
-            '  "create "*) echo cid123;;\n'
-            '  "cp cid123:/app/. "*) cp -a "$FAKE_APP/." "$3";;\n'
-            '  "compose ps -q assetlotse") echo abc;;\n'
-            '  *State.Running*) echo true;;\n'
-            '  "image ls"*) if [ "${@: -1}" = assetlotse ]; then printf "assetlotse:1.0.0\\n"; '
-            'else printf "%s:latest\\n%s:2.0.0\\n%s:1.5.0\\n" "${@: -1}" "${@: -1}" "${@: -1}"; fi;;\n'
-            '  inspect*) echo healthy;;\nesac\nexit 0\n')
-
-    def run_pull(self, *args, version="2.0.0", **env):
-        e = dict(os.environ, PATH=f"{self.bin}:{os.environ['PATH']}", DOCKER_LOG=str(self.log),
-                 FAKE_APP=str(self.app), FAKE_VERSION=version, **env)
-        return subprocess.run(["bash", str(self.inst / "update.sh"), "-y", *args],
-                              env=e, capture_output=True, text=True)
-
-    def env_file(self):
-        return (self.inst / ".env").read_text()
-
-    def test_pull_installs_files_from_image_without_building(self):
-        r = self.run_pull("--pull")                                         # Standardadresse
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("2.0.0", self.version())
-        self.assertTrue((self.inst / "assetlotse" / "AUS-IMAGE").exists())
-        self.assertFalse((self.inst / "assetlotse" / "ALT").exists())
-        log = self.log.read_text()
-        self.assertIn(f"pull {self.REG}:latest", log)
-        self.assertIn(f"tag {self.REG}:latest {self.REG}:2.0.0", log)
-        self.assertNotIn(" build ", log)
-        self.assertIn("up -d --remove-orphans --no-build", log)
-        self.assertLess(log.index("backup"), log.index(" up -d"))           # Sicherung vor dem Neustart
-        env = self.env_file()
-        self.assertIn("X=1", env)                                           # eigene Einträge bleiben
-        for line in (f"ASSETLOTSE_REGISTRY_IMAGE={self.REG}", f"ASSETLOTSE_IMAGE={self.REG}",
-                     "ASSETLOTSE_TAG=latest"):
-            self.assertIn(line, env)
-        self.assertIn(f"image rm {self.REG}:1.5.0", log)                   # ältere GitHub-Images weg …
-        self.assertNotIn("image rm assetlotse:1.0.0", log)                 # … das vorige (lokale) bleibt
-        self.assertNotIn(f"image rm {self.REG}:2.0.0", log)
-        self.assertIn("Digest:  sha256:abc", r.stdout)
-        self.assertIn(f"create {self.REG}:2.0.0", log)
-        self.assertIn("rm -fv cid123", log)                                 # auch das anonyme Volume
-        # zweites Mal: bestimmte Version, Einträge in der .env werden ersetzt, nicht doppelt
-        r = self.run_pull("--pull", "--version", "v2.0.0")
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn(f"pull {self.REG}:2.0.0", self.log.read_text())
-        self.assertEqual(self.env_file().count("ASSETLOTSE_TAG="), 1)
-
-    def test_other_image_address_needs_explicit_yes_and_matching_source(self):
-        # neue Adresse: auch mit -y nie ohne Rückfrage (ohne Terminal → Abbruch)
-        r = self.run_pull("--pull", "--image", "ghcr.io/jemand/fork",
-                          FAKE_SOURCE="https://github.com/jemand/fork")
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("New image address", r.stdout + r.stderr)
-        self.assertIn("1.0.0", self.version())
-        # Image aus einem fremden Repository unter der bekannten Adresse
-        r = self.run_pull("--pull", FAKE_SOURCE="https://github.com/boese/anderes")
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("was not built from https://github.com/soleil0815/assetlotse", r.stderr)
-        self.assertIn("1.0.0", self.version())
-        self.assertNotIn("create ", self.log.read_text())
-
-    def test_cleanup_only_in_pull_mode_keeps_previous_registry_image(self):
-        self.assertEqual(self.run_pull("--pull").returncode, 0)
-        self.log.write_text("")
-        r = self.run_pull("--cleanup")
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        log = self.log.read_text()
-        self.assertNotIn(f"image rm {self.REG}:1.5.0", log)                # jüngeres älteres GitHub-Image bleibt
-        self.assertIn("image rm assetlotse:1.0.0", log)
-        self.assertNotIn(f"image rm {self.REG}:2.0.0", log)
-
-    def test_follows_latest_or_pinned_version(self):
-        (self.inst / ".env").write_text("X=1\nASSETLOTSE_DOCKHAND_UPDATE=true\n")   # alte Einstellung aus 1.8.0
-        r = self.run_pull("--pull")
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        env, log = self.env_file(), self.log.read_text()
-        self.assertIn("ASSETLOTSE_TAG=latest", env)
-        self.assertNotIn("DOCKHAND", env)                                     # wird entfernt
-        self.assertNotIn(f"image rm {self.REG}:latest", log)                # der Container folgt latest
-        self.assertNotIn(f"image rm {self.REG}:2.0.0", log)
-        # festlegen – Update-Tools lassen den Container dann in Ruhe
-        r = self.run_pull("--pull", "--version", "2.0.0")
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("Pinned to version 2.0.0", r.stdout)
-        self.assertIn("ASSETLOTSE_TAG=2.0.0", self.env_file())
-        # das nächste --pull folgt wieder latest
-        self.assertEqual(self.run_pull("--pull").returncode, 0)
-        env = self.env_file()
-        self.assertIn("ASSETLOTSE_TAG=latest", env)
-        self.assertEqual(env.count("ASSETLOTSE_TAG="), 1)
-
-    def test_plain_run_on_pull_server_never_switches_silently(self):
-        self.assertEqual(self.run_pull("--pull").returncode, 0)
-        self.log.write_text("")
-        r = self.run_pull()
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("runs ready-made images", r.stderr)
-        self.assertNotIn(" build ", self.log.read_text())
-        self.assertIn(f"ASSETLOTSE_IMAGE={self.REG}", self.env_file())
-
-    def test_refused_pull_restores_latest(self):
-        r = self.run_pull("--pull", FAKE_SOURCE="https://github.com/boese/anderes")
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn(f"image rm {self.REG}:latest", self.log.read_text())   # vorher gab es kein latest
-
-    def test_handover_to_older_script_without_new_options(self):
-        old = (ROOT / "update.sh").read_text().replace('--pinned)', '--xpinned)').replace('--pulled)', '--xpulled)')
-        (self.app / "update.sh").write_text(old)                          # Zielversion kennt die Optionen nicht
-        r = self.run_pull("--pull", "--version", "2.0.0")
-        self.assertNotIn("Unknown option", r.stdout + r.stderr)
-        self.assertIn("2.0.0", self.version())
-
-    def test_only_one_update_at_a_time(self):
-        import fcntl
-        with open(self.inst / ".assetlotse.lock", "a") as fh:
-            fcntl.flock(fh, fcntl.LOCK_EX)
-            r = self.run_pull("--pull")
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("Another update is running", r.stderr)
-        self.assertIn("1.0.0", self.version())
-
-    def test_zip_after_pull_switches_back_to_local_image(self):
-        self.assertEqual(self.run_pull("--pull").returncode, 0)
-        r = self.run_pull(str(self.zip))
-        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("locally built", r.stdout + r.stderr)
-        env = self.env_file()
-        self.assertIn("ASSETLOTSE_IMAGE=assetlotse", env)
-        self.assertIn(f"ASSETLOTSE_REGISTRY_IMAGE={self.REG}", env)       # Adresse bleibt für das nächste --pull
-        self.assertIn(" build ", self.log.read_text())
-
-    def test_pull_failures_change_nothing(self):
-        cases = [
-            (("--pull",), {"FAKE_PULL_FAIL": "1"}, "docker login ghcr.io"),
-            (("--pull", "--image", "GHCR.io/Gross"), {}, "Invalid image address"),
-            (("--pull", str(self.zip)), {}, "not both"),
-            (("--version", "2.0.0"), {}, "only work together with --pull"),
-            (("--pull", "--version", "neu"), {}, "Invalid version"),
-            (("--pull", "--version", "1.7"), {}, "Invalid version"),
-        ]
-        for args, env, msg in cases:
-            with self.subTest(args=args):
-                r = self.run_pull(*args, **env)
-                self.assertNotEqual(r.returncode, 0)
-                self.assertIn(msg, r.stdout + r.stderr)
-                self.assertIn("1.0.0", self.version())
-
-    def test_image_without_install_files_or_wrong_label(self):
-        (self.app / "update.sh").unlink()
-        r = self.run_pull("--pull")
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("incomplete", r.stderr)
-        shutil.copy(ROOT / "update.sh", self.app / "update.sh")
-        r = self.run_pull("--pull", version="2.1.0")
-        self.assertNotEqual(r.returncode, 0)
-        self.assertIn("do not match", r.stderr)
-        self.assertIn("1.0.0", self.version())
-        self.assertEqual(list(self.inst.glob(".assetlotse-update.*")), [])
-
-
-# Die geerbten Tests des lokalen Weges nicht in jeder Unterklasse noch einmal laufen lassen
-for _cls in (UpdatePackageCheckTest, UpdateCleanupTest, UpdatePullTest):
-    for _name in [n for n in vars(UpdateScriptRunTest) if n.startswith("test_")]:
-        setattr(_cls, _name, None)
-
-
 class ReleaseFilesTest(unittest.TestCase):
-    """Version stands everywhere the same; the installation layer contains what a local build needs.
-    The release workflow itself: tests/test_supply_chain.py."""
+    """Version stands everywhere the same; the image carries the installation files (and, for the one-time switch
+    from installations before 2.0.0, what their update.sh checks). The release workflow: tests/test_supply_chain.py."""
     def test_versions_and_workflow_agree(self):
         import re
         version = re.search(r'__version__ = "(.*?)"', (ROOT / "assetlotse" / "__init__.py").read_text()).group(1)
         self.assertIn(f'image.version="{version}"', (ROOT / "Dockerfile").read_text())
-        self.assertIn(f"${{ASSETLOTSE_TAG:-{version}}}", (ROOT / "docker-compose.yml").read_text())
+        self.assertIn("${ASSETLOTSE_TAG:-latest}", (ROOT / "docker-compose.yml").read_text())
         self.assertIn("ghcr.io", (ROOT / ".github" / "workflows" / "docker.yml").read_text())
         dockerfile = (ROOT / "Dockerfile").read_text()
         install_layer = dockerfile.split("COPY docker-compose.yml")[1].split("\n\n")[0]
@@ -847,13 +404,14 @@ class ComposeInterpolationTest(unittest.TestCase):
             self.assertEqual(r.returncode, 0, r.stderr)
             return r.stdout
 
-    def test_local_default_and_registry_latest(self):
-        import re
-        version = re.search(r'__version__ = "(.*?)"', (ROOT / "assetlotse" / "__init__.py").read_text()).group(1)
+    def test_ready_made_image_by_default(self):
         out = self.config("")
-        self.assertIn(f"image: assetlotse:{version}", out)
-        out = self.config("ASSETLOTSE_IMAGE=ghcr.io/soleil0815/assetlotse\nASSETLOTSE_TAG=latest\n")
         self.assertIn("image: ghcr.io/soleil0815/assetlotse:latest", out)
+        self.assertNotIn("build:", out)
+        self.assertIn("ASSETLOTSE_COMPOSE_VERSION: \"2\"", out)
+        out = self.config("ASSETLOTSE_TAG=2.0.0-s1\nASSETLOTSE_PORT=9400\n")
+        self.assertIn("image: ghcr.io/soleil0815/assetlotse:2.0.0-s1", out)
+        self.assertIn("published: \"9400\"", out)
         self.assertNotIn("dockhand", out)
 
 

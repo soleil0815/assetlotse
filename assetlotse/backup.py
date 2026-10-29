@@ -26,9 +26,11 @@ from .models import ROLE_ADMIN, User, db, get_bool, get_int, get_setting, set_se
 log = logging.getLogger(__name__)
 
 PREFIX = "assetlotse-"
-NAME_RE = re.compile(r"^assetlotse-(\d{4}-\d{2}-\d{2})_(\d{6})(-[a-z-]*[a-z])?(-\d+)?\.db$")
+NAME_RE = re.compile(r"^assetlotse-(\d{4}-\d{2}-\d{2})_(\d{6})(-vor-\d+\.\d+\.\d+|-[a-z-]*[a-z])?(-\d+)?\.db$")
 PART_MAX_AGE = 3600   # unfertige *.part-Dateien erst nach 1 Stunde als Reste abgebrochener Läufe löschen
-KIND_LABELS = {"": "automatisch", "-manuell": "manuell", "-vor-wiederherstellung": "vor Wiederherstellung"}
+KIND_LABELS = {"": "automatisch", "-manuell": "manuell", "-vor-wiederherstellung": "vor Wiederherstellung",
+               "-vor-update": "vor Update"}
+KEEP_UPGRADE = 3      # Sicherungen „vor <Version>“: die neuesten drei zählen nicht mit – sie braucht, wer zurückgeht
 KEEP_MIN, KEEP_MAX = 1, 100
 
 
@@ -168,8 +170,10 @@ def list_backups() -> list[dict]:
         created = datetime.strptime(f"{m.group(1)}_{m.group(2)}", "%Y-%m-%d_%H%M%S")
         kind = m.group(3) or ""
         seq = int(m.group(4)[1:]) if m.group(4) else 0   # „-1“, „-2“ …: später in derselben Sekunde
+        upgrade = kind == "-vor-update" or bool(re.match(r"-vor-\d", kind))
         items.append({"name": p.name, "path": p, "size": p.stat().st_size, "created": created,
-                      "kind": KIND_LABELS.get(kind, "manuell"), "_seq": seq})
+                      "kind": KIND_LABELS["-vor-update"] if upgrade else KIND_LABELS.get(kind, "manuell"),
+                      "upgrade": upgrade, "_seq": seq})
     items.sort(key=lambda x: (x["created"], x["_seq"]), reverse=True)
     return items
 
@@ -177,7 +181,9 @@ def list_backups() -> list[dict]:
 def rotate(keep: int | None = None) -> int:
     keep = keep_count() if keep is None else keep
     removed = 0
-    for item in list_backups()[keep:]:
+    items = list_backups()
+    protected = {i["name"] for i in [i for i in items if i["upgrade"]][:KEEP_UPGRADE]}
+    for item in [i for i in items if i["name"] not in protected][keep:]:
         try:
             item["path"].unlink()
             removed += 1

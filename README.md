@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 1.12.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.0.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -25,82 +25,91 @@ Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Lap
 
 ---
 
-## Schnellstart
+## Installation und Update
 
-### Mit Docker (empfohlen)
+AssetLotse läuft als Docker-Container. Das Programm steckt komplett im fertigen Image; auf dem Server liegen nur **`docker-compose.yml`**, **`.env`** (deine Einstellungen) und der Ordner **`data`** (Datenbank, Fotos, Schlüssel, Sicherungen). Nichts wird auf dem Server gebaut oder entpackt. Voraussetzung: Docker mit Compose (Plugin `docker compose` oder das ältere `docker-compose`).
 
-```bash
-docker compose up -d --build
-```
+### Installation
 
-Dann `http://SERVER:9343` öffnen. Beim ersten Aufruf legst du das lokale Administratorkonto an – das geht nur aus dem internen Netz (sonst auf dem Server mit `create-admin`, siehe [Wartung](#wartung)). Alle Daten liegen in `./data`.
+1. Einen Ordner anlegen, z. B. `/opt/assetlotse` (auf einer Synology z. B. `/volume1/docker/assetlotse`).
+2. Aus dem neuesten [Release](https://github.com/soleil0815/assetlotse/releases/latest) **`docker-compose.yml`** und **`.env.example`** dort ablegen, `.env.example` als **`.env`** speichern und nach Bedarf anpassen (Port, Zeitzone, …). Ohne Einträge gelten die Vorgaben.
+3. Ist das Image privat: einmalig `docker login ghcr.io` (Benutzer: GitHub-Name, Passwort: ein Token mit dem Recht `read:packages`).
+4. Starten:
+   ```bash
+   docker compose up -d
+   ```
+
+Dann `http://SERVER:9343` öffnen (z. B. `http://assetlotse.firma.local:9343`). Beim ersten Aufruf legst du das lokale Administratorkonto an – das geht nur direkt aus dem internen Netz (sonst auf dem Server mit `create-admin`, siehe [Wartung](#wartung)).
 
 Der Container setzt beim Start selbst die Rechte an `./data` und läuft danach als Benutzer `PUID:PGID` (Standard `1000:1000`) – nicht als root (`PUID`/`PGID` `0` werden abgelehnt). `./data` ist nur für diesen Benutzer lesbar, neue Dateien darin ebenso. Liest auf dem Server ein anderer Benutzer die Sicherungen (z. B. ein eigenes Kopierskript), lass es als root oder als `PUID` laufen.
 
-**Eigene Einstellungen gehören in die Datei `.env`**, nicht in `docker-compose.yml`:
+**Eigene Einstellungen gehören in die `.env`**, nicht in die `docker-compose.yml` – die bleibt unverändert und wird bei Bedarf durch eine neue ersetzt. Zusätzliche Ordner oder Dienste (z. B. ein Sicherungslaufwerk oder eine MariaDB) kommen in eine eigene `docker-compose.override.yml`; die berührt kein Update.
 
+**Anderer Port:** in der `.env` z. B. `ASSETLOTSE_PORT=8080` eintragen und `docker compose up -d` ausführen – fertig. Der Wert gilt außen auf dem Server und innen im Container. Erlaubt sind 1024–65535. Wird die Seite nicht angezeigt: Steht in der `.env` `ASSETLOTSE_BIND=127.0.0.1`, ist AssetLotse nur auf dem Server selbst erreichbar (gedacht für einen Reverse-Proxy auf demselben Rechner) – Zeile auskommentieren für den Zugriff aus dem Netz. Ansonsten Firewall des Servers prüfen (z. B. `sudo ufw allow 9343/tcp`).
+
+### Update
+
+Die `docker-compose.yml` folgt dem Tag **`latest`** – der neuesten Version einschließlich der wöchentlichen Sicherheitsupdates. Updates gehen deshalb so, wie man es von Docker kennt:
+
+- **Mit einer Container-Verwaltung** wie Dockhand, Watchtower oder Tugtainer – am besten mit einer Update-Zeit **nachts**, wenn niemand ausleiht.
+- **Von Hand:**
+  ```bash
+  docker compose pull && docker compose up -d
+  ```
+- **Mit `./update.sh`** (liegt im Release; optional): merkt sich das laufende Image als `previous`, lädt die neue Version, startet sie und wartet auf den Gesundheitscheck. Startet die neue Version nicht, bietet es an, die vorige wieder zu starten (mit `-y` ohne Rückfrage). Bringt das Image eine neuere `docker-compose.yml` mit, legt es sie ab und behält die alte als `docker-compose.yml.alt`. Läuft mit `/bin/sh` (auch auf einem NAS wie Synology); als root oder Mitglied der Gruppe `docker` ausführen.
+  ```bash
+  ./update.sh                 # neueste Version
+  ./update.sh --rollback      # das Image von vor dem letzten Update wieder starten
+  ./update.sh --help          # alle Möglichkeiten
+  ```
+
+**Abgesichert ist jeder Weg:** Startet eine neue Version zum ersten Mal, sichert AssetLotse **vor** jeder Änderung an der Datenbank selbst (`…-vor-<Version>.db`, unter *Administration → Datensicherung*; die drei neuesten solcher Sicherungen werden nie automatisch gelöscht; nur SQLite – bei MySQL/PostgreSQL vorher selbst sichern). Erst danach passt es die Datenbank an.
+
+**Neue `docker-compose.yml`:** Die Datei trägt eine Versionsnummer (`ASSETLOTSE_COMPOSE_VERSION`). Braucht eine neue Version eine neuere Datei, sagt AssetLotse es selbst – im Protokoll und als Hinweis für Administratoren. Dann `./update.sh` ausführen (legt die neue Datei ab, die alte bleibt als `.alt`) oder die `docker-compose.yml` aus dem Release übernehmen und `docker compose up -d`.
+
+### Bestimmte Version festlegen und zurückgehen
+
+In der `.env` die Version eintragen und neu starten – Container-Verwaltungen lassen eine feste Version in Ruhe:
 ```bash
-cp .env.example .env    # einmalig, dann nach Bedarf anpassen (Port, Zeitzone, …)
+ASSETLOTSE_TAG=2.0.0        # oder ein bestimmtes Sicherheitsupdate, z. B. 2.0.0-s3
+docker compose pull && docker compose up -d
 ```
+Oder kurz: `./update.sh --version 2.0.0`. Zurück zur neuesten Version: die Zeile entfernen (bzw. `ASSETLOTSE_TAG=latest`) oder `./update.sh`.
 
-**Anderer Port:** in der `.env` z. B. `ASSETLOTSE_PORT=8080` eintragen und `docker compose up -d` (bzw. `./update.sh`) ausführen – fertig. Der Wert gilt außen auf dem Server und innen im Container; die `docker-compose.yml` bleibt unverändert. Erlaubt sind 1024–65535. Wird die Seite nicht angezeigt: Steht in der `.env` `ASSETLOTSE_BIND=127.0.0.1`, ist AssetLotse nur auf dem Server selbst erreichbar (gedacht für einen Reverse-Proxy auf demselben Rechner) – Zeile auskommentieren für den Zugriff aus dem Netz. Ansonsten Firewall des Servers prüfen (z. B. `sudo ufw allow 9343/tcp`).
-
-Im Paket liegt eine leere `.env`; bei Updates wird sie nie überschrieben (fehlt sie, legt `update.sh` eine leere an). Zusätzliche Dienste (z. B. eine MariaDB) kommen in eine eigene `docker-compose.override.yml`; auch die wird von Updates nicht berührt.
-
-### Update und Neubau: `update.sh`
-
+**Zurück auf eine ältere Version:** Eine ältere Version startet nicht auf einer Datenbank, die schon eine neuere Version angepasst hat – sie bricht mit einer klaren Meldung ab und nennt die Sicherung, die zurückzuspielen ist. Also:
 ```bash
-./update.sh                          # aktuellen Stand neu bauen und neu starten
-./update.sh assetlotse-1.2.0.zip     # neues Paket einspielen, bauen, starten
+docker compose stop assetlotse
+docker compose run --rm assetlotse backups                              # Sicherungen anzeigen
+docker compose run --rm assetlotse restore assetlotse-2026-11-02_031500-vor-2.1.0.db
+# in der .env die ältere Version eintragen, z. B. ASSETLOTSE_TAG=2.0.0
+docker compose up -d
 ```
+Die Sicherung `…-vor-2.1.0.db` ist der Stand unmittelbar vor dem Update auf 2.1.0. Was seitdem eingetragen wurde, geht dabei verloren (der aktuelle Stand wird vorher noch als `…-vor-wiederherstellung.db` gesichert).
 
-Das Skript
-1. prüft ein angegebenes Paket: arbeitet mit einer eigenen Kopie, zeigt die **SHA-256-Prüfsumme** (liegt `PAKET.zip.sha256` daneben, wird sie verglichen – bei Abweichung bricht das Skript ab), lehnt Pakete mit absoluten Pfaden, `..` oder symbolischen Links ab, entpackt in einen Arbeitsordner neben der Installation (Schreibrechte aus dem Zip werden nicht übernommen), zeigt alte und neue Version und warnt bei einer älteren Version,
-2. legt eine **Datensicherung** an (wenn der Container läuft) – noch bevor Dateien ersetzt werden,
-3. tauscht dann die Programmdateien aus – `./data`, `instance`, `.env` und `docker-compose.override.yml` bleiben unberührt; die Ordner `assetlotse/` und `tests/` werden vollständig ersetzt. Geht dabei etwas schief, stellt das Skript die bisherigen Dateien wieder her (sonst nennt es den Ordner, in dem sie liegen),
-4. baut das Image `assetlotse:VERSION` (z. B. `assetlotse:1.2.0`) – schlägt das fehl, läuft der alte Container unverändert weiter,
-5. startet den Container neu und wartet, bis er gesund gemeldet wird; sonst zeigt es die letzten Protokollzeilen.
+### Ohne Internet
 
-Das Paket darf woanders liegen (`./update.sh ~/Downloads/assetlotse-X.Y.Z.zip`), mit oder ohne Oberordner gepackt sein; auch eine unvollständige Installation (z. B. fehlender Ordner `assetlotse`) lässt sich so reparieren.
-
-**Aufräumen:** Nach einem erfolgreichen Update räumt das Skript selbst auf. Das eingespielte Zip kommt ins Archiv `./packages` – dort bleiben das **aktuelle und das vorige Paket** für den Rückweg, ältere werden gelöscht (ein Paket von außerhalb, z. B. aus `~/Downloads`, wird nur kopiert). Lose `assetlotse-*.zip` im Programmordner wandern ins Archiv, Reste abgebrochener Updates (`.assetlotse-update.*`) und **ältere AssetLotse-Images** werden entfernt; das Image der vorigen Version bleibt für den Notfall. Andere Docker-Images und -Daten auf dem Server werden nie angefasst. Nach dem Austausch der Dateien übernimmt immer das **neue** `update.sh` das Bauen, Starten und Aufräumen – Verbesserungen am Skript wirken also schon beim Update selbst.
-
-Optionen: `--no-backup`, `--no-cache` (ohne Docker-Cache bauen), `--prune` (auch das vorige Image löschen), `--no-cleanup` (nicht aufräumen), `--cleanup` (nur aufräumen, nichts bauen), `--pull` / `--version` / `--image` (fertiges Image von GitHub, siehe unten), `-y` (keine Rückfragen), `--help`. Ohne Terminal (cron, `ssh` ohne `-t`) bricht das Skript bei jeder Rückfrage ab – dort `-y` verwenden.
-
-**Zurück zur vorigen Version**, falls nach einem Update etwas nicht stimmt: das vorige Paket aus dem Archiv wieder einspielen: `./update.sh packages/assetlotse-ALT.zip` (das Skript warnt vor der älteren Version). Hat die neue Version schon Daten verändert, zusätzlich die Sicherung von vor dem Update zurückspielen (siehe [Datensicherung](#datensicherung) → Wiederherstellen; es ist die neueste manuelle Sicherung).
-
-Das Skript braucht Docker Compose – das Plugin `docker compose` oder das ältere eigenständige `docker-compose`, egal welche Version – und `unzip`; ausführen als root oder als Mitglied der Gruppe `docker`. Mit älterem Compose in allen Befehlen dieser Anleitung einfach `docker-compose` statt `docker compose` schreiben.
-
-### Fertige Images von GitHub (`--pull`)
-
-Statt auf dem Server zu bauen, kann GitHub das Image bauen: Der Workflow `.github/workflows/docker.yml` baut bei jeder neuen Version das Image, testet und prüft es und legt es unter **`ghcr.io/soleil0815/assetlotse`** ab (Tags z. B. `1.10.0`, `1.10` und `latest`; Sicherheitsupdates als `1.10.0-s1` usw., siehe unten). Der Server lädt es nur noch herunter – ein Update dauert Sekunden.
-
-**Neue Version veröffentlichen:** Die neue Versionsnummer (in `assetlotse/__init__.py`, `Dockerfile`, `docker-compose.yml`) auf `main` hochladen – mehr nicht. Der Workflow merkt, dass es die Version noch nicht gibt, baut das Image aus den festgelegten Versionen, lässt die Tests im Image laufen, prüft es mit Trivy und veröffentlicht es nur, wenn alles bestanden ist – `latest` nur, wenn es die höchste Version ist; den Tag `v<Version>` legt er selbst an, dazu ein Release auf GitHub (*Releases*, Text aus dem CHANGELOG) – ebenso für jedes Sicherheitsupdate. Hochladen ohne neue Versionsnummer baut nichts. Per Zip, im Repository-Ordner:
+Am Release hängen die Images als Dateien: `assetlotse-<Version>-amd64.tar.gz` (übliche Server und PCs) bzw. `…-arm64.tar.gz` (z. B. Raspberry Pi, ARM-NAS), jeweils mit `.sha256`. Datei und `update.sh` auf den Server kopieren, dann:
 ```bash
-git add -A
-git commit -m "AssetLotse 1.9.0"
-git push
+./update.sh --offline assetlotse-2.0.0-amd64.tar.gz
 ```
-Unter *Actions* siehst du den Lauf (rund zehn Minuten), danach liegt das Image unter *Packages*. Veröffentlicht wird nur vom Zweig `main`. Zum Ausprobieren ohne Veröffentlichung: *Actions → Docker image → Run workflow → check* (bauen, testen, prüfen).
+Das Skript prüft die Prüfsumme (wenn die `.sha256` daneben liegt), lädt das Image (`docker load`) und startet es; die Version wird in der `.env` festgelegt. Ohne `update.sh`: `docker load -i assetlotse-2.0.0-amd64.tar.gz`, in der `.env` `ASSETLOTSE_TAG=2.0.0` eintragen, `docker compose up -d`.
 
-**Einmalig auf dem Server** (privates Repository): auf GitHub ein Token (*Settings → Developer settings → Personal access tokens*) mit dem Recht `read:packages` anlegen, dann
-```bash
-docker login ghcr.io -u soleil0815        # Passwort = das Token
-```
+### Umstieg von einer Installation vor 2.0.0
 
-**Update auf dem Server:**
-```bash
-./update.sh --pull                  # neueste Version (folgt danach latest)
-./update.sh --pull --version 1.8.1  # Version festlegen, auch zum Zurückgehen
-./update.sh --pull --version 1.12.0-s2  # genau ein Sicherheitsupdate festlegen
-```
-Das Skript sichert die Datenbank, lädt das Image, holt `update.sh`, `docker-compose.yml` & Co. aus dem Image (die Installationsdateien bleiben so aktuell), startet neu und räumt alte Images auf. Ein Sicherheitsupdate (`-sN`) lässt sich erst ab 1.12.0 gezielt festlegen – vorher einmal `./update.sh --pull`. Welches Image läuft, steht in der `.env` (`ASSETLOTSE_IMAGE`, `ASSETLOTSE_TAG` – verwaltet `update.sh`). Ein anderes Repository (z. B. ein Fork): `--image ghcr.io/NAME/REPO`.
+Bis 1.12 lagen auch die Programmdateien auf dem Server (Zip-Pakete, lokaler Bau). Der Umstieg einmalig, im bisherigen Ordner:
 
-**Beide Wege bleiben möglich:** `./update.sh assetlotse-X.Y.Z.zip` baut wie bisher lokal – das Image heißt dann `assetlotse:X.Y.Z`, nie wie das GitHub-Image, damit es kein Update-Tool ersetzt. Das nächste `--pull` wechselt zurück auf GitHub.
+1. `./update.sh --pull` – das bisherige Skript holt 2.0.0 und übergibt an das neue `update.sh`; die neue `docker-compose.yml` wird abgelegt und der Container gestartet. (Wurde bisher lokal gebaut, ist das genau der Wechsel auf das fertige Image.)
+2. `./update.sh --cleanup` – zeigt die nicht mehr gebrauchten Programmdateien (z. B. `assetlotse/`, `Dockerfile`, `requirements.txt`, alte Zips, `packages/`, Reste abgebrochener Updates, alte lokal gebaute Images), fragt nach und löscht nur diese. **Nie** angefasst werden `data`, Sicherungen, `.env`, `docker-compose.yml`, `docker-compose.override.yml`, Links und alle Ordner, die ein Container eingebunden hat – auch nicht über Links. Im Ordner bleiben danach nur noch `docker-compose.yml` (und `.alt`), `.env`, `.env.example`, `update.sh` und `data`.
 
-**Updates mit anderen Tools:** Nach `./update.sh --pull` folgt der Container dem Tag `latest`. Neue Versionen kannst du deshalb mit `./update.sh --pull` einspielen **oder** mit einem Tool deiner Wahl, das Container aktualisiert (z. B. Dockhand oder Watchtower). Abgesichert ist beides: Startet eine neue Version zum ersten Mal, legt AssetLotse **vor** jeder Änderung an der Datenbank selbst eine Sicherung an (`…-vor-update.db`, unter *Administration → Datensicherung*; nur SQLite). Ein Tool tauscht allerdings nur den Container aus, nicht `update.sh` und `docker-compose.yml` auf dem Server – ändern sich diese, steht es im CHANGELOG; dann einmal `./update.sh --pull`. Mit `--version X.Y.Z` legst du eine Version fest (Tools lassen sie dann in Ruhe); das nächste `./update.sh --pull` folgt wieder der neuesten.
+Wer AssetLotse über eine Container-Verwaltung aktualisiert, ersetzt dort einfach die `docker-compose.yml` durch die neue aus dem Release.
 
-**Vertrauen:** Bei `--pull` übernimmt das Skript `update.sh` aus dem Image und führt es mit deinen Rechten aus. Es prüft deshalb, dass das Image aus dem passenden GitHub-Repository gebaut wurde (Label `org.opencontainers.image.source`), zeigt Version und Digest an und verlangt bei einer neuen Image-Adresse immer ein ausdrückliches „ja“ – auch mit `-y`. Wer Schreibrechte am Repository hat, kann also beeinflussen, was auf dem Server läuft: Zugänge zum Repository entsprechend vergeben. `latest` zeigt immer auf die höchste veröffentlichte Version; ein Nachtrag für eine ältere Reihe (z. B. `v1.6.4` nach `v1.7.0`) ändert `latest` nicht.
+## Bauen und Veröffentlichen (GitHub)
+
+Der Workflow `.github/workflows/docker.yml` baut die Images auf GitHub – für **amd64 und arm64**, jeweils auf einem eigenen Rechner dieser Architektur, dort auch getestet – und legt sie unter **`ghcr.io/soleil0815/assetlotse`** ab (Tags z. B. `2.0.0`, `2.0` und `latest`; Sicherheitsupdates als `2.0.0-s1` usw.; dazu je Architektur `2.0.0-amd64` und `2.0.0-arm64`).
+
+- **Jeder Push auf `main` und jeder Pull Request** wird geprüft: bauen, Tests im Image, Trivy – **veröffentlicht wird nichts**.
+- **Veröffentlicht wird nur von Hand:** *Actions → Docker image → Run workflow → release* (auf `main`). Gibt es die Versionsnummer noch nicht, wird gebaut, getestet, geprüft und nur bei Erfolg veröffentlicht – `latest` nur für die höchste Version. Dazu kommen der Tag `v<Version>` und ein Release auf GitHub mit dem Text aus dem CHANGELOG und den Installationsdateien (`docker-compose.yml`, `.env.example`, `update.sh`, Image-Dateien für den Weg ohne Internet). Eine veröffentlichte Version wird nie neu gebaut oder überschrieben.
+- **Neue Version:** Versionsnummer in `assetlotse/__init__.py` und `Dockerfile` erhöhen, CHANGELOG-Eintrag schreiben, per Pull Request auf `main` bringen, dann *Run workflow → release*.
 
 ### Sicherheit und Aktualität des Images
 
@@ -111,7 +120,8 @@ Ziel: Das Image bleibt von selbst sicher und aktuell, **ohne Versionssprünge**.
 - **Alle Debian-Pakete** des Images – auch die des Basis-Images – stehen mit exakter Version in `build/debian-packages.lock`. Installiert wird aus einem festen Stand des Debian-Archivs (`snapshot.debian.org`, Zeitpunkt in der Datei); weicht ein Paket ab, bricht der Bau ab.
 - **Alle Python-Pakete** einschließlich aller Unterabhängigkeiten stehen exakt in `requirements.txt`, `pip` selbst als `ARG PIP_VERSION` im `Dockerfile`. Installiert wird mit `--no-deps` und `--only-binary`, danach prüft `pip check`.
 - **Was zur Laufzeit nicht gebraucht wird, ist nicht im Image:** die Paketverwaltungen `pip`, `ensurepip` und `apt` werden nach der Installation entfernt. (`dpkg` mit seiner Paketliste bleibt: Es gehört zum Grundsystem, und die Schwachstellenprüfung liest daraus die installierten Pakete.)
-- **Neu festlegen** – innerhalb der Grenzen unten – macht das Skript `scripts/lock.py refresh` (braucht Docker und Internet). Auf GitHub ohne eigenes Docker: *Actions → Docker image → Run workflow → relock*; das Ergebnis wird auf `main` eingetragen und mit der nächsten Version getestet und veröffentlicht. `scripts/lock.py check` prüft die Dateien ohne Netz.
+- **Alle Debian-Pakete** stehen je Architektur fest: `build/debian-packages.lock` (amd64) und `build/debian-packages.arm64.lock` (arm64) – aus demselben Stand des Debian-Archivs; die Python-Pakete sind auf beiden Architekturen genau dieselben.
+- **Neu festlegen** – innerhalb der Grenzen unten – macht `scripts/lock.py`: auf GitHub *Actions → Docker image → Run workflow → relock* (löst auf je einem amd64- und arm64-Rechner auf und trägt das Ergebnis in den Zweig ein, auf dem der Lauf gestartet wurde – `main` oder der Zweig eines Pull Requests). Lokal: `scripts/lock.py refresh` (braucht Docker, für arm64 mit Emulation). `scripts/lock.py check` prüft die Dateien ohne Netz.
 
 **Grenzen („Unterbau“).** Automatisch angehoben wird nur **innerhalb** des Unterbaus:
 - gleiche Debian-Version (13 „trixie“ steht fest im Namen des Basis-Images – nie ein Tag, das still wechselt),
@@ -121,11 +131,11 @@ Ziel: Das Image bleibt von selbst sicher und aktuell, **ohne Versionssprünge**.
 
 Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion eines Pakets) hebt niemand still an – das ist immer eine bewusste neue Programmversion.
 
-**Sicherheitsupdate jede Woche** (montags 04:17 UTC, von Hand: *Run workflow → security-update*): `scripts/lock.py` holt die neuesten Versionen innerhalb der Grenzen. Gibt es nichts Neues, passiert nichts. Sonst wird **ohne Zwischenspeicher** neu gebaut, die automatischen Tests laufen **im fertigen Image**, dann prüft Trivy. Nur wenn **alles** bestanden ist, wird das Image veröffentlicht – als `<Version>-s<Zähler>` (z. B. `1.10.0-s1`, `1.10.0-s2`: gleiches Programm, nur neue Pakete), außerdem als `latest` und `<Minor>`. Die neuen festen Versionen werden mit einem Eintrag im [CHANGELOG](CHANGELOG.md) (Liste der geänderten Pakete) auf `main` eingetragen und als `v<Version>-s<Zähler>` markiert. Eine neue Programmversion beginnt wieder bei `s1`. Server, die `latest` folgen (`./update.sh --pull`, Dockhand & Co.), bekommen die Sicherheitsupdates von selbst; wer mit `--version X.Y.Z` festgelegt ist, behält genau dieses Image. Liegen auf `main` noch unveröffentlichte Programmänderungen, gibt es kein Sicherheitsupdate, bis sie als neue Version veröffentlicht sind.
+**Sicherheitsupdate jede Woche** (montags 04:17 UTC, von Hand: *Run workflow → security-update*): `scripts/lock.py` holt die neuesten Versionen innerhalb der Grenzen. Gibt es nichts Neues, passiert nichts. Sonst wird **ohne Zwischenspeicher** neu gebaut, die automatischen Tests laufen **im fertigen Image**, dann prüft Trivy. Nur wenn **alles** bestanden ist, wird das Image veröffentlicht – als `<Version>-s<Zähler>` (z. B. `1.10.0-s1`, `1.10.0-s2`: gleiches Programm, nur neue Pakete), außerdem als `latest` und `<Minor>`. Die neuen festen Versionen werden mit einem Eintrag im [CHANGELOG](CHANGELOG.md) (Liste der geänderten Pakete) auf `main` eingetragen und als `v<Version>-s<Zähler>` markiert. Eine neue Programmversion beginnt wieder bei `s1`. Server, die `latest` folgen, bekommen die Sicherheitsupdates von selbst; wer eine Version festgelegt hat (`ASSETLOTSE_TAG`), behält genau dieses Image. Sicherheitsupdates erscheinen weiter **automatisch**, auch ohne „release“. Liegen auf `main` noch unveröffentlichte Programmänderungen (gemergt, aber noch nicht veröffentlicht), gibt es kein Sicherheitsupdate, bis sie als neue Version veröffentlicht sind.
 
 **Schwachstellenprüfung (Trivy).** Jedes Image wird vor dem Veröffentlichen geprüft. Nur Schwachstellen der Stufe HOCH oder KRITISCH, für die es eine Korrektur gibt, stoppen das Release (dazu gefundene Geheimnisse wie Schlüssel). Trivy ist bewusst **keine** GitHub Action (trivy-action und setup-trivy wurden im März 2026 kompromittiert, CVE-2026-33634): `.github/install-trivy.sh` lädt eine feste Version und prüft ihre SHA-256-Prüfsumme, bevor sie läuft. Geprüfte, nicht ausnutzbare Befunde kommen mit Begründung (`# reason: …` in der Zeile darüber) und Ablaufdatum (`exp:JJJJ-MM-TT`) in `.trivyignore`; fehlt eines davon, bricht die Prüfung ab, nach dem Ablaufdatum wird der Befund wieder gemeldet.
 
-**Täglicher Scan.** Jeden Tag (05:43 UTC) wird das veröffentlichte `latest` erneut geprüft – für Schwachstellen, die erst nach dem Release bekannt werden.
+**Täglicher Scan.** Jeden Tag (05:43 UTC) wird das veröffentlichte `latest` (amd64 und arm64) erneut geprüft – für Schwachstellen, die erst nach dem Release bekannt werden.
 
 **Unterbau-Warnung.** Jeden Montag fragt der Workflow bei [endoflife.date](https://endoflife.date), wie lange Debian und die Python-Reihe noch Sicherheitsupdates bekommen: ab 12 Monaten vorher ein Hinweis (gelb), ab 6 Monaten ein roter Lauf.
 
@@ -133,7 +143,7 @@ Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion e
 
 **Nur vom Zweig `main`:** Der Workflow veröffentlicht nur Läufe von `main` (Prüfung in `scripts/ci.py`). Die zusätzliche Sperre über die Umgebung `release` (*Settings → Environments → Deployment branches*) bietet GitHub für private Repositorys nur mit GitHub Pro, Team oder Enterprise an; ohne sie könnte ein auf einem anderen Zweig geänderter Workflow, von Hand gestartet, trotzdem veröffentlichen. Schreibrechte am Repository daher nur vertrauenswürdigen Personen geben.
 
-**Bauen auf dem eigenen Server** (`./update.sh` mit Zip, ohne `--pull`) nutzt dieselben festen Versionen und braucht deshalb HTTPS-Zugang zu `snapshot.debian.org`. Die Debian-Paketliste gilt für `amd64`; auf einem anderen Prozessor (z. B. `arm64`) wird derselbe Stand installiert, die Liste aber nicht verglichen. Bricht ein Lauf mitten im Veröffentlichen ab, holt der nächste Lauf das Fehlende nach (`latest` und `<Minor>` werden nachgezogen, nichts wird neu gebaut).
+**Selbst bauen** (z. B. für eine eigene Anpassung): `docker build -t assetlotse:eigen .` im Repository – mit denselben festen Versionen, dafür braucht der Rechner HTTPS-Zugang zu `snapshot.debian.org`. In der `.env` dann `ASSETLOTSE_IMAGE=assetlotse` und `ASSETLOTSE_TAG=eigen`.
 
 **Wenn ein Lauf rot ist.** Rot vor dem Schritt *publish* heißt: **nichts wurde veröffentlicht**, die Server behalten die bisherige Version. Bricht ein Lauf erst beim Veröffentlichen ab (z. B. Netzwerkfehler), holt *Re-run failed jobs* oder der nächste Lauf das Fehlende nach – fehlende Tags (`latest`, `<Minor>`) und die Release-Seite werden ergänzt, nichts wird neu gebaut. GitHub schickt eine E-Mail; die Ursache steht kurz am Lauf (*Actions* → Lauf → Hinweise oben und Zusammenfassung).
 
@@ -143,32 +153,13 @@ Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion e
 | *Trivy … finding(s)* beim Release oder Sicherheitsupdate | Für die Lücke gibt es eine Korrektur außerhalb der Grenzen (z. B. nur in einer neuen Hauptversion): bewusst anheben und als neue Version veröffentlichen. Ist der Befund nachweislich nicht ausnutzbar: Eintrag mit Begründung und Ablaufdatum in `.trivyignore`. |
 | *Trivy … finding(s)* beim täglichen Scan | Neu bekannte Lücke im veröffentlichten Image. Meist behebt sie das nächste Sicherheitsupdate; sofort: *Run workflow → security-update*. |
 | *Base ends soon* (rot) / *within a year* (gelb) | Debian oder Python bekommen bald keine Sicherheitsupdates mehr: den Wechsel auf den nächsten Unterbau als neue Version planen. |
-| *unreleased program changes* | Auf `main` liegen Änderungen ohne neue Versionsnummer: Versionsnummer erhöhen und hochladen. |
+| *unreleased program changes* | Auf `main` liegen Änderungen, die noch nicht veröffentlicht sind: Versionsnummer erhöhen und *Run workflow → release*. |
 | *the scan itself failed*, Netzwerk- oder Download-Fehler | Meist vorübergehend: Lauf erneut starten (*Re-run jobs*). |
 | *exists already with another image* | Diese Versionsnummer ist schon mit einem anderen Image veröffentlicht – Versionsnummer erhöhen. |
 | *would ship OLDER packages* | Die neue Version hätte ältere Pakete als das zuletzt veröffentlichte Sicherheitsupdate (z. B. weil ein älterer Stand hochgeladen wurde): `git pull`, damit die neuesten festen Versionen und der CHANGELOG dabei sind, dann erneut hochladen. |
+| *no packages locked for arm64* | Die Paketliste für arm64 fehlt: *Run workflow → relock* auf dem Zweig starten. |
+| *resolved other Python packages than amd64* | Ein Python-Paket gibt es für arm64 (noch) nicht in derselben Version: Lauf später wiederholen oder die Grenze in `requirements.in` bewusst anpassen. |
 | *main changed while this run was going* | Während des Sicherheitsupdates kam etwas Neues auf `main` – nichts veröffentlicht; der nächste Lauf wiederholt es. |
-
-### Ohne Docker (Linux)
-
-```bash
-python3.13 -m venv .venv          # getestet mit Python 3.13.16
-. .venv/bin/activate
-pip install --no-deps -r requirements.txt
-export ASSETLOTSE_DATA_DIR=/var/lib/assetlotse
-gunicorn -w 2 --threads 4 -b 0.0.0.0:9343 wsgi:app
-```
-
-### Ohne Docker (Windows)
-
-```powershell
-py -3.13 -m venv .venv
-.venv\Scripts\activate
-pip install --no-deps -r requirements.txt
-waitress-serve --listen=0.0.0.0:9343 wsgi:app
-```
-
-Zum Ausprobieren reicht auch `python wsgi.py` (nur `127.0.0.1:9343`).
 
 ---
 
@@ -477,7 +468,7 @@ In die Datenschutzerklärung (bzw. das Verzeichnis der Verarbeitungstätigkeiten
 
 ## Datensicherung
 
-*Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 Sicherungen** (einstellbar 1–100), ältere werden automatisch gelöscht.
+*Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 Sicherungen** (einstellbar 1–100), ältere werden automatisch gelöscht. Zusätzlich sichert jede neue Version beim ersten Start (`…-vor-<Version>.db`); die drei neuesten dieser Sicherungen bleiben immer erhalten – sie braucht, wer auf eine ältere Version zurückgeht.
 
 - **Ablage:** `./data/backups` auf dem Server. Mit `ASSETLOTSE_BACKUP_DIR` lässt sich ein anderer Ordner einstellen, z. B. ein eingebundenes NAS-Laufwerk (in `docker-compose.override.yml` als zusätzliches Volume einbinden, z. B. `/mnt/nas/assetlotse:/backup`).
 - **„Jetzt sichern“** legt sofort eine Sicherung an (auch vor größeren Änderungen sinnvoll). Einzelne Sicherungen lassen sich herunterladen oder löschen.
@@ -491,10 +482,12 @@ In die Datenschutzerklärung (bzw. das Verzeichnis der Verarbeitungstätigkeiten
 
 ```bash
 docker compose stop assetlotse
-docker compose run --rm assetlotse flask --app wsgi list-backups
-docker compose run --rm assetlotse flask --app wsgi restore-backup assetlotse-2026-10-19_020012.db
+docker compose run --rm assetlotse backups
+docker compose run --rm assetlotse restore assetlotse-2026-10-19_020012.db
 docker compose start assetlotse
 ```
+
+`backups` und `restore` funktionieren auch dann, wenn AssetLotse nicht startet (z. B. weil die Datenbank von einer neueren Version stammt – siehe [Bestimmte Version festlegen und zurückgehen](#bestimmte-version-festlegen-und-zurückgehen)).
 
 Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewahrungsfrist schon gelöscht wurden – bei 10 täglichen Sicherungen also bis zu 10 Tage länger. Das gehört mit in die Datenschutzerklärung.
 
@@ -504,8 +497,9 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 
 | Variable | Bedeutung |
 |---|---|
-| `ASSETLOTSE_DATA_DIR` | Datenverzeichnis (SQLite-Datenbank `assetlotse.db`, Fotos in `images/`, Schlüssel, Zertifikate). Standard: `./instance` (im Docker-Container `/data` = `./data`) |
-| `DATABASE_URL` | z. B. `mysql+pymysql://assetlotse:geheim@db/assetlotse?charset=utf8mb4` oder `postgresql+psycopg://…` (MySQL-Treiber ist enthalten; für PostgreSQL `psycopg[binary]` mit fester Version in `requirements.txt` ergänzen und neu bauen) |
+| `ASSETLOTSE_TAG` | Version des Images: `latest` (Standard – neueste Version mit Sicherheitsupdates) oder fest, z. B. `2.0.0` bzw. `2.0.0-s3` (siehe [Bestimmte Version festlegen](#bestimmte-version-festlegen-und-zurückgehen)) |
+| `ASSETLOTSE_IMAGE` | Adresse des Images (Standard `ghcr.io/soleil0815/assetlotse`; z. B. für einen Fork) |
+| `DATABASE_URL` | z. B. `mysql+pymysql://assetlotse:geheim@db/assetlotse?charset=utf8mb4` (MySQL-Treiber ist enthalten; PostgreSQL braucht ein selbst gebautes Image mit `psycopg[binary]` in `requirements.txt`) |
 | `ASSETLOTSE_SECRET_KEY` | Sitzungs- und Verschlüsselungsschlüssel; ohne Angabe einmalig erzeugt und in `data/secret_key` gespeichert. Verschlüsselt 2FA-Geheimnisse, gespeicherte SMTP-/AD-Passwörter **und die vertraulichen Angaben** – **nicht nachträglich ändern** (siehe [Sicherheit](#sicherheit)) |
 | `ASSETLOTSE_ACCEPT_NEW_KEY` | `1` = einen geänderten Schlüssel bewusst übernehmen (AssetLotse startet sonst nicht, wenn der Schlüssel nicht zur Datenbank passt). Nur einmalig setzen |
 | `ASSETLOTSE_BIND` | Adresse, auf der der Port veröffentlicht wird (Standard `0.0.0.0` = alle). `127.0.0.1`, wenn der Reverse-Proxy direkt auf diesem Rechner läuft (nicht als Container bzw. mit `network_mode: host`) – dann kann niemand den Proxy umgehen. Läuft der Proxy als eigener Container, besser beide in ein gemeinsames Docker-Netz hängen |
@@ -515,7 +509,7 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `ASSETLOTSE_TRUSTED_PROXIES` | Von wem Proxy-Header akzeptiert werden: `private` (Standard), `none` oder Liste wie `172.18.0.0/16,192.168.0.11` |
 | `ASSETLOTSE_SECURE_COOKIES` | `auto` (Standard: bei HTTPS), `1` (immer), `0` (nie) |
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
-| `ASSETLOTSE_BACKUP_DIR` | Ordner für die automatischen Sicherungen (Standard: `backups` im Datenverzeichnis). Muss als Volume eingebunden sein – sonst warnt der Container beim Start |
+| `ASSETLOTSE_BACKUP_DIR` | Ordner für die automatischen Sicherungen im Container (Standard: `backups` im Datenverzeichnis). Muss in `docker-compose.override.yml` als Volume eingebunden sein – sonst warnt der Container beim Start |
 | `ASSETLOTSE_SCHEDULER` | `0` = keine zeitgesteuerten Läufe (Erinnerungen, Sicherung, Aufbewahrung) in diesem Prozess, z. B. wenn mehrere App-Server laufen und nur einer sie ausführen soll. Standard `1` |
 | `ASSETLOTSE_SOURCE_URL` | Link zum Quellcode auf der Seite *Über dieses Programm* (z. B. dein GitHub-Repository) – siehe [Lizenz](#lizenz) |
 
@@ -527,38 +521,33 @@ Alles Weitere (Standard-Leihdauer, Verlängerungen, Selbstausleihe, Sichtbarkeit
 
 ## Wartung
 
+Befehle im laufenden Container – immer über den Entrypoint, damit sie wie die App als `PUID:PGID` laufen (sonst entstehen z. B. Sicherungen, die root gehören und die die App nicht anbieten kann):
+
 ```bash
-# Admin-Passwort zurücksetzen
-flask --app wsgi reset-password admin
-# Zweiten Faktor zurücksetzen (Handy/Schlüssel verloren)
-flask --app wsgi reset-2fa admin
-# Aufbewahrungsfrist sofort anwenden (alte Ausgaben löschen)
-flask --app wsgi apply-retention
-# Erinnerungen sofort versenden
-flask --app wsgi send-reminders
-# Zusätzliches lokales Admin-Konto
-flask --app wsgi create-admin notfall
-# Datenbank jetzt sichern / Sicherungen anzeigen / zurückspielen (Server vorher anhalten)
-flask --app wsgi backup
-flask --app wsgi list-backups
-flask --app wsgi restore-backup assetlotse-2026-10-19_020012.db
+E="docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi"
+$E reset-password admin       # Admin-Passwort zurücksetzen
+$E reset-2fa admin            # zweiten Faktor zurücksetzen (Handy/Schlüssel verloren)
+$E apply-retention            # Aufbewahrungsfrist sofort anwenden (alte Ausgaben löschen)
+$E send-reminders             # Erinnerungen sofort versenden
+$E create-admin notfall       # zusätzliches lokales Admin-Konto
+$E backup                     # Datenbank jetzt sichern
 ```
+
+Sicherungen anzeigen und zurückspielen (Container vorher anhalten): siehe [Datensicherung](#datensicherung).
 
 Die Ersteinrichtung im Browser (`/setup`) ist nur einmal und nur aus dem internen Netz (oder über `localhost`) möglich – sonst könnte bei einer frisch installierten, offen erreichbaren Instanz jeder Fremde zuerst Admin werden. Gibt es später kein Administratorkonto mehr (z. B. versehentlich gelöscht), legst du eines mit `create-admin` auf dem Server an – im Web geht das aus Sicherheitsgründen nicht mehr.
 
-Im Docker-Container über den Entrypoint, damit der Befehl wie die App als `PUID:PGID` läuft (sonst entstehen z. B. Sicherungen, die root gehören und die die App nicht anbieten kann):
-
-```bash
-docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi reset-password admin
-```
-
-Das Datenbankschema wird beim Start automatisch angepasst (fehlende Spalten werden ergänzt), Updates behalten also eure Daten.
+Das Datenbankschema wird beim Start automatisch angepasst (fehlende Spalten werden ergänzt) – nach der Sicherung `…-vor-<Version>.db`. Updates behalten also eure Daten.
 
 ## Tests
 
+Im Repository (Entwicklung):
+
 ```bash
-python -m unittest discover -s tests -v
+python -m pytest -q tests
 ```
+
+Auf GitHub laufen die Tests bei jedem Push und Pull Request im fertigen Image, auf amd64 und arm64.
 
 ## Aufbau
 
@@ -586,6 +575,10 @@ assetlotse/
   static/          CSS, JavaScript (ohne Build-Schritt)
 docs/              Handbuch-AssetLotse.pdf, Manual-AssetLotse.pdf (werden in der Hilfe verlinkt)
 tests/             Automatische Tests
+build/             Feste Debian-Paketlisten je Architektur und Installationsskripte für das Image
+scripts/           Build-Kette: lock.py (Versionen festlegen), ci.py (Entscheidungen des Workflows), eol_check.py
+docker-compose.yml Die einzige Programmdatei auf dem Server (neben .env und data) – nicht bearbeiten
+update.sh          Update von Hand (optional), Rückweg, ohne Internet, Aufräumen alter Installationen
 ```
 
 ## Lizenz

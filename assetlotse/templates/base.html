@@ -109,6 +109,9 @@
       </details>
     </header>
     <main class="content">
+      {% if compose_outdated %}
+      <p class="notice warn" role="status">{{ _("Die docker-compose.yml auf dem Server ist veraltet (Stand %(found)s, erwartet %(want)s). Auf dem Server ./update.sh ausführen – es legt die neue Datei ab und behält die alte als docker-compose.yml.alt. Oder die docker-compose.yml aus dem aktuellen Release übernehmen und danach docker compose up -d.", found=compose_outdated, want=compose_version) }}</p>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

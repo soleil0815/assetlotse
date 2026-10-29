@@ -2,11 +2,14 @@
 """Decisions of the GitHub workflow (.github/workflows/docker.yml), in one place so they can be tested:
 
   mode               what a run does (release, check, security update, relock, daily scan, EOL check)
+                     – a push to main or a pull request only checks; a release is published by hand
+                     (Run workflow → release), the weekly security update by itself
   plan-release       image tags of a new program version (latest only for the highest version)
   plan-security      next security-update number <version>-s<n> and its tags
   changelog          changelog entry of a security update with the changed packages
   check-trivyignore  every exception in .trivyignore needs a reason and an expiry date
   registry-state     what is published in ghcr.io (fails closed: an error is never "does not exist")
+  registry-platforms the image config of every architecture of a published tag (or "missing")
   check-changes      a security update / relock may only change the lock files (checked before writing)
   release-notes      text of the GitHub release: the version's section of CHANGELOG.md
 
@@ -34,13 +37,17 @@ RELEASE_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
 
 # ---------------------------------------------------------------- mode
 def mode(event: str, schedule: str = "", input_mode: str = "", ref: str = "", input_publish: str = "true") -> dict:
+    """lock = resolve new versions first (on an amd64 and an arm64 machine). publish = write: push images and
+    the release (release, security update – only from main) or commit the new versions (relock – to the
+    branch it was started on, so lock files can also be set in a pull request)."""
     on_main = ref == MAIN_REF
-    res = {"kind": "none", "build": False, "publish": False, "scan_latest": False, "eol": False, "relock": False}
-    if event == "push":
-        res.update(kind="release", build=True, publish=on_main)
+    res = {"kind": "none", "build": False, "publish": False, "scan_latest": False, "eol": False, "relock": False,
+           "lock": False}
+    if event in ("push", "pull_request"):
+        res.update(kind="check", build=True)      # merged or proposed: build, test, scan – nothing published
     elif event == "schedule":
         if schedule == WEEKLY_CRON:
-            res.update(kind="security", build=True, publish=on_main, eol=True)
+            res.update(kind="security", build=True, publish=on_main, eol=True, lock=True)
         elif schedule == DAILY_CRON:
             res.update(scan_latest=True)
         else:
@@ -49,10 +56,14 @@ def mode(event: str, schedule: str = "", input_mode: str = "", ref: str = "", in
         m = input_mode or "check"
         if m == "check":
             res.update(kind="check", build=True)
+        elif m == "release":
+            res.update(kind="release", build=True, publish=on_main)
+            if not on_main:
+                raise SystemExit("A release is only made from main – start Run workflow → release on main")
         elif m == "security-update":
-            res.update(kind="security", build=True, publish=on_main and input_publish == "true")
+            res.update(kind="security", build=True, publish=on_main and input_publish == "true", lock=True)
         elif m == "relock":
-            res.update(relock=True, publish=on_main and input_publish == "true")
+            res.update(relock=True, publish=input_publish == "true" and ref.startswith("refs/heads/"), lock=True)
         elif m == "scan-latest":
             res.update(scan_latest=True)
         elif m == "eol-check":
@@ -203,6 +214,21 @@ class Registry:
         """sha256 of the image config – the same as `docker inspect -f {{.Id}}` of the loaded image."""
         return self._manifest(tag)["config"]["digest"]
 
+    def platform_configs(self, tag: str) -> dict[str, str]:
+        """{architecture: config digest} of a tag – an index (multi-arch) or a single image."""
+        with self._get(f"https://{self.host}/v2/{self.repo}/manifests/{tag}") as r:
+            m = json.load(r)
+        if "manifests" not in m:
+            return {"amd64": m["config"]["digest"]}
+        res = {}
+        for ref in m["manifests"]:
+            arch = ref.get("platform", {}).get("architecture")
+            if arch in (None, "unknown"):                      # attestations
+                continue
+            with self._get(f"https://{self.host}/v2/{self.repo}/manifests/{ref['digest']}") as r:
+                res[arch] = json.load(r)["config"]["digest"]
+        return res
+
     def build_label(self, tag: str) -> str | None:
         """The label io.assetlotse.build of an image (None if it has none)."""
         m = self._manifest(tag)
@@ -221,7 +247,8 @@ class Registry:
 
 
 # ---------------------------------------------------------------- what a security update / relock may change
-ALLOWED_FILES = {"requirements.txt", "build/debian-packages.lock", "CHANGELOG.md", "Dockerfile"}
+ALLOWED_FILES = {"requirements.txt", "build/debian-packages.lock", "build/debian-packages.arm64.lock", "CHANGELOG.md",
+                 "Dockerfile"}
 ALLOWED_DOCKERFILE_LINE = re.compile(r"^[+-]ARG (PYTHON_IMAGE|PIP_VERSION)=")
 
 
@@ -266,8 +293,13 @@ def release_notes(changelog: str, name: str, image_ref: str) -> str:
     if not m:
         raise SystemExit(f"CHANGELOG.md has no section for {name}")
     body = m.group(1).strip()
-    return (f"{body}\n\n---\nImage: `{image_ref}` – auf dem Server: `./update.sh --pull` "
-            f"(oder ein Update-Tool, das `latest` folgt).\n")
+    return (f"{body}\n\n---\n**Image:** `{image_ref}` (amd64 und arm64)\n\n"
+            "**Update:** automatisch mit einer Container-Verwaltung (Dockhand, Watchtower …), sonst auf dem Server "
+            "`docker compose pull && docker compose up -d` oder `./update.sh`.\n\n"
+            "**Neu installieren:** `docker-compose.yml` und `.env.example` (als `.env`) von hier herunterladen, "
+            "`docker compose up -d`.\n\n"
+            "**Ohne Internet:** die Image-Datei für den Server (`…-amd64.tar.gz` oder `…-arm64.tar.gz`) und "
+            "`update.sh` herunterladen, dann `./update.sh --offline <Datei>`.\n")
 
 
 def insert_changelog(text: str, entry: str) -> str:
@@ -381,6 +413,9 @@ def _main(argv=None) -> int:
     g2 = sub.add_parser("registry-config", help="config digest (= image ID) of a published tag, or 'missing'")
     g2.add_argument("--image", required=True)
     g2.add_argument("--tag", required=True)
+    g3 = sub.add_parser("registry-platforms", help="'<arch> <config digest>' per architecture, or 'missing'")
+    g3.add_argument("--image", required=True)
+    g3.add_argument("--tag", required=True)
     a = ap.parse_args(argv)
 
     if a.cmd == "mode":
@@ -416,6 +451,12 @@ def _main(argv=None) -> int:
     elif a.cmd == "registry-config":
         reg = Registry(a.image.split("/", 1)[1], os.environ["GITHUB_ACTOR"], os.environ["GH_TOKEN"])
         print(reg.config_digest(a.tag) if reg.digest(a.tag) else "missing")
+    elif a.cmd == "registry-platforms":
+        reg = Registry(a.image.split("/", 1)[1], os.environ["GITHUB_ACTOR"], os.environ["GH_TOKEN"])
+        if not reg.digest(a.tag):
+            print("missing")
+        else:
+            print("\n".join(f"{k} {v}" for k, v in sorted(reg.platform_configs(a.tag).items())))
     elif a.cmd == "check-changes":
         names = subprocess.run(["git", "diff", "--name-only", "HEAD"], check=True, text=True,
                                stdout=subprocess.PIPE).stdout.split()
