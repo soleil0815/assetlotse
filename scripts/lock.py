@@ -4,14 +4,19 @@
 - base image: the newest patch release of the same Python line on the same Debian release
   (e.g. python:3.13.<newest>-slim-trixie), pinned by tag AND digest. Never another line or release.
 - Debian packages: all packages of the image (also those of the base image) at one snapshot of the
-  Debian archive (snapshot.debian.org), listed with exact versions in build/debian-packages.lock.
+  Debian archive (snapshot.debian.org), listed with exact versions per CPU architecture:
+  build/debian-packages.lock (amd64) and build/debian-packages.arm64.lock (arm64).
 - Python packages incl. all sub-dependencies (requirements.txt) and pip itself (ARG PIP_VERSION):
   the newest version within the same major version (before 1.0: the same minor version), never lower
   than today. Calendar versions (certifi, tzdata: 2026.x) have no upper limit.
 
 If nothing changes in content, no file is touched (a new snapshot alone is not a change).
 
-  python3 scripts/lock.py refresh [--report changes.json]   # needs Docker and Internet
+  python3 scripts/lock.py refresh [--report changes.json]   # needs Docker (+ arm64 emulation) and Internet
+  # the same in steps, each architecture on its own machine (GitHub: native amd64 and arm64 runners):
+  python3 scripts/lock.py targets --out targets.json         # base image, digest, snapshot (Internet)
+  python3 scripts/lock.py resolve --targets targets.json --out resolved-amd64.json   # Docker, this machine's arch
+  python3 scripts/lock.py apply --targets targets.json --resolved resolved-amd64.json --resolved resolved-arm64.json
   python3 scripts/lock.py check                              # offline consistency check (used by the tests)
   python3 scripts/lock.py changes --since <git ref> --report changes.json   # what changed since a release
 
@@ -32,7 +37,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCKERFILE = "Dockerfile"
-OS_LOCK = "build/debian-packages.lock"
+OS_LOCK = "build/debian-packages.lock"                     # amd64 (name kept from before arm64 builds)
+OS_LOCKS = {"amd64": OS_LOCK, "arm64": "build/debian-packages.arm64.lock"}
+ARCHES = tuple(OS_LOCKS)
 REQS = "requirements.txt"
 REQS_IN = "requirements.in"
 
@@ -146,33 +153,43 @@ def render_os_lock(snapshot: str, security: str, debian: str, arch: str, pkgs: d
     return "\n".join(lines) + "\n"
 
 
+def _read(path: Path) -> str:
+    return path.read_text() if path.exists() else ""
+
+
 def read_state(root: Path) -> dict:
-    return state_from_texts((root / DOCKERFILE).read_text(), (root / OS_LOCK).read_text(), (root / REQS).read_text())
+    return state_from_texts((root / DOCKERFILE).read_text(), (root / OS_LOCK).read_text(), (root / REQS).read_text(),
+                            {a: _read(root / f) for a, f in OS_LOCKS.items() if a != "amd64"})
 
 
 def state_at(ref: str, root: Path = ROOT) -> dict:
     """The locked state as it was in a git commit (e.g. the last published release)."""
     show = lambda f: subprocess.run(["git", "show", f"{ref}:{f}"], cwd=root, check=True, text=True,
                                     stdout=subprocess.PIPE).stdout
-    try:
-        oslock = show(OS_LOCK)
-    except subprocess.CalledProcessError:
-        oslock = ""                                   # releases before the lock file existed
-    return state_from_texts(show(DOCKERFILE), oslock, show(REQS))
+    def maybe(f):
+        try:
+            return show(f)
+        except subprocess.CalledProcessError:
+            return ""                                 # releases before that lock file existed
+    return state_from_texts(show(DOCKERFILE), maybe(OS_LOCK), show(REQS),
+                            {a: maybe(f) for a, f in OS_LOCKS.items() if a != "amd64"})
 
 
-def state_from_texts(dockerfile: str, oslock: str, reqs: str) -> dict:
+def state_from_texts(dockerfile: str, oslock: str, reqs: str, other_locks: dict[str, str] | None = None) -> dict:
     base = BASE_RE.search(dockerfile)
     pip = PIP_RE.search(dockerfile)
     if not base or not pip:
         raise SystemExit("Dockerfile: ARG PYTHON_IMAGE=python:X.Y.Z-slim-<codename>@sha256:<digest> "
                          "and ARG PIP_VERSION=<version> are required")
     os_ = read_os_lock(oslock)
+    by_arch = {"amd64": os_}
+    for arch, text in (other_locks or {}).items():
+        by_arch[arch] = read_os_lock(text)
     return {
         "major": int(base["major"]), "minor": int(base["minor"]), "patch": int(base["patch"]),
         "codename": base["codename"], "digest": base["digest"], "pip": pip["version"],
         "snapshot": os_["snapshot"], "security": os_["security"], "debian": os_["debian"], "arch": os_["arch"],
-        "packages": os_["packages"], "pins": read_pins(reqs),
+        "packages": os_["packages"], "pins": read_pins(reqs), "locks": by_arch,
     }
 
 
@@ -182,12 +199,28 @@ def compare(old: dict, new: dict) -> list[dict]:
     if old["patch"] != new["patch"] or (old["major"], old["minor"]) != (new["major"], new["minor"]):
         changes.append({"kind": "base", "name": "python", "old": f"{old['major']}.{old['minor']}.{old['patch']}",
                         "new": f"{new['major']}.{new['minor']}.{new['patch']}"})
-    changes += diff_versions("debian", old["packages"], new["packages"])
+    changes += debian_changes({a: old["locks"].get(a, {}).get("packages", {}) for a in ARCHES},
+                              {a: new["locks"].get(a, {}).get("packages", {}) for a in ARCHES})
     if old["pip"] != new["pip"]:
         changes.append({"kind": "pip", "name": "pip", "old": old["pip"], "new": new["pip"]})
     changes += diff_versions("python", {n: v for n, (_, v) in old["pins"].items()},
                              {n: v for n, (_, v) in new["pins"].items()})
     return changes
+
+
+def debian_changes(old: dict[str, dict], new: dict[str, dict]) -> list[dict]:
+    """Debian changes of amd64, plus those of the other architectures that differ (named "pkg (arm64)").
+    An architecture whose old list is empty (it was added) only counts in the lock file, not as changes."""
+    base = diff_versions("debian", old.get("amd64", {}), new.get("amd64", {}))
+    seen = {(c["name"], c["old"], c["new"]) for c in base}
+    extra = []
+    for arch in ARCHES[1:]:
+        if not old.get(arch):
+            continue
+        for c in diff_versions("debian", old[arch], new.get(arch, {})):
+            if (c["name"], c["old"], c["new"]) not in seen:
+                extra.append(dict(c, name=f"{c['name']} ({arch})"))
+    return base + extra
 
 
 def base_ref(major, minor, patch, codename, digest) -> str:
@@ -208,6 +241,16 @@ def check(root: Path = ROOT) -> list[str]:
         problems.append(f"{OS_LOCK}: no packages locked yet – run: python3 scripts/lock.py refresh")
     if state["debian"] and not state["debian"].endswith(" " + state["codename"]):
         problems.append(f"{OS_LOCK}: Debian {state['debian']!r} does not match the base image ({state['codename']})")
+    for arch, name in OS_LOCKS.items():
+        lock = state["locks"].get(arch) or {}
+        if not lock.get("packages"):
+            problems.append(f"{name}: no packages locked for {arch} yet – run: python3 scripts/lock.py refresh "
+                            "(or Run workflow → relock)")
+            continue
+        if lock["arch"] != arch:
+            problems.append(f"{name}: is for {lock['arch']!r}, expected {arch}")
+        if (lock["snapshot"], lock["security"], lock["debian"]) != (state["snapshot"], state["security"], state["debian"]):
+            problems.append(f"{name}: snapshot/Debian differ from {OS_LOCK} – set both with scripts/lock.py refresh")
     for line in (root / REQS).read_text().splitlines():
         s = line.split("#", 1)[0].strip()
         if s and not PIN_RE.match(s):
@@ -291,12 +334,13 @@ def latest_snapshots() -> tuple[str, str]:
         return ts, ts
 
 
-def resolve(image: str, snapshot: str, security: str, state: dict, root: Path) -> dict:
+def resolve(image: str, snapshot: str, security: str, state: dict, root: Path, arch: str | None = None) -> dict:
+    platform = ["--platform", f"linux/{arch}"] if arch else []
     with tempfile.TemporaryDirectory() as work:
         Path(work, "requirements.in").write_text((root / REQS_IN).read_text())
         Path(work, "constraints.txt").write_text(
             "".join(constraint(n, v) + "\n" for n, v in state["pins"].values()))
-        out = run(["docker", "run", "--rm", "--pull", "always",
+        out = run(["docker", "run", "--rm", "--pull", "always", *platform,
                    "-v", f"{root / 'build'}:/lock:ro", "-v", f"{work}:/work:ro",
                    "-v", f"{root / 'scripts' / 'resolve-in-image.sh'}:/resolve.sh:ro",
                    image, "sh", "/resolve.sh", snapshot, security, constraint("pip", state["pip"])])
@@ -314,52 +358,93 @@ def diff_versions(kind: str, old: dict[str, str], new: dict[str, str]) -> list[d
             for n in sorted(set(old) | set(new)) if old.get(n) != new.get(n)]
 
 
-def refresh(root: Path = ROOT, report_path: str | None = None) -> list[dict]:
+def targets(root: Path = ROOT) -> dict:
+    """What all architectures are resolved against: the base image (newest patch, digest of the multi-arch
+    index) and the newest completed snapshots of the Debian archive."""
     state = read_state(root)
     major, minor, codename = state["major"], state["minor"], state["codename"]
     patch = pick_base_tag(hub_tags(major, minor), major, minor, codename, state["patch"])
     tag = f"python:{major}.{minor}.{patch}-slim-{codename}"
     digest = digest_of(tag)
     snapshot, security = latest_snapshots()
-    new = resolve(f"{tag}@sha256:{digest}", snapshot, security, state, root)
+    return {"patch": patch, "digest": digest, "image": f"{tag}@sha256:{digest}", "snapshot": snapshot,
+            "security": security}
 
-    # the limits, checked once more on the result
-    if not new["python"].startswith(f"{major}.{minor}."):
-        raise SystemExit(f"Python {new['python']} is outside the line {major}.{minor} – stopped")
-    if not new["debian"].endswith(" " + codename):
-        raise SystemExit(f"Debian {new['debian']} is not {codename} – stopped")
-    for name, (_, version) in new["pins"].items():
+
+def resolve_arch(t: dict, root: Path = ROOT, arch: str | None = None) -> dict:
+    """Resolve on this machine (arch None = its own architecture) – or emulated with --platform."""
+    res = resolve(t["image"], t["snapshot"], t["security"], read_state(root), root, arch)
+    res["pins"] = {k: list(v) for k, v in res["pins"].items()}
+    return res
+
+
+def apply(t: dict, resolved: list[dict], root: Path = ROOT, report_path: str | None = None) -> list[dict]:
+    """Write the new versions (Dockerfile, lock files, requirements.txt) – only within the limits, and only if
+    every architecture got exactly the same Python packages and pip."""
+    state = read_state(root)
+    major, minor, codename = state["major"], state["minor"], state["codename"]
+    by_arch = {r["arch"]: r for r in resolved}
+    missing = [a for a in ARCHES if a not in by_arch]
+    if missing:
+        raise SystemExit(f"no resolved package list for {', '.join(missing)} – stopped")
+    new = by_arch["amd64"]
+    new_pins = {k: tuple(v) for k, v in new["pins"].items()}
+    for arch, r in by_arch.items():
+        if not r["python"].startswith(f"{major}.{minor}."):
+            raise SystemExit(f"{arch}: Python {r['python']} is outside the line {major}.{minor} – stopped")
+        if not r["debian"].endswith(" " + codename):
+            raise SystemExit(f"{arch}: Debian {r['debian']} is not {codename} – stopped")
+        if (r["pip"], {k: tuple(v) for k, v in r["pins"].items()}) != (new["pip"], new_pins):
+            raise SystemExit(f"{arch} resolved other Python packages than amd64 – stopped (the image must contain "
+                             "the same versions on every architecture)")
+    for name, (_, version) in new_pins.items():
         if name in state["pins"] and not within_limits(state["pins"][name][1], version, name):
             raise SystemExit(f"{name} {state['pins'][name][1]} -> {version} is outside the limit – stopped")
     if not within_limits(state["pip"], new["pip"], "pip"):
         raise SystemExit(f"pip {state['pip']} -> {new['pip']} is outside the limit – stopped")
 
+    patch = t["patch"]
     changes = []
     if patch != state["patch"]:
         changes.append({"kind": "base", "name": "python",
                         "old": f"{major}.{minor}.{state['patch']}", "new": f"{major}.{minor}.{patch}"})
-    changes += diff_versions("debian", state["packages"], new["packages"])
-    if changes:                                           # new base and/or new Debian packages
+    old_pkgs = {a: state["locks"].get(a, {}).get("packages", {}) for a in ARCHES}
+    new_pkgs = {a: by_arch[a]["packages"] for a in ARCHES}
+    changes += debian_changes(old_pkgs, new_pkgs)
+    added = [a for a in ARCHES if not old_pkgs[a]]          # e.g. arm64 locked for the first time
+    if changes or added:                                    # new base and/or new Debian packages
         dockerfile = (root / DOCKERFILE).read_text()
-        dockerfile = BASE_RE.sub("ARG PYTHON_IMAGE=" + base_ref(major, minor, patch, codename, digest), dockerfile)
+        dockerfile = BASE_RE.sub("ARG PYTHON_IMAGE=" + base_ref(major, minor, patch, codename, t["digest"]), dockerfile)
         (root / DOCKERFILE).write_text(dockerfile)
-        (root / OS_LOCK).write_text(render_os_lock(snapshot, security, new["debian"], new["arch"], new["packages"]))
+        for arch in ARCHES:
+            r = by_arch[arch]
+            (root / OS_LOCKS[arch]).write_text(render_os_lock(t["snapshot"], t["security"], r["debian"], r["arch"],
+                                                              r["packages"]))
     if new["pip"] != state["pip"]:
         changes.append({"kind": "pip", "name": "pip", "old": state["pip"], "new": new["pip"]})
         dockerfile = (root / DOCKERFILE).read_text()
         (root / DOCKERFILE).write_text(PIP_RE.sub(f"ARG PIP_VERSION={new['pip']}", dockerfile))
     py_changes = diff_versions("python", {n: v for n, (_, v) in state["pins"].items()},
-                               {n: v for n, (_, v) in new["pins"].items()})
+                               {n: v for n, (_, v) in new_pins.items()})
     if py_changes or patch != state["patch"]:
         text = (root / REQS).read_text()
-        (root / REQS).write_text(render_requirements(text, new["pins"], new["python"]))
+        (root / REQS).write_text(render_requirements(text, new_pins, new["python"]))
     changes += py_changes
     if report_path:
-        Path(report_path).write_text(json.dumps({"changed": bool(changes), "changes": changes}, indent=1) + "\n")
+        Path(report_path).write_text(json.dumps({"changed": bool(changes), "changes": changes, "added": added},
+                                                indent=1) + "\n")
     print(f"{len(changes)} change(s)" if changes else "No new versions – nothing changed.", file=sys.stderr)
+    for a in added:
+        print(f"  {OS_LOCKS[a]}: locked for the first time", file=sys.stderr)
     for c in changes:
         print(f"  {c['kind']:7} {c['name']}: {c['old'] or '–'} -> {c['new'] or '–'}", file=sys.stderr)
     return changes
+
+
+def refresh(root: Path = ROOT, report_path: str | None = None) -> list[dict]:
+    """All steps on one machine: the other architecture runs emulated (Docker with binfmt/QEMU)."""
+    t = targets(root)
+    return apply(t, [resolve_arch(t, root, arch) for arch in ARCHES], root, report_path)
 
 
 def older_than(old: dict, new: dict) -> list[str]:
@@ -411,7 +496,31 @@ def main(argv=None) -> int:
     c = sub.add_parser("changes", help="content changes against a git commit (e.g. the last published release)")
     c.add_argument("--since", required=True)
     c.add_argument("--report", required=True)
+    t = sub.add_parser("targets", help="base image, digest and snapshots to resolve against (Internet)")
+    t.add_argument("--out", required=True)
+    v = sub.add_parser("resolve", help="resolve all packages on this machine (Docker)")
+    v.add_argument("--targets", required=True)
+    v.add_argument("--out", required=True)
+    v.add_argument("--arch", help="emulate another architecture (default: this machine's)")
+    w = sub.add_parser("apply", help="write the resolved versions of all architectures")
+    w.add_argument("--targets", required=True)
+    w.add_argument("--resolved", action="append", required=True)
+    w.add_argument("--report")
     args = ap.parse_args(argv)
+    if args.cmd == "targets":
+        Path(args.out).write_text(json.dumps(targets(ROOT), indent=1) + "\n")
+        return 0
+    if args.cmd == "resolve":
+        res = resolve_arch(json.loads(Path(args.targets).read_text()), ROOT, args.arch)
+        Path(args.out).write_text(json.dumps(res, indent=1) + "\n")
+        print(f"resolved for {res['arch']}: {len(res['packages'])} Debian packages, {len(res['pins'])} Python packages",
+              file=sys.stderr)
+        return 0
+    if args.cmd == "apply":
+        os.chdir(ROOT)
+        apply(json.loads(Path(args.targets).read_text()), [json.loads(Path(f).read_text()) for f in args.resolved],
+              ROOT, args.report)
+        return 0
     if args.cmd == "not-older":
         try:
             old = state_at(args.than, ROOT)

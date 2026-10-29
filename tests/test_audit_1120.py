@@ -254,16 +254,17 @@ class BuildChainTests(Base):
         self.assertIn('python3 scripts/lock.py not-older --than "v${previous}"', wf)
         pub = wf[wf.index("\n  publish:\n"):wf.index("\n  repair:\n")]
         main_check = pub.index("git_auth ls-remote origin refs/heads/main")
-        self.assertLess(main_check, pub.index('docker push -q "$first"', main_check))
-        self.assertIn('if [ "$state" = "$local_id" ]', pub)                          # re-run continues
+        self.assertLess(main_check, pub.index('push_image', main_check))
+        self.assertIn('if [ "$state" = "$local_state" ]', pub)                       # re-run continues
         repair = wf[wf.index("\n  repair:\n"):wf.index("\n  relock:\n")]
         self.assertIn("gh release create", repair)
 
     def test_update_script_knows_security_builds(self):
+        # 2.0.0: the new update.sh takes -sN builds with --version; going back uses the build label (tests in
+        # test_docker_standard.py)
         sh = (ROOT / "update.sh").read_text()
-        self.assertIn('^v?[0-9]+\\.[0-9]+\\.[0-9]+(-s[0-9]+)?$', sh)
-        self.assertIn('GO_BACK="./update.sh --pull --version ${ASSETLOTSE_OLD_BUILD:-$OLD_VERSION}"', sh)
-        self.assertIn("build/os-install.sh build/debian-packages.lock", sh)
+        self.assertIn("io.assetlotse.build", sh)
+        self.assertIn("*[!0-9.s-]*", sh)
         df = (ROOT / "Dockerfile").read_text()
         self.assertIn("dpkg --purge", df)
         self.assertIn("! command -v apt-get", df)
@@ -305,4 +306,4 @@ class ReviewFollowUpTests(Base):
         wf = (ROOT / ".github" / "workflows" / "docker.yml").read_text()
         self.assertNotIn("docker inspect -f '{{.Id}}' assetlotse:scan", wf)
         self.assertIn('manifest.json | python3 -c', wf)
-        self.assertIn("(-s[0-9]+)?$' <<<\"$r\"", (ROOT / "update.sh").read_text())
+        self.assertIn("config_of()", wf)

@@ -2,6 +2,50 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.0.0 – 2026-10-29
+
+Umstellung auf den Docker-Standard: Das Programm steckt komplett im Image. Auf dem Server liegen nur noch
+`docker-compose.yml`, `.env` und der Ordner `data`.
+
+**Neu**
+- **Installation:** `docker-compose.yml` und `env.example` (als `.env`) aus dem Release, `docker compose up -d` –
+  kein Zip, kein Programmordner, nichts wird auf dem Server gebaut.
+- **Updates wie bei jedem Docker-Programm:** mit Dockhand, Watchtower, Tugtainer & Co. oder
+  `docker compose pull && docker compose up -d`. Die `docker-compose.yml` folgt `latest`.
+- **Images für amd64 und arm64** (z. B. Raspberry Pi, ARM-NAS) – jede Architektur auf eigener Hardware gebaut und
+  getestet, beide geprüft.
+- **Ältere Version auf neuerer Datenbank:** AssetLotse startet dann nicht und nennt die Sicherung, die
+  zurückzuspielen ist – statt mit Folgefehlern weiterzulaufen. Zurückspielen geht auch, wenn das Programm nicht
+  startet: `docker compose run --rm assetlotse backups` / `restore NAME`.
+- **Sicherung vor jeder neuen Version** heißt jetzt `…-vor-<Version>.db`; die drei neuesten davon werden nie
+  automatisch gelöscht.
+- **Versionsnummer der `docker-compose.yml`:** Ist sie zu alt, zeigt AssetLotse Administratoren einen Hinweis mit
+  dem, was zu tun ist. Das Image bringt die aktuelle Datei mit.
+- **Ohne Internet:** Am Release hängen die Images als Dateien (`assetlotse-<Version>-amd64.tar.gz`,
+  `…-arm64.tar.gz`) mit Prüfsumme; `./update.sh --offline DATEI`.
+
+**Geändert**
+- **`update.sh` neu** (läuft mit `/bin/sh`, auch auf einem NAS): merkt sich das laufende Image als `previous`,
+  lädt die Version, startet, wartet auf den Gesundheitscheck und startet bei einem Fehlstart auf Wunsch die vorige
+  Version wieder (`-y` automatisch, später `--rollback`). Eine neuere `docker-compose.yml` aus dem Image wird
+  abgelegt, die alte bleibt als `docker-compose.yml.alt`. Kein Entpacken, kein Bauen mehr.
+- **`update.sh --cleanup`** räumt Installationen von vor 2.0.0 auf: zeigt die nicht mehr gebrauchten
+  Programmdateien, alte Zips und alte lokal gebaute Images, fragt nach und löscht nur diese – nie Daten,
+  Sicherungen, `.env`, `docker-compose.yml` oder eingebundene Ordner, auch nicht über Links.
+- **Veröffentlicht wird nur noch von Hand** (*Run workflow → release*). Jeder Push und jeder Pull Request wird nur
+  geprüft (bauen, testen, Trivy). Die wöchentlichen Sicherheitsupdates erscheinen weiter automatisch.
+- Jedes GitHub-Release enthält die Installationsdateien (`docker-compose.yml`, `env.example`, `update.sh`) und die
+  Image-Dateien.
+
+- Pakete auf aktuellem Stand (u. a. Python 3.13.18).
+
+**Entfernt**
+- Der Zip-Weg (`./update.sh assetlotse-X.Y.Z.zip`), das lokale Bauen auf dem Server und die Anleitung für den
+  Betrieb ohne Docker. Docker ist Voraussetzung.
+
+**Umstieg:** einmalig `./update.sh --pull`, danach `./update.sh --cleanup` (siehe README, „Umstieg von einer
+Installation vor 2.0.0“).
+
 ## 1.12.0 – 2026-10-28
 
 Ergebnis eines vollständigen Code-Reviews.

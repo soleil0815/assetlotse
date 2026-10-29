@@ -28,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "1.12.0"
+__version__ = "2.0.0"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Wo der Quellcode zu finden ist (AGPL § 13). Wer AssetLotse verändert betreibt, trägt hier
@@ -268,15 +268,13 @@ def _backup_before_upgrade() -> str | None:
         return previous or None
     from_text = previous or "einer Version vor 1.8.0"
     if previous and _version_tuple(previous) > _version_tuple(__version__):
-        log.warning("AssetLotse %s startet auf einer Datenbank von Version %s (ältere Version auf neuerer "
-                    "Datenbank) – bei Problemen die Sicherung von vor dem Update zurückspielen.",
-                    __version__, previous)
+        raise SystemExit(_too_new_message(previous))     # nichts anfassen – Folgefehler wären schlimmer
     if not backup.supported():
         log.info("Update von %s auf %s – automatische Sicherung nur bei SQLite; bitte selbst sichern.",
                  from_text, __version__)
         return previous
     try:
-        path = backup.create_backup("-vor-update")
+        path = backup.create_backup(f"-vor-{__version__}")
         log.info("Update von %s auf %s: Sicherung vor dem Update angelegt (%s)", from_text, __version__, path.name)
     except Exception as exc:  # noqa: BLE001 – lieber starten als ausfallen, aber deutlich melden
         log.error("Update von %s auf %s: Sicherung vor dem Update FEHLGESCHLAGEN: %s", from_text, __version__, exc)
@@ -284,7 +282,43 @@ def _backup_before_upgrade() -> str | None:
 
 
 def _version_tuple(v: str) -> tuple:
-    return tuple(int(x) if x.isdigit() else 0 for x in v.split("."))
+    return tuple(int(x) if x.isdigit() else 0 for x in v.split("-")[0].split("."))
+
+
+def _too_new_message(db_version: str) -> str:
+    """Ältere Version auf einer Datenbank einer neueren: klar sagen, was zu tun ist (Deutsch und Englisch –
+    die Meldung steht im Container-Protokoll, die Sprache der Oberfläche ist hier noch unbekannt)."""
+    from . import backup
+    name = ""
+    if backup.supported():
+        for item in backup.list_backups():                       # neueste zuerst
+            if item["name"].startswith(backup.PREFIX) and f"-vor-{db_version}" in item["name"]:
+                name = item["name"]
+                break
+    restore = (f"docker compose run --rm assetlotse restore {name}" if name else
+               "docker compose run --rm assetlotse backups   (Liste / list)")
+    return (
+        f"AssetLotse {__version__}: Die Datenbank stammt von der neueren Version {db_version} – Start abgebrochen, "
+        f"nichts wurde verändert.\n"
+        f"  Entweder wieder Version {db_version} oder neuer starten (ASSETLOTSE_TAG in .env), oder die Sicherung "
+        f"von vor dem Update zurückspielen:\n"
+        f"    docker compose stop assetlotse\n    {restore}\n    docker compose up -d\n"
+        f"AssetLotse {__version__}: the database comes from the newer version {db_version} – start-up aborted, "
+        f"nothing was changed. Start {db_version} or newer again, or restore the backup taken before the update "
+        f"(commands above).")
+
+
+COMPOSE_VERSION = 2    # Stand der docker-compose.yml, den dieses Programm erwartet (ASSETLOTSE_COMPOSE_VERSION)
+
+
+def compose_outdated() -> str:
+    """Leer – oder die gefundene Version der docker-compose.yml, wenn sie älter ist als erwartet.
+    Nur im Container (ASSETLOTSE_CONTAINER aus dem Image) – ohne Compose-Datei gibt es nichts zu prüfen."""
+    if os.environ.get("ASSETLOTSE_CONTAINER") != "1":
+        return ""
+    raw = (os.environ.get("ASSETLOTSE_COMPOSE_VERSION") or "").strip().strip('"').strip("'")
+    found = int(raw) if raw.isdigit() else 0
+    return "" if found >= COMPOSE_VERSION else (raw or "1")
 
 
 def create_app(test_config: dict | None = None) -> Flask:
@@ -376,32 +410,43 @@ def create_app(test_config: dict | None = None) -> Flask:
         return catalog_hidden(_cu)
     app.jinja_env.globals["catalog_hidden"] = _catalog_hidden_for_current
 
+    # Wartung (docker compose run --rm assetlotse restore …): keine Versionsprüfung, keine Änderung an der
+    # Datenbank – sonst ließe sich eine Sicherung gerade dann nicht zurückspielen, wenn der Start abbricht.
+    maintenance = os.environ.get("ASSETLOTSE_MAINTENANCE") == "1"
+    outdated = compose_outdated()
+    app.config["COMPOSE_OUTDATED"] = outdated
+    if outdated and not maintenance:
+        log.warning("Die docker-compose.yml ist veraltet (Stand %s, erwartet %s): ./update.sh legt die neue ab "
+                    "(die alte bleibt als docker-compose.yml.alt) – oder die Datei aus dem Release übernehmen.",
+                    outdated, COMPOSE_VERSION)
+
     # ---- Start-Schritte unter exklusiver Sperre (mehrere gunicorn-Worker starten gleichzeitig) ----
     with _startup_lock(instance), app.app_context():
-        previous_version = _backup_before_upgrade()
-        db.create_all()
-        from .models import ensure_columns
-        added = ensure_columns()
-        for col in added:
-            logging.getLogger(__name__).info("Datenbank aktualisiert: Spalte %s ergänzt", col)
-        if "users.manages_all" in added:
-            from .models import migrate_manages_all
-            n = migrate_manages_all()
-            if n:
-                logging.getLogger(__name__).info("%d Verwalter ohne Gruppe verwalten weiterhin den gesamten Bestand "
-                                                 "(jetzt als ausdrückliche Einstellung)", n)
-        from .models import ensure_indexes; ensure_indexes()  # noqa: E702
-        _check_secret_key(app)
-        from .models import set_setting
-        from .models import encrypt_stored_secrets
-        if encrypt_stored_secrets():
-            logging.getLogger(__name__).info("Gespeicherte Zugangsdaten (AD, SMTP) werden jetzt verschlüsselt abgelegt")
-        if previous_version != __version__:
-            set_setting("app_version", __version__)
-            db.session.commit()
+        if not maintenance:
+            previous_version = _backup_before_upgrade()
+            db.create_all()
+            from .models import ensure_columns
+            added = ensure_columns()
+            for col in added:
+                logging.getLogger(__name__).info("Datenbank aktualisiert: Spalte %s ergänzt", col)
+            if "users.manages_all" in added:
+                from .models import migrate_manages_all
+                n = migrate_manages_all()
+                if n:
+                    logging.getLogger(__name__).info("%d Verwalter ohne Gruppe verwalten weiterhin den gesamten Bestand "
+                                                     "(jetzt als ausdrückliche Einstellung)", n)
+            from .models import ensure_indexes; ensure_indexes()  # noqa: E702
+            _check_secret_key(app)
+            from .models import set_setting
+            from .models import encrypt_stored_secrets
+            if encrypt_stored_secrets():
+                logging.getLogger(__name__).info("Gespeicherte Zugangsdaten (AD, SMTP) werden jetzt verschlüsselt abgelegt")
+            if previous_version != __version__:
+                set_setting("app_version", __version__)
+                db.session.commit()
 
     # Hintergrund-Job für E-Mail-Erinnerungen (täglich zur eingestellten Uhrzeit)
-    if not app.config.get("TESTING") and os.environ.get("ASSETLOTSE_SCHEDULER", "1") == "1":
+    if not app.config.get("TESTING") and not maintenance and os.environ.get("ASSETLOTSE_SCHEDULER", "1") == "1":
         from .mailer import start_scheduler
         start_scheduler(app)
 
@@ -497,6 +542,8 @@ def create_app(test_config: dict | None = None) -> Flask:
             "pending_registrations": 0,
             "overdue_count": 0,
             "news_unread": 0,
+            "compose_outdated": "",
+            "compose_version": COMPOSE_VERSION,
         }
         if has_request_context() and current_user.is_authenticated:
             from .news import unread as news_unread
@@ -506,6 +553,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             ctx["pending_registrations"] = User.query.filter_by(pending_approval=True, email_verified=True).count()
             from .backup import warning as backup_warning
             ctx["backup_warning"] = backup_warning()
+            ctx["compose_outdated"] = app.config.get("COMPOSE_OUTDATED", "")
         if has_request_context() and current_user.is_authenticated and current_user.is_manager:
             from .models import Asset, manageable_assets_query
             ctx["overdue_count"] = Loan.query.filter(

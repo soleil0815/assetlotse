@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.0.0",
+      "date": "2026-10-29",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Updates wie bei jedem Docker-Programm",
+        "text": "AssetLotse steckt jetzt komplett im Image: Auf dem Server liegen nur noch docker-compose.yml, .env und der Datenordner. Updates gehen mit Dockhand, Watchtower & Co. oder mit „docker compose pull && docker compose up -d“; vor jeder neuen Version sichert AssetLotse die Datenbank selbst. Eine ältere Version startet nicht auf einer neueren Datenbank, sondern nennt die Sicherung zum Zurückspielen. Neu sind auch Images für arm64. Bestehende Installationen: einmal ./update.sh --pull, danach ./update.sh --cleanup."
+      },
+      "en": {
+        "title": "Updates like any Docker program",
+        "text": "AssetLotse now lives entirely in the image: the server only holds docker-compose.yml, .env and the data folder. Update with Dockhand, Watchtower and similar or with “docker compose pull && docker compose up -d”; before every new version AssetLotse backs up the database itself. An older version does not start on a newer database but names the backup to restore. There are also images for arm64 now. Existing installations: once ./update.sh --pull, then ./update.sh --cleanup."
+      }
+    },
+    {
       "version": "1.12.0",
       "date": "2026-10-28",
       "kind": "fix",

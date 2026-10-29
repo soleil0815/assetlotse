@@ -44,7 +44,7 @@ class UpgradeBackupTest(unittest.TestCase):
             app2 = self.app()
         files = self.files()
         self.assertEqual(len(files), 1)
-        self.assertTrue(files[0].endswith("-vor-update.db"), files)
+        self.assertTrue(files[0].endswith(f"-vor-{assetlotse.__version__}.db"), files)
         self.assertTrue(any("Update von 1.0.0" in m for m in cm.output))
         with app2.app_context():
             self.assertEqual(get_setting("app_version"), assetlotse.__version__)
