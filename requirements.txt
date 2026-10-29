@@ -3,7 +3,7 @@
 #
 # Every version is fixed, including those of sub-dependencies, so every
 # build gives the same result. All tests run with exactly these
-# versions on Python 3.13.17.
+# versions on Python 3.13.18.
 #
 # Installation:   pip install --no-deps -r requirements.txt
 # Maintenance:    direct dependencies are listed in requirements.in.
@@ -32,7 +32,7 @@ PyMySQL==1.2.3          # driver for MySQL/MariaDB (DATABASE_URL=mysql+pymysql:/
 
 # Active Directory / LDAP
 ldap3==2.9.1
-pyasn1==0.6.4
+pyasn1==0.6.5
 
 # Encryption, two-factor sign-in, QR codes
 cryptography==50.0.2
