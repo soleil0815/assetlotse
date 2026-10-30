@@ -23,6 +23,18 @@ Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Lap
 - **Automatische Datensicherung** – täglich, die letzten 10 Sicherungen werden aufbewahrt (einstellbar).
 - Deutsch und Englisch, responsives Design mit Hell-/Dunkelmodus. Daten in **SQLite** (Standard), optional MySQL/MariaDB oder PostgreSQL.
 
+<p align="center">
+  <img src=".github/readme/dashboard-de.png" alt="Übersicht mit Kennzahlen" width="100%"><br>
+  <sub>Übersicht mit Kennzahlen</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src=".github/readme/inventory-de.png" alt="Bestand – „Ausgeben“ direkt in der Liste"><br><sub>Bestand – „Ausgeben“ direkt in der Liste</sub></td>
+    <td width="50%"><img src=".github/readme/desk-de.png" alt="Ausgabetheke – Person wählen, Etikett scannen, fertig"><br><sub>Ausgabetheke – Person wählen, Etikett scannen, fertig</sub></td>
+  </tr>
+</table>
+
 ---
 
 ## Installation und Update
