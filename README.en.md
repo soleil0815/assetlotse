@@ -23,6 +23,18 @@ Web-based issuing and returning of equipment in institutes and offices: laptops,
 - **Automatic backups** – daily, the last 10 backups are kept (configurable).
 - German and English, responsive design with light and dark mode. Data stored in **SQLite** (default), optionally MySQL/MariaDB or PostgreSQL.
 
+<p align="center">
+  <img src=".github/readme/dashboard-en.png" alt="Overview with key figures" width="100%"><br>
+  <sub>Overview with key figures</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src=".github/readme/inventory-en.png" alt="Inventory – “Issue” right in the list"><br><sub>Inventory – “Issue” right in the list</sub></td>
+    <td width="50%"><img src=".github/readme/desk-en.png" alt="Issue desk – pick the person, scan the label, done"><br><sub>Issue desk – pick the person, scan the label, done</sub></td>
+  </tr>
+</table>
+
 ---
 
 ## Installation and updates
