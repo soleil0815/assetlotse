@@ -13,3 +13,4 @@ packages
 .git
 .gitignore
 *.zip.sha256
+.mypy_cache

@@ -28,6 +28,7 @@ import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any, Callable, Iterable
 
 MAIN_REF = "refs/heads/main"
 WEEKLY_CRON = "17 4 * * 1"      # Mondays 04:17 UTC: security update + base (EOL) check
@@ -76,16 +77,16 @@ def mode(event: str, schedule: str = "", input_mode: str = "", ref: str = "", in
 
 
 # ---------------------------------------------------------------- versions
-def releases(tags) -> list[tuple[int, int, int]]:
-    return sorted({tuple(map(int, m.groups())) for t in tags if (m := RELEASE_RE.match(t.strip()))})
+def releases(tags: Iterable[str]) -> list[tuple[int, int, int]]:
+    return sorted({(int(m[1]), int(m[2]), int(m[3])) for t in tags if (m := RELEASE_RE.match(t.strip()))})
 
 
-def highest_release(tags) -> str | None:
+def highest_release(tags: Iterable[str]) -> str | None:
     r = releases(tags)
     return ".".join(map(str, r[-1])) if r else None
 
 
-def plan_release(image: str, version: str, git_tags) -> dict:
+def plan_release(image: str, version: str, git_tags: Iterable[str]) -> dict:
     """Tags for a new program version: <version>, <minor> if it is the highest of its minor line,
     latest if it is the highest version overall. Security tags (-s<n>) never count."""
     v = tuple(map(int, version.split(".")))
@@ -99,12 +100,12 @@ def plan_release(image: str, version: str, git_tags) -> dict:
     return {"tags": tags, "latest": latest}
 
 
-def next_security_number(version: str, tags) -> int:
+def next_security_number(version: str, tags: Iterable[str]) -> int:
     pat = re.compile(rf"^v?{re.escape(version)}-s(\d+)$")
     return 1 + max([0] + [int(m.group(1)) for t in tags if (m := pat.match(t.strip()))])
 
 
-def plan_security(image: str, version: str, git_tags, registry_tags) -> dict:
+def plan_security(image: str, version: str, git_tags: Iterable[str], registry_tags: Iterable[str]) -> dict:
     """A security update is always for the highest program version; the number counts per version
     (a new program version starts again at s1). Git tags and registry tags both count, so a number
     is never used twice – not even after a run that stopped halfway."""
@@ -118,20 +119,21 @@ def plan_security(image: str, version: str, git_tags, registry_tags) -> dict:
     return {"name": name, "tags": [f"{image}:{name}", f"{image}:{major}.{minor}", f"{image}:latest"]}
 
 
-def expected_build(version: str, git_tags) -> str:
+def expected_build(version: str, git_tags: Iterable[str]) -> str:
     """The newest published build of a program version: <version>-s<n> (git tag v<version>-s<n> is only
     set after its image was pushed) or <version>."""
     n = next_security_number(version, git_tags) - 1
     return f"{version}-s{n}" if n else version
 
 
-def build_key(build: str) -> tuple | None:
+def build_key(build: str | None) -> tuple | None:
     """"1.10.0" -> (1, 10, 0, 0), "1.10.0-s3" -> (1, 10, 0, 3); anything else -> None."""
     m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-s(\d+))?$", build or "")
     return tuple(int(x or 0) for x in m.groups()) if m else None
 
 
-def plan_repair(image: str, version: str, git_tags, digest_of, build_of) -> dict:
+def plan_repair(image: str, version: str, git_tags: Iterable[str], digest_of: Callable[[str], str | None],
+                build_of: Callable[[str], str | None]) -> dict:
     """After a run that stopped halfway: which floating tags (<minor>, latest) still point to an OLDER build
     of this pipeline than the newest published one. digest_of(ref) -> digest or None; build_of(ref) -> the
     image's label io.assetlotse.build or None. A tag that points to something else (no label, or a newer
@@ -146,7 +148,8 @@ def plan_repair(image: str, version: str, git_tags, digest_of, build_of) -> dict
         if digest_of(t) == want:
             continue
         current = build_key(build_of(t)) if digest_of(t) else (0, 0, 0, 0)
-        if current is not None and current < build_key(name):
+        target = build_key(name)
+        if current is not None and target is not None and current < target:
             tags.append(t)
     return {"source": src, "tags": tags}
 
@@ -166,7 +169,7 @@ class Registry:
         with urllib.request.urlopen(req, timeout=60) as r:
             self.token = json.load(r)["token"]
 
-    def _get(self, url: str, method: str = "GET"):
+    def _get(self, url: str, method: str = "GET") -> Any:
         req = urllib.request.Request(url, method=method, headers={"Authorization": f"Bearer {self.token}",
                                                                   "Accept": MANIFEST_TYPES})
         return urllib.request.urlopen(req, timeout=60)
@@ -187,7 +190,7 @@ class Registry:
     def _blob(self, digest: str) -> dict:
         """Blobs are served via a redirect to a storage URL – follow it WITHOUT the registry token."""
         class Stop(urllib.request.HTTPRedirectHandler):
-            def redirect_request(self, *a, **k):
+            def redirect_request(self, *a: Any, **k: Any) -> None:
                 return None
         req = urllib.request.Request(f"https://{self.host}/v2/{self.repo}/blobs/{digest}",
                                      headers={"Authorization": f"Bearer {self.token}"})
@@ -236,7 +239,8 @@ class Registry:
         return (config.get("config", {}).get("Labels") or {}).get("io.assetlotse.build")
 
     def tags(self) -> list[str]:
-        url, tags = f"https://{self.host}/v2/{self.repo}/tags/list?n=1000", []
+        url: str | None = f"https://{self.host}/v2/{self.repo}/tags/list?n=1000"
+        tags: list[str] = []
         while url:
             with self._get(url) as r:
                 tags += json.load(r).get("tags") or []
@@ -252,7 +256,7 @@ ALLOWED_FILES = {"requirements.txt", "build/debian-packages.lock", "build/debian
 ALLOWED_DOCKERFILE_LINE = re.compile(r"^[+-]ARG (PYTHON_IMAGE|PIP_VERSION)=")
 
 
-def check_changes(names, dockerfile_diff: str) -> list[str]:
+def check_changes(names: Iterable[str], dockerfile_diff: str) -> list[str]:
     errors = [f"{n} must not be changed by an automatic update" for n in names if n not in ALLOWED_FILES]
     for line in dockerfile_diff.splitlines():
         if line.startswith(("+++", "---", "@@")) or not line.startswith(("+", "-")):
@@ -362,7 +366,7 @@ def _release_missing(repo: str, tag: str, token: str) -> bool:
         raise SystemExit(f"GitHub API: release {tag}: HTTP {e.code} – stopped")
 
 
-def main(argv=None) -> int:
+def main(argv: list[str] | None = None) -> int:
     try:
         return _main(argv)
     except SystemExit as e:
@@ -372,7 +376,7 @@ def main(argv=None) -> int:
         raise
 
 
-def _main(argv=None) -> int:
+def _main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     m = sub.add_parser("mode")

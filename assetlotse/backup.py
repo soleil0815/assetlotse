@@ -151,12 +151,12 @@ def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: 
     return final
 
 
-def _unlink_siblings(path: Path):
+def _unlink_siblings(path: Path) -> None:
     for suffix in ("-wal", "-shm", "-journal"):
         path.with_name(path.name + suffix).unlink(missing_ok=True)
 
 
-def _unlink_part(path: Path):
+def _unlink_part(path: Path) -> None:
     path.unlink(missing_ok=True)
     _unlink_siblings(path)
 
@@ -217,7 +217,7 @@ def delete_backup(name: str) -> bool:
 
 # ---------------------------------------------------------------- Wiederherstellen (nur bei angehaltener App!)
 
-def restore_backup(name: str) -> Path:
+def restore_backup(name: str) -> Path | None:
     """Sicherung zurückspielen. Vorher wird der aktuelle Stand gesichert („vor Wiederherstellung“)."""
     src = find_backup(name)
     if src is None:
@@ -243,7 +243,7 @@ def restore_backup(name: str) -> Path:
 
 # ---------------------------------------------------------------- Zeitplan und Status
 
-def _record(ok: bool, message: str, now: datetime):
+def _record(ok: bool, message: str, now: datetime) -> None:
     set_setting("backup_last_result", f"{now:%d.%m.%Y %H:%M}: {message}")
     if ok:
         set_setting("backup_last_ok", now.isoformat(timespec="seconds"))
@@ -292,7 +292,7 @@ def warning() -> str:
     return _("Die letzte Datensicherung ist fehlgeschlagen.")
 
 
-def _notify_admins(message: str):
+def _notify_admins(message: str) -> None:
     from .mailer import mail_active, render_mail, send_mail
     if not mail_active():
         return

@@ -388,6 +388,15 @@ jobs:
           # pytest stays outside the image: installed here (exact versions) and mounted read-only
           python3 -m pip install -q --no-deps --only-binary=:all: --break-system-packages \
             --target "${RUNNER_TEMP}/pytest" -r tests/requirements-test.txt
+          # type check (tests/test_typing.py) once, on amd64: mypy for Python 3.13 on this CPU, also mounted read-only
+          typing=()
+          if [ "$ARCH" = amd64 ]; then
+            python3 -m pip install -q --no-deps --only-binary=:all: --break-system-packages --target "${RUNNER_TEMP}/typing" \
+              --python-version 3.13 --implementation cp --abi cp313 --abi abi3 --abi none \
+              --platform manylinux_2_28_x86_64 --platform manylinux_2_17_x86_64 --platform manylinux2014_x86_64 \
+              -r tests/requirements-typing.txt
+            typing=(-v "${RUNNER_TEMP}/typing:/opt/typing:ro" -e ASSETLOTSE_REQUIRE_MYPY=1)
+          fi
           rc=0
           : > selftest.log
           if [ "$ARCH" = amd64 ]; then
@@ -395,8 +404,8 @@ jobs:
             PYTHONPATH="${RUNNER_TEMP}/pytest" python3 -m pytest -q -p no:cacheprovider --noconftest -rfE tests/test_supply_chain.py \
               > selftest.log 2>&1 || rc=$?
           fi
-          docker run --rm -v "$PWD:/src" -w /src -v "${RUNNER_TEMP}/pytest:/opt/pytest:ro" -e PYTHONPATH=/opt/pytest \
-            --entrypoint python "$REF" -m pytest -q -p no:cacheprovider -rfE \
+          docker run --rm -v "$PWD:/src" -w /src -v "${RUNNER_TEMP}/pytest:/opt/pytest:ro" "${typing[@]}" \
+            -e PYTHONPATH=/opt/pytest:/opt/typing --entrypoint python "$REF" -m pytest -q -p no:cacheprovider -rfE \
             --ignore=tests/test_supply_chain.py tests > pytest.log 2>&1 || rc=$?
           summary="${ARCH} in the image: $(tail -n 1 pytest.log)"
           [ ! -s selftest.log ] || summary="${summary} · build chain: $(tail -n 1 selftest.log)"

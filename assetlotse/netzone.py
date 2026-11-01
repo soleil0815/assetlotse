@@ -70,7 +70,8 @@ _cache: dict[str, tuple[float, set, float]] = {}
 
 def parse_own(text: str) -> tuple[list[str], list[str]]:
     """Einträge für den eigenen Anschluss: IP-Adressen oder DNS-Namen; liefert (gültige, ungültige)."""
-    ok, bad = [], []
+    ok: list[str] = []
+    bad: list[str] = []
     for part in (text or "").replace(",", "\n").replace(";", "\n").splitlines():
         part = part.split("#")[0].strip().lower()
         if not part:
@@ -92,7 +93,7 @@ def _resolve(host: str, now: float) -> set:
     if cached and now - cached[2] < RESOLVE_TTL:
         return cached[1]
     try:
-        ips = {info[4][0].split("%")[0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)}
+        ips = {str(info[4][0]).split("%")[0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)}
     except OSError as exc:
         log.warning("Eigener Anschluss: %s lässt sich nicht auflösen (%s)", host, exc)
         # letzte bekannte Adresse höchstens eine Stunde nach der letzten erfolgreichen Auflösung weiterverwenden
@@ -121,7 +122,7 @@ def own_public_ips() -> set:
 
 # ---------------------------------------------------------------- Einstufung
 
-def _client_address():
+def _client_address() -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
     try:
         ip = ipaddress.ip_address(client_ip().split("%")[0])
     except ValueError:

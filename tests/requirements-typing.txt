@@ -1,0 +1,8 @@
+# Type check (mypy, tests/test_typing.py) – exact versions. In the check run on GitHub it is installed
+# outside the image for its Python (3.13) and CPU and mounted read-only, like the test tools.
+mypy==2.4.1
+ast-serialize==0.13.1
+librt==0.16.0
+mypy_extensions==1.1.0
+pathspec==1.1.1
+typing_extensions==4.16.0

@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.0.1",
+      "date": "2026-11-01",
+      "kind": "fix",
+      "audience": "all",
+      "de": {
+        "title": "Klare Meldung bei falschem AD-Passwort",
+        "text": "Wer sich mit seinem AD-Konto und einem falschen Passwort anmeldet, sieht wieder „Benutzername oder Passwort ist falsch.“ statt „Anmeldung derzeit nicht möglich“."
+      },
+      "en": {
+        "title": "Clear message for a wrong AD password",
+        "text": "Signing in with an AD account and a wrong password shows “Incorrect username or password.” again instead of “sign-in currently not possible”."
+      }
+    },
+    {
       "version": "2.0.0",
       "date": "2026-10-29",
       "kind": "feature",

@@ -17,6 +17,13 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+from typing import TYPE_CHECKING, Any, Iterable, Mapping
+
+if TYPE_CHECKING:
+    from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
+    from flask import Flask
+
+IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -47,7 +54,7 @@ def parse_networks(value: str | None) -> list:
 class TrustedProxyFix:
     """Wendet ProxyFix nur an, wenn die Verbindung von einem vertrauenswürdigen Proxy kommt."""
 
-    def __init__(self, app, networks):
+    def __init__(self, app: WSGIApplication, networks: list[IPNetwork]) -> None:
         self.app = app
         self.networks = networks
         self.fixed = ProxyFix(app, x_for=1, x_proto=1, x_host=0, x_port=1)
@@ -61,7 +68,7 @@ class TrustedProxyFix:
             ip = ip.ipv4_mapped
         return any(ip in n for n in self.networks)
 
-    def __call__(self, environ, start_response):
+    def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         if self.networks and self._trusted(environ.get("REMOTE_ADDR")):
             return self.fixed(environ, start_response)
         return self.app(environ, start_response)
@@ -70,16 +77,16 @@ class TrustedProxyFix:
 class SecureCookies:
     """Setzt bei HTTPS-Anfragen das Secure-Flag an allen Cookies."""
 
-    def __init__(self, app, mode: str = "auto"):
+    def __init__(self, app: WSGIApplication, mode: str = "auto") -> None:
         self.app = app
         self.mode = mode
 
-    def __call__(self, environ, start_response):
+    def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         secure = self.mode == "1" or (self.mode == "auto" and environ.get("wsgi.url_scheme") == "https")
         if not secure:
             return self.app(environ, start_response)
 
-        def _start(status, headers, exc_info=None):
+        def _start(status: str, headers: list[tuple[str, str]], exc_info: Any = None) -> Any:
             new = []
             for name, value in headers:
                 if name.lower() == "set-cookie" and "secure" not in value.lower():
@@ -90,7 +97,7 @@ class SecureCookies:
         return self.app(environ, _start)
 
 
-def install(app, env) -> None:
+def install(app: Flask, env: Mapping[str, str]) -> None:
     mode = (env.get("ASSETLOTSE_SECURE_COOKIES") or "auto").strip().lower()
     if mode not in ("auto", "1", "0"):
         mode = "auto"
@@ -102,4 +109,4 @@ def install(app, env) -> None:
         trusted = "private"
     networks = parse_networks(trusted)
     # Reihenfolge: erst Proxy-Header auswerten (setzt https), dann Cookies anpassen
-    app.wsgi_app = TrustedProxyFix(SecureCookies(app.wsgi_app, mode), networks)
+    app.wsgi_app = TrustedProxyFix(SecureCookies(app.wsgi_app, mode), networks)  # type: ignore[method-assign]

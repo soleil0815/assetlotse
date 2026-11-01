@@ -34,6 +34,7 @@ import sys
 import tempfile
 import urllib.request
 from pathlib import Path
+from typing import Any, Callable
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCKERFILE = "Dockerfile"
@@ -166,7 +167,7 @@ def state_at(ref: str, root: Path = ROOT) -> dict:
     """The locked state as it was in a git commit (e.g. the last published release)."""
     show = lambda f: subprocess.run(["git", "show", f"{ref}:{f}"], cwd=root, check=True, text=True,
                                     stdout=subprocess.PIPE).stdout
-    def maybe(f):
+    def maybe(f: str) -> str:
         try:
             return show(f)
         except subprocess.CalledProcessError:
@@ -223,7 +224,7 @@ def debian_changes(old: dict[str, dict], new: dict[str, dict]) -> list[dict]:
     return base + extra
 
 
-def base_ref(major, minor, patch, codename, digest) -> str:
+def base_ref(major: int, minor: int, patch: int, codename: str, digest: str) -> str:
     return f"python:{major}.{minor}.{patch}-slim-{codename}@sha256:{digest}"
 
 
@@ -275,7 +276,7 @@ def check(root: Path = ROOT) -> list[str]:
 
 
 # ---------------------------------------------------------------- refresh (Docker + Internet)
-def run(cmd: list[str], **kw) -> str:
+def run(cmd: list[str], **kw: Any) -> str:
     print("+", " ".join(cmd), file=sys.stderr)
     return subprocess.run(cmd, check=True, text=True, stdout=subprocess.PIPE, **kw).stdout
 
@@ -465,10 +466,10 @@ def older_than(old: dict, new: dict) -> list[str]:
     return problems
 
 
-def _github_error(title: str):
+def _github_error(title: str) -> Callable[[Callable[..., int]], Callable[..., int]]:
     """Exit messages as annotations on the run page (GitHub Actions), so the cause is readable there."""
-    def wrap(fn):
-        def run(*a, **k):
+    def wrap(fn: Callable[..., int]) -> Callable[..., int]:
+        def run(*a: Any, **k: Any) -> int:
             try:
                 return fn(*a, **k)
             except SystemExit as e:
@@ -485,7 +486,7 @@ def _github_error(title: str):
 
 
 @_github_error("scripts/lock.py")
-def main(argv=None) -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("refresh", help="set new versions within the limits (Docker + Internet)")
