@@ -58,7 +58,7 @@ def fetch(product: str, cycle: str) -> dict:
         return json.load(r)
 
 
-def evaluate(items, answers: dict, today: dt.date) -> tuple[int, list[str]]:
+def evaluate(items: list[tuple[str, str, str]], answers: dict, today: dt.date) -> tuple[int, list[str]]:
     status, lines = 0, []
     for product, cycle, label in items:
         end = eol_date(answers[f"{product}/{cycle}"])
@@ -79,7 +79,7 @@ def evaluate(items, answers: dict, today: dt.date) -> tuple[int, list[str]]:
     return status, lines
 
 
-def main(argv=None) -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data")
     ap.add_argument("--today")

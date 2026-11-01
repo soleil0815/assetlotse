@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.0.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.0.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -557,7 +557,10 @@ Im Repository (Entwicklung):
 
 ```bash
 python -m pytest -q tests
+python -m mypy            # Typprüfung (Einstellungen in mypy.ini; Werkzeuge: tests/requirements-typing.txt)
 ```
+
+Die Typprüfung wird schrittweise eingeführt: Die Module in den strengen Abschnitten von `mypy.ini` müssen fehlerfrei sein (sonst scheitert `tests/test_typing.py`), Funde in allen anderen werden nur aufgelistet. Ist ein Modul sauber, kommt es in die strenge Liste.
 
 Auf GitHub laufen die Tests bei jedem Push und Pull Request im fertigen Image, auf amd64 und arm64.
 

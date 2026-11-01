@@ -214,7 +214,6 @@
  "Bezeichnung, Nummer, Person …": "Name, number, person …",
  "Bild hochladen": "Upload picture",
  "Bildformat {format} wird nicht unterstützt.": "Image format {format} is not supported.",
- "Bind abgelehnt ({desc}). {msg}": "Bind refused ({desc}). {msg}",
  "Bind erfolgreich, aber Basis-DN '{base}' nicht lesbar.": "Bind successful, but base DN '{base}' is not readable.",
  "Bis zur maximalen Anzahl an Verlängerungen.": "Up to the maximum number of extensions.",
  "Bitte bestätige deine E-Mail-Adresse": "Please confirm your email address",
@@ -1234,5 +1233,6 @@
  "Wartet auf Bestätigung: <b>{email}</b> – bitte den Link in der E-Mail an diese Adresse öffnen. Bis dahin gilt die bisherige Adresse.": "Waiting for confirmation: <b>{email}</b> – please open the link in the email sent to this address. Until then the previous address applies.",
  "hat ihn schon": "already has it",
  "vor Update": "before update",
- "Die docker-compose.yml auf dem Server ist veraltet (Stand %(found)s, erwartet %(want)s). Auf dem Server ./update.sh ausführen – es legt die neue Datei ab und behält die alte als docker-compose.yml.alt. Oder die docker-compose.yml aus dem aktuellen Release übernehmen und danach docker compose up -d.": "The docker-compose.yml on the server is out of date (version %(found)s, expected %(want)s). Run ./update.sh on the server – it puts the new file in place and keeps the old one as docker-compose.yml.alt. Or take the docker-compose.yml from the current release and then run docker compose up -d."
+ "Die docker-compose.yml auf dem Server ist veraltet (Stand %(found)s, erwartet %(want)s). Auf dem Server ./update.sh ausführen – es legt die neue Datei ab und behält die alte als docker-compose.yml.alt. Oder die docker-compose.yml aus dem aktuellen Release übernehmen und danach docker compose up -d.": "The docker-compose.yml on the server is out of date (version %(found)s, expected %(want)s). Run ./update.sh on the server – it puts the new file in place and keeps the old one as docker-compose.yml.alt. Or take the docker-compose.yml from the current release and then run docker compose up -d.",
+ "Bind abgelehnt ({desc}). {detail}": "Bind refused ({desc}). {detail}"
 }

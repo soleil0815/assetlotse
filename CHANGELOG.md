@@ -2,6 +2,20 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.0.1 – 2026-11-01
+
+**Korrigiert**
+- **AD-Anmeldung mit falschem Passwort:** Statt „Benutzername oder Passwort ist falsch.“ erschien „Anmeldung derzeit nicht
+  möglich“, und im Protokoll stand jedes Mal ein Programmfehler. Ebenso endete „Verbindung testen“ mit einem falschen
+  Passwort des Dienstkontos in einem Fehler statt mit der Meldung des Domänencontrollers. Gefunden von der neuen
+  Typprüfung.
+
+**Intern**
+- **Typprüfung mit mypy**, schrittweise eingeführt: Sicherung, Netz- und Proxy-Erkennung, Anmeldesperre und die
+  Build-Skripte werden streng geprüft – ein Fund dort lässt die Tests scheitern, auch im Prüflauf auf GitHub. Alle
+  anderen Module werden mitgeprüft, ihre Funde aber vorerst nur aufgelistet. Weitere Module kommen nach und nach dazu.
+  Das Docker-Image enthält mypy nicht.
+
 ## 2.0.0 – 2026-10-29
 
 Umstellung auf den Docker-Standard: Das Programm steckt komplett im Image. Auf dem Server liegen nur noch

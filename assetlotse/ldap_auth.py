@@ -183,7 +183,8 @@ class Directory:
             if not conn.bind(read_server_info=False):
                 desc = conn.result.get("description", "")
                 msg = conn.result.get("message", "")
-                raise LDAPError(_("Bind abgelehnt ({desc}). {msg}", desc=desc, msg=msg).strip())
+                # nicht "msg=": so heißt schon der erste Parameter von _() – das gäbe einen TypeError statt der Meldung
+                raise LDAPError(_("Bind abgelehnt ({desc}). {detail}", desc=desc, detail=msg).strip())
             return conn
         except (LDAPException, LDAPError) as exc:
             if conn is not None:

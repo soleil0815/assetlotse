@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.0.0** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.0.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -557,7 +557,10 @@ In the repository (development):
 
 ```bash
 python -m pytest -q tests
+python -m mypy            # type check (settings in mypy.ini; tools: tests/requirements-typing.txt)
 ```
+
+The type check is introduced step by step: the modules in the strict sections of `mypy.ini` must have no findings (otherwise `tests/test_typing.py` fails), findings in all others are only listed. Once a module is clean, it goes on the strict list.
 
 On GitHub the tests run on every push and pull request in the finished image, on amd64 and arm64.
 
