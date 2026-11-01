@@ -42,10 +42,16 @@ class TypeCheckTest(unittest.TestCase):
             if os.environ.get("ASSETLOTSE_REQUIRE_MYPY") == "1":
                 self.fail("mypy is required here (tests/requirements-typing.txt)")
             self.skipTest("mypy not installed")
-        out, err, _status = api.run(["--config-file", str(ROOT / "mypy.ini"), "--no-error-summary",
-                                     "--cache-dir", os.devnull, "--no-incremental"]
-                                    if os.name != "nt" else ["--config-file", str(ROOT / "mypy.ini")])
-        self.assertNotIn("error: ", err, err)                        # mypy itself must run
+        cwd = os.getcwd()
+        os.chdir(ROOT)                              # mypy.ini names the files relative to the repository
+        try:
+            out, err, status = api.run(["--config-file", str(ROOT / "mypy.ini"), "--no-error-summary",
+                                        "--cache-dir", os.devnull, "--no-incremental"])
+        finally:
+            os.chdir(cwd)
+        # 0 = clean, 1 = findings; 2 = mypy could not check at all (syntax error, wrong paths …) – never "passed"
+        self.assertIn(status, (0, 1), out + err)
+        self.assertNotIn("error: ", err, err)
         strict = set(strict_modules())
         self.assertGreaterEqual(len(strict), 7)
         findings = [l for l in out.splitlines() if re.match(r"^\S+\.py:\d+: error:", l)]

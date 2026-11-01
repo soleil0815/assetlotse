@@ -10,3 +10,4 @@ pakete/
 *.zip
 *.zip.sha256
 .assetlotse-update.*
+.mypy_cache
