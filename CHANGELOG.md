@@ -2,6 +2,13 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.0.1-s1 – 2026-11-02
+
+Sicherheitsupdate: gleiches Programm wie 2.0.1, nur aktualisierte Pakete.
+
+- Debian: tzdata 2026e-0+deb13u1 → 2026f-0+deb13u1
+- Python: wtforms 3.3.1 → 3.3.2
+
 ## 2.0.1 – 2026-11-01
 
 **Korrigiert**
