@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("ASSETLOTSE_DATA_DIR", tempfile.mkdtemp(prefix="assetlotse-test-"))
@@ -64,6 +65,27 @@ class StoredGermanDefaultTests(unittest.TestCase):
         self.assertIn("Welcome", en)
         self.assertNotIn("Willkommen", en)
         self.assertIn("Willkommen", de)
+
+    def test_automatic_backups_keep_the_plain_badge(self):
+        from assetlotse.models import User
+        tmp = Path(tempfile.mkdtemp(prefix="al-en-"))
+        (tmp / "backups").mkdir()
+        (tmp / "backups" / "assetlotse-2026-11-03_020000.db").write_bytes(b"SQLite format 3\x00")
+        env = mock.patch.dict(os.environ, {"ASSETLOTSE_BACKUP_DIR": str(tmp / "backups")})
+        env.start()
+        self.addCleanup(env.stop)
+        app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp}/a.db"})
+        app.config["WTF_CSRF_ENABLED"] = False
+        with app.app_context():
+            a = User(username="admin", role="admin", display_name="A")
+            a.set_password("Passwort-123456")
+            db.session.add(a)
+            set_setting("setup_completed", "1")
+            db.session.commit()
+        c = app.test_client()
+        c.post("/login", data={"username": "admin", "password": "Passwort-123456"})
+        html = c.get("/admin/datensicherung", headers={"Accept-Language": "de"}).get_data(as_text=True)
+        self.assertIn('<span class="badge">automatisch</span>', html)
 
 
 if __name__ == "__main__":
