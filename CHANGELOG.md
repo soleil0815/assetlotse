@@ -2,6 +2,25 @@
 
 Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
 
+## 2.0.2 – 2026-11-04
+
+Ergebnisse des monatlichen Code-Audits (Teilprüfung der Änderungen seit 1.12.0).
+
+**Korrigiert**
+- **`./update.sh --cleanup` und eingehängte Laufwerke:** War unter einem Programmordner (z. B. `packages/`, `docs/`)
+  ein Laufwerk oder NAS-Ordner eingehängt, wurde dessen Inhalt mitgelöscht. Mountpunkte werden jetzt erkannt und
+  ausgelassen; gelingt das Löschen nicht vollständig, meldet das Skript das statt „Cleaned up“.
+- **`./update.sh --cleanup` ohne Container:** Ordner, die die `docker-compose.yml` oder `docker-compose.override.yml`
+  einbindet, waren nur geschützt, solange ein Container existierte (nach `docker compose down` nicht mehr). Jetzt
+  liest das Skript die Einbindungen auch aus `docker compose config`; ist sie nicht lesbar, löscht es nichts.
+- **`./update.sh` bei gestopptem Container:** Die zuletzt gelaufene Version wurde nicht erkannt – kein Angebot zum
+  Zurückgehen, und `--rollback` startete die Version von vor zwei Updates. Gestoppte Container zählen jetzt mit,
+  übrig gebliebene Container von `docker compose run` nicht.
+- **Hinweis „docker-compose.yml veraltet“:** zeigte `%(found)s`/`%(want)s` statt der Versionsnummern.
+- **Ältere Version auf neuerer Datenbank:** Die Meldung konnte eine falsche Sicherung nennen (`-vor-2.0.10` für
+  2.0.1). Jetzt wird nur die Sicherung genau dieser Version genannt.
+- README: Beim Umstieg von 1.x holt das alte Skript die neueste Version (nicht fest 2.0.0).
+
 ## 2.0.1-s1 – 2026-11-02
 
 Sicherheitsupdate: gleiches Programm wie 2.0.1, nur aktualisierte Pakete.
