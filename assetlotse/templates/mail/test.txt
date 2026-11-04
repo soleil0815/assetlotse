@@ -1,7 +1,7 @@
-{{ _("Testnachricht von {library}", library=org_name|safe) }}
-{{ _("Hallo,") }}
+{{ _("Test message from {library}", library=org_name|safe) }}
+{{ _("Hello,") }}
 
-{{ _("der E-Mail-Versand von {library} funktioniert.", library=org_name|safe) }}
+{{ _("sending email from {library} works.", library=org_name|safe) }}
 
 {{ _("Server: {server}", server=server|safe) }}
-{{ _("Gesendet: {time}", time=now) }}
+{{ _("Sent: {time}", time=now) }}

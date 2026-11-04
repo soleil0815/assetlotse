@@ -1,4 +1,4 @@
-"""Sicherung beim ersten Start einer neuen Version (Update ohne update.sh, z. B. durch ein Update-Tool)."""
+"""Backup on the first start of a new version (update without update.sh, e.g. by an update tool)."""
 import os
 import sys
 import tempfile
@@ -29,33 +29,33 @@ class UpgradeBackupTest(unittest.TestCase):
         return sorted(p.name for p in self.backups.glob("*.db")) if self.backups.exists() else []
 
     def test_backup_once_per_new_version(self):
-        app = self.app()                                   # neue Datenbank: nichts zu sichern
+        app = self.app()                                   # new database: nothing to back up
         with app.app_context():
             self.assertEqual(get_setting("app_version"), assetlotse.__version__)
             db.session.add(User(username="admin", role="admin"))
             db.session.commit()
         self.assertEqual(self.files(), [])
-        self.app()                                         # gleiche Version: keine Sicherung
+        self.app()                                         # same version: no backup
         self.assertEqual(self.files(), [])
         with app.app_context():
-            set_setting("app_version", "1.0.0")            # so, als liefe vorher 1.0.0
+            set_setting("app_version", "1.0.0")            # as if 1.0.0 was running before
             db.session.commit()
         with self.assertLogs("assetlotse", "INFO") as cm:
             app2 = self.app()
         files = self.files()
         self.assertEqual(len(files), 1)
         self.assertTrue(files[0].endswith(f"-vor-{assetlotse.__version__}.db"), files)
-        self.assertTrue(any("Update von 1.0.0" in m for m in cm.output))
+        self.assertTrue(any("Update from 1.0.0" in m for m in cm.output))
         with app2.app_context():
             self.assertEqual(get_setting("app_version"), assetlotse.__version__)
         self.app()
-        self.assertEqual(len(self.files()), 1)             # nur beim ersten Start der neuen Version
+        self.assertEqual(len(self.files()), 1)             # only on the first start of the new version
 
     def test_existing_database_from_before_version_tracking(self):
         app = self.app()
         with app.app_context():
             db.session.add(User(username="admin", role="admin"))
-            set_setting("app_version", "")                 # Datenbank aus einer Version ohne Eintrag
+            set_setting("app_version", "")                 # database from a version without an entry
             db.session.commit()
         self.app()
         self.assertEqual(len(self.files()), 1)

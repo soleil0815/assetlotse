@@ -1,4 +1,4 @@
-"""Port-Einstellung: eine Variable (ASSETLOTSE_PORT, Standard 9343) für Host, Container und Healthcheck."""
+"""Port setting: one variable (ASSETLOTSE_PORT, default 9343) for host, container and healthcheck."""
 import pathlib
 import re
 import runpy

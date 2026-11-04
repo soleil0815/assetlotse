@@ -1,28 +1,28 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, role_badge %}
-{% block title %}{{ _("Neue Gruppe") if is_new else group.name }}{% endblock %}
+{% block title %}{{ _("New group") if is_new else group.name }}{% endblock %}
 {% block content %}
-<a href="{{ url_for('admin.groups') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Gruppen") }}</a>
-<div class="page-head"><div><div class="eyebrow">{{ _("Gruppe") }}</div><h1>{{ _("Gruppe anlegen") if is_new else group.name }}</h1></div></div>
+<a href="{{ url_for('admin.groups') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Groups") }}</a>
+<div class="page-head"><div><div class="eyebrow">{{ _("Group") }}</div><h1>{{ _("Create group") if is_new else group.name }}</h1></div></div>
 <form method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="split">
     <section class="card card-pad">
       <div class="form-grid">
         <div class="field span-5"><label for="f-name">{{ _("Name") }}</label><input id="f-name" type="text" name="name" value="{{ group.name or '' }}" required></div>
-        <div class="field span-1"><label for="f-color">{{ _("Farbe") }}</label><input id="f-color" class="swatch-input" type="color" name="color" value="{{ group.color or '#1f6a86' }}"></div>
-        <div class="field span-6"><label for="f-description">{{ _("Beschreibung") }}</label><input id="f-description" type="text" name="description" value="{{ group.description or '' }}"></div>
-        <div class="field span-6"><label for="f-ldap-dn">{{ _("AD-Gruppe (optional)") }}</label>
-          <input id="f-ldap-dn" class="mono" type="text" name="ldap_dn" value="{{ group.ldap_dn or '' }}" placeholder="{{ _('Abt-IT  oder  CN=Abt-IT,OU=Gruppen,DC=institut,DC=local') }}">
-          <div class="hint">{{ _("Name oder DN einer AD-Gruppe. Ihre Mitglieder werden bei der Anmeldung automatisch dieser Gruppe zugeordnet (und bei Austritt wieder entfernt).") }}</div></div>
+        <div class="field span-1"><label for="f-color">{{ _("Colour") }}</label><input id="f-color" class="swatch-input" type="color" name="color" value="{{ group.color or '#1f6a86' }}"></div>
+        <div class="field span-6"><label for="f-description">{{ _("Description") }}</label><input id="f-description" type="text" name="description" value="{{ group.description or '' }}"></div>
+        <div class="field span-6"><label for="f-ldap-dn">{{ _("AD group (optional)") }}</label>
+          <input id="f-ldap-dn" class="mono" type="text" name="ldap_dn" value="{{ group.ldap_dn or '' }}" placeholder="{{ _('Dept-IT  or  CN=Dept-IT,OU=Groups,DC=institute,DC=local') }}">
+          <div class="hint">{{ _("Name or DN of an AD group. Its members are automatically assigned to this group when they sign in (and removed again when they leave).") }}</div></div>
         <div class="field span-6">
-          <label class="check"><input type="checkbox" name="no_lending" value="1" {{ "checked" if group.no_lending }}> <b>{{ _("Kein Verleih") }}</b></label>
-          <div class="hint">{{ _("Gegenstände dieser Gruppe werden nie ausgegeben – weder an der Ausgabetheke noch aus dem Bestand noch zur Selbstausleihe. An der Theke werden sie gar nicht erst angeboten. Schon ausgegebene Gegenstände können weiter zurückgegeben werden.") }}</div></div>
+          <label class="check"><input type="checkbox" name="no_lending" value="1" {{ "checked" if group.no_lending }}> <b>{{ _("No lending") }}</b></label>
+          <div class="hint">{{ _("Items of this group are never issued – not at the issue desk, not from the inventory and not by self-checkout. The desk does not offer them at all. Items already issued can still be returned.") }}</div></div>
       </div>
     </section>
     <section class="card card-pad">
-      <h3 style="margin-bottom: 12px">{{ _("Mitglieder") }}</h3>
-      <input type="search" aria-label="{{ _('Mitglieder filtern') }}" placeholder="{{ _('Filtern …') }}" data-filter-list="#members" style="margin-bottom: 12px">
+      <h3 style="margin-bottom: 12px">{{ _("Members") }}</h3>
+      <input type="search" aria-label="{{ _('Filter members') }}" placeholder="{{ _('Filter …') }}" data-filter-list="#members" style="margin-bottom: 12px">
       <div id="members" style="max-height: 420px; overflow-y: auto">
         {% for u in users %}
         <label class="check" data-filter-item><input type="checkbox" name="members" value="{{ u.id }}" {{ "checked" if u in group.users }}>
@@ -33,14 +33,14 @@
     </section>
   </div>
   <div class="actions" style="margin-top: 20px; justify-content: space-between">
-    <div>{% if not is_new %}<button class="btn danger" form="delete-form">{{ icon("trash") }} {{ _("Löschen") }}</button>{% endif %}</div>
-    <div class="actions"><a class="btn ghost" href="{{ url_for('admin.groups') }}">{{ _("Abbrechen") }}</a>
-      <button class="btn primary lg">{{ icon("check") }} {{ _("Speichern") }}</button></div>
+    <div>{% if not is_new %}<button class="btn danger" form="delete-form">{{ icon("trash") }} {{ _("Delete") }}</button>{% endif %}</div>
+    <div class="actions"><a class="btn ghost" href="{{ url_for('admin.groups') }}">{{ _("Cancel") }}</a>
+      <button class="btn primary lg">{{ icon("check") }} {{ _("Save") }}</button></div>
   </div>
 </form>
 {% if not is_new %}
 <form id="delete-form" method="post" action="{{ url_for('admin.group_delete', group_id=group.id) }}"
-      data-confirm="{{ _('Gruppe {name} löschen? Ihre Gegenstände werden allgemein verfügbar.', name=group.name) }}">
+      data-confirm="{{ _('Delete group {name}? Its items become generally available.', name=group.name) }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 </form>
 {% endif %}

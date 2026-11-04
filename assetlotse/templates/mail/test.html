@@ -1,5 +1,5 @@
 {% extends "mail/_layout.html" %}
 {% block content %}
-<p style="margin:0 0 12px;font-size:18px;font-weight:600;">✓ {{ _("Der E-Mail-Versand funktioniert.") }}</p>
-<p style="margin:0 0 6px;color:#5f6b78;font-size:13px;">{{ _("Server: {server}", server=server) }}<br>{{ _("Gesendet: {time}", time=now) }}</p>
+<p style="margin:0 0 12px;font-size:18px;font-weight:600;">✓ {{ _("Sending email works.") }}</p>
+<p style="margin:0 0 6px;color:#5f6b78;font-size:13px;">{{ _("Server: {server}", server=server) }}<br>{{ _("Sent: {time}", time=now) }}</p>
 {% endblock %}

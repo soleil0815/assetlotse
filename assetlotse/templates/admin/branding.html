@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon %}
-{% block title %}{{ _("Erscheinungsbild") }}{% endblock %}
+{% block title %}{{ _("Branding") }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Erscheinungsbild") }}</h1>
-    <p>{{ _("Logo, Hintergrundbild der Anmeldeseite, Farben und Begrüßungstext – für euer eigenes Corporate Design.") }}</p></div>
-  <div class="actions"><a class="btn" href="{{ url_for('admin.branding_preview') }}" target="_blank" rel="noopener">{{ icon("image") }} {{ _("Anmeldeseite ansehen") }}</a></div>
+  <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Branding") }}</h1>
+    <p>{{ _("Logo, sign-in page background image, colours and welcome text – for your own corporate design.") }}</p></div>
+  <div class="actions"><a class="btn" href="{{ url_for('admin.branding_preview') }}" target="_blank" rel="noopener">{{ icon("image") }} {{ _("View sign-in page") }}</a></div>
 </div>
 
 <form method="post" enctype="multipart/form-data" data-branding-form>
@@ -16,38 +16,38 @@
     <div class="stack">
       <section class="card card-pad">
         <h2 style="margin-bottom: 6px">{{ icon("image") }} {{ _("Logo") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("Erscheint in der Seitenleiste, auf der Anmeldeseite, in E-Mails und als Browser-Symbol. Am besten PNG mit transparentem Hintergrund oder SVG, quer- oder quadratisch.") }}</p>
+        <p class="muted" style="font-size: 13.5px">{{ _("Appears in the sidebar, on the sign-in page, in emails and as the browser icon. Ideally a PNG with transparent background or an SVG, landscape or square.") }}</p>
         <div class="logo-previews">
           <div class="logo-swatch side" data-preview-side>
             <img data-preview-logo src="{{ brand.logo_url }}" alt="" {{ 'hidden' if not brand.logo_url }}>
-            <span class="muted" data-preview-nologo {{ 'hidden' if brand.logo_url }}>{{ _("kein Logo") }}</span>
+            <span class="muted" data-preview-nologo {{ 'hidden' if brand.logo_url }}>{{ _("no logo") }}</span>
           </div>
           <div class="logo-swatch light">
             <img data-preview-logo src="{{ brand.logo_url }}" alt="" {{ 'hidden' if not brand.logo_url }}>
-            <span class="muted" data-preview-nologo {{ 'hidden' if brand.logo_url }}>{{ _("kein Logo") }}</span>
+            <span class="muted" data-preview-nologo {{ 'hidden' if brand.logo_url }}>{{ _("no logo") }}</span>
           </div>
         </div>
-        <div class="field" style="margin-top: 14px"><label for="f-logo">{{ _("Logo hochladen") }}</label>
+        <div class="field" style="margin-top: 14px"><label for="f-logo">{{ _("Upload logo") }}</label>
           <input id="f-logo" type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" data-file-preview="logo"></div>
         <label class="check"><input type="checkbox" name="brand_logo_text" value="1" {{ 'checked' if s('brand_logo_text') != '0' }}>
-          <span>{{ _("Namen neben dem Logo anzeigen") }}<small class="muted">{{ _("Ausschalten, wenn euer Logo den Namen schon enthält. Den Namen legst du unter <i>Einstellungen</i> fest.") }}</small></span></label>
+          <span>{{ _("Show name next to the logo") }}<small class="muted">{{ _("Turn off if your logo already contains the name. You set the name under <i>Settings</i>.") }}</small></span></label>
         <label class="check"><input type="checkbox" name="brand_logo_plate" value="1" {{ 'checked' if s('brand_logo_plate') == '1' }} data-plate-toggle>
-          <span>{{ _("Logo auf hellem Feld anzeigen") }}<small class="muted">{{ _("Für dunkle Logos, die auf der dunklen Seitenleiste sonst schlecht zu sehen sind.") }}</small></span></label>
-        {% if brand.logo_url %}<label class="check"><input type="checkbox" name="remove_logo" value="1"> <span>{{ _("Logo entfernen") }}</span></label>{% endif %}
+          <span>{{ _("Show logo on a light background") }}<small class="muted">{{ _("For dark logos that would otherwise be hard to see on the dark sidebar.") }}</small></span></label>
+        {% if brand.logo_url %}<label class="check"><input type="checkbox" name="remove_logo" value="1"> <span>{{ _("Remove logo") }}</span></label>{% endif %}
       </section>
 
       <section class="card card-pad">
-        <h2 style="margin-bottom: 6px">{{ icon("palette") }} {{ _("Farben") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("Die Vorschau ändert sich sofort auf dieser Seite. Schriftfarben werden automatisch so gewählt, dass alles lesbar bleibt – auch im Dunkelmodus.") }}</p>
-        {% for key, label, hint in [("accent", _("Hauptfarbe"), _("Knöpfe, Links, Markierungen")),
-                                     ("brass", _("Akzentfarbe"), _("Hervorhebungen, Logo-Feld, Überschriften-Zusätze")),
-                                     ("side", _("Seitenleiste"), _("Navigation links und Anmeldeseite ohne Bild"))] %}
+        <h2 style="margin-bottom: 6px">{{ icon("palette") }} {{ _("Colours") }}</h2>
+        <p class="muted" style="font-size: 13.5px">{{ _("The preview updates immediately on this page. Text colours are chosen automatically so that everything stays readable – in dark mode too.") }}</p>
+        {% for key, label, hint in [("accent", _("Main colour"), _("Buttons, links, highlights")),
+                                     ("brass", _("Accent colour"), _("Highlights, logo background, heading extras")),
+                                     ("side", _("Sidebar"), _("Navigation on the left and sign-in page without image"))] %}
         <div class="color-row">
           <input type="color" value="{{ colors[key] or defaults[key] }}" data-color-picker="{{ key }}" aria-label="{{ label }}">
           <div class="grow"><b>{{ label }}</b><small class="muted">{{ hint }}</small></div>
           <input type="hidden" name="brand_{{ key }}" value="{{ colors[key] }}" data-color-value="{{ key }}">
-          <code data-color-label="{{ key }}">{{ colors[key] or _("Standard") }}</code>
-          <button type="button" class="btn sm ghost" data-color-reset="{{ key }}" data-default="{{ defaults[key] }}">{{ _("Standard") }}</button>
+          <code data-color-label="{{ key }}">{{ colors[key] or _("Default") }}</code>
+          <button type="button" class="btn sm ghost" data-color-reset="{{ key }}" data-default="{{ defaults[key] }}">{{ _("Default") }}</button>
         </div>
         {% endfor %}
       </section>
@@ -55,7 +55,7 @@
 
     <div class="stack">
       <section class="card card-pad">
-        <h2 style="margin-bottom: 12px">{{ icon("lock") }} {{ _("Anmeldeseite") }}</h2>
+        <h2 style="margin-bottom: 12px">{{ icon("lock") }} {{ _("Sign-in page") }}</h2>
         <div class="login-preview{{ ' has-bg' if brand.bg_url }}" data-login-preview
              style="--auth-bg: url('{{ brand.bg_url }}'); --auth-dim: {{ brand.bg_dim / 100 }}">
           <div>
@@ -72,21 +72,21 @@
           <div class="lp-form"><span></span><span></span><b></b></div>
         </div>
 
-        <div class="field" style="margin-top: 16px"><label for="f-bg">{{ _("Hintergrundbild") }}</label>
+        <div class="field" style="margin-top: 16px"><label for="f-bg">{{ _("Background image") }}</label>
           <input id="f-bg" type="file" name="bg" accept=".png,.jpg,.jpeg,.webp,image/*" data-file-preview="bg">
-          <div class="hint">{{ _("Querformat, mindestens 1600 px breit. Wird automatisch verkleinert; Metadaten (z. B. GPS) werden entfernt.") }}</div></div>
-        {% if brand.bg_url %}<label class="check"><input type="checkbox" name="remove_bg" value="1"> <span>{{ _("Hintergrundbild entfernen") }}</span></label>{% endif %}
-        <div class="field"><label for="f-brand-bg-dim">{{ _("Abdunkeln für bessere Lesbarkeit:") }} <span data-dim-label>{{ brand.bg_dim }}</span> %</label>
+          <div class="hint">{{ _("Landscape, at least 1600 px wide. Resized automatically; metadata (e.g. GPS) is removed.") }}</div></div>
+        {% if brand.bg_url %}<label class="check"><input type="checkbox" name="remove_bg" value="1"> <span>{{ _("Remove background image") }}</span></label>{% endif %}
+        <div class="field"><label for="f-brand-bg-dim">{{ _("Darken for better readability:") }} <span data-dim-label>{{ brand.bg_dim }}</span> %</label>
           <input id="f-brand-bg-dim" type="range" name="brand_bg_dim" min="0" max="85" step="5" value="{{ brand.bg_dim }}" data-dim style="width: 100%"></div>
         <label class="check"><input type="checkbox" name="login_show_shelf" value="1" {{ 'checked' if brand.show_shelf }} data-shelf-toggle>
-          <span>{{ _("Regal-Grafik anzeigen") }}</span></label>
+          <span>{{ _("Show shelf graphic") }}</span></label>
         <div class="form-grid">
-          <div class="field span-6"><label for="f-org-name">{{ _("Name (Einrichtung oder Programm)") }}</label>
+          <div class="field span-6"><label for="f-org-name">{{ _("Name (organisation or program)") }}</label>
             <input id="f-org-name" type="text" name="org_name" value="{{ s('org_name') }}" maxlength="120"></div>
-          <div class="field span-6"><label for="f-login-eyebrow">{{ _("Kleine Überschrift") }}</label>
-            <input id="f-login-eyebrow" type="text" name="login_eyebrow" value="{{ brand.eyebrow }}" maxlength="60" placeholder="{{ _('leer = ausblenden') }}" data-bind="eyebrow"></div>
-          <div class="field span-6"><label for="f-login-text">{{ _("Begrüßungstext") }}</label>
-            <textarea id="f-login-text" name="login_text" maxlength="300" style="min-height: 70px" placeholder="{{ _('leer = ausblenden') }}" data-bind="text">{{ brand.text }}</textarea></div>
+          <div class="field span-6"><label for="f-login-eyebrow">{{ _("Small heading") }}</label>
+            <input id="f-login-eyebrow" type="text" name="login_eyebrow" value="{{ brand.eyebrow }}" maxlength="60" placeholder="{{ _('empty = hide') }}" data-bind="eyebrow"></div>
+          <div class="field span-6"><label for="f-login-text">{{ _("Welcome text") }}</label>
+            <textarea id="f-login-text" name="login_text" maxlength="300" style="min-height: 70px" placeholder="{{ _('empty = hide') }}" data-bind="text">{{ brand.text }}</textarea></div>
         </div>
       </section>
     </div>
@@ -94,8 +94,8 @@
 
   <div class="actions" style="margin-top: 20px; justify-content: space-between">
     <button class="btn danger" name="action" value="reset" formnovalidate
-            data-confirm-click="{{ _('Logo, Hintergrundbild, Farben und Texte auf Standard zurücksetzen?') }}">{{ icon("extend") }} {{ _("Alles zurücksetzen") }}</button>
-    <button class="btn primary lg" name="action" value="save">{{ icon("check") }} {{ _("Speichern") }}</button>
+            data-confirm-click="{{ _('Reset logo, background image, colours and texts to default?') }}">{{ icon("extend") }} {{ _("Reset everything") }}</button>
+    <button class="btn primary lg" name="action" value="save">{{ icon("check") }} {{ _("Save") }}</button>
   </div>
 </form>
 {% endblock %}

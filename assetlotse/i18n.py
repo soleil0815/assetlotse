@@ -1,17 +1,19 @@
-"""Mehrsprachigkeit (Deutsch / Englisch) ohne zusätzliche Abhängigkeiten.
+"""Multiple languages (German / English) without extra dependencies.
 
-Grundsätze
-- Der deutsche Text ist zugleich der Schlüssel: ``_("Gegenstand anlegen")``. Fehlt eine Übersetzung,
-  erscheint der deutsche Text – nichts geht kaputt.
-- Platzhalter in geschweiften Klammern: ``_("{n} Gegenstände angepasst", n=3)``.
-- Einzahl/Mehrzahl: ``_n("{n} Gegenstand", "{n} Gegenstände", n)``.
-- In Templates liefert ``_`` sicheres Markup: Der (von uns geschriebene) Text darf einfache
-  Auszeichnungen wie <b> enthalten, eingesetzte Werte werden immer maskiert.
-- Für Texte, die beim Import entstehen (z. B. Rollennamen), gibt es ``_l`` (wird erst bei der
-  Ausgabe übersetzt).
+Principles
+- The English text is the key at the same time: ``_("Create item")``. The German texts are in
+  ``translations/de.json``. If a translation is missing, the English text appears – nothing breaks.
+- Placeholders in curly braces: ``_("{n} items adjusted", n=3)``.
+- Singular/plural: ``_n("{n} item", "{n} items", n)``.
+- Same English word, different German: ``_p("storage", "Location")`` – catalogue key "Location|storage".
+- In templates ``_`` returns safe markup: the text (written by us) may contain simple markup such as
+  <b>; inserted values are always escaped.
+- For texts created at import time (e.g. role names) there is ``_l`` (translated only on output).
+- German texts stored by versions before 2.1 (default texts, labels in the database) are still
+  shown in English: the German catalogue also works backwards.
 
-Sprache einer Anfrage: Wahl des Benutzers (Profil) → Wahl auf der Anmeldeseite (Sitzung) →
-Browser-Sprache → Standardsprache aus den Einstellungen → Deutsch.
+Language of a request: the user's choice (profile) → choice on the login page (session) →
+browser language → default language from the settings → German.
 """
 from __future__ import annotations
 
@@ -23,7 +25,8 @@ from pathlib import Path
 from markupsafe import Markup, escape
 
 LANGUAGES = {"de": "Deutsch", "en": "English"}
-DEFAULT = "de"
+DEFAULT = "de"     # default language of the interface
+SOURCE = "en"      # language of the texts in the code (the catalogue keys)
 
 _CATALOG_DIR = Path(__file__).parent / "translations"
 _catalogs: dict[str, dict[str, str]] = {}
@@ -37,10 +40,10 @@ def catalog(lang: str) -> dict[str, str]:
             _catalogs[lang] = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
         except (OSError, ValueError):
             _catalogs[lang] = {}
-        # Nur für die Entwicklung: zusätzliche Katalogteile aus einem Ordner einmischen
+        # development only: mix in additional catalogue parts from a folder
         import os
         extra = os.environ.get("ASSETLOTSE_I18N_PARTS")
-        if extra and lang == "en":
+        if extra and lang != SOURCE:
             for part in sorted(Path(extra).glob("*.json")):
                 try:
                     _catalogs[lang].update(json.loads(part.read_text(encoding="utf-8")))
@@ -58,7 +61,7 @@ def default_language() -> str:
     try:
         from .models import get_setting
         return normalize(get_setting("default_language")) or DEFAULT
-    except Exception:  # noqa: BLE001 – z. B. ohne App-Kontext
+    except Exception:  # noqa: BLE001 – e.g. without an app context
         return DEFAULT
 
 
@@ -92,7 +95,7 @@ def get_locale() -> str:
 
 
 def user_language(user) -> str:
-    """Sprache für E-Mails an einen Benutzer (ohne laufende Anfrage)."""
+    """Language for emails to a user (without a running request)."""
     return normalize(getattr(user, "language", "")) or default_language()
 
 
@@ -105,10 +108,22 @@ def force_locale(lang: str | None):
         _forced.reset(token)
 
 
+_legacy: dict[str, str] | None = None
+
+
+def legacy_english() -> dict[str, str]:
+    """German text of versions before 2.1 → English key (for German texts stored in the database)."""
+    global _legacy
+    if _legacy is None:
+        cat = catalog("de")
+        _legacy = {g: k.split("|", 1)[0] for k, g in cat.items() if g not in cat}
+    return _legacy
+
+
 def _lookup(msg: str) -> str:
     lang = get_locale()
-    if lang == DEFAULT:
-        return msg
+    if lang == SOURCE:
+        return legacy_english().get(msg, msg)
     return catalog(lang).get(msg) or msg
 
 
@@ -123,15 +138,15 @@ def _fmt(text: str, kw: dict) -> str:
 
 def _lookup_ctx(ctx: str, msg: str) -> str:
     lang = get_locale()
-    if lang == DEFAULT:
+    if lang == SOURCE:
         return msg
     cat = catalog(lang)
     return cat.get(f"{msg}|{ctx}") or cat.get(msg) or msg
 
 
 def pgettext(ctx: str, msg: str, **kw) -> str:
-    """Gleiches deutsches Wort, verschiedene Bedeutung (z. B. „Benutzer“ als Spalte und als Seitentitel).
-    Katalogschlüssel: "Benutzer|plural"."""
+    """Same English word, different meaning (e.g. "Location" as storage place and as site).
+    Catalogue key: "Location|storage"."""
     return _fmt(_lookup_ctx(ctx, msg), kw)
 
 
@@ -146,10 +161,11 @@ def ngettext(singular: str, plural: str, n: int, **kw) -> str:
 
 _ = gettext
 _n = ngettext
+_p = pgettext
 
 
 class LazyString:
-    """Wird erst bei der Ausgabe übersetzt (für Texte auf Modulebene)."""
+    """Translated only on output (for texts at module level)."""
 
     __slots__ = ("msg", "kw")
 
@@ -169,7 +185,7 @@ class LazyString:
     def __eq__(self, other):
         return str(self) == str(other)
 
-    def __hash__(self):   # passend zu __eq__ (vergleicht den übersetzten Text)
+    def __hash__(self):   # matches __eq__ (compares the translated text)
         return hash(str(self))
 
     def __len__(self):
@@ -238,15 +254,15 @@ def format_datetime(value) -> str:
 
 
 def js_strings() -> dict[str, str]:
-    """Übersetzungen für app.js (nur die dort genutzten Texte)."""
+    """Translations for app.js (only the texts used there)."""
     lang = get_locale()
-    if lang == DEFAULT:
+    if lang == SOURCE:
         return {}
     cat = catalog(lang)
     return {k: cat[k] for k in JS_MESSAGES if k in cat}
 
 
-# Texte, die app.js anzeigt – app.js ruft T("…") mit genau diesen deutschen Texten auf.
+# texts that app.js shows – app.js calls T("…") with exactly these English texts
 JS_MESSAGES: list[str] = []
 
 
@@ -261,7 +277,7 @@ def _collect_js_messages():
 
 
 def _reset_locale_on_login(sender, user=None, **_kw):
-    """Nach login_user: Sprache neu bestimmen (die des Benutzers), nicht die vorher zwischengespeicherte."""
+    """After login_user: determine the language again (the user's), not the previously cached one."""
     from flask import g, has_app_context
     if has_app_context():
         g.pop("_assetlotse_locale", None)

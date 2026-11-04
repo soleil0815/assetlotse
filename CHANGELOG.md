@@ -1,549 +1,565 @@
-# Änderungen an AssetLotse
+# Changes to AssetLotse
 
-Die aktuelle Version steht nach der Anmeldung unten links in der Seitenleiste.
+The current version is shown at the bottom left of the sidebar after signing in.
+
+## 2.1.0 – 2026-11-04
+
+The repository is now in English: code, comments, log messages, command-line output, CHANGELOG and commit
+messages. The interface stays bilingual (German and English, default German), as do README, help and news.
+
+**Changed**
+- **Translations:** English is now the source language – the texts in the code are English, the German ones are in
+  `assetlotse/translations/de.json` (replaces `en.json`). The interface looks the same in both languages.
+- **Log and command-line output in English**, e.g. `docker compose run --rm assetlotse backups` / `restore NAME`
+  and the messages in the container log. The message when an older version starts on a newer database stays
+  bilingual.
+- Default texts and labels stored in German by earlier versions (login page, backup types, AD group sources,
+  certificate types) are still shown in English in the English interface.
 
 ## 2.0.2 – 2026-11-04
 
-Ergebnisse des monatlichen Code-Audits (Teilprüfung der Änderungen seit 1.12.0).
+Results of the monthly code audit (partial review of the changes since 1.12.0).
 
-**Korrigiert**
-- **`./update.sh --cleanup` und eingehängte Laufwerke:** War unter einem Programmordner (z. B. `packages/`, `docs/`)
-  ein Laufwerk oder NAS-Ordner eingehängt, wurde dessen Inhalt mitgelöscht. Mountpunkte werden jetzt erkannt und
-  ausgelassen; gelingt das Löschen nicht vollständig, meldet das Skript das statt „Cleaned up“.
-- **`./update.sh --cleanup` ohne Container:** Ordner, die die `docker-compose.yml` oder `docker-compose.override.yml`
-  einbindet, waren nur geschützt, solange ein Container existierte (nach `docker compose down` nicht mehr). Jetzt
-  liest das Skript die Einbindungen auch aus `docker compose config`; ist sie nicht lesbar, löscht es nichts.
-- **`./update.sh` bei gestopptem Container:** Die zuletzt gelaufene Version wurde nicht erkannt – kein Angebot zum
-  Zurückgehen, und `--rollback` startete die Version von vor zwei Updates. Gestoppte Container zählen jetzt mit,
-  übrig gebliebene Container von `docker compose run` nicht.
-- **Hinweis „docker-compose.yml veraltet“:** zeigte `%(found)s`/`%(want)s` statt der Versionsnummern.
-- **Ältere Version auf neuerer Datenbank:** Die Meldung konnte eine falsche Sicherung nennen (`-vor-2.0.10` für
-  2.0.1). Jetzt wird nur die Sicherung genau dieser Version genannt.
-- README: Beim Umstieg von 1.x holt das alte Skript die neueste Version (nicht fest 2.0.0).
+**Fixed**
+- **`./update.sh --cleanup` and mounted drives:** If a drive or NAS folder was mounted below a program folder (e.g.
+  `packages/`, `docs/`), its contents were deleted too. Mount points are now detected and skipped; if deletion does
+  not fully succeed, the script reports that instead of "Cleaned up".
+- **`./update.sh --cleanup` without a container:** Folders mounted by `docker-compose.yml` or
+  `docker-compose.override.yml` were only protected while a container existed (no longer after `docker compose down`).
+  The script now also reads the mounts from `docker compose config`; if they cannot be read, it deletes nothing.
+- **`./update.sh` with a stopped container:** The last version that ran was not detected – no offer to go back, and
+  `--rollback` started the version from two updates ago. Stopped containers now count, leftover containers from
+  `docker compose run` do not.
+- **"docker-compose.yml out of date" notice:** showed `%(found)s`/`%(want)s` instead of the version numbers.
+- **Older version on a newer database:** The message could name the wrong backup (`-vor-2.0.10` for 2.0.1). Now
+  only the backup of exactly this version is named.
+- README: When moving from 1.x, the old script fetches the newest version (not a fixed 2.0.0).
 
 ## 2.0.1-s1 – 2026-11-02
 
-Sicherheitsupdate: gleiches Programm wie 2.0.1, nur aktualisierte Pakete.
+Security update: same program as 2.0.1, only updated packages.
 
 - Debian: tzdata 2026e-0+deb13u1 → 2026f-0+deb13u1
 - Python: wtforms 3.3.1 → 3.3.2
 
 ## 2.0.1 – 2026-11-01
 
-**Korrigiert**
-- **AD-Anmeldung mit falschem Passwort:** Statt „Benutzername oder Passwort ist falsch.“ erschien „Anmeldung derzeit nicht
-  möglich“, und im Protokoll stand jedes Mal ein Programmfehler. Ebenso endete „Verbindung testen“ mit einem falschen
-  Passwort des Dienstkontos in einem Fehler statt mit der Meldung des Domänencontrollers. Gefunden von der neuen
-  Typprüfung.
+**Fixed**
+- **AD sign-in with a wrong password:** Instead of "Incorrect username or password." the message "Sign-in is currently
+  not possible" appeared, and every time a program error was logged. Likewise "Test connection" with a wrong service
+  account password ended in an error instead of the domain controller's message. Found by the new type checking.
 
-**Intern**
-- **Typprüfung mit mypy**, schrittweise eingeführt: Sicherung, Netz- und Proxy-Erkennung, Anmeldesperre und die
-  Build-Skripte werden streng geprüft – ein Fund dort lässt die Tests scheitern, auch im Prüflauf auf GitHub. Alle
-  anderen Module werden mitgeprüft, ihre Funde aber vorerst nur aufgelistet. Weitere Module kommen nach und nach dazu.
-  Das Docker-Image enthält mypy nicht.
+**Internal**
+- **Type checking with mypy**, introduced step by step: backup, network and proxy detection, sign-in lockout and the
+  build scripts are checked strictly – a finding there makes the tests fail, also in the check run on GitHub. All
+  other modules are checked as well, but their findings are only listed for now. More modules will follow over time.
+  The Docker image does not contain mypy.
 
 ## 2.0.0 – 2026-10-29
 
-Umstellung auf den Docker-Standard: Das Programm steckt komplett im Image. Auf dem Server liegen nur noch
-`docker-compose.yml`, `.env` und der Ordner `data`.
+Switch to the Docker standard: the program lives entirely in the image. The server only holds
+`docker-compose.yml`, `.env` and the `data` folder.
 
-**Neu**
-- **Installation:** `docker-compose.yml` und `env.example` (als `.env`) aus dem Release, `docker compose up -d` –
-  kein Zip, kein Programmordner, nichts wird auf dem Server gebaut.
-- **Updates wie bei jedem Docker-Programm:** mit Dockhand, Watchtower, Tugtainer & Co. oder
-  `docker compose pull && docker compose up -d`. Die `docker-compose.yml` folgt `latest`.
-- **Images für amd64 und arm64** (z. B. Raspberry Pi, ARM-NAS) – jede Architektur auf eigener Hardware gebaut und
-  getestet, beide geprüft.
-- **Ältere Version auf neuerer Datenbank:** AssetLotse startet dann nicht und nennt die Sicherung, die
-  zurückzuspielen ist – statt mit Folgefehlern weiterzulaufen. Zurückspielen geht auch, wenn das Programm nicht
-  startet: `docker compose run --rm assetlotse backups` / `restore NAME`.
-- **Sicherung vor jeder neuen Version** heißt jetzt `…-vor-<Version>.db`; die drei neuesten davon werden nie
-  automatisch gelöscht.
-- **Versionsnummer der `docker-compose.yml`:** Ist sie zu alt, zeigt AssetLotse Administratoren einen Hinweis mit
-  dem, was zu tun ist. Das Image bringt die aktuelle Datei mit.
-- **Ohne Internet:** Am Release hängen die Images als Dateien (`assetlotse-<Version>-amd64.tar.gz`,
-  `…-arm64.tar.gz`) mit Prüfsumme; `./update.sh --offline DATEI`.
+**New**
+- **Installation:** `docker-compose.yml` and `env.example` (as `.env`) from the release, `docker compose up -d` –
+  no zip, no program folder, nothing is built on the server.
+- **Updates like any Docker program:** with Dockhand, Watchtower, Tugtainer & co. or
+  `docker compose pull && docker compose up -d`. The `docker-compose.yml` follows `latest`.
+- **Images for amd64 and arm64** (e.g. Raspberry Pi, ARM NAS) – each architecture built and tested on its own
+  hardware, both scanned.
+- **Older version on a newer database:** AssetLotse then does not start and names the backup to restore – instead of
+  running on with follow-up errors. Restoring also works when the program does not start:
+  `docker compose run --rm assetlotse backups` / `restore NAME`.
+- **The backup before each new version** is now called `…-vor-<Version>.db`; the three newest of them are never
+  deleted automatically.
+- **Version number of `docker-compose.yml`:** If it is too old, AssetLotse shows administrators a notice saying what
+  to do. The image ships the current file.
+- **Without internet:** The release has the images attached as files (`assetlotse-<Version>-amd64.tar.gz`,
+  `…-arm64.tar.gz`) with checksum; `./update.sh --offline DATEI`.
 
-**Geändert**
-- **`update.sh` neu** (läuft mit `/bin/sh`, auch auf einem NAS): merkt sich das laufende Image als `previous`,
-  lädt die Version, startet, wartet auf den Gesundheitscheck und startet bei einem Fehlstart auf Wunsch die vorige
-  Version wieder (`-y` automatisch, später `--rollback`). Eine neuere `docker-compose.yml` aus dem Image wird
-  abgelegt, die alte bleibt als `docker-compose.yml.alt`. Kein Entpacken, kein Bauen mehr.
-- **`update.sh --cleanup`** räumt Installationen von vor 2.0.0 auf: zeigt die nicht mehr gebrauchten
-  Programmdateien, alte Zips und alte lokal gebaute Images, fragt nach und löscht nur diese – nie Daten,
-  Sicherungen, `.env`, `docker-compose.yml` oder eingebundene Ordner, auch nicht über Links.
-- **Veröffentlicht wird nur noch von Hand** (*Run workflow → release*). Jeder Push und jeder Pull Request wird nur
-  geprüft (bauen, testen, Trivy). Die wöchentlichen Sicherheitsupdates erscheinen weiter automatisch.
-- Jedes GitHub-Release enthält die Installationsdateien (`docker-compose.yml`, `env.example`, `update.sh`) und die
-  Image-Dateien.
+**Changed**
+- **New `update.sh`** (runs with `/bin/sh`, also on a NAS): remembers the running image as `previous`, pulls the
+  version, starts it, waits for the health check and, if it fails to start, restarts the previous version on request
+  (`-y` automatically, later `--rollback`). A newer `docker-compose.yml` from the image is put in place, the old one
+  is kept as `docker-compose.yml.alt`. No more unpacking, no more building.
+- **`update.sh --cleanup`** cleans up installations from before 2.0.0: shows the program files no longer needed, old
+  zips and old locally built images, asks and deletes only those – never data, backups, `.env`,
+  `docker-compose.yml` or mounted folders, not even via links.
+- **Publishing is now manual only** (*Run workflow → release*). Every push and every pull request is only checked
+  (build, test, Trivy). The weekly security updates still appear automatically.
+- Every GitHub release contains the installation files (`docker-compose.yml`, `env.example`, `update.sh`) and the
+  image files.
 
-- Pakete auf aktuellem Stand (u. a. Python 3.13.18).
+- Packages up to date (including Python 3.13.18).
 
-**Entfernt**
-- Der Zip-Weg (`./update.sh assetlotse-X.Y.Z.zip`), das lokale Bauen auf dem Server und die Anleitung für den
-  Betrieb ohne Docker. Docker ist Voraussetzung.
+**Removed**
+- The zip route (`./update.sh assetlotse-X.Y.Z.zip`), building locally on the server and the instructions for
+  running without Docker. Docker is required.
 
-**Umstieg:** einmalig `./update.sh --pull`, danach `./update.sh --cleanup` (siehe README, „Umstieg von einer
-Installation vor 2.0.0“).
+**Migration:** once `./update.sh --pull`, then `./update.sh --cleanup` (see README, "Moving from an installation
+before 2.0.0").
 
 ## 1.12.0 – 2026-10-28
 
-Ergebnis eines vollständigen Code-Reviews.
+Result of a full code review.
 
-**Geändert**
-- **„Verwaltet den gesamten Bestand“ ist ein eigener Haken** beim Benutzer. Bisher galt ein Verwalter ohne Gruppe
-  automatisch als zuständig für alles – verlor er seine letzte Gruppe (etwa durch den AD-Abgleich), sah er plötzlich
-  den ganzen Bestand. Jetzt verwaltet er dann nichts. Verwalter, die beim Update keine Gruppe haben, bekommen den
-  Haken einmalig automatisch, damit sich für sie nichts ändert. Wird jemand (auch über das AD) zu einer anderen
-  Rolle, verschwindet der Haken.
-- **Ersteinrichtung nur direkt:** `/setup` ist nur noch von localhost oder direkt aus dem internen Netz erreichbar;
-  Proxy-Kopfzeilen (`X-Forwarded-For`) werden dafür nicht mehr beachtet.
-- **Image ohne apt:** Paketverwaltung (apt, libapt-pkg) wird nach der Installation entfernt.
-- Hinweise oben auf der Seite verschwinden nach 20 Sekunden (bleiben stehen, solange die Maus darauf ist).
-  Fehler bleiben stehen.
+**Changed**
+- **"Manages the entire inventory" is a separate checkbox** on the user. Until now a manager without a group was
+  automatically responsible for everything – if they lost their last group (e.g. through the AD sync), they suddenly
+  saw the whole inventory. Now they then manage nothing. Managers who have no group at the time of the update get
+  the checkbox once automatically, so nothing changes for them. If someone (also via AD) gets a different role, the
+  checkbox is removed.
+- **Initial setup only directly:** `/setup` can only be reached from localhost or directly from the internal network;
+  proxy headers (`X-Forwarded-For`) are no longer considered for it.
+- **Image without apt:** The package manager (apt, libapt-pkg) is removed after installation.
+- Notices at the top of the page disappear after 20 seconds (they stay while the mouse is over them).
+  Errors stay.
 
-**Korrigiert**
-- **E-Mail-Änderung im Profil:** höchstens drei Bestätigungsmails pro Stunde; nur der neueste Link gilt und nur
-  einmal; Domain und Eindeutigkeit werden beim Klick erneut geprüft; die wartende Adresse steht im Profil. Die Mail
-  enthält keinen frei wählbaren Text mehr. Jede Adresse gilt jetzt für alle lokalen Konten nur einmal.
-- Gegenstände in Gruppen mit „Kein Verleih“ zählen nicht mehr als „verfügbar“ (Filter und Startseite) und lassen
-  sich von Ausleihenden nicht selbst verlängern.
-- Ausgabetheke: Hat die gewählte Person den Gegenstand schon, ist „Ausgeben“ gesperrt („hat ihn schon“); ein
-  nicht erreichbares AD führt zu einer Meldung statt eines Fehlers; nach einer abgelehnten Ausgabe bleibt die Person
-  gewählt; Höchstzahl an Ausleihen auch bei gleichzeitigen Ausgaben (PostgreSQL) eingehalten.
-- Aufbewahrungsfristen löschen nur, wenn die Sicherung am selben Tag erfolgreich war und danach keine scheiterte.
-- Die tägliche Übersicht an Verwalter läuft weiter, wenn sie für einen einzelnen Verwalter scheitert.
-- Der Hinweis zum Abschalten von Benachrichtigungen steht nur noch in Ausleih-Mails.
-- Bedienung: Beschriftungen für Bildschirmleser an Such- und Filterfeldern, Fotos und Ausgabezeile auch auf schmalen
-  Bildschirmen, „Foto entfernen“ bleibt nach einem Fehler gewählt.
+**Fixed**
+- **Changing the email address in the profile:** at most three confirmation emails per hour; only the newest link is
+  valid, and only once; domain and uniqueness are checked again on click; the pending address is shown in the
+  profile. The email no longer contains freely chosen text. Each address can now be used only once across all local
+  accounts.
+- Items in groups with "No lending" no longer count as "available" (filter and start page) and cannot be renewed by
+  borrowers themselves.
+- Issue desk: If the selected person already has the item, "Issue" is disabled ("already has it"); an unreachable AD
+  leads to a message instead of an error; after a rejected issue the person stays selected; the maximum number of
+  loans is also enforced for simultaneous issues (PostgreSQL).
+- Retention periods only delete if the backup on the same day succeeded and none failed afterwards.
+- The daily summary for managers keeps running if it fails for a single manager.
+- The note on turning off notifications now only appears in loan emails.
+- Usability: labels for screen readers on search and filter fields, photos and the issue row also on narrow screens,
+  "Remove photo" stays selected after an error.
 
-**Build und Update**
-- Ein Release darf keine älteren Pakete enthalten als das zuletzt veröffentlichte Sicherheitsupdate.
-- Wiederholte Läufe veröffentlichen nicht doppelt; fehlende GitHub-Releases werden nachgetragen; ein
-  Sicherheitsupdate wird nicht veröffentlicht, wenn sich `main` während des Laufs geändert hat.
-- Prüfläufe (Scan, manuell) warten nicht mehr auf Veröffentlichungen. Fehler zeigen eine lesbare Meldung.
-- pip wird als Kalenderversion behandelt (neue Jahresversion ist kein Versionssprung).
-- `update.sh` kennt Sicherheitsupdates (`--version 1.12.0-s1`), kehrt bei Problemen zum vorher laufenden Build zurück
-  und prüft, ob alle Build-Dateien vorhanden sind.
+**Build and update**
+- A release must not contain older packages than the most recently published security update.
+- Repeated runs do not publish twice; missing GitHub releases are added later; a security update is not published
+  if `main` changed during the run.
+- Check runs (scan, manual) no longer wait for publishing. Errors show a readable message.
+- pip is treated as a calendar version (a new year's version is not a version jump).
+- `update.sh` knows security updates (`--version 1.12.0-s1`), returns to the previously running build on problems
+  and checks that all build files are present.
 
 ## 1.11.0 – 2026-10-27
 
-**Neu**
-- **Aus dem Bestand ausgeben:** In der Bestandsliste steht bei jedem freien Gegenstand **Ausgeben**, auf der Seite
-  eines Gegenstands **Person suchen**. Beides öffnet die Ausgabetheke mit dem schon gewählten Gegenstand – Person
-  suchen (auch im AD), bestätigen, fertig; danach geht es zurück zum Gegenstand.
-- **Gruppen mit „Kein Verleih“:** Neuer Haken in der Gruppe. Ihre Gegenstände werden nie ausgegeben – weder an der
-  Theke (dort gar nicht erst angeboten) noch aus dem Bestand noch zur Selbstausleihe. Im Bestand steht
-  „kein Verleih“. Schon ausgegebene Gegenstände können weiter zurückgegeben werden.
-- **Vorschläge beim Erfassen:** Bezeichnung, Hersteller und Modell werden aus dem vorhandenen Bestand
-  vorgeschlagen. Wer eine bekannte Bezeichnung oder ein bekanntes Modell wählt (z. B. „Vostro 3400“), bekommt leere
-  Felder wie Hersteller und Kategorie gleich passend ausgefüllt.
-- **„Ähnlichen anlegen“ übernimmt das Foto** (auch „Speichern & nächsten“); abwählbar.
-- **Eigene Angaben:** Lokale und selbst registrierte Konten ändern Name und E-Mail-Adresse unter *Mein Profil →
-  Meine Angaben* selbst. Bei AD-Konten kommen beide weiter aus dem Active Directory. Für selbst registrierte Konten
-  gelten dieselben Regeln wie bei der Registrierung: erlaubte Domain, jede Adresse nur einmal, und – wenn dort eine
-  Bestätigung verlangt wird – gilt die neue Adresse erst nach Klick auf den Link in der Mail.
+**New**
+- **Issue from the inventory:** In the inventory list every available item has **Issue**, and the page of an item has
+  **Find person**. Both open the issue desk with the item already selected – find the person (also in AD), confirm,
+  done; afterwards you return to the item.
+- **Groups with "No lending":** New checkbox in the group. Its items are never issued – not at the desk (not even
+  offered there), not from the inventory and not by self-checkout. The inventory shows "no lending". Items already
+  issued can still be returned.
+- **Suggestions when adding items:** Name, manufacturer and model are suggested from the existing inventory. Choosing
+  a known name or a known model (e.g. "Vostro 3400") fills empty fields such as manufacturer and category to match.
+- **"Add similar" takes over the photo** (also "Save & next"); can be deselected.
+- **Own details:** Local and self-registered accounts change their name and email address themselves under
+  *My profile → My details*. For AD accounts both still come from Active Directory. Self-registered accounts follow
+  the same rules as at registration: allowed domain, each address only once, and – if confirmation is required
+  there – the new address only takes effect after clicking the link in the email.
 
-**Korrigiert**
-- **Falsch vergebene Inventar- oder Seriennummer korrigieren:** Steht eine Nummer versehentlich bei einem anderen
-  Gerät, bietet das Formular an, sie dort zu entfernen und hier einzutragen – in einem Schritt. Vertauschte Nummern
-  lassen sich so korrigieren, ohne ein Gerät zu löschen und neu anzulegen.
+**Fixed**
+- **Correcting a wrongly assigned inventory or serial number:** If a number is accidentally on another device, the
+  form offers to remove it there and enter it here – in one step. Swapped numbers can thus be corrected without
+  deleting and re-creating a device.
 
 ## 1.10.2 – 2026-10-25
 
-**Geändert**
-- **Der Hauptzweig heißt jetzt `main`** (vorher `master`). Workflow, Skripte, Selbsttests und Doku sind umgestellt;
-  veröffentlicht wird nur von `main`. Auf GitHub die Umgebung `release` entsprechend auf `main` beschränken.
-  Lokale Kopien: `git branch -m master main && git fetch origin && git branch -u origin/main main`.
+**Changed**
+- **The main branch is now called `main`** (previously `master`). Workflow, scripts, self-tests and docs have been
+  switched; publishing only happens from `main`. On GitHub, restrict the `release` environment to `main` accordingly.
+  Local copies: `git branch -m master main && git fetch origin && git branch -u origin/main main`.
 
-Für die App selbst ändert sich nichts.
+Nothing changes for the app itself.
 
 ## 1.10.1 – 2026-10-25
 
-**Neu**
-- **Releases auf GitHub:** Jede neue Version und jedes Sicherheitsupdate (`<Version>-s<Zähler>`) bekommt nach dem
-  Veröffentlichen eine eigene Seite unter *Releases* – mit dem passenden Abschnitt aus diesem CHANGELOG. Als
-  „Latest“ markiert wird nur, was auch `latest` ist. Erst nach bestandenen Tests und Prüfung, wie das Image.
+**New**
+- **Releases on GitHub:** Every new version and every security update (`<Version>-s<Zähler>`) gets its own page under
+  *Releases* after publishing – with the matching section from this CHANGELOG. Only what is also `latest` is marked
+  "Latest". Only after passed tests and scan, like the image.
 
-Für die App selbst ändert sich nichts.
+Nothing changes for the app itself.
 
 ## 1.10.0 – 2026-10-25
 
-**Sicherheit – Image bleibt automatisch sicher und aktuell, ohne Versionssprünge**
-- **Reproduzierbarer Bau:** Basis-Image mit fester Version und Prüfsumme, **alle Debian-Pakete** (auch die des
-  Basis-Images) mit exakter Version in `build/debian-packages.lock` (fester Stand von snapshot.debian.org), alle
-  Python-Pakete inkl. Unterabhängigkeiten exakt in `requirements.txt`, `pip` als `ARG PIP_VERSION`.
-  `scripts/lock.py refresh` legt neue Versionen fest – nur innerhalb des Unterbaus; auf GitHub:
+**Security – the image stays secure and up to date automatically, without version jumps**
+- **Reproducible build:** base image with fixed version and checksum, **all Debian packages** (including those of
+  the base image) with exact versions in `build/debian-packages.lock` (fixed state of snapshot.debian.org), all
+  Python packages including sub-dependencies pinned exactly in `requirements.txt`, `pip` as `ARG PIP_VERSION`.
+  `scripts/lock.py refresh` pins new versions – only within the base; on GitHub:
   *Run workflow → relock*.
-- **Grenzen:** gleiche Debian-Version (trixie), gleiche Python-Reihe (3.13), jedes Paket innerhalb seiner
-  Hauptversion (vor 1.0: Unterversion), Kalenderversionen (Stammzertifikate, Zeitzonen) ohne Grenze.
-  `requirements.in` entsprechend auf die Hauptversionen erweitert.
-- **Sicherheitsupdate jede Woche** (montags; von Hand *Run workflow → security-update*): neue Versionen innerhalb
-  der Grenzen, Bau ohne Zwischenspeicher, Tests im Image, Trivy – nur wenn alles besteht, Veröffentlichung als
-  `<Version>-s<Zähler>` (z. B. `1.10.0-s1`) und `latest`, Eintrag hier im CHANGELOG mit den geänderten Paketen.
-  Nichts Neues → nichts passiert. Ersetzt den bisherigen Montagsneubau (`<Version>-<Datum>`).
-- **Trivy ohne GitHub Action:** feste Version, per SHA-256 geprüft (trivy-action/setup-trivy wurden im März 2026
-  kompromittiert, CVE-2026-33634). `.trivyignore`-Einträge brauchen Begründung und Ablaufdatum.
-- **Täglicher Scan** des veröffentlichten `latest`; **Unterbau-Warnung** montags über endoflife.date
-  (Hinweis ab 12, roter Lauf ab 6 Monaten vor Ende der Sicherheitsupdates).
-- **Workflow:** Release nur vom Zweig `master` (keine Releases mehr über Tag-Pushes oder `main`), nie zwei
-  gleichzeitig, veröffentlichte Versionen werden nie überschrieben, `latest` nur für die höchste Version,
-  keine gespeicherten Git-Anmeldedaten, Tests und Scans nie in Jobs mit Schreibrechten.
-- `ensurepip` wird zusätzlich zu `pip` aus dem Image entfernt; Python 3.13.17 mit neu festgelegten Debian-Paketen.
-- Halb abgebrochene Läufe holt der nächste nach (`latest`/`<Minor>` werden nur vorwärts nachgezogen).
-- Lokaler Bau (`./update.sh` mit Zip) braucht jetzt HTTPS-Zugang zu `snapshot.debian.org`.
-- Einmalig auf GitHub: Umgebung `release` auf den Zweig `master` beschränken (siehe README).
+- **Limits:** same Debian release (trixie), same Python line (3.13), every package within its major version
+  (before 1.0: minor version), calendar versions (root certificates, time zones) without limit.
+  `requirements.in` widened to the major versions accordingly.
+- **Security update every week** (Mondays; manually *Run workflow → security-update*): new versions within the
+  limits, build without cache, tests in the image, Trivy – only if everything passes, publication as
+  `<Version>-s<Zähler>` (e.g. `1.10.0-s1`) and `latest`, entry here in the CHANGELOG with the changed packages.
+  Nothing new → nothing happens. Replaces the previous Monday rebuild (`<Version>-<Datum>`).
+- **Trivy without GitHub Action:** fixed version, verified by SHA-256 (trivy-action/setup-trivy were compromised in
+  March 2026, CVE-2026-33634). `.trivyignore` entries need a reason and an expiry date.
+- **Daily scan** of the published `latest`; **base warning** on Mondays via endoflife.date
+  (notice from 12, red run from 6 months before the end of security updates).
+- **Workflow:** release only from the `master` branch (no more releases via tag pushes or `main`), never two at
+  the same time, published versions are never overwritten, `latest` only for the highest version,
+  no stored Git credentials, tests and scans never in jobs with write permissions.
+- `ensurepip` is removed from the image in addition to `pip`; Python 3.13.17 with newly pinned Debian packages.
+- Half-aborted runs are completed by the next one (`latest`/`<Minor>` are only moved forward).
+- Local build (`./update.sh` with zip) now needs HTTPS access to `snapshot.debian.org`.
+- Once on GitHub: restrict the `release` environment to the `master` branch (see README).
 
-**Dokumentation:** README (Abschnitt „Sicherheit und Aktualität des Images“, inkl. „Wenn ein Lauf rot ist“) und
-Hilfe *Update und Wartung*.
+**Documentation:** README (section "Security and freshness of the image", including "When a run is red") and
+help *Updates and maintenance*.
 
-Für die Bedienung der App ändert sich nichts.
+Nothing changes for using the app.
 
 ## 1.9.5 – 2026-10-24
 
-**Sicherheit**
-- **Der Montagsneubau aktualisiert jetzt auch die Python-Pakete:** jeweils die neueste Version innerhalb der Bereiche
-  aus `requirements.in`, Unterabhängigkeiten eingeschlossen. Tests und Trivy laufen gegen genau diese Versionen;
-  nur wenn beides besteht, wird veröffentlicht. Sprünge über die Bereiche hinaus kommen weiterhin als neue Version.
-- Feste Paketversionen aktualisiert: cryptography 50.0.2, SQLAlchemy 2.1.6, WTForms 3.3.1, MarkupSafe 3.0.4,
+**Security**
+- **The Monday rebuild now also updates the Python packages:** each to the newest version within the ranges
+  from `requirements.in`, sub-dependencies included. Tests and Trivy run against exactly these versions;
+  only if both pass is it published. Jumps beyond the ranges still come as a new version.
+- Pinned package versions updated: cryptography 50.0.2, SQLAlchemy 2.1.6, WTForms 3.3.1, MarkupSafe 3.0.4,
   certifi 2026.10.23, charset-normalizer 3.5.2, pycparser 3.12.
 
 ## 1.9.4 – 2026-10-24
 
-**Sicherheit**
-- **Wöchentlicher Sicherheits-Neubau statt reiner Nachprüfung:** Jeden Montag baut GitHub die höchste Version neu
-  (aus ihrem Tag, neuestes Python-Image der Reihe, alle Debian-Updates), lässt alle Tests im fertigen Image laufen
-  und prüft mit Trivy. Nur wenn beides besteht und sich etwas geändert hat, wird das Image als `latest`, `<Minor>`
-  und `<Version>-<Datum>` veröffentlicht. Das exakte Versions-Tag bleibt unverändert. Von Hand: *Run workflow → weekly*.
-- **Tests laufen jetzt auch bei jedem Release** im gebauten Image (vorher nur lokal) – veröffentlicht wird erst nach
-  bestandenen Tests und bestandener Prüfung.
-- `Dockerfile`: neues `ARG OS_UPGRADE` für den Neubau; ohne Angabe passiert nichts, normale Builds bleiben exakt
-  reproduzierbar.
+**Security**
+- **Weekly security rebuild instead of a mere re-scan:** Every Monday GitHub rebuilds the highest version
+  (from its tag, newest Python image of the line, all Debian updates), runs all tests in the finished image
+  and scans it with Trivy. Only if both pass and something has changed is the image published as `latest`, `<Minor>`
+  and `<Version>-<Datum>`. The exact version tag stays unchanged. Manually: *Run workflow → weekly*.
+- **Tests now also run on every release** in the built image (previously only locally) – publishing only happens
+  after passed tests and a passed scan.
+- `Dockerfile`: new `ARG OS_UPGRADE` for the rebuild; if not given, nothing happens, normal builds stay exactly
+  reproducible.
 
-Für die App selbst ändert sich nichts.
+Nothing changes for the app itself.
 
 ## 1.9.3 – 2026-10-24
 
-**Sicherheit**
-- **Schwachstellenprüfung mit Trivy:** Der GitHub-Workflow prüft jedes Image vor dem Veröffentlichen. Bekannte
-  Schwachstellen der Stufe HIGH oder CRITICAL mit verfügbarer Korrektur (Debian- und Python-Pakete) stoppen das
-  Release – `latest` bleibt dann auf der bisherigen Version. Veröffentlicht wird genau das geprüfte Image.
-- Jeden Montag wird `latest` erneut geprüft; bei einem Fund schlägt der Lauf fehl und GitHub schickt eine E-Mail.
-- Bewusste Ausnahmen mit Begründung und Ablaufdatum in `.trivyignore`. Trivy wird in einer Version nach dem
-  Lieferketten-Vorfall vom März 2026 verwendet und wie alle Actions über den Commit-SHA festgelegt.
-- Der Workflow ist in Bauen → Prüfen → Veröffentlichen aufgeteilt: Der Prüfer läuft ohne Schreibrechte und ohne
-  Anmeldung an der Registry, Schreibrechte hat nur der letzte Schritt. Ein manipulierter Prüfer könnte so weder
-  Images noch Tags verändern.
-- **pip ist nicht mehr im Image:** Es wird nur zum Installieren gebraucht und danach entfernt. pip bringt eigene,
-  ältere Kopien von urllib3, msgpack und setuptools mit, in denen die erste Prüfung vier HIGH-Lücken gefunden hat
-  (AssetLotse selbst nutzt urllib3 2.8.0 und hatte keine).
+**Security**
+- **Vulnerability scanning with Trivy:** The GitHub workflow scans every image before publishing. Known
+  vulnerabilities of severity HIGH or CRITICAL with an available fix (Debian and Python packages) stop the
+  release – `latest` then stays on the previous version. Exactly the scanned image is published.
+- Every Monday `latest` is scanned again; on a finding the run fails and GitHub sends an email.
+- Deliberate exceptions with reason and expiry date in `.trivyignore`. Trivy is used in a version from after the
+  supply chain incident of March 2026 and, like all actions, pinned by commit SHA.
+- The workflow is split into build → scan → publish: the scanner runs without write permissions and without
+  registry login, only the last step has write permissions. A tampered scanner could thus change neither
+  images nor tags.
+- **pip is no longer in the image:** It is only needed for installing and removed afterwards. pip ships its own,
+  older copies of urllib3, msgpack and setuptools, in which the first scan found four HIGH vulnerabilities
+  (AssetLotse itself uses urllib3 2.8.0 and had none).
 
-Für die App selbst ändert sich nichts.
+Nothing changes for the app itself.
 
 ## 1.9.2 – 2026-10-24
 
-Code-Audit: Korrekturen in App, Oberfläche und Update-Weg. Keine neuen Funktionen, keine Datenbankänderung.
+Code audit: fixes in the app, user interface and update path. No new features, no database change.
 
-**Sicherheit**
-- Löschen einer Gruppe, deren Verwalter sonst ohne Gruppe dastünde, wird abgelehnt – ein Verwalter ohne Gruppe
-  verwaltet den gesamten Bestand. Beim Speichern eines Verwalters ohne Gruppe gibt es einen Hinweis.
-- Grenze für Registrierungsversuche gilt jetzt für alle Prozesse gemeinsam (vorher pro Worker).
-- Sicherungs-Download wird nicht mehr zwischengespeichert.
+**Security**
+- Deleting a group whose manager would otherwise be left without a group is rejected – a manager without a group
+  manages the entire inventory. Saving a manager without a group shows a notice.
+- The limit on registration attempts now applies to all processes together (previously per worker).
+- Backup downloads are no longer cached.
 
-**Korrigiert**
-- AD: Ist der Verzeichnisserver kurz nicht erreichbar oder ausgelastet, gilt das als Fehler statt als „Benutzer
-  unbekannt“ bzw. „keine Gruppen“ – niemand verliert dadurch Gruppen oder wird gesperrt.
-- Erste Anmeldung zweier Sitzungen gleichzeitig führt nicht mehr zu einem Fehler 500.
-- Benutzer mit offenen Ausleihen werden nie gelöscht (auch nicht durch Aufräumen oder Aufbewahrungsfristen).
-- Doppelte Rückgabe (zwei Klicks, zwei Geräte) wird nur einmal gebucht.
-- Ausschalten des AD-Abgleichs entsperrt keine ausgeschiedenen Konten mehr.
-- Erinnerungsmails: Ein Fehler bei einer Person stoppt den Lauf nicht mehr; fehlgeschlagene Läufe werden bis zu
-  dreimal am selben Tag nachgeholt. Die Hintergrundaufgaben laufen unabhängig voneinander.
-- Aufbewahrung läuft bei aktiver Sicherung erst nach der täglichen Sicherung.
-- Theke: Inventarnummern mit Umlauten werden unabhängig von Groß-/Kleinschreibung gefunden; das Häkchen
-  „automatisch“ bleibt gemerkt.
-- Gleichzeitiges Bearbeiten eines Gegenstands und Konflikte beim Speichern ergeben eine Meldung statt Fehler 500.
-- DNS-Fehler bei Netzbereichen mit Hostnamen werden zwischengespeichert (keine Wartezeit bei jedem Aufruf).
-- Schnellere Benutzerliste und AD-Abgleich bei vielen Konten.
-- Sicherungsmeldungen und -mails in der englischen Oberfläche auf Englisch, Größen mit passendem Dezimalzeichen.
-- Oberfläche: kein seitliches Scrollen auf dem Handy, Menü per Escape schließbar und für Screenreader korrekt,
-  alle Formularfelder mit Beschriftung verknüpft, besserer Kontrast, Fehlermeldungen bleiben stehen, abgelaufene
-  Sitzung wird gemeldet.
+**Fixed**
+- AD: If the directory server is briefly unreachable or busy, this counts as an error instead of "user
+  unknown" or "no groups" – nobody loses groups or gets locked out because of it.
+- The first sign-in of two sessions at the same time no longer leads to an error 500.
+- Users with open loans are never deleted (not even by cleanup or retention periods).
+- A double return (two clicks, two devices) is only booked once.
+- Turning off the AD sync no longer unlocks accounts of people who have left.
+- Reminder emails: an error for one person no longer stops the run; failed runs are retried up to
+  three times on the same day. The background tasks run independently of each other.
+- With backups enabled, retention only runs after the daily backup.
+- Desk: inventory numbers with umlauts are found regardless of upper/lower case; the "automatic" checkbox
+  is remembered.
+- Editing an item at the same time and conflicts when saving result in a message instead of error 500.
+- DNS errors for network ranges with host names are cached (no waiting time on every request).
+- Faster user list and AD sync with many accounts.
+- Backup messages and emails in English in the English interface, sizes with the matching decimal separator.
+- Interface: no horizontal scrolling on phones, menu can be closed with Escape and is correct for screen readers,
+  all form fields linked to their labels, better contrast, error messages stay, an expired session is
+  reported.
 
-**Update-Weg**
-- `update.sh`: Abbruch (Strg+C) mitten im Austausch wird sauber zurückgerollt; zwei gleichzeitige Updates werden
-  verhindert; `latest` wird bei einem abgelehnten Image zurückgesetzt; kein stilles Downgrade; der
-  Wiederherstellungsordner bleibt bei einem Fehler erhalten; Registry-Adressen mit Port gehen.
-- Healthcheck und Stoppzeit des Containers passen zur Startzeit; der Workflow setzt Minor-Tag und `latest` nur für
-  die höchste Version.
+**Update path**
+- `update.sh`: aborting (Ctrl+C) in the middle of the swap is rolled back cleanly; two simultaneous updates are
+  prevented; `latest` is reset when an image is rejected; no silent downgrade; the recovery folder is kept on an
+  error; registry addresses with a port work.
+- Health check and stop timeout of the container match the startup time; the workflow sets the minor tag and
+  `latest` only for the highest version.
 
 ## 1.9.1 – 2026-10-24
 
-**Geändert**
-- **Neue Versionen ohne Tag:** Der GitHub-Workflow baut jetzt bei jedem Push auf `master` mit einer neuen
-  Versionsnummer selbst das Image, setzt `latest` (wenn es die höchste Version ist) und legt den Tag `v<Version>` an.
-  Pushes ohne neue Versionsnummer bauen nichts. Einen Tag von Hand zu setzen geht weiterhin.
-- Server, die `latest` folgen (`./update.sh --pull` oder ein Update-Tool wie Dockhand), bekommen neue Versionen damit
-  ohne weiteren Schritt – nach dem Hochladen dauert es ein, zwei Minuten, bis das Image bereitsteht.
+**Changed**
+- **New versions without a tag:** The GitHub workflow now builds the image itself on every push to `master` with a
+  new version number, sets `latest` (if it is the highest version) and creates the tag `v<Version>`.
+  Pushes without a new version number build nothing. Setting a tag manually still works.
+- Servers that follow `latest` (`./update.sh --pull` or an update tool such as Dockhand) thus get new versions
+  without any further step – after the upload it takes a minute or two until the image is available.
 
 ## 1.9.0 – 2026-10-24
 
-**Neu**
-- **Neuigkeiten in der App:** Ein kleiner Punkt neben der Versionsnummer unten links zeigt, wenn es nach einem Update
-  etwas Neues gibt; er führt zur Seite *Neuigkeiten* (auch über *Über dieses Programm*). Kurze Hinweise zu neuen
-  Funktionen, Sicherheitsupdates und Korrekturen, auf Deutsch und Englisch, je nach Rolle gefiltert. Nach dem Lesen
-  verschwindet der Punkt bis zum nächsten Update. Inhalt: `assetlotse/news.json`.
+**New**
+- **News in the app:** A small dot next to the version number at the bottom left shows when there is something new
+  after an update; it leads to the *What's new* page (also via *About this program*). Short notes on new
+  features, security updates and fixes, in German and English, filtered by role. After reading, the dot
+  disappears until the next update. Content: `assetlotse/news.json`.
 
 ## 1.8.2 – 2026-10-23
 
-**Neu**
-- **Englisches Handbuch** `docs/Manual-AssetLotse.pdf` mit Bildschirmfotos der englischen Oberfläche. Die Hilfe
-  verlinkt in der englischen Oberfläche jetzt dieses statt des deutschen.
+**New**
+- **English manual** `docs/Manual-AssetLotse.pdf` with screenshots of the English interface. In the English
+  interface the help now links to it instead of the German one.
 
 ## 1.8.1 – 2026-10-23
 
-Ersetzt 1.8.0 (dort gab es einen eigenen Dockhand-Modus – entfernt, jetzt geht es mit jedem Tool).
+Replaces 1.8.0 (which had its own Dockhand mode – removed, now it works with any tool).
 
-**Neu: Updates auch mit anderen Tools**
-- Nach `./update.sh --pull` folgt der Container dem Image-Tag **`latest`**. Neue Versionen lassen sich damit wie
-  bisher mit `./update.sh --pull` einspielen – oder mit einem beliebigen Tool, das Container aktualisiert. Es gibt
-  keine Einstellungen mehr für ein bestimmtes Tool; das Dockhand-Label in der `docker-compose.yml` ist entfernt.
-- `./update.sh --pull --version X.Y.Z` legt eine Version fest (Tools lassen sie dann in Ruhe), das nächste
-  `./update.sh --pull` folgt wieder der neuesten.
-- **Sicherung beim ersten Start einer neuen Version:** AssetLotse merkt sich seine Version in der Datenbank. Läuft
-  eine neue Version zum ersten Mal, legt die App **vor** jeder Änderung an der Datenbank eine Sicherung an
-  (`…-vor-update.db`, nur SQLite) – egal, wie das Update kam. Startet eine ältere Version auf einer neueren
-  Datenbank, steht eine Warnung im Protokoll.
+**New: updates with other tools too**
+- After `./update.sh --pull` the container follows the image tag **`latest`**. New versions can thus be installed as
+  before with `./update.sh --pull` – or with any tool that updates containers. There are no more settings for a
+  specific tool; the Dockhand label in `docker-compose.yml` has been removed.
+- `./update.sh --pull --version X.Y.Z` pins a version (tools then leave it alone), the next
+  `./update.sh --pull` follows the newest again.
+- **Backup on the first start of a new version:** AssetLotse remembers its version in the database. When a new
+  version runs for the first time, the app creates a backup **before** any change to the database
+  (`…-vor-update.db`, SQLite only) – no matter how the update came. If an older version starts on a newer
+  database, a warning is written to the log.
 
-**Hinweis:** Ein Update-Tool tauscht nur den Container aus, nicht `update.sh` und `docker-compose.yml` auf dem
-Server. Wenn sich diese ändern, steht es hier im CHANGELOG – dann einmal `./update.sh --pull`.
+**Note:** An update tool only replaces the container, not `update.sh` and `docker-compose.yml` on the
+server. If these change, it says so here in the CHANGELOG – then run `./update.sh --pull` once.
 
 ## 1.7.0 – 2026-10-23
 
-**Neu: fertige Images von GitHub**
-- **GitHub Actions** (`.github/workflows/docker.yml`): Ein Versions-Tag wie `v1.7.0` baut das Image und legt es unter
-  `ghcr.io/soleil0815/assetlotse` ab (Tags `1.7.0`, `1.7`, `latest`). Der Lauf bricht ab, wenn Tag und Version in
-  `assetlotse/__init__.py` nicht zusammenpassen. Von Hand gestartet entsteht nur ein Test-Image `test-<commit>`.
-- **`./update.sh --pull`** lädt das Image statt zu bauen: Sicherung → Image laden → `update.sh`, `docker-compose.yml`
-  & Co. aus dem Image übernehmen → Neustart → alte Images aufräumen. `--version X.Y.Z` für eine bestimmte Version
-  (auch zum Zurückgehen), `--image` für eine andere Adresse. Einmalig auf dem Server: `docker login ghcr.io`.
-- **Beide Wege bleiben:** Ein Zip wird weiter lokal gebaut, dann als `assetlotse:X.Y.Z` – nie unter dem
-  GitHub-Namen, damit Dockhand es nicht ersetzt. Welches Image läuft, verwaltet `update.sh` in der `.env`
-  (`ASSETLOTSE_IMAGE`, `ASSETLOTSE_TAG`, `ASSETLOTSE_REGISTRY_IMAGE`). Aufräumen behält immer das laufende und das
-  zuvor laufende Image, egal ob lokal gebaut oder von GitHub.
-- **Dockhand:** weiterhin kein automatisches Update (`dockhand.update=false`), weil nur `update.sh` vorher sichert.
-- **Vertrauen:** `--pull` prüft, dass das Image aus dem passenden GitHub-Repository gebaut wurde, zeigt Version und
-  Digest und verlangt bei einer neuen Image-Adresse immer ein „ja“ (auch mit `-y`). Die GitHub-Actions sind auf
-  feste Commits festgelegt. `latest` bekommt nur die höchste Version – ein Nachtrag für eine ältere Reihe
-  verschiebt es nicht.
-- Das Image enthält jetzt auch die Installationsdateien (`/app/update.sh` usw.). `.gitignore` ergänzt (Pakete,
-  Archiv), das Zip enthält keine `.env` mehr (`update.sh` legt sie bei Bedarf an).
+**New: ready-made images from GitHub**
+- **GitHub Actions** (`.github/workflows/docker.yml`): A version tag such as `v1.7.0` builds the image and stores it at
+  `ghcr.io/soleil0815/assetlotse` (tags `1.7.0`, `1.7`, `latest`). The run aborts if the tag and the version in
+  `assetlotse/__init__.py` do not match. Started manually, only a test image `test-<commit>` is created.
+- **`./update.sh --pull`** pulls the image instead of building: backup → pull image → take over `update.sh`,
+  `docker-compose.yml` & co. from the image → restart → clean up old images. `--version X.Y.Z` for a specific
+  version (also to go back), `--image` for a different address. Once on the server: `docker login ghcr.io`.
+- **Both routes remain:** A zip is still built locally, then as `assetlotse:X.Y.Z` – never under the
+  GitHub name, so that Dockhand does not replace it. Which image runs is managed by `update.sh` in `.env`
+  (`ASSETLOTSE_IMAGE`, `ASSETLOTSE_TAG`, `ASSETLOTSE_REGISTRY_IMAGE`). Cleanup always keeps the running and the
+  previously running image, whether built locally or from GitHub.
+- **Dockhand:** still no automatic update (`dockhand.update=false`), because only `update.sh` makes a backup first.
+- **Trust:** `--pull` checks that the image was built from the matching GitHub repository, shows version and
+  digest and always asks for a "yes" for a new image address (even with `-y`). The GitHub actions are pinned to
+  fixed commits. `latest` only goes to the highest version – a patch for an older line
+  does not move it.
+- The image now also contains the installation files (`/app/update.sh` etc.). `.gitignore` extended (packages,
+  archive), the zip no longer contains a `.env` (`update.sh` creates it if needed).
 
-**Erster Umstieg:** Dieses Zip wie gewohnt mit `./update.sh assetlotse-1.7.0.zip` einspielen (das alte Skript kennt
-`--pull` noch nicht). Danach den Code mit Tag `v1.7.0` zu GitHub schicken, auf dem Server einmal
-`docker login ghcr.io -u soleil0815` und `./update.sh --pull`.
+**First switch:** Install this zip as usual with `./update.sh assetlotse-1.7.0.zip` (the old script does not know
+`--pull` yet). Then push the code with tag `v1.7.0` to GitHub, and on the server run once
+`docker login ghcr.io -u soleil0815` and `./update.sh --pull`.
 
 ## 1.6.3 – 2026-10-23
 
-**Geändert**
-- **Installationsdateien auf Englisch:** `update.sh`, `docker-entrypoint.sh`, `docker-compose.yml`, `.env.example`,
-  `Dockerfile`, `gunicorn.conf.py`, `wsgi.py` und `requirements*` – Kommentare und alle Meldungen. Die Rückfrage von
-  `update.sh` lautet jetzt `[Y/n]` (ein „j“ wird weiterhin angenommen). Oberfläche, Hilfe und Handbuch bleiben
-  zweisprachig bzw. deutsch.
-- Das Paketarchiv heißt jetzt **`packages/`** statt `pakete/`. Ein vorhandener Ordner `pakete/` wird beim
-  nächsten Update bzw. `./update.sh --cleanup` automatisch umbenannt. Zurück zur vorigen Version:
+**Changed**
+- **Installation files in English:** `update.sh`, `docker-entrypoint.sh`, `docker-compose.yml`, `.env.example`,
+  `Dockerfile`, `gunicorn.conf.py`, `wsgi.py` and `requirements*` – comments and all messages. The prompt of
+  `update.sh` is now `[Y/n]` (a "j" is still accepted). Interface, help and manual remain
+  bilingual or German.
+- The package archive is now called **`packages/`** instead of `pakete/`. An existing `pakete/` folder is renamed
+  automatically on the next update or `./update.sh --cleanup`. Back to the previous version:
   `./update.sh packages/assetlotse-ALT.zip`.
 
 ## 1.6.2 – 2026-10-23
 
-**Hinweise zum Update von 1.6.1:**
-- Das alte `update.sh` kennt das Aufräumen noch nicht. Nach diesem Update einmal `./update.sh --cleanup` ausführen –
-  ab dann räumt jedes Update selbst auf.
-- Ist die Selbstregistrierung mit E-Mail-Bestätigung an, muss unter *Administration → E-Mail* die **Adresse von
-  AssetLotse** eingetragen sein (so, wie sie von außen erreichbar ist) – sonst ist die Registrierung gesperrt.
-- `./data` ist jetzt nur noch für den App-Benutzer lesbar. Kopiert ein Skript auf dem Server die Sicherungen, muss
-  es als root oder als `PUID` laufen.
+**Notes on updating from 1.6.1:**
+- The old `update.sh` does not know cleanup yet. After this update run `./update.sh --cleanup` once –
+  from then on every update cleans up by itself.
+- If self-registration with email confirmation is on, the **address of AssetLotse** (as reachable from outside)
+  must be entered under *Administration → Email* – otherwise registration is blocked.
+- `./data` is now only readable by the app user. If a script on the server copies the backups, it must
+  run as root or as `PUID`.
 
-**Neu: Aufräumen beim Update**
-- Nach einem erfolgreichen Update kommt das Zip ins Archiv `./pakete` (aktuelles und voriges Paket bleiben für den
-  Rückweg, ältere werden gelöscht). Lose `assetlotse-*.zip` im Programmordner wandern ins Archiv, Reste
-  abgebrochener Updates und ältere AssetLotse-Images werden entfernt; das Image der vorigen Version bleibt.
-  Andere Docker-Images auf dem Server werden nie angefasst.
-- Neue Optionen: `--no-cleanup` (nicht aufräumen), `--cleanup` (nur aufräumen). `--prune` löscht zusätzlich das
-  vorige Image. Zurück zur vorigen Version: `./update.sh pakete/assetlotse-ALT.zip`.
-- Nach dem Austausch der Dateien übernimmt das **neue** `update.sh` Bauen, Starten und Aufräumen – Verbesserungen
-  am Skript wirken so schon beim Update selbst.
+**New: cleanup on update**
+- After a successful update the zip goes into the archive `./pakete` (the current and the previous package are kept
+  for going back, older ones are deleted). Loose `assetlotse-*.zip` in the program folder move to the archive,
+  remains of aborted updates and older AssetLotse images are removed; the image of the previous version is kept.
+  Other Docker images on the server are never touched.
+- New options: `--no-cleanup` (do not clean up), `--cleanup` (only clean up). `--prune` also deletes the
+  previous image. Back to the previous version: `./update.sh pakete/assetlotse-ALT.zip`.
+- After the files have been replaced, the **new** `update.sh` takes over building, starting and cleaning up –
+  improvements to the script thus already take effect during the update itself.
 
-**Sicherheit** (Ergebnis einer vollständigen Prüfung – nichts Kritisches, folgende Punkte behoben)
-- **Links in E-Mails** (Bestätigung, Admin-Hinweis, Freigabe) werden nicht mehr aus der Host-Angabe der Anfrage
-  gebaut – ein Fremder konnte sonst Mails mit Links auf seine eigene Seite auslösen. Ohne eingetragene Adresse von
-  AssetLotse ist die Registrierung mit E-Mail-Bestätigung gesperrt; beim Einschalten der Registrierung übernimmt
-  AssetLotse die Adresse, unter der der Admin die Seite aufruft.
-- **Vertrauliche Angaben (BitLocker-Schlüssel) für Verwalter** – anzeigen, ändern, löschen und für die ausleihende
-  Person freigeben – nur noch mit bestätigtem zweiten Faktor in der laufenden Sitzung, auch wenn im internen Netz das Passwort zum Anmelden reicht (wie schon beim eigenen Gerät).
-- **Keine Zwischenspeicherung angemeldeter Seiten** in Proxys/CDNs oder auf der Platte des Browsers (u. a.
-  CSV-Export, 2FA-Einrichtung, Wiederherstellungscodes); Fotos und Handbuch nur noch „privat“ zwischenspeicherbar.
-- **Registrierung:** höchstens 30 Versuche pro Stunde und IP (bremst das Abfragen vorhandener Benutzernamen und
-  Adressen).
-- **Ersteinrichtung** (`/setup`) nur noch aus dem internen Netz oder über localhost – sonst `create-admin`.
-- **Loopback zählt nicht mehr automatisch als internes Netz** (Tunnel und Weiterleitungen ohne Besucher-Adresse
-  hätten sonst die 2FA-Ausnahme fürs interne Netz bekommen). Bei Bedarf `127.0.0.0/8` eintragen.
-- **Erster zweiter Faktor** meldet alle anderen Geräte ab; **Passwort ändern** ist gegen Raten gebremst.
-- **Standorte:** Gruppen-Verwalter sehen keine frei eingetragenen Orte anderer Gruppen mehr und können sie auch
-  nicht erraten oder als festen Standort übernehmen.
-- **Sicherungen herunterladen:** wird nie zwischengespeichert.
-- **Bilder:** nur noch PNG/JPEG/WebP/GIF werden überhaupt eingelesen; Fotos werden speichersparend dekodiert.
-  **Pillow 13.0.0** (behebt u. a. Speicher- und Rechenzeit-Angriffe über präparierte Bilder), Werkzeug 3.1.9,
+**Security** (result of a full review – nothing critical, the following points fixed)
+- **Links in emails** (confirmation, admin notice, approval) are no longer built from the host header of the
+  request – otherwise a stranger could trigger emails with links to their own site. Without an entered address of
+  AssetLotse, registration with email confirmation is blocked; when registration is turned on, AssetLotse takes
+  the address under which the admin opens the page.
+- **Confidential details (BitLocker keys) for managers** – viewing, changing, deleting and sharing with the
+  borrower – only with a confirmed second factor in the current session, even if the password is enough to sign in
+  on the internal network (as already for one's own device).
+- **No caching of signed-in pages** in proxies/CDNs or on the browser's disk (including
+  CSV export, 2FA setup, recovery codes); photos and manual only cacheable as "private".
+- **Registration:** at most 30 attempts per hour and IP (slows down probing for existing usernames and
+  addresses).
+- **Initial setup** (`/setup`) only from the internal network or via localhost – otherwise `create-admin`.
+- **Loopback no longer automatically counts as internal network** (tunnels and forwarding without a visitor address
+  would otherwise have received the 2FA exemption for the internal network). If needed, enter `127.0.0.0/8`.
+- **The first second factor** signs out all other devices; **change password** is throttled against guessing.
+- **Locations:** Group managers no longer see free-text locations of other groups and cannot
+  guess them or take them over as a fixed location.
+- **Downloading backups:** is never cached.
+- **Images:** only PNG/JPEG/WebP/GIF are read at all; photos are decoded in a memory-saving way.
+  **Pillow 13.0.0** (fixes, among others, memory and CPU time attacks via crafted images), Werkzeug 3.1.9,
   certifi 2026.10.19.
-- **Datenbank:** Gelöschtes wird überschrieben (`secure_delete`), damit z. B. entfernte Schlüssel nicht im freien
-  Speicher der SQLite-Datei liegen bleiben (ältere Sicherungen enthalten sie weiterhin).
-- **Container:** `./data` nur für den App-Benutzer lesbar, neue Dateien mit 0600; `PUID`/`PGID` 0 oder keine Zahl
-  werden abgelehnt; `no-new-privileges`.
-- **update.sh:** arbeitet mit einer eigenen Kopie des Pakets, zeigt die SHA-256-Prüfsumme und vergleicht sie mit
-  `PAKET.zip.sha256`, falls vorhanden; lehnt absolute Pfade, `..`, symbolische Links und Sonderdateien ab;
-  übernimmt keine Schreibrechte aus dem Zip; die Wiederherstellung bei einem Fehler fasst nur nachweislich
-  ausgetauschte Einträge an; eine neu angelegte `.env` ist nur für den Besitzer lesbar.
-- Warnung beim Start, wenn `ASSETLOTSE_SECRET_KEY` kürzer als 32 Zeichen ist.
+- **Database:** deleted data is overwritten (`secure_delete`), so that e.g. removed keys do not remain in the free
+  space of the SQLite file (older backups still contain them).
+- **Container:** `./data` only readable by the app user, new files with 0600; `PUID`/`PGID` 0 or not a number
+  are rejected; `no-new-privileges`.
+- **update.sh:** works on its own copy of the package, shows the SHA-256 checksum and compares it with
+  `PAKET.zip.sha256` if present; rejects absolute paths, `..`, symbolic links and special files;
+  does not take over write permissions from the zip; recovery after an error only touches entries that were
+  demonstrably replaced; a newly created `.env` is only readable by its owner.
+- Warning at startup if `ASSETLOTSE_SECRET_KEY` is shorter than 32 characters.
 
 ## 1.6.1 – 2026-10-23
 
-**Neu**
-- **Handbuch als PDF** (`docs/Handbuch-AssetLotse.pdf`, 30 Seiten mit Bildschirmfotos): Teil A für alle, Teil B für
-  Verwalter, Teil C für Administratoren, dazu Fehlerbehebung, Notfallbefehle und alle `.env`-Einstellungen. Die Hilfe
-  verlinkt es oben; die englische Oberfläche bekommt das deutsche Handbuch, solange es kein englisches gibt.
+**New**
+- **Manual as PDF** (`docs/Handbuch-AssetLotse.pdf`, 30 pages with screenshots): part A for everyone, part B for
+  managers, part C for administrators, plus troubleshooting, emergency commands and all `.env` settings. The help
+  links to it at the top; the English interface gets the German manual as long as there is no English one.
 
 ## 1.6.0 – 2026-10-23
 
-**Neu**
-- **AD-Abgleich im Hintergrund** (mit Dienstkonto; Standard an, stündlich – wählbar bis täglich; „Jetzt abgleichen“):
-  - **Schnelle Personensuche an der Theke:** Personen ohne AssetLotse-Konto, die sich nach den AD-Regeln anmelden
-    dürften, werden mit Benutzername, Name und E-Mail zwischengespeichert. Die Theke findet sie sofort, schon beim
-    Tippen (Vorschläge mit „AD – noch kein Konto“, ein Klick übernimmt das Konto). Findet der Zwischenspeicher
-    niemanden, wird wie bisher live im AD gesucht. „Konto übernehmen“ prüft weiterhin direkt im AD.
-  - **Vorhandene AD-Konten werden aktuell gehalten** – auch ohne Anmeldung: Name, E-Mail, AssetLotse-Gruppen (bei
-    „Gruppen automatisch zuordnen“) und Umbenennungen im AD (erkannt an der objectGUID). Die Rolle nur bei Konten, die
-    sich schon selbst angemeldet haben.
-  - **Deaktivierte, abgelaufene, gelöschte oder nicht mehr berechtigte Personen** fliegen aus dem Zwischenspeicher;
-    ihre Konten werden deaktiviert (Ausleihen bleiben) und automatisch wieder aktiv, wenn die Person zurückkommt.
-    Beim ersten Abgleich und bei auffälligen Mengen (mehr als 20 %, alle Konten oder der letzte Administrator) wird
-    niemand automatisch deaktiviert – die AD-Seite listet die Namen zur Bestätigung. Vom Abgleich gesperrte Konten
-    werden auch bei der nächsten Anmeldung sofort wieder aktiv, wenn das AD sie freigibt.
-  - Umbenennungen werden auch bei Login und Kontoübernahme erkannt (kein zweites Konto); ein im AD neu vergebener
-    Benutzername übernimmt nie das Konto einer früheren Person. Abgebrochene Leseabfragen gelten nie als vollständig.
-  - Schutz der Administratoren: AD-Admins werden nie automatisch deaktiviert; keine Herabstufung, wenn danach kein
-    Administrator bliebe oder viele Konten auf einmal Rechte verlören; ein AD-Admin kann keine AD-Einstellungen
-    speichern, die ihn selbst aussperren würden.
-  - AD-Konten lassen sich unter „Benutzer“ umbenennen (z. B. altes Konto beiseiteschieben, wenn ein Name neu vergeben
-    wurde). Gesperrte Altkonten ohne AD-Kennung werden nie automatisch wieder aktiv.
-  - Effizient: zwei große Abfragen (alle Gruppen, alle Personen) statt einer pro Person.
-- Personenfeld an der Ausgabetheke mit Vorschlägen beim Tippen (ersetzt die alte Auswahlliste).
+**New**
+- **AD sync in the background** (with service account; on by default, hourly – selectable up to daily;
+  "Synchronise now"):
+  - **Fast person search at the desk:** People without an AssetLotse account who would be allowed to sign in under
+    the AD rules are cached with username, name and email. The desk finds them immediately, already while
+    typing (suggestions with "AD – no account yet", one click takes over the account). If the cache finds
+    nobody, AD is searched live as before. "Take over" still checks directly in AD.
+  - **Existing AD accounts are kept up to date** – even without signing in: name, email, AssetLotse groups (with
+    "Assign groups automatically") and renames in AD (detected by objectGUID). The role only for accounts that
+    have already signed in themselves.
+  - **Disabled, expired, deleted or no longer authorized people** are removed from the cache;
+    their accounts are deactivated (loans remain) and automatically reactivated when the person returns.
+    On the first sync and with conspicuous numbers (more than 20 %, all accounts or the last administrator)
+    nobody is deactivated automatically – the AD page lists the names for confirmation. Accounts locked by the
+    sync are also reactivated immediately on the next sign-in if AD allows them.
+  - Renames are also detected at sign-in and account takeover (no second account); a username newly assigned
+    in AD never takes over the account of a former person. Aborted read queries never count as complete.
+  - Protection of administrators: AD admins are never deactivated automatically; no demotion if afterwards no
+    administrator would remain or many accounts would lose rights at once; an AD admin cannot save AD settings
+    that would lock themselves out.
+  - AD accounts can be renamed under "Users" (e.g. to move an old account aside when a name has been reassigned).
+    Locked legacy accounts without an AD identifier are never reactivated automatically.
+  - Efficient: two large queries (all groups, all people) instead of one per person.
+- Person field at the issue desk with suggestions while typing (replaces the old selection list).
 
 ## 1.5.0 – 2026-10-22
 
-**Neu**
-- **Vorschläge beim Tippen in der Suche oben:** passende Gegenstände mit Inventar-/Seriennummer, Kategorie und
-  „x von y frei“; Klick (oder ↓ und Enter) öffnet das Gerät, „Alle Treffer anzeigen“ bzw. Enter die ganze Liste.
-- **Vorschläge beim Tippen an der Ausgabetheke:** z. B. „Festplatte“ zeigt sofort die passenden Geräte, die die
-  gewählte Person bekommen darf – ein Klick gibt aus. Barcodescanner funktionieren wie bisher.
-- **Inventarnummer beim Anlegen:** Unter dem Feld steht, ob die Nummer frei oder schon vergeben ist (mit Link),
-  welche ähnlichen Nummern es gibt und die nächste freie (z. B. IT-0044) zum Übernehmen. Gleiches für die
-  Seriennummer (frei/vergeben).
+**New**
+- **Suggestions while typing in the search at the top:** matching items with inventory/serial number, category and
+  "x of y available"; a click (or ↓ and Enter) opens the device, "Show all results" or Enter the full list.
+- **Suggestions while typing at the issue desk:** e.g. "hard drive" immediately shows the matching devices that the
+  selected person may receive – one click issues. Barcode scanners work as before.
+- **Inventory number when adding:** Below the field it says whether the number is free or already taken (with link),
+  which similar numbers exist and the next free one (e.g. IT-0044) to take over. The same for the
+  serial number (free/taken).
 
-**Geändert**
-- **Doppelte Inventar- und Seriennummern werden abgelehnt** (bisher nur eine Warnung), unabhängig von Groß- und
-  Kleinschreibung (auch Umlaute) und Leerzeichen am Rand; die Eingaben bleiben im Formular stehen. Zusätzlich
-  verhindert ein eindeutiger Index in der Datenbank (SQLite, PostgreSQL, MariaDB/MySQL), dass zwei Personen
-  gleichzeitig dieselbe Nummer vergeben. Doppelte Nummern aus älteren Versionen blockieren das Bearbeiten nicht
-  (Warnung); solange es sie gibt, entfällt nur der Datenbank-Index für diese Nummernart (Hinweis im Protokoll beim
-  Start). Neue Spalten werden beim ersten Start automatisch ergänzt.
+**Changed**
+- **Duplicate inventory and serial numbers are rejected** (previously only a warning), regardless of upper and
+  lower case (including umlauts) and leading/trailing spaces; the input stays in the form. In addition, a
+  unique index in the database (SQLite, PostgreSQL, MariaDB/MySQL) prevents two people from assigning the same number
+  at the same time. Duplicate numbers from older versions do not block editing
+  (warning); as long as they exist, only the database index for that kind of number is omitted (notice in the log at
+  startup). New columns are added automatically on the first start.
 
 ## 1.4.1 – 2026-10-22
 
-**Geändert**
-- **Keine Mindestversion für Docker Compose mehr** (bisher 2.24): Die `docker-compose.yml` nutzt nur noch Angaben, die
-  jede Compose-Version versteht – getestet mit 1.29, 2.20 und 5.6. `update.sh` arbeitet mit dem Plugin
-  `docker compose` und mit dem älteren eigenständigen `docker-compose` (wählbar mit `ASSETLOTSE_COMPOSE`).
-- Im Paket liegt eine leere `.env`, damit `docker compose up` sofort läuft; fehlt sie, legt `update.sh` sie an.
-  Eine vorhandene `.env` wird wie bisher nie überschrieben.
+**Changed**
+- **No minimum version for Docker Compose any more** (previously 2.24): `docker-compose.yml` now only uses settings
+  that every Compose version understands – tested with 1.29, 2.20 and 5.6. `update.sh` works with the plugin
+  `docker compose` and with the older standalone `docker-compose` (selectable with `ASSETLOTSE_COMPOSE`).
+- The package contains an empty `.env` so that `docker compose up` runs right away; if it is missing, `update.sh`
+  creates it. An existing `.env` is still never overwritten.
 
 ## 1.4.0 – 2026-10-22
 
-**Geändert**
-- **Mitarbeiter sehen standardmäßig keinen Bestand mehr**, nur noch ihre eigenen Gegenstände unter „Meine
-  Gegenstände“ (samt Detailseite, solange ihnen der Gegenstand ausgegeben ist). Menüpunkt „Bestand“, Suchfeld und
-  „Neu im Bestand“ entfallen für sie. Umstellbar unter *Einstellungen → Sichtbarkeit des Bestands* (neu:
-  „nur eigene Gegenstände“; weiterhin „eigene Gruppen“ und „gesamter Bestand“). Verwalter und Administratoren sehen
-  den Bestand wie bisher. Die Selbstausleihe wirkt nur, wenn Mitarbeiter den Bestand sehen.
-  Wer die Sichtbarkeit früher schon einmal gespeichert hat, behält seine Einstellung.
+**Changed**
+- **By default staff members no longer see the inventory**, only their own items under "My items"
+  (including the detail page, as long as the item is issued to them). The menu item "Inventory", the search field and
+  "New arrivals" are gone for them. Configurable under *Settings → Inventory visibility* (new:
+  "own items only"; still "own groups" and "entire inventory"). Managers and administrators see
+  the inventory as before. Self-checkout only works if staff members can see the inventory.
+  Anyone who has saved the visibility setting before keeps their setting.
 
 ## 1.3.0 – 2026-10-22
 
-**Neu**
-- **Vertrauliche Angaben für die ausleihende Person:** Pro Gegenstand lässt sich freigeben, dass die Person, der er
-  gerade ausgegeben ist, die vertraulichen Angaben selbst ansehen darf – z. B. den BitLocker-Schlüssel ihrer
-  Festplatte, wenn sie ihn vergessen hat. Standard: aus. Nur solange die Ausgabe läuft (mit der Rückgabe ist es
-  vorbei), nur nach erneuter Eingabe des eigenen Passworts (AD-Konten werden gegen das AD geprüft, Fehlversuche
-  zählen zur Anmeldesperre). Jeder Abruf steht als „angezeigt (Ausleiher)“ im Protokoll, ebenso das Ein- und
-  Ausschalten der Freigabe. Andere Mitarbeiter sehen weiterhin nichts; schalten darf nur, wer die Angaben selbst
-  sehen darf. Die Person sieht ihren Gegenstand auch dann, wenn er zu einer fremden Gruppe gehört.
-  Damit sich niemand den Schlüssel „erleihen“ kann: nur bei Einzelstücken und nur, wenn die Ausgabe von jemandem
-  stammt, der die Angaben selbst sehen darf (nicht bei „Selbst ausleihen“). Wer sich ohne zweiten Faktor angemeldet
-  hat, bestätigt ihn vorher; Fehlversuche zählen auch über mehrere Adressen.
+**New**
+- **Confidential details for the borrower:** Per item it can be allowed that the person to whom it is currently
+  issued may view the confidential details themselves – e.g. the BitLocker key of their
+  drive if they have forgotten it. Default: off. Only while the issue is running (it ends with the return),
+  only after re-entering one's own password (AD accounts are checked against AD, failed attempts
+  count towards the sign-in lockout). Every retrieval is logged as "viewed (borrower)", as is turning the
+  sharing on and off. Other staff members still see nothing; only someone who may see the details
+  themselves may switch it. The person sees their item even if it belongs to another group.
+  So that nobody can "borrow" the key: only for single items and only if the issue was made by
+  someone who may see the details themselves (not with self-checkout). Anyone who signed in without a second factor
+  confirms it first; failed attempts also count across several addresses.
 
 ## 1.2.1 – 2026-10-22
 
-**Geändert**
-- **Standardport ist jetzt 9343** (bisher 9300). Wer 9300 behalten will: `ASSETLOTSE_PORT=9300` in die `.env`.
-- **Port frei wählbar mit einer Einstellung:** `ASSETLOTSE_PORT` in der `.env` gilt jetzt außen auf dem Server *und*
-  innen im Container (gunicorn, Healthcheck). Bisher lauschte der Container fest auf 9300 – wer die
-  `docker-compose.yml` angepasst hatte, landete schnell ins Leere. Erlaubt sind 1024–65535; ein ungültiger Wert
-  wird beim Start und von `update.sh` mit klarer Meldung abgelehnt.
-- `update.sh` zeigt am Ende die richtige Adresse und warnt, wenn `ASSETLOTSE_BIND=127.0.0.1` gesetzt ist
-  (dann nur auf dem Server selbst erreichbar) sowie beim Update von älteren Versionen über den neuen Standardport.
+**Changed**
+- **The default port is now 9343** (previously 9300). To keep 9300: `ASSETLOTSE_PORT=9300` in `.env`.
+- **Port freely selectable with one setting:** `ASSETLOTSE_PORT` in `.env` now applies outside on the server *and*
+  inside the container (gunicorn, health check). Previously the container always listened on 9300 – anyone who had
+  adjusted `docker-compose.yml` quickly ended up nowhere. Allowed are 1024–65535; an invalid value
+  is rejected with a clear message at startup and by `update.sh`.
+- `update.sh` shows the correct address at the end and warns if `ASSETLOTSE_BIND=127.0.0.1` is set
+  (then only reachable on the server itself) and, when updating from older versions, about the new default port.
 
 ## 1.2.0 – 2026-10-22
 
-**Neu**
-- **Personen aus dem Active Directory an der Ausgabetheke:** Die Personensuche findet auch Mitarbeitende, die sich
-  noch nie angemeldet haben – aber nur, wer nach den AD-Regeln (Basis-DN, Benutzerfilter, OUs/Gruppen für
-  Mitarbeiter, Verwalter, Administratoren) Zugang hat; im AD deaktivierte Konten bleiben unsichtbar.
-  Ebenso ausgeblendet: abgelaufene Konten, Computer- und Gruppenobjekte. „Konto übernehmen“ prüft die Person
-  serverseitig erneut im AD und legt das Konto an – zunächst als Mitarbeiter, die AD-Rolle gilt ab der ersten
-  eigenen Anmeldung. Braucht das Dienstkonto; Suchen werden protokolliert.
-- **Bestandssuche in der Ausgabe:** Suchtext und Kategorie, standardmäßig nur verfügbare Gegenstände; Ausgabe direkt
-  aus der Trefferliste, die Suche bleibt danach stehen.
-- Passt die Personensuche auf mehrere Konten, erscheint eine Auswahlliste (statt „nicht eindeutig“).
+**New**
+- **People from Active Directory at the issue desk:** The person search also finds staff who have
+  never signed in – but only those who have access under the AD rules (base DN, user filter, OUs/groups for
+  staff members, managers, administrators); accounts disabled in AD remain invisible.
+  Also hidden: expired accounts, computer and group objects. "Take over" checks the person again in AD
+  on the server side and creates the account – initially as a staff member, the AD role applies from their first
+  own sign-in. Requires the service account; searches are logged.
+- **Inventory search in the issue view:** search text and category, by default only available items; issue directly
+  from the result list, the search stays in place afterwards.
+- If the person search matches several accounts, a selection list appears (instead of "not unique").
 
 ## 1.1.0 – 2026-10-22
 
-**Neu**
-- **Etiketten mit Barcode** als PDF im Format **62 × 29 mm** (z. B. Brother QL mit DK-11209 oder 62-mm-Endlosband):
-  Bezeichnung, Kategorie/Modell, Seriennummer, Barcode (Code 128) mit der Inventarnummer und Name der Einrichtung.
-  Einzeln auf der Detailseite („Etikett“) oder für die ganze aktuelle Auswahl im Bestand („Etiketten“, höchstens 500).
-  Ohne Inventarnummer (oder mit Umlauten darin) wird `#<interne Nummer>` codiert – die Ausgabetheke findet beides.
-- **Startseite mit Kennzahlen** für Verwalter: Bestand, Verfügbar, Ausgegeben (mit Auslastung), Überfällig,
-  vertrauliche Angaben; Tabelle „Bestand nach Kategorie“ mit Auslastungsbalken, „Letzte Bewegungen“, „Bald zurück“.
+**New**
+- **Labels with barcode** as PDF in the format **62 × 29 mm** (e.g. Brother QL with DK-11209 or 62 mm continuous
+  tape):
+  name, category/model, serial number, barcode (Code 128) with the inventory number and name of the organization.
+  Individually on the detail page ("Label") or for the whole current selection in the inventory ("Labels", at most 500).
+  Without an inventory number (or with umlauts in it) `#<interne Nummer>` is encoded – the issue desk finds both.
+- **Start page with key figures** for managers: Inventory, Available, Issued (with utilization), Overdue,
+  confidential details; table "Inventory by category" with utilization bars, "Recent activity", "Due back soon".
 
-**Geändert**
-- **Neues Erscheinungsbild** im Stil einer Asset-Management-Software: Schiefergrau und Petrol, eine sachliche
-  Schrift (Inter) für alles, dichtere Tabellen, kleinere Radien. Die Zierschrift Fraunces ist entfallen.
-- **Bestand** öffnet standardmäßig als **Tabelle** (Kacheln weiter umschaltbar) – mit Spalte „Ausgegeben an“.
-- Standardfarben im Erscheinungsbild, Gruppenfarbe, Favicon und E-Mails passend zum neuen Design.
+**Changed**
+- **New look** in the style of asset management software: slate gray and petrol, a plain
+  typeface (Inter) for everything, denser tables, smaller radii. The display typeface Fraunces has been dropped.
+- **Inventory** opens as a **table** by default (tiles can still be switched on) – with an "Issued to" column.
+- Default colors in the branding, group color, favicon and emails to match the new design.
 
 ## 1.0.0 – 2026-10-22
 
-Erste Version: Verwaltung und Ausgabe von Arbeitsmitteln (Laptops, USB-Sticks, Headsets, Schlüssel, Kabel …).
+First version: management and issuing of work equipment (laptops, USB sticks, headsets, keys, cables …).
 
-- **Gegenstände** mit Bezeichnung, Kategorie (frei, mit Vorschlägen), Hersteller, Modell, Seriennummer,
-  Inventarnummer, Beschreibung/Zubehör, Standort, Gruppe, Anzahl und Foto.
-- **Vertrauliche Angaben** je Gegenstand (z. B. BitLocker-Wiederherstellungsschlüssel): verschlüsselt mit der
-  `secret_key`, sichtbar nur für Administratoren und Verwalter der Gruppe des Gegenstands über „Anzeigen“; jedes
-  Anzeigen/Ändern/Löschen wird protokolliert, nie im Export. Das Zugriffsprotokoll wird nach der Aufbewahrungsfrist gelöscht.
-- **Ausgabe** mit Rückgabedatum oder **unbefristet** (Standard). Unbefristete Ausgaben sind nie überfällig und
-  bekommen keine Erinnerungen. **Ausgabetheke** für Barcodescanner (Inventar-, Seriennummer, Bezeichnung, `#Nummer`).
-- „Ähnlichen anlegen“ und „Speichern & nächsten“; Warnung bei doppelter Inventar- oder Seriennummer.
-- Filter nach Kategorie, Gruppe, Standort und Status; CSV-Export mit Spalte „Ausgegeben an“.
-- Rollen Mitarbeiter, Verwalter, Administrator; Gruppen (z. B. Abteilungen); Standorte.
-- Active Directory/LDAP, Zwei-Faktor-Anmeldung (TOTP, Sicherheitsschlüssel), E-Mail-Benachrichtigungen,
-  Selbstregistrierung, eigenes Erscheinungsbild, automatische Datensicherung, Aufbewahrungsfristen (DSGVO),
-  Deutsch und Englisch, Docker mit `update.sh`.
+- **Items** with name, category (free, with suggestions), manufacturer, model, serial number,
+  inventory number, description/accessories, location, group, quantity and photo.
+- **Confidential details** per item (e.g. BitLocker recovery key): encrypted with the
+  `secret_key`, visible only to administrators and managers of the item's group via "Reveal"; every
+  view/change/deletion is logged, never in the export. The access log is deleted after the retention period.
+- **Issuing** with a return date or **indefinitely** (default). Indefinite issues are never overdue and
+  get no reminders. **Issue desk** for barcode scanners (inventory number, serial number, name, `#Nummer`).
+- "Add similar" and "Save & next"; warning on duplicate inventory or serial numbers.
+- Filters by category, group, location and status; CSV export with an "Issued to" column.
+- Roles staff member, manager, administrator; groups (e.g. departments); locations.
+- Active Directory/LDAP, two-factor sign-in (TOTP, security keys), email notifications,
+  self-registration, custom branding, automatic data backup, retention periods (GDPR),
+  German and English, Docker with `update.sh`.

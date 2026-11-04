@@ -1,12 +1,16 @@
-"""Automatische Datensicherung der Datenbank (SQLite).
+"""Automatic database backup (SQLite).
 
-- täglich zur eingestellten Uhrzeit (Standard 2 Uhr), auch bei mehreren Server-Prozessen nur einmal
-- im laufenden Betrieb über die Online-Backup-Funktion von SQLite (konsistent, ohne Anhalten)
-- jede Sicherung wird mit PRAGMA integrity_check geprüft, erst dann gilt sie als fertig
-- es werden die neuesten N Sicherungen aufbewahrt (Standard 10), ältere werden gelöscht
-- Ablage: <Datenverzeichnis>/backups oder ASSETLOTSE_BACKUP_DIR (z. B. ein NAS-Laufwerk)
+- daily at the configured hour (default 2 am), only once even with several server processes
+- while running, via SQLite's online backup API (consistent, without stopping)
+- every backup is checked with PRAGMA integrity_check; only then is it considered complete
+- the newest N backups are kept (default 10), older ones are deleted
+- location: <data directory>/backups or ASSETLOTSE_BACKUP_DIR (e.g. a NAS drive)
 
-Bei MySQL/MariaDB oder PostgreSQL sichert man besser mit den Werkzeugen des Datenbankservers.
+With MySQL/MariaDB or PostgreSQL, better back up with the database server's own tools.
+
+Stored formats – keep them German: the file name suffixes ("-manuell", "-vor-<version>",
+"-vor-wiederherstellung", "-vor-update", parsed by NAME_RE) and the result messages written to the
+settings ("… gesichert (…)", "Sicherung fehlgeschlagen: …" etc., parsed by localized_message).
 """
 from __future__ import annotations
 
@@ -27,10 +31,10 @@ log = logging.getLogger(__name__)
 
 PREFIX = "assetlotse-"
 NAME_RE = re.compile(r"^assetlotse-(\d{4}-\d{2}-\d{2})_(\d{6})(-vor-\d+\.\d+\.\d+|-[a-z-]*[a-z])?(-\d+)?\.db$")
-PART_MAX_AGE = 3600   # unfertige *.part-Dateien erst nach 1 Stunde als Reste abgebrochener Läufe löschen
-KIND_LABELS = {"": "automatisch", "-manuell": "manuell", "-vor-wiederherstellung": "vor Wiederherstellung",
-               "-vor-update": "vor Update"}
-KEEP_UPGRADE = 3      # Sicherungen „vor <Version>“: die neuesten drei zählen nicht mit – sie braucht, wer zurückgeht
+PART_MAX_AGE = 3600   # delete unfinished *.part files as leftovers of aborted runs only after 1 hour
+KIND_LABELS = {"": "automatic", "-manuell": "manual", "-vor-wiederherstellung": "before restore",
+               "-vor-update": "before update"}
+KEEP_UPGRADE = 3      # "before <version>" backups: the newest three don't count – needed by anyone going back
 KEEP_MIN, KEEP_MAX = 1, 100
 
 
@@ -38,7 +42,7 @@ class BackupError(Exception):
     pass
 
 
-# ---------------------------------------------------------------- Orte
+# ---------------------------------------------------------------- Locations
 
 def backup_dir() -> Path:
     custom = os.environ.get("ASSETLOTSE_BACKUP_DIR")
@@ -48,7 +52,7 @@ def backup_dir() -> Path:
 
 
 def database_file() -> Path | None:
-    """Pfad der SQLite-Datei – oder None bei anderen Datenbanken bzw. In-Memory-Datenbank."""
+    """Path of the SQLite file – or None for other databases or an in-memory database."""
     url = db.engine.url
     if url.get_backend_name() != "sqlite" or not url.database or url.database == ":memory:":
         return None
@@ -60,31 +64,33 @@ def supported() -> bool:
 
 
 def human_size(n: int, lang: str | None = None) -> str:
-    """Dateigröße – Dezimalzeichen nach Sprache (12,3 MB / 12.3 MB)."""
+    """File size – decimal separator by language (12,3 MB / 12.3 MB)."""
     if n < 1024 * 1024:
         return f"{max(1, round(n / 1024))} KB"
     if lang is None:
         from .i18n import get_locale
         try:
             lang = get_locale()
-        except Exception:  # noqa: BLE001 – außerhalb einer Anfrage
+        except Exception:  # noqa: BLE001 – outside a request
             lang = "de"
     text = f"{n / 1024 / 1024:.1f} MB"
     return text if lang == "en" else text.replace(".", ",")
 
 
 def localized_message(msg: str) -> str:
-    """Gespeicherte Meldung (deutsch) in der aktuellen Sprache – für Oberfläche und E-Mail."""
+    """Stored message (German) in the current language – for the UI and email.
+
+    The German patterns below are the stored format written by create_backup/run_now/restore_backup – keep."""
     import re
     from .i18n import _, get_locale
     en = get_locale() == "en"
     patterns = [
-        (r"^(\S+) gesichert \((.+)\)$", lambda m: _("{name} gesichert ({size})", name=m.group(1),
+        (r"^(\S+) gesichert \((.+)\)$", lambda m: _("{name} backed up ({size})", name=m.group(1),
                                                      size=m.group(2).replace(",", ".") if en else m.group(2))),
-        (r"^Sicherung fehlgeschlagen: (.*)$", lambda m: _("Sicherung fehlgeschlagen: {error}", error=m.group(1))),
-        (r"^Datenbankdatei (.+) nicht gefunden\.$", lambda m: _("Datenbankdatei {path} nicht gefunden.", path=m.group(1))),
-        (r"^Sicherung (\S+) nicht gefunden\.$", lambda m: _("Sicherung {name} nicht gefunden.", name=m.group(1))),
-        (r"^Sicherung (\S+) ist beschädigt\.$", lambda m: _("Sicherung {name} ist beschädigt.", name=m.group(1))),
+        (r"^Sicherung fehlgeschlagen: (.*)$", lambda m: _("Backup failed: {error}", error=m.group(1))),
+        (r"^Datenbankdatei (.+) nicht gefunden\.$", lambda m: _("Database file {path} not found.", path=m.group(1))),
+        (r"^Sicherung (\S+) nicht gefunden\.$", lambda m: _("Backup {name} not found.", name=m.group(1))),
+        (r"^Sicherung (\S+) ist beschädigt\.$", lambda m: _("Backup {name} is damaged.", name=m.group(1))),
     ]
     for pat, fn in patterns:
         m = re.match(pat, msg or "", re.S)
@@ -97,7 +103,7 @@ def keep_count() -> int:
     return min(KEEP_MAX, max(KEEP_MIN, get_int("backup_keep", 10)))
 
 
-# ---------------------------------------------------------------- Sichern
+# ---------------------------------------------------------------- Back up
 
 def _integrity_ok(path: Path) -> bool:
     con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
@@ -108,18 +114,18 @@ def _integrity_ok(path: Path) -> bool:
 
 
 def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: bool = True) -> Path:
-    """Sicherung anlegen; kind: '' (automatisch), '-manuell', '-vor-wiederherstellung'."""
+    """Create a backup; kind: '' (automatic), '-manuell' (manual), '-vor-wiederherstellung' (before restore)."""
     src_path = database_file()
     if src_path is None:
-        raise BackupError("Automatische Sicherung gibt es nur für SQLite.")
+        raise BackupError("Automatic backups are only available for SQLite.")
     if not src_path.exists():
-        raise BackupError(f"Datenbankdatei {src_path} nicht gefunden.")
+        raise BackupError(f"Datenbankdatei {src_path} nicht gefunden.")   # stored format – parsed by localized_message, keep
     now = now or datetime.now()
     target_dir = backup_dir()
     name = f"{PREFIX}{now:%Y-%m-%d_%H%M%S}{kind}.db"
     final = target_dir / name
     n = 1
-    while final.exists():  # zwei Sicherungen in derselben Sekunde
+    while final.exists():  # two backups in the same second
         final = target_dir / name.replace(".db", f"-{n}.db")
         n += 1
     part = final.with_suffix(".part")
@@ -127,22 +133,22 @@ def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: 
     dst = sqlite3.connect(str(part))
     try:
         src.backup(dst)
-        # Die Kopie übernimmt den WAL-Modus der Quelle – als eigenständige Datei ohne -wal/-shm ablegen
+        # The copy inherits the source's WAL mode – store it as a standalone file without -wal/-shm
         dst.execute("PRAGMA journal_mode=DELETE").fetchone()
     except sqlite3.Error as exc:
         dst.close()
         _unlink_part(part)
-        raise BackupError(f"Sicherung fehlgeschlagen: {exc}") from exc
+        raise BackupError(f"Sicherung fehlgeschlagen: {exc}") from exc   # stored format – parsed by localized_message, keep
     finally:
         src.close()
     dst.close()
     _unlink_siblings(part)
     if not _integrity_ok(part):
         _unlink_part(part)
-        raise BackupError("Die Sicherung ist beschädigt (integrity_check) und wurde verworfen.")
+        raise BackupError("The backup is damaged (integrity_check) and was discarded.")
     _unlink_siblings(part)
     try:
-        os.chmod(part, 0o600)  # enthält personenbezogene Daten
+        os.chmod(part, 0o600)  # contains personal data
     except OSError:
         pass
     os.replace(part, final)
@@ -169,10 +175,10 @@ def list_backups() -> list[dict]:
             continue
         created = datetime.strptime(f"{m.group(1)}_{m.group(2)}", "%Y-%m-%d_%H%M%S")
         kind = m.group(3) or ""
-        seq = int(m.group(4)[1:]) if m.group(4) else 0   # „-1“, „-2“ …: später in derselben Sekunde
+        seq = int(m.group(4)[1:]) if m.group(4) else 0   # "-1", "-2" …: later in the same second
         upgrade = kind == "-vor-update" or bool(re.match(r"-vor-\d", kind))
         items.append({"name": p.name, "path": p, "size": p.stat().st_size, "created": created,
-                      "kind": KIND_LABELS["-vor-update"] if upgrade else KIND_LABELS.get(kind, "manuell"),
+                      "kind": KIND_LABELS["-vor-update"] if upgrade else KIND_LABELS.get(kind, "manual"),
                       "upgrade": upgrade, "_seq": seq})
     items.sort(key=lambda x: (x["created"], x["_seq"]), reverse=True)
     return items
@@ -188,8 +194,8 @@ def rotate(keep: int | None = None) -> int:
             item["path"].unlink()
             removed += 1
         except OSError as exc:
-            log.warning("Alte Sicherung %s konnte nicht gelöscht werden: %s", item["name"], exc)
-    # Reste abgebrochener Läufe – aber nicht, was ein anderer Prozess gerade noch schreibt
+            log.warning("Old backup %s could not be deleted: %s", item["name"], exc)
+    # Leftovers of aborted runs – but not what another process is still writing
     limit = time.time() - PART_MAX_AGE
     for stale in backup_dir().glob(f"{PREFIX}*.part*"):
         try:
@@ -215,19 +221,20 @@ def delete_backup(name: str) -> bool:
     return True
 
 
-# ---------------------------------------------------------------- Wiederherstellen (nur bei angehaltener App!)
+# ---------------------------------------------------------------- Restore (only with the app stopped!)
 
 def restore_backup(name: str) -> Path | None:
-    """Sicherung zurückspielen. Vorher wird der aktuelle Stand gesichert („vor Wiederherstellung“)."""
+    """Restore a backup. The current state is backed up first ("before restore")."""
     src = find_backup(name)
+    # stored/displayed format – parsed by localized_message, keep
     if src is None:
         raise BackupError(f"Sicherung {name} nicht gefunden.")
     if not _integrity_ok(src):
         raise BackupError(f"Sicherung {name} ist beschädigt.")
     target = database_file()
     if target is None:
-        raise BackupError("Wiederherstellen geht nur mit SQLite.")
-    # ohne Aufräumen – sonst könnte gerade die Sicherung gelöscht werden, die zurückgespielt werden soll
+        raise BackupError("Restoring only works with SQLite.")
+    # without rotation – otherwise the very backup being restored could be deleted
     safety = create_backup("-vor-wiederherstellung", rotate_after=False) if target.exists() else None
     db.session.remove()
     db.engine.dispose()
@@ -241,7 +248,7 @@ def restore_backup(name: str) -> Path | None:
     return safety
 
 
-# ---------------------------------------------------------------- Zeitplan und Status
+# ---------------------------------------------------------------- Schedule and status
 
 def _record(ok: bool, message: str, now: datetime) -> None:
     set_setting("backup_last_result", f"{now:%d.%m.%Y %H:%M}: {message}")
@@ -259,18 +266,19 @@ def run_now(kind: str = "-manuell", now: datetime | None = None) -> tuple[bool, 
         path = create_backup(kind, now)
         size = path.stat().st_size if path.exists() else 0
     except Exception as exc:  # noqa: BLE001
-        log.exception("Datensicherung fehlgeschlagen")
+        log.exception("Backup failed")
+        # stored format (backup_last_result) – parsed by localized_message, keep
         msg = str(exc) if isinstance(exc, BackupError) else f"Sicherung fehlgeschlagen: {exc}"
         _record(False, msg, now)
         return False, msg
-    msg = f"{path.name} gesichert ({human_size(size)})"
+    msg = f"{path.name} gesichert ({human_size(size)})"   # stored format – parsed by localized_message, keep
     _record(True, msg, now)
-    log.info("Datensicherung: %s", msg)
+    log.info("Backup: %s", msg)
     return True, msg
 
 
 def run_daily(now: datetime | None = None) -> tuple[bool, str] | None:
-    """Vom Zeitplan aufgerufen (alle paar Minuten); sichert einmal pro Tag ab der eingestellten Uhrzeit."""
+    """Called by the scheduler (every few minutes); backs up once a day from the configured hour on."""
     from .mailer import _claim_today
     now = now or datetime.now()
     if not get_bool("backup_enabled") or not supported() or now.hour < get_int("backup_hour", 2):
@@ -284,12 +292,12 @@ def run_daily(now: datetime | None = None) -> tuple[bool, str] | None:
 
 
 def warning() -> str:
-    """Kurzer Warnhinweis für Admins, wenn die letzte Sicherung fehlgeschlagen ist."""
+    """Short warning for admins if the last backup failed."""
     if not get_bool("backup_enabled") or not get_setting("backup_last_error"):
         return ""
     if get_setting("backup_last_ok") > get_setting("backup_last_error"):
         return ""
-    return _("Die letzte Datensicherung ist fehlgeschlagen.")
+    return _("The last backup failed.")
 
 
 def _notify_admins(message: str) -> None:
@@ -299,9 +307,9 @@ def _notify_admins(message: str) -> None:
     for admin in User.query.filter_by(role=ROLE_ADMIN, active=True):
         if admin.email:
             try:
-                # Meldung erst in der Sprache des Empfängers übersetzen (render_mail stellt sie ein)
+                # Translate the message only in the recipient's language (render_mail sets it)
                 subject, text, html = render_mail("backup_failed", user=admin, message=message,
                                                   localize=localized_message)
                 send_mail(admin.email, subject, text, html, kind="backup", user_id=admin.id)
             except Exception:  # noqa: BLE001
-                log.exception("Hinweis auf fehlgeschlagene Sicherung konnte nicht gesendet werden")
+                log.exception("Notice about the failed backup could not be sent")

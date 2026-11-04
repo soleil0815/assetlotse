@@ -1,24 +1,24 @@
 {% extends "_auth.html" %}
 {% from "_macros.html" import icon %}
-{% block title %}{{ _("Einrichtung") }}{% endblock %}
+{% block title %}{{ _("Setup") }}{% endblock %}
 {% block auth %}
-<div class="eyebrow">{{ _("Ersteinrichtung") }}</div>
-<h2>{{ _("AssetLotse einrichten") }}</h2>
-<p class="muted">{{ _("Lege das lokale Administratorkonto an. Es funktioniert auch dann, wenn das Active Directory nicht erreichbar ist.") }}</p>
+<div class="eyebrow">{{ _("Initial setup") }}</div>
+<h2>{{ _("Set up AssetLotse") }}</h2>
+<p class="muted">{{ _("Create the local administrator account. It works even when Active Directory is unreachable.") }}</p>
 <form method="post" style="margin-top: 22px">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div class="field"><label for="f-org-name">{{ _("Name (Einrichtung oder Programm)") }}</label>
-    <input id="f-org-name" type="text" name="org_name" value="{{ request.form.get('org_name', '') }}" placeholder="{{ _('z. B. AssetLotse oder IT-Ausgabe des Instituts') }}"></div>
-  <div class="field"><label for="f-username">{{ _("Admin-Benutzername") }}</label>
+  <div class="field"><label for="f-org-name">{{ _("Name (organisation or program)") }}</label>
+    <input id="f-org-name" type="text" name="org_name" value="{{ request.form.get('org_name', '') }}" placeholder="{{ _('e.g. AssetLotse or IT equipment desk of the institute') }}"></div>
+  <div class="field"><label for="f-username">{{ _("Admin username") }}</label>
     <input id="f-username" type="text" name="username" value="{{ request.form.get('username', 'admin') }}" required autocomplete="username"></div>
-  <div class="field"><label for="f-display-name">{{ _("Anzeigename") }}</label>
+  <div class="field"><label for="f-display-name">{{ _("Display name") }}</label>
     <input id="f-display-name" type="text" name="display_name" value="{{ request.form.get('display_name', 'Administrator') }}"></div>
-  <div class="field"><label for="f-email">{{ _("E-Mail <small>(optional)</small>") }}</label>
+  <div class="field"><label for="f-email">{{ _("Email <small>(optional)</small>") }}</label>
     <input id="f-email" type="email" name="email" value="{{ request.form.get('email', '') }}"></div>
-  <div class="field"><label for="f-password">{{ _("Passwort <small>(mind. 10 Zeichen)</small>") }}</label>
+  <div class="field"><label for="f-password">{{ _("Password <small>(at least 10 characters)</small>") }}</label>
     <input id="f-password" type="password" name="password" required minlength="10" autocomplete="new-password"></div>
-  <div class="field"><label for="f-password2">{{ _("Passwort wiederholen") }}</label>
+  <div class="field"><label for="f-password2">{{ _("Repeat password") }}</label>
     <input id="f-password2" type="password" name="password2" required minlength="10" autocomplete="new-password"></div>
-  <button class="btn primary lg block">{{ icon("check") }} {{ _("Einrichten") }}</button>
+  <button class="btn primary lg block">{{ icon("check") }} {{ _("Set up") }}</button>
 </form>
 {% endblock %}

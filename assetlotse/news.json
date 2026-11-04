@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.1.0",
+      "date": "2026-11-04",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Protokoll und Befehle auf Englisch",
+        "text": "Die Oberfläche bleibt deutsch und englisch wie bisher. Meldungen im Container-Protokoll und die Ausgaben von Befehlen wie „docker compose run --rm assetlotse backups“ sind jetzt englisch, ebenso das Änderungsprotokoll (CHANGELOG)."
+      },
+      "en": {
+        "title": "Log and commands in English",
+        "text": "The interface stays German and English as before. Messages in the container log and the output of commands such as “docker compose run --rm assetlotse backups” are now in English, as is the change log (CHANGELOG)."
+      }
+    },
+    {
       "version": "2.0.2",
       "date": "2026-11-04",
       "kind": "fix",

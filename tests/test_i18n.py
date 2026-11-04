@@ -1,4 +1,4 @@
-"""Mehrsprachigkeit und Hilfe: Katalog vollständig, Sprachwahl, E-Mails, rollenabhängige Hilfe."""
+"""Multilingual support and help: catalogue complete, language choice, emails, role-dependent help."""
 import ast
 import json
 import os
@@ -33,7 +33,7 @@ def template_msgids() -> set[str]:
     ids = set()
     for f in (PKG / "templates").rglob("*"):
         if f.suffix not in (".html", ".txt") or (f.parent.parent.name == "help" and f.parent.name in ("de", "en")):
-            continue   # Hilfetexte liegen je Sprache als eigene Dateien vor
+            continue   # help texts exist as separate files per language
         text = f.read_text(encoding="utf-8")
         for m in TPL_GETTEXT.finditer(text):
             ids.add(_unescape(m.group(1) if m.group(1) is not None else m.group(2)))
@@ -74,18 +74,18 @@ def fields(s: str) -> set[str]:
 class CatalogTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.en = json.loads((PKG / "translations" / "en.json").read_text(encoding="utf-8"))
+        cls.de = json.loads((PKG / "translations" / "de.json").read_text(encoding="utf-8"))
 
     def test_everything_translated(self):
-        missing = sorted((template_msgids() | python_msgids() | js_msgids()) - set(self.en))
-        self.assertEqual(missing, [], f"{len(missing)} Texte ohne englische Übersetzung")
+        missing = sorted((template_msgids() | python_msgids() | js_msgids()) - set(self.de))
+        self.assertEqual(missing, [], f"{len(missing)} texts without German translation")
 
     def test_placeholders_match(self):
-        bad = [k for k, v in self.en.items() if fields(k) != fields(v)]
+        bad = [k for k, v in self.de.items() if fields(k) != fields(v)]
         self.assertEqual(bad, [])
 
     def test_no_empty_translation(self):
-        self.assertEqual([k for k, v in self.en.items() if not v.strip()], [])
+        self.assertEqual([k for k, v in self.de.items() if not v.strip()], [])
 
 
 class Base(unittest.TestCase):
@@ -142,7 +142,7 @@ class LanguageTests(Base):
         self.c.post("/sprache/en", data={"next": "/"})
         db.session.refresh(self.users["leser"])
         self.assertEqual(self.users["leser"].language, "en")
-        # neue Sitzung, anderer Browser: Profil gilt
+        # new session, other browser: the profile applies
         other = self.app.test_client()
         other.post("/login", data={"username": "leser", "password": PW})
         self.assertIn('<html lang="en">', other.get("/").get_data(as_text=True))
@@ -153,7 +153,7 @@ class LanguageTests(Base):
         self.assertEqual(self.c.post("/sprache/xx").status_code, 404)
 
     def test_english_pages_have_no_common_german_words(self):
-        """Grobe Kontrolle: auf englischen Seiten tauchen typische deutsche Wörter nicht auf."""
+        """Rough check: typical German words do not show up on English pages."""
         words = re.compile(r"\b(und|oder|nicht|Geräte|Ausleihe|Benutzer|Einstellungen|Speichern|Zurück|Abmelden|"
                            r"Übersicht|Katalog|Sicherheit|Hilfe|bitte|werden|wird|Gegenstand|Gegenstände|Bestand|Ausgabe|ausgegeben)\b")
         self.login("admin")

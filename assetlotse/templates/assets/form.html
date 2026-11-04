@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, thumb %}
-{% block title %}{{ _("Gegenstand anlegen") if is_new else _("Bearbeiten: {title}", title=asset.name) }}{% endblock %}
+{% block title %}{{ _("Add item") if is_new else _("Edit: {title}", title=asset.name) }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div><div class="eyebrow">{{ _("Neuer Gegenstand") if is_new else _("Gegenstand bearbeiten") }}</div>
-    <h1>{{ _("Gegenstand anlegen") if is_new else asset.name }}</h1>
-    <p>{{ _("Nur die Bezeichnung ist Pflicht – alles andere kannst du später ergänzen.") }}</p></div>
+  <div><div class="eyebrow">{{ _("New item") if is_new else _("Edit item") }}</div>
+    <h1>{{ _("Add item") if is_new else asset.name }}</h1>
+    <p>{{ _("Only the name is required – you can add everything else later.") }}</p></div>
 </div>
 
 <form method="post" enctype="multipart/form-data" autocomplete="off">
@@ -15,92 +15,92 @@
     <div class="stack">
       <section class="card card-pad">
         <div class="form-grid">
-          <div class="field span-4"><label for="f-name">{{ _("Bezeichnung *") }}</label>
+          <div class="field span-4"><label for="f-name">{{ _("Name *") }}</label>
             <input id="f-name" type="text" name="name" value="{{ asset.name or '' }}" required maxlength="300" {{ "autofocus" if is_new }}
-                   placeholder="{{ _("z. B. Laptop Dell Latitude 5440, USB-Stick 64 GB") }}" list="namelist" data-known-fill="name">
+                   placeholder="{{ _("e.g. Laptop Dell Latitude 5440, USB stick 64 GB") }}" list="namelist" data-known-fill="name">
             <datalist id="namelist">{% for n in known.names|sort %}<option value="{{ n }}">{% endfor %}</datalist></div>
-          <div class="field span-2"><label for="f-category">{{ _("Kategorie") }}</label>
+          <div class="field span-2"><label for="f-category">{{ _("Category") }}</label>
             <input id="f-category" type="text" name="category" value="{{ asset.category or '' }}" maxlength="200" list="categorylist"
-                   placeholder="{{ _("z. B. Laptop") }}">
+                   placeholder="{{ _("e.g. Laptop") }}">
             <datalist id="categorylist">{% for c in categories %}<option value="{{ c }}">{% endfor %}</datalist></div>
-          <div class="field span-3"><label for="f-manufacturer">{{ _("Hersteller") }}</label><input id="f-manufacturer" type="text" name="manufacturer" value="{{ asset.manufacturer or '' }}" maxlength="200" list="makerlist">
+          <div class="field span-3"><label for="f-manufacturer">{{ _("Manufacturer") }}</label><input id="f-manufacturer" type="text" name="manufacturer" value="{{ asset.manufacturer or '' }}" maxlength="200" list="makerlist">
             <datalist id="makerlist">{% for m in known.manufacturers %}<option value="{{ m }}">{% endfor %}</datalist></div>
-          <div class="field span-3"><label for="f-model">{{ _("Modell") }}</label><input id="f-model" type="text" name="model" value="{{ asset.model or '' }}" maxlength="200" list="modellist" data-known-fill="model">
+          <div class="field span-3"><label for="f-model">{{ _("Model") }}</label><input id="f-model" type="text" name="model" value="{{ asset.model or '' }}" maxlength="200" list="modellist" data-known-fill="model">
             <datalist id="modellist">{% for m in known.models|sort %}<option value="{{ m }}">{% endfor %}</datalist></div>
           <script type="application/json" id="asset-known">{{ {"names": known.names, "models": known.models}|tojson }}</script>
-          <div class="field span-3"><label for="f-inventory-no">{{ _("Inventarnummer") }}</label><input id="f-inventory-no" class="code-input" type="text" name="inventory_no" value="{{ asset.inventory_no or '' }}" maxlength="100"
-                   placeholder="{{ _("z. B. IT-0042") }}" autocomplete="off" data-number-check="{{ url_for('assets.check_number') }}" data-field="inventory_no" data-except="{{ asset.id or '' }}">
+          <div class="field span-3"><label for="f-inventory-no">{{ _("Inventory number") }}</label><input id="f-inventory-no" class="code-input" type="text" name="inventory_no" value="{{ asset.inventory_no or '' }}" maxlength="100"
+                   placeholder="{{ _("e.g. IT-0042") }}" autocomplete="off" data-number-check="{{ url_for('assets.check_number') }}" data-field="inventory_no" data-except="{{ asset.id or '' }}">
             <div class="number-hint" data-number-hint aria-live="polite"></div>
             {% if offers.inventory_no %}{% set o = offers.inventory_no %}<label class="check take-over"><input type="checkbox" name="take_inventory_no" value="{{ o.asset.id }}" {{ "checked" if o.checked }}>
-              {{ _("Bei „{name}“ entfernen und hier eintragen", name=o.asset.name) }}</label>
-              <a href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=o.asset.name) }}</a>{% endif %}</div>
-          <div class="field span-3"><label for="f-serial-number">{{ _("Seriennummer") }}</label><input id="f-serial-number" class="code-input" type="text" name="serial_number" value="{{ asset.serial_number or '' }}" maxlength="200"
+              {{ _("Remove it from “{name}” and enter it here", name=o.asset.name) }}</label>
+              <a href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("View “{name}”", name=o.asset.name) }}</a>{% endif %}</div>
+          <div class="field span-3"><label for="f-serial-number">{{ _("Serial number") }}</label><input id="f-serial-number" class="code-input" type="text" name="serial_number" value="{{ asset.serial_number or '' }}" maxlength="200"
                    autocomplete="off" data-number-check="{{ url_for('assets.check_number') }}" data-field="serial_number" data-except="{{ asset.id or '' }}">
             <div class="number-hint" data-number-hint aria-live="polite"></div>
             {% if offers.serial_number %}{% set o = offers.serial_number %}<label class="check take-over"><input type="checkbox" name="take_serial_number" value="{{ o.asset.id }}" {{ "checked" if o.checked }}>
-              {{ _("Bei „{name}“ entfernen und hier eintragen", name=o.asset.name) }}</label>
-              <a href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("„{name}“ ansehen", name=o.asset.name) }}</a>{% endif %}</div>
-          <div class="field span-6"><label for="f-description">{{ _("Beschreibung / Zubehör") }}</label><textarea id="f-description" name="description" placeholder="{{ _("z. B. mit Netzteil und Tasche; Zustand; Garantie bis …") }}">{{ asset.description or '' }}</textarea></div>
+              {{ _("Remove it from “{name}” and enter it here", name=o.asset.name) }}</label>
+              <a href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("View “{name}”", name=o.asset.name) }}</a>{% endif %}</div>
+          <div class="field span-6"><label for="f-description">{{ _("Description / accessories") }}</label><textarea id="f-description" name="description" placeholder="{{ _("e.g. with power supply and bag; condition; warranty until …") }}">{{ asset.description or '' }}</textarea></div>
         </div>
         <div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">
-          {{ _('Tipp: Ein USB-/Bluetooth-Barcodescanner funktioniert direkt in den Nummernfeldern – er „tippt“ die Nummer und drückt <span class="kbd">Enter</span>.') }}</div>
+          {{ _('Tip: a USB/Bluetooth barcode scanner works directly in the number fields – it “types” the number and presses <span class="kbd">Enter</span>.') }}</div>
       </section>
 
       <section class="card card-pad">
-        <h3 style="margin-bottom: 6px">{{ icon("key") }} {{ _("Vertrauliche Angaben") }}</h3>
-        <p class="muted" style="margin-bottom: 12px">{{ _("Z. B. BitLocker-Wiederherstellungsschlüssel, PIN oder Kennwort. Wird verschlüsselt gespeichert, nie exportiert, und jedes Anzeigen wird protokolliert. Sehen dürfen es nur Administratoren und Verwalter, die Mitglied der gewählten Gruppe sind – bei „Allgemein“ nur Administratoren.") }}</p>
+        <h3 style="margin-bottom: 6px">{{ icon("key") }} {{ _("Confidential details") }}</h3>
+        <p class="muted" style="margin-bottom: 12px">{{ _("E.g. a BitLocker recovery key, PIN or password. Stored encrypted, never exported, and every reveal is logged. Only administrators and managers who are members of the selected group may see it – for “General”, administrators only.") }}</p>
         {% if not is_new and not current_user.can_view_secret(asset) %}
-        <div class="notice warn">{{ icon("lock") }}<div>{{ _("Vertrauliche Angaben sehen nur Administratoren und Verwalter, die Mitglied der Gruppe dieses Gegenstands sind.") }}</div></div>
+        <div class="notice warn">{{ icon("lock") }}<div>{{ _("Confidential details are only visible to administrators and to managers who are members of this item's group.") }}</div></div>
         {% else %}
         {% if asset.has_secret %}
-        <div class="notice accent" style="margin-bottom: 12px">{{ icon("lock") }}<div>{{ _("Es sind bereits vertrauliche Angaben hinterlegt. Das Feld bleibt leer – nur ausfüllen, um sie zu ersetzen.") }}</div></div>
+        <div class="notice accent" style="margin-bottom: 12px">{{ icon("lock") }}<div>{{ _("Confidential details are already stored. The field stays empty – only fill it in to replace them.") }}</div></div>
         {% endif %}
-        <div class="field"><textarea name="secret" aria-label="{{ _("Vertrauliche Angaben") }}" rows="3" maxlength="4000" class="code-input" spellcheck="false" autocomplete="off"
-             placeholder="{{ _("neu eingeben, um zu ersetzen") if asset.has_secret else _("z. B. 123456-123456-123456-123456-123456-123456-123456-123456") }}"></textarea></div>
+        <div class="field"><textarea name="secret" aria-label="{{ _("Confidential details") }}" rows="3" maxlength="4000" class="code-input" spellcheck="false" autocomplete="off"
+             placeholder="{{ _("enter new value to replace") if asset.has_secret else _("e.g. 123456-123456-123456-123456-123456-123456-123456-123456") }}"></textarea></div>
         <input type="hidden" name="secret_holder_view_shown" value="1">
         <label class="check" style="margin-top: 10px"><input type="checkbox" name="secret_holder_view" value="1" {{ "checked" if asset.secret_holder_view }}>
-          <span>{{ _("Die Person, der der Gegenstand ausgegeben ist, darf die Angaben selbst ansehen") }}<br>
-          <small class="muted">{{ _("Nur solange er ihr ausgegeben ist und erst nach Eingabe ihres Passworts; jedes Anzeigen wird protokolliert. Praktisch, wenn jemand den BitLocker-Schlüssel seiner Festplatte vergessen hat.") }} {{ _("Gilt nur für Einzelstücke und nur für Ausgaben durch jemanden, der die Angaben selbst sehen darf – nicht für „Selbst ausleihen“.") }}</small></span></label>
-        {% if asset.has_secret %}<label class="check"><input type="checkbox" name="remove_secret" value="1"> {{ _("Vertrauliche Angaben löschen") }}</label>{% endif %}
+          <span>{{ _("The person this item is issued to may view the details themselves") }}<br>
+          <small class="muted">{{ _("Only while the item is issued to them and only after entering their password; every view is logged. Handy when someone has forgotten the BitLocker key of their drive.") }} {{ _("Applies only to single items and only to issues made by someone who may see the details themselves – not to self-checkout.") }}</small></span></label>
+        {% if asset.has_secret %}<label class="check"><input type="checkbox" name="remove_secret" value="1"> {{ _("Delete confidential details") }}</label>{% endif %}
         {% endif %}
       </section>
     </div>
 
     <div class="stack">
       <section class="card card-pad">
-        <h3 style="margin-bottom: 14px">{{ _("Bestand") }}</h3>
-        <div class="field"><label for="f-group-id">{{ _("Gruppe") }}</label>
+        <h3 style="margin-bottom: 14px">{{ _("Inventory") }}</h3>
+        <div class="field"><label for="f-group-id">{{ _("Group") }}</label>
           <select id="f-group-id" name="group_id">
-            <option value="">{{ _("Allgemein – für alle") }}</option>
+            <option value="">{{ _("General – for everyone") }}</option>
             {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if asset.group_id == g.id }}>{{ g.name }}</option>{% endfor %}
           </select>
-          <div class="hint">{{ _("Gegenstände einer Gruppe bekommen nur deren Mitglieder.") }}</div></div>
-        <div class="field"><label for="f-quantity">{{ _("Anzahl") }}</label><input id="f-quantity" type="number" name="quantity" value="{{ asset.quantity if asset.quantity is not none else 1 }}" min="0">
-          <div class="hint">{{ _("1 für Einzelstücke mit Seriennummer; mehr für gleichartige Dinge ohne Nummer (z. B. 20 HDMI-Kabel).") }}</div></div>
-        <div class="field"><label for="f-location">{{ _("Standort") }}</label>
+          <div class="hint">{{ _("Items of a group can only be issued to its members.") }}</div></div>
+        <div class="field"><label for="f-quantity">{{ _("Quantity") }}</label><input id="f-quantity" type="number" name="quantity" value="{{ asset.quantity if asset.quantity is not none else 1 }}" min="0">
+          <div class="hint">{{ _("1 for single items with a serial number; more for identical things without a number (e.g. 20 HDMI cables).") }}</div></div>
+        <div class="field"><label for="f-location">{{ _("Location") }}</label>
           {% if location_names %}
           <select id="f-location" name="location">
-            <option value="">{{ _("– kein Standort –") }}</option>
+            <option value="">{{ _("– no location –") }}</option>
             {% for n in location_names %}<option value="{{ n }}" {{ 'selected' if (asset.location or '')|lower == n|lower }}>{{ n }}</option>{% endfor %}
             {% if asset.location and asset.location|lower not in location_names|map('lower')|list %}
-            <option value="{{ asset.location }}" selected>{{ _("{name} (nicht in der Liste)", name=asset.location) }}</option>{% endif %}
+            <option value="{{ asset.location }}" selected>{{ _("{name} (not in the list)", name=asset.location) }}</option>{% endif %}
           </select>
-          <div class="hint">{{ _('Fehlt ein Standort? <a href="{url}" target="_blank">Standorte verwalten</a>', url=url_for('locations.index')) }}</div>
+          <div class="hint">{{ _('Location missing? <a href="{url}" target="_blank">Manage locations</a>', url=url_for('locations.index')) }}</div>
           {% else %}
-          <input id="f-location" type="text" name="location" value="{{ asset.location or '' }}" placeholder="{{ _("z. B. Raum 2.14, Schrank B") }}">
-          <div class="hint">{{ _('Tipp: Unter <a href="{url}">Standorte</a> eine feste Liste anlegen – dann wird hier ausgewählt statt getippt.', url=url_for('locations.index')) }}</div>
+          <input id="f-location" type="text" name="location" value="{{ asset.location or '' }}" placeholder="{{ _("e.g. Room 2.14, cabinet B") }}">
+          <div class="hint">{{ _('Tip: create a fixed list under <a href="{url}">Locations</a> – then you pick from it here instead of typing.', url=url_for('locations.index')) }}</div>
           {% endif %}</div>
       </section>
 
       <section class="card card-pad">
-        <h3 style="margin-bottom: 14px">{{ _("Foto") }}</h3>
+        <h3 style="margin-bottom: 14px">{{ _("Photo") }}</h3>
         <div class="photo-grid" style="display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 14px; align-items: start">
           <div>{{ thumb(asset) }}</div>
           <div>
-            <div class="field"><label for="f-image-upload">{{ _("Bild hochladen") }}</label><input id="f-image-upload" type="file" name="image_upload" accept="image/*"></div>
-            {% if not is_new and asset.image %}<label class="check"><input type="checkbox" name="remove_image" value="1"> {{ _("Foto entfernen") }}</label>{% endif %}
+            <div class="field"><label for="f-image-upload">{{ _("Upload picture") }}</label><input id="f-image-upload" type="file" name="image_upload" accept="image/*"></div>
+            {% if not is_new and asset.image %}<label class="check"><input type="checkbox" name="remove_image" value="1"> {{ _("Remove photo") }}</label>{% endif %}
             {% if is_new and template_id and asset.image %}<input type="hidden" name="image_from" value="{{ template_id }}">
-            <label class="check"><input type="checkbox" name="remove_image" value="1" {{ "checked" if request.form.get("remove_image") }}> {{ _("Foto der Vorlage nicht übernehmen") }}</label>{% endif %}
+            <label class="check"><input type="checkbox" name="remove_image" value="1" {{ "checked" if request.form.get("remove_image") }}> {{ _("Don't copy the template's photo") }}</label>{% endif %}
           </div>
         </div>
       </section>
@@ -108,9 +108,9 @@
   </div>
 
   <div class="actions" style="margin-top: 20px; justify-content: flex-end">
-    <a class="btn ghost" href="{{ url_for('assets.detail', asset_id=asset.id) if not is_new else url_for('assets.index') }}">{{ _("Abbrechen") }}</a>
-    {% if is_new %}<button class="btn" name="next_action" value="another" title="{{ _("Speichern und gleich den nächsten gleichartigen Gegenstand anlegen") }}">{{ icon("plus") }} {{ _("Speichern &amp; nächsten") }}</button>{% endif %}
-    <button class="btn primary lg">{{ icon("check") }} {{ _("Speichern") }}</button>
+    <a class="btn ghost" href="{{ url_for('assets.detail', asset_id=asset.id) if not is_new else url_for('assets.index') }}">{{ _("Cancel") }}</a>
+    {% if is_new %}<button class="btn" name="next_action" value="another" title="{{ _("Save and add the next item of the same kind right away") }}">{{ icon("plus") }} {{ _("Save &amp; next") }}</button>{% endif %}
+    <button class="btn primary lg">{{ icon("check") }} {{ _("Save") }}</button>
   </div>
 </form>
 {% endblock %}

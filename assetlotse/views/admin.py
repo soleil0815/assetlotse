@@ -1,4 +1,4 @@
-"""Administration: Benutzer, Gruppen, Einstellungen, Active Directory."""
+"""Administration: users, groups, settings, Active Directory."""
 from __future__ import annotations
 
 import logging
@@ -17,24 +17,24 @@ from . import admin_required, form_bool, form_int, form_str, safe_next
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 
-# Änderungen, mit denen sich jemand Zugang verschaffen oder Schutz abschalten könnte
+# Changes someone could use to gain access or switch off protection
 _SECURITY_ENDPOINTS = {"admin.user_new", "admin.user_edit", "admin.user_delete", "admin.user_reset_2fa",
                        "admin.user_unlock", "admin.settings", "admin.ldap"}
 
 
 @bp.before_request
 def _require_second_factor_for_changes():
-    """Eine Sitzung, die im internen Netz ohne zweiten Faktor begonnen wurde, darf sicherheitsrelevante
-    Einstellungen (Benutzer, Rollen, 2FA, Netze, AD) erst nach Bestätigung des zweiten Faktors ändern.
+    """A session started on the internal network without a second factor may change security-relevant
+    settings (users, roles, 2FA, networks, AD) only after confirming the second factor.
 
-    Sonst könnte jemand mit dem Admin-Passwort im LAN z. B. die eigene 2FA zurücksetzen, einen neuen
-    Faktor anlegen und sich damit von außen anmelden. Erscheinungsbild, Gruppen, E-Mail und Datensicherung
-    bleiben ohne Rückfrage änderbar."""
+    Otherwise someone with the admin password on the LAN could, e.g., reset their own 2FA, enroll a new
+    factor and use it to sign in from outside. Branding, groups, email and backups remain changeable
+    without confirmation."""
     import time
     from flask import session
     if (request.method == "POST" and request.endpoint in _SECURITY_ENDPOINTS and current_user.is_authenticated
             and session.get("mfa_skipped") and current_user.has_2fa and not session.get("mfa_ok")):
-        flash(_("Bitte bestätige zuerst deinen zweiten Faktor – danach die Änderung noch einmal speichern."), "warning")
+        flash(_("Please confirm your second factor first – then save the change again."), "warning")
         back = (request.path if request.endpoint in ("admin.user_new", "admin.user_edit", "admin.settings", "admin.ldap")
                 else url_for("admin.users"))
         session["mfa_pending"] = {"uid": current_user.id, "remember": False, "next": back, "ts": time.time()}
@@ -50,7 +50,7 @@ LDAP_BOOL = ["ldap_enabled", "ldap_verify_cert", "ldap_check_hostname", "ldap_ne
 
 
 def _id(value) -> int | None:
-    """Datenbank-ID aus einem Formularwert – nur ASCII-Ziffern (kein „²“), nicht zu groß für SQLite."""
+    """Database ID from a form value – ASCII digits only (no "²"), not too large for SQLite."""
     value = (value or "").strip()
     if value.isascii() and value.isdecimal() and len(value) <= 18:
         return int(value)
@@ -68,7 +68,7 @@ def _admin_count(exclude_id: int | None = None) -> int:
     return q.count()
 
 
-# ---------------------------------------------------------------- Benutzer
+# ---------------------------------------------------------------- Users
 
 @bp.route("/benutzer")
 @admin_required
@@ -94,7 +94,7 @@ def users():
     from sqlalchemy.orm import selectinload
     users = (query.options(selectinload(User.groups), selectinload(User.webauthn_credentials))
              .order_by(User.pending_approval.desc(), User.username).all())
-    # Sperren werden unter dem vereinheitlichten Namen geführt („DOMÄNE\anna“ = „anna“)
+    # locks are kept under the normalized name ("DOMAIN\anna" = "anna")
     locked = {u.username.lower() for u in users if lockout.norm(u.username) in locked}
     if status == "anmeldesperre":
         users = [u for u in users if u.username.lower() in locked]
@@ -107,45 +107,45 @@ def users():
 def _save_user(user: User, is_new: bool):
     username = form_str("username", 120)
     if not username:
-        return _("Benutzername fehlt.")
+        return _("Username missing.")
     clash = User.query.filter(func.lower(User.username) == username.lower(), User.id != (user.id or 0)).first()
     if clash:
-        return _("Dieser Benutzername ist bereits vergeben.")
+        return _("This username is already taken.")
     local = is_new or user.auth_source == "local"
-    role = request.form.get("role", "reader") if local else user.role  # AD-Rolle kommt aus den Regeln
+    role = request.form.get("role", "reader") if local else user.role  # AD role comes from the rules
     if role not in ROLES:
-        return _("Unbekannte Rolle.")
+        return _("Unknown role.")
     active = form_bool("active")
     if user.id == current_user.id and (role != ROLE_ADMIN or not active):
-        return _("Du kannst dir selbst die Administratorrechte nicht entziehen.")
+        return _("You cannot remove your own administrator rights.")
     if user.role == ROLE_ADMIN and (role != ROLE_ADMIN or not active) and _admin_count(user.id) == 0:
-        return _("Es muss mindestens ein aktiver Administrator bestehen bleiben.")
+        return _("At least one active administrator must remain.")
     password = request.form.get("password") or ""
     if user.auth_source == "local" or is_new:
         if is_new and len(password) < MIN_PASSWORD_LENGTH:
-            return _("Bitte ein Passwort mit mindestens {n} Zeichen vergeben.", n=MIN_PASSWORD_LENGTH)
+            return _("Please choose a password with at least {n} characters.", n=MIN_PASSWORD_LENGTH)
         if password and len(password) < MIN_PASSWORD_LENGTH:
-            return _("Das Passwort muss mindestens {n} Zeichen haben.", n=MIN_PASSWORD_LENGTH)
+            return _("The password must be at least {n} characters long.", n=MIN_PASSWORD_LENGTH)
     if user.username != username:
         if not is_new and user.auth_source == "ldap":
-            log.info("AD-Konto %s von %s umbenannt in %s", user.username, current_user.username, username)
-        user.username = username      # auch AD-Konten: z. B. altes Konto beiseiteschieben, wenn der Name neu vergeben ist
+            log.info("AD account %s renamed by %s to %s", user.username, current_user.username, username)
+        user.username = username      # AD accounts too: e.g. move an old account aside when the name has been reassigned
     from ..mailer import valid_email
     email = form_str("email", 200)
     if email and not valid_email(email):
-        return _("Bitte eine gültige E-Mail-Adresse eingeben (nur eine Adresse).")
+        return _("Please enter a valid email address (only one address).")
     user.display_name = form_str("display_name", 200)
     if email != (user.email or ""):
-        user.pending_email = ""      # ein offener Bestätigungslink überschreibt die Adresse des Admins nicht
+        user.pending_email = ""      # a pending confirmation link must not overwrite the address set by the admin
     user.email = email
     if user.auth_source == "local" or is_new:
         user.role = role
     if bool(user.active) != active:
-        user.deactivated_by_sync = False     # von Hand geändert: der AD-Abgleich schaltet nicht zurück
+        user.deactivated_by_sync = False     # changed manually: the AD sync does not switch it back
     user.active = active
-    if active and user.pending_approval:   # „Konto aktiv“ angehakt = freigegeben
+    if active and user.pending_approval:   # "account active" checked = approved
         user.pending_approval = False
-    if active and not user.email_verified:  # Admin bestätigt die Adresse stellvertretend
+    if active and not user.email_verified:  # admin confirms the address on the user's behalf
         user.email_verified = True
     user.email_notifications = form_bool("email_notifications")
     if password and (user.auth_source == "local" or is_new):
@@ -155,7 +155,7 @@ def _save_user(user: User, is_new: bool):
     user.groups = Group.query.filter(Group.id.in_(ids)).all() if ids else []
     user.manages_all = user.role == ROLE_MANAGER and form_bool("manages_all")
     if user.role == ROLE_MANAGER and not user.manages_all and not user.groups:
-        flash(_("Hinweis: Dieser Verwalter hat keine Gruppe und verwaltet deshalb nur allgemeine Gegenstände."),
+        flash(_("Note: this manager has no group and therefore only manages general items."),
               "warning")
     return None
 
@@ -171,7 +171,7 @@ def user_new():
         else:
             db.session.add(user)
             db.session.commit()
-            flash(_("Benutzer {name} angelegt.", name=user.username), "success")
+            flash(_("User {name} created.", name=user.username), "success")
             return redirect(url_for("admin.users"))
     return render_template("admin/user_form.html", user=user, groups=Group.query.order_by(Group.name).all(),
                            is_new=True)
@@ -188,7 +188,7 @@ def user_edit(user_id):
             db.session.rollback()
         else:
             db.session.commit()
-            flash(_("Benutzer gespeichert."), "success")
+            flash(_("User saved."), "success")
             return redirect(url_for("admin.users"))
     from .. import lockout, twofa
     return render_template("admin/user_form.html", user=user, groups=Group.query.order_by(Group.name).all(),
@@ -207,8 +207,8 @@ def user_approve(user_id):
         db.session.commit()
         if user.active:
             send_approved(user)
-        flash(_("{name} wurde freigegeben.", name=user.name) + ("" if user.active else
-              " " + _("Das Konto wird aktiv, sobald die E-Mail-Adresse bestätigt ist.")), "success")
+        flash(_("{name} has been approved.", name=user.name) + ("" if user.active else
+              " " + _("The account becomes active as soon as the email address is confirmed.")), "success")
     return redirect(safe_next(request.form.get("next")) or url_for("admin.users"))
 
 
@@ -216,22 +216,22 @@ def user_approve(user_id):
 @admin_required
 def user_reject(user_id):
     user = db.session.get(User, user_id) or abort(404)
-    # Nur wartende bzw. unbestätigte Selbstregistrierungen – nie das eigene Konto oder einen Administrator
+    # Only pending or unconfirmed self-registrations – never one's own account or an administrator
     if (not user.self_registered or not (user.pending_approval or not user.email_verified)
             or user.id == current_user.id or user.role == ROLE_ADMIN):
-        flash(_("Nur wartende Registrierungen können abgelehnt werden."), "error")
+        flash(_("Only pending registrations can be rejected."), "error")
     elif user.active_loans:
-        flash(_("Der Person sind noch Gegenstände ausgegeben. Sperre das Konto stattdessen."), "error")
+        flash(_("This person still has items issued. Lock the account instead."), "error")
     else:
         from ..retention import OpenLoansError, delete_user
         name = user.name
         try:
             delete_user(user)
             db.session.commit()
-            flash(_("Registrierung von {name} abgelehnt und gelöscht.", name=name), "success")
+            flash(_("Registration of {name} rejected and deleted.", name=name), "success")
         except OpenLoansError:
             db.session.rollback()
-            flash(_("Der Person sind noch Gegenstände ausgegeben. Sperre das Konto stattdessen."), "error")
+            flash(_("This person still has items issued. Lock the account instead."), "error")
     return redirect(url_for("admin.users", status="neu"))
 
 
@@ -243,9 +243,9 @@ def user_reset_2fa(user_id):
     user = db.session.get(User, user_id) or abort(404)
     reset_2fa(user)
     lockout.unlock_user(user.username)
-    log.info("2FA von %s zurückgesetzt durch %s", user.username, current_user.username)
-    hint = " " + _("Bei der nächsten Anmeldung wird die Einrichtung verlangt.") if required_for(user) else ""
-    flash(_("Zwei-Faktor-Anmeldung von {name} zurückgesetzt – Anmeldung jetzt nur mit Passwort.", name=user.username) + hint,
+    log.info("2FA of %s reset by %s", user.username, current_user.username)
+    hint = " " + _("Setup will be required at the next sign-in.") if required_for(user) else ""
+    flash(_("Two-factor authentication of {name} reset – sign-in now only with password.", name=user.username) + hint,
           "success")
     return redirect(safe_next(request.form.get("next")) or url_for("admin.user_edit", user_id=user.id))
 
@@ -256,8 +256,8 @@ def user_unlock(user_id):
     from .. import lockout
     user = db.session.get(User, user_id) or abort(404)
     lockout.unlock_user(user.username)
-    log.info("Anmeldesperre von %s aufgehoben durch %s", user.username, current_user.username)
-    flash(_("Anmeldesperre von {name} aufgehoben.", name=user.username), "success")
+    log.info("Sign-in lock of %s lifted by %s", user.username, current_user.username)
+    flash(_("Sign-in lock of {name} lifted.", name=user.username), "success")
     return redirect(safe_next(request.form.get("next")) or url_for("admin.user_edit", user_id=user.id))
 
 
@@ -266,21 +266,21 @@ def user_unlock(user_id):
 def user_delete(user_id):
     user = db.session.get(User, user_id) or abort(404)
     if user.id == current_user.id:
-        flash(_("Du kannst dein eigenes Konto nicht löschen."), "error")
+        flash(_("You cannot delete your own account."), "error")
     elif user.active_loans:
-        flash(_("Der Person sind noch Gegenstände ausgegeben. Sperre das Konto stattdessen."), "error")
+        flash(_("This person still has items issued. Lock the account instead."), "error")
     elif user.role == ROLE_ADMIN and _admin_count(user.id) == 0:
-        flash(_("Der letzte Administrator kann nicht gelöscht werden."), "error")
+        flash(_("The last administrator cannot be deleted."), "error")
     else:
         from ..retention import OpenLoansError, delete_user
         name = user.username
         try:
-            delete_user(user)   # abgeschlossene Ausleihen nur noch gezählt – Statistik bleibt erhalten
+            delete_user(user)   # completed loans are only kept as counts – statistics are preserved
             db.session.commit()
-            flash(_("Benutzer {name} gelöscht.", name=name), "success")
-        except OpenLoansError:      # gerade eben doch noch etwas ausgegeben
+            flash(_("User {name} deleted.", name=name), "success")
+        except OpenLoansError:      # something was issued in the meantime
             db.session.rollback()
-            flash(_("Der Person sind noch Gegenstände ausgegeben. Sperre das Konto stattdessen."), "error")
+            flash(_("This person still has items issued. Lock the account instead."), "error")
     return redirect(url_for("admin.users"))
 
 
@@ -293,14 +293,14 @@ def retention_run():
     set_setting("retention_last_result", f"{datetime.now():%d.%m.%Y %H:%M}: {format_result(res)}")
     db.session.commit()
     if res.get("off"):
-        flash(_("Aufbewahrungsfrist ist ausgeschaltet."), "success")
+        flash(_("Retention period is turned off."), "success")
     else:
-        flash(_("Gelöscht: {loans} alte Ausleihe(n), {mails} Einträge im E-Mail-Protokoll, {secrets} im Zugriffsprotokoll.",
+        flash(_("Deleted: {loans} old loan(s), {mails} entries in the email log, {secrets} in the access log.",
                 loans=res["loans"], mails=res["mails"], secrets=res.get("secret_log", 0)), "success")
     return redirect(url_for("admin.settings") + "#aufbewahrung")
 
 
-# ---------------------------------------------------------------- Datensicherung
+# ---------------------------------------------------------------- Backups
 
 @bp.route("/datensicherung", methods=["GET", "POST"])
 @admin_required
@@ -313,7 +313,7 @@ def backups():
         set_setting("backup_hour", hour if 0 <= hour <= 23 else 2)
         db.session.commit()
         removed = backup.rotate() if backup.supported() else 0
-        flash(_("Einstellungen gespeichert.") + (" " + _n("{n} ältere Sicherung entfernt.", "{n} ältere Sicherungen entfernt.",
+        flash(_("Settings saved.") + (" " + _n("{n} older backup removed.", "{n} older backups removed.",
                                                           removed) if removed else ""), "success")
         return redirect(url_for("admin.backups"))
     supported = backup.supported()
@@ -327,7 +327,7 @@ def backups():
 
 
 def _stamped(value: str, translate) -> str:
-    """Gespeichertes Laufergebnis „TT.MM.JJJJ HH:MM: Text“ in der Sprache der Oberfläche anzeigen."""
+    """Show a stored run result "DD.MM.YYYY HH:MM: text" in the UI language."""
     import re
     from datetime import datetime
 
@@ -344,15 +344,16 @@ def _stamped(value: str, translate) -> str:
 
 def _retention_message(msg: str) -> str:
     import re
+    # parses the German text stored by retention.format_result – stored format, keep
     m = re.match(r"^Gelöscht: (\d+) alte Ausleihe\(n\), (\d+) Einträge im E-Mail-Protokoll(?:, (\d+) im Zugriffsprotokoll)?$", msg)
     if m:
-        return _("Gelöscht: {loans} alte Ausleihe(n), {mails} Einträge im E-Mail-Protokoll, {secrets} im Zugriffsprotokoll",
+        return _("Deleted: {loans} old loan(s), {mails} entries in the email log, {secrets} in the access log",
                  loans=m.group(1), mails=m.group(2), secrets=m.group(3) or "0")
     return _(msg)
 
 
 def _backup_message(msg: str) -> str:
-    """Ergebnis von backup.run_now (deutsch, so auch gespeichert) in der Sprache der Oberfläche."""
+    """Result of backup.run_now (German, stored that way) in the UI language."""
     from ..backup import localized_message
     return localized_message(msg)
 
@@ -361,7 +362,7 @@ def _backup_message(msg: str) -> str:
 @admin_required
 def backup_now():
     from ..backup import run_now
-    ok, msg = run_now("-manuell")
+    ok, msg = run_now("-manuell")   # file name suffix (stored format – keep)
     flash(_backup_message(msg), "success" if ok else "error")
     return redirect(url_for("admin.backups"))
 
@@ -373,7 +374,7 @@ def backup_download(name):
     path = find_backup(name)
     if path is None:
         abort(404)
-    log.info("Sicherung %s heruntergeladen von %s", name, current_user.username)
+    log.info("Backup %s downloaded by %s", name, current_user.username)
     resp = send_file(path, as_attachment=True, download_name=name, mimetype="application/vnd.sqlite3", max_age=0)
     resp.headers["Cache-Control"] = "private, no-store"
     return resp
@@ -384,13 +385,13 @@ def backup_download(name):
 def backup_delete(name):
     from ..backup import delete_backup
     if delete_backup(name):
-        flash(_("Sicherung {name} gelöscht.", name=name), "success")
+        flash(_("Backup {name} deleted.", name=name), "success")
     else:
         abort(404)
     return redirect(url_for("admin.backups"))
 
 
-# ---------------------------------------------------------------- Gruppen
+# ---------------------------------------------------------------- Groups
 
 @bp.route("/gruppen")
 @admin_required
@@ -404,11 +405,11 @@ def groups():
 def _save_group(group: Group):
     name = form_str("name", 120)
     if not name:
-        return _("Name fehlt.")
-    # In Python vergleichen: SQLite-lower() kennt keine Umlaute („Ärzte“ / „ärzte“)
+        return _("Name missing.")
+    # compare in Python: SQLite lower() does not handle umlauts ("Ärzte" / "ärzte")
     clash = any(g.name.casefold() == name.casefold() for g in Group.query.filter(Group.id != (group.id or 0)))
     if clash:
-        return _("Eine Gruppe mit diesem Namen existiert bereits.")
+        return _("A group with this name already exists.")
     group.name = name
     group.description = form_str("description", 500)
     group.ldap_dn = form_str("ldap_dn", 500)
@@ -431,7 +432,7 @@ def group_new():
         else:
             db.session.add(group)
             db.session.commit()
-            flash(_("Gruppe {name} angelegt.", name=group.name), "success")
+            flash(_("Group {name} created.", name=group.name), "success")
             return redirect(url_for("admin.groups"))
     return render_template("admin/group_form.html", group=group,
                            users=User.query.order_by(User.username).all(), is_new=True)
@@ -448,7 +449,7 @@ def group_edit(group_id):
             db.session.rollback()
         else:
             db.session.commit()
-            flash(_("Gruppe gespeichert."), "success")
+            flash(_("Group saved."), "success")
             return redirect(url_for("admin.groups"))
     return render_template("admin/group_form.html", group=group,
                            users=User.query.order_by(User.username).all(), is_new=False)
@@ -463,12 +464,12 @@ def group_delete(group_id):
         b.group_id = None
     db.session.delete(group)
     db.session.commit()
-    flash(_n("Gruppe {name} gelöscht. {n} Gegenstand ist jetzt allgemein verfügbar.",
-             "Gruppe {name} gelöscht. {n} Gegenstände sind jetzt allgemein verfügbar.", n, name=group.name), "success")
+    flash(_n("Group {name} deleted. {n} item is now generally available.",
+             "Group {name} deleted. {n} items are now generally available.", n, name=group.name), "success")
     return redirect(url_for("admin.groups"))
 
 
-# ---------------------------------------------------------------- Einstellungen
+# ---------------------------------------------------------------- Settings
 
 @bp.route("/einstellungen", methods=["GET", "POST"])
 @admin_required
@@ -487,10 +488,10 @@ def settings():
         reg = request.form.get("registration_mode")
         set_setting("registration_mode", reg if reg in ("off", "approval", "open") else "off")
         if get_setting("registration_mode") != "off" and not get_setting("app_base_url"):
-            # Links in Registrierungs-Mails nie aus der Anfrage eines Fremden bauen: die Adresse, unter der
-            # der Admin die Seite gerade aufruft, fest übernehmen (änderbar unter E-Mail)
+            # never build links in registration emails from a stranger's request: pin the address the
+            # admin is currently using (can be changed under Email)
             set_setting("app_base_url", request.host_url.rstrip("/"))
-            flash(_("Adresse für Links in E-Mails auf {url} gesetzt. Bitte unter E-Mail prüfen, ob AssetLotse von außen so erreichbar ist.",
+            flash(_("Address for links in e-mails set to {url}. Please check under E-mail that AssetLotse is reachable from outside at this address.",
                     url=request.host_url.rstrip("/")), "info")
         set_setting("registration_verify_email", form_bool("registration_verify_email"))
         set_setting("registration_notify_admins", form_bool("registration_notify_admins"))
@@ -511,23 +512,23 @@ def settings():
             text = (request.form.get("internal_networks") or "").strip()[:2000]
             nets, bad = parse(text)
             if bad:
-                flash(_("Internes Netz: ungültige Einträge {entries} – Netze nicht geändert.", entries=", ".join(bad[:5])), "error")
+                flash(_("Internal network: invalid entries {entries} – networks not changed.", entries=", ".join(bad[:5])), "error")
             else:
                 set_setting("internal_networks", "\n".join(str(n) for n in nets))
         if "own_public_hosts" in request.form:
             from ..netzone import parse_own
             entries, bad = parse_own((request.form.get("own_public_hosts") or "")[:1000])
             if bad:
-                flash(_("Eigener Anschluss: ungültige Einträge {entries} – nicht geändert.", entries=", ".join(bad[:5])), "error")
+                flash(_("Own connection: invalid entries {entries} – not changed.", entries=", ".join(bad[:5])), "error")
             else:
                 set_setting("own_public_hosts", "\n".join(entries))
         vis = request.form.get("catalog_visibility")
         set_setting("catalog_visibility", vis if vis in ("own", "groups", "all") else "own")
         if get_setting("catalog_visibility") == "own" and get_bool("self_checkout"):
-            flash(_("Hinweis: Die Selbstausleihe wirkt nur, wenn Mitarbeiter den Bestand sehen – bei „nur eigene "
-                    "Gegenstände“ gibt es für sie keinen Ausleih-Knopf."), "warning")
+            flash(_("Note: self-checkout only works if staff members can see the inventory "
+                    "– with “own items only” they have no checkout button."), "warning")
         db.session.commit()
-        flash(_("Einstellungen gespeichert."), "success")
+        flash(_("Settings saved."), "success")
         return redirect(url_for("admin.settings"))
     from ..mailer import mail_active
     from .. import netzone
@@ -540,25 +541,25 @@ def settings():
 # ---------------------------------------------------------------- Active Directory / LDAP
 
 def _would_lock_out_self(cfg: dict) -> str | None:
-    """Wer mit einem AD-Konto angemeldet ist, darf keine Einstellung speichern, nach der er selbst kein
-    Administrator mehr wäre (z. B. vertippte Admin-Regel) – sonst sperrt er sich und ggf. alle anderen aus."""
+    """Someone signed in with an AD account must not save settings under which they would no longer be
+    an administrator (e.g. a mistyped admin rule) – otherwise they lock out themselves and possibly everyone else."""
     if current_user.auth_source != "ldap":
         return None
     if cfg.get("ldap_enabled") != "1":
-        return _("Du bist mit einem AD-Konto angemeldet – das Active Directory abschalten kann nur der lokale "
-                 "Administrator.")
+        return _("You are signed in with an AD account – only the local "
+                 "administrator can switch off Active Directory.")
     try:
         info = Directory(cfg).check_account(current_user.username)
     except LDAPError as exc:
-        return _("Dein eigenes AD-Konto ließ sich mit den neuen Einstellungen nicht prüfen ({error}) – nicht "
-                 "gespeichert. Bitte die Verbindung prüfen oder mit dem lokalen Administrator speichern.", error=exc)
+        return _("Your own AD account could not be checked with the new settings ({error}) – not "
+                 "saved. Please check the connection or save with the local administrator.", error=exc)
     except Exception as exc:  # noqa: BLE001
-        return _("Dein eigenes AD-Konto ließ sich mit den neuen Einstellungen nicht prüfen ({error}) – nicht "
-                 "gespeichert. Bitte die Verbindung prüfen oder mit dem lokalen Administrator speichern.",
+        return _("Your own AD account could not be checked with the new settings ({error}) – not "
+                 "saved. Please check the connection or save with the local administrator.",
                  error=exc.__class__.__name__)
     if info is None or info.role != ROLE_ADMIN:
-        return _("Mit diesen Einstellungen wärst du kein Administrator mehr (Rolle: {role}) – nicht gespeichert. "
-                 "Bitte die Regeln prüfen.", role=str(ROLES.get(info.role, _("keine"))) if info else _("keine"))
+        return _("With these settings you would no longer be an administrator "
+                 "(role: {role}) – not saved. Please check the rules.", role=str(ROLES.get(info.role, _("none"))) if info else _("none"))
     return None
 
 
@@ -589,7 +590,7 @@ def ldap():
         action = request.form.get("action", "save")
         if action == "save" and (problem := _would_lock_out_self(cfg)):
             flash(problem, "error")
-            action = "keep_form"      # Formular mit den Eingaben wieder anzeigen, nichts speichern
+            action = "keep_form"      # show the form with the input again, save nothing
         if action == "save":
             from .. import ad_cache
             relevant = ("ldap_enabled", "ldap_server", "ldap_base_dn", "ldap_user_attr", "ldap_user_filter",
@@ -599,12 +600,12 @@ def ldap():
             for k, v in cfg.items():
                 set_setting(k, v)
             db.session.commit()
-            flash(_("Verzeichnisdienst-Einstellungen gespeichert."), "success")
+            flash(_("Directory service settings saved."), "success")
             if not ad_cache.enabled():
                 if ad_cache.clear():
-                    flash(_("Zwischenspeicher der AD-Personen geleert."), "info")
+                    flash(_("AD people cache cleared."), "info")
             elif changed or not ad_cache.ready():
-                # Regeln/Verbindung geändert: gleich neu abgleichen, damit die Theke den neuen Stand kennt
+                # rules/connection changed: resync right away so the counter sees the new state
                 ad_cache.sync_in_background(current_app._get_current_object())
             return redirect(url_for("admin.ldap"))
         if action == "trust_cert":
@@ -613,22 +614,22 @@ def ldap():
             except ValueError:
                 certs = []
             if not certs:
-                flash(_("Keine gültigen Zertifikate zum Übernehmen."), "error")
+                flash(_("No valid certificates to accept."), "error")
             elif (problem := _would_lock_out_self(cfg)):
-                flash(problem, "error")       # gleiche Schutzprüfung wie beim Speichern
+                flash(problem, "error")       # same safety check as when saving
             else:
-                for k, v in cfg.items():      # Ersteinrichtung: Server usw. gleich mit speichern
+                for k, v in cfg.items():      # initial setup: save server etc. as well
                     set_setting(k, v)
                 set_setting("ldap_tls_certs", ldap_tls.to_pem(certs))
                 set_setting("ldap_verify_cert", "1")
                 db.session.commit()
-                flash(_n("{n} Zertifikat gespeichert. Verbindungen zum DC werden jetzt damit geprüft.",
-                         "{n} Zertifikate gespeichert. Verbindungen zum DC werden jetzt damit geprüft.", len(certs)), "success")
+                flash(_n("{n} certificate saved. Connections to the DC are now verified with it.",
+                         "{n} certificates saved. Connections to the DC are now verified with them.", len(certs)), "success")
                 return redirect(url_for("admin.ldap"))
         elif action == "clear_cert":
             set_setting("ldap_tls_certs", "")
             db.session.commit()
-            flash(_("Gespeicherte DC-Zertifikate entfernt."), "success")
+            flash(_("Saved DC certificates removed."), "success")
             return redirect(url_for("admin.ldap"))
         elif action == "fetch_cert":
             try:
@@ -638,7 +639,7 @@ def ldap():
                     directory = None
                 servers = [x for x in cfg.get("ldap_server", "").replace(",", " ").split() if x]
                 if not servers:
-                    raise ldap_tls.CertFetchError(_("Bitte zuerst einen Server eintragen."))
+                    raise ldap_tls.CertFetchError(_("Please enter a server first."))
                 timeout = int(cfg.get("ldap_timeout") or 8)
                 res = ldap_tls.fetch_trust_anchors(directory, servers, cfg.get("ldap_security", "none"), timeout)
                 trust_fps = {c.fingerprint(ldap_tls.hashes.SHA256()) for c in res.trust}
@@ -652,9 +653,9 @@ def ldap():
             except ldap_tls.CertFetchError as exc:
                 test_error = str(exc)
             except Exception as exc:  # noqa: BLE001
-                test_error = _("Zertifikat konnte nicht abgerufen werden: {error}", error=f"{exc.__class__.__name__}: {exc}")
+                test_error = _("Certificate could not be fetched: {error}", error=f"{exc.__class__.__name__}: {exc}")
         elif action == "keep_form":
-            pass                      # nach abgelehntem Speichern: nur die Eingaben wieder zeigen
+            pass                      # after a rejected save: just show the input again
         else:
             try:
                 directory = Directory(cfg)
@@ -667,7 +668,7 @@ def ldap():
                     test_result = {"user": info}
             except LDAPError as exc:
                 test_error = str(exc)
-            except Exception as exc:  # noqa: BLE001 – Admin soll den Fehler sehen
+            except Exception as exc:  # noqa: BLE001 – admin should see the error
                 test_error = f"{exc.__class__.__name__}: {exc}"
     values = {k: get_setting(k) for k in DEFAULT_SETTINGS if k.startswith("ldap_")}
     if cfg:
@@ -690,27 +691,27 @@ def ldap():
 @bp.route("/verzeichnisdienst/abgleichen", methods=["POST"])
 @admin_required
 def ldap_cache_sync():
-    """AD-Personen jetzt abgleichen (läuft im Hintergrund)."""
+    """Sync AD people now (runs in the background)."""
     from .. import ad_cache
     if not ad_cache.enabled():
-        flash(_("Der Zwischenspeicher ist ausgeschaltet oder es fehlt das Dienstkonto."), "error")
+        flash(_("The cache is switched off or the service account is missing."), "error")
     else:
         ad_cache.sync_in_background(current_app._get_current_object())
-        flash(_("Abgleich gestartet – das Ergebnis steht in wenigen Sekunden hier (Seite neu laden)."), "info")
+        flash(_("Synchronisation started – the result appears here in a few seconds (reload the page)."), "info")
     return redirect(url_for("admin.ldap") + "#ad-cache")
 
 
 @bp.route("/verzeichnisdienst/deaktivieren", methods=["POST"])
 @admin_required
 def ldap_cache_confirm():
-    """Die beim Abgleich zurückgehaltenen Konten (nicht mehr im AD) jetzt deaktivieren."""
+    """Deactivate the accounts held back during sync (no longer in AD) now."""
     from .. import ad_cache
     n = ad_cache.confirm_pending(current_user)
-    flash(_n("{n} Konto deaktiviert.", "{n} Konten deaktiviert.", n), "success")
+    flash(_n("{n} account deactivated.", "{n} accounts deactivated.", n), "success")
     return redirect(url_for("admin.ldap") + "#ad-cache")
 
 
-# ---------------------------------------------------------------- E-Mail
+# ---------------------------------------------------------------- Email
 
 MAIL_TEXT = ["smtp_host", "smtp_port", "smtp_security", "smtp_user", "smtp_from", "smtp_from_name",
              "smtp_reply_to", "app_base_url", "mail_reminder_days", "mail_overdue_repeat_days",
@@ -732,7 +733,7 @@ def _mail_form_cfg() -> dict:
         cfg[k] = str(min(hi, max(lo, int(cfg[k]))))
     cfg["app_base_url"] = cfg["app_base_url"].rstrip("/")
     if cfg["app_base_url"] and not cfg["app_base_url"].lower().startswith(("https://", "http://")):
-        cfg["app_base_url"] = ""   # nur echte Web-Adressen (Links in E-Mails)
+        cfg["app_base_url"] = ""   # real web addresses only (links in emails)
     for k in MAIL_BOOL:
         cfg[k] = "1" if form_bool(k) else "0"
     cfg["mail_footer"] = (request.form.get("mail_footer") or "").strip()[:1000]
@@ -758,12 +759,12 @@ def email():
             for k, v in cfg.items():
                 set_setting(k, v)
             db.session.commit()
-            flash(_("E-Mail-Einstellungen gespeichert."), "success")
+            flash(_("Email settings saved."), "success")
             return redirect(url_for("admin.email"))
         if action == "test":
             to = form_str("test_to", 300) or current_user.email
             if not to or "@" not in to:
-                flash(_("Bitte eine Empfängeradresse für die Testmail angeben."), "error")
+                flash(_("Please enter a recipient address for the test email."), "error")
             else:
                 smtp_cfg = mailer.SmtpConfig.from_settings(cfg)
                 subject, text, html = mailer.render_mail(
@@ -772,9 +773,9 @@ def email():
                 ok, err = mailer.send_mail(to, subject, text, html, kind="test", cfg=smtp_cfg,
                                            user_id=current_user.id)
                 if ok:
-                    flash(_("Testmail an {to} gesendet. Schau ins Postfach (ggf. auch in den Spam-Ordner).", to=to), "success")
+                    flash(_("Test email sent to {to}. Check the mailbox (and the spam folder if necessary).", to=to), "success")
                 else:
-                    flash(_("Testmail fehlgeschlagen: {error}", error=err), "error")
+                    flash(_("Test email failed: {error}", error=err), "error")
         elif action == "run_now":
             for k, v in cfg.items():
                 set_setting(k, v)
@@ -782,7 +783,7 @@ def email():
             stats = mailer.run_notifications()
             set_setting("mail_last_result", mailer.stats_record(datetime.now(), stats, manual=True))
             db.session.commit()
-            flash(_("Erinnerungslauf: {stats}", stats=mailer.format_stats(stats)), "error" if stats.get("error") else "success")
+            flash(_("Reminder run: {stats}", stats=mailer.format_stats(stats)), "error" if stats.get("error") else "success")
             return redirect(url_for("admin.email"))
 
     values = {k: get_setting(k) for k in DEFAULT_SETTINGS if k.startswith(("smtp_", "mail_")) or k == "app_base_url"}
@@ -799,7 +800,7 @@ def email():
                            without_mail=without_mail, suggested_url=suggested_url)
 
 
-# ---------------------------------------------------------------- Erscheinungsbild
+# ---------------------------------------------------------------- Branding
 
 @bp.route("/erscheinungsbild", methods=["GET", "POST"])
 @admin_required
@@ -810,7 +811,7 @@ def branding():
         if request.form.get("action") == "reset":
             br.reset_all()
             db.session.commit()
-            flash(_("Erscheinungsbild auf Standard zurückgesetzt."), "success")
+            flash(_("Branding reset to default."), "success")
             return redirect(url_for("admin.branding"))
         errors = []
         for kind, field in (("logo", "logo"), ("bg", "bg")):
@@ -822,7 +823,7 @@ def branding():
                 try:
                     br.store(kind, upload)
                 except br.BrandingError as exc:
-                    errors.append(f"{_('Logo') if kind == 'logo' else _('Hintergrundbild')}: {exc}")
+                    errors.append(f"{_('Logo') if kind == 'logo' else _('Background image')}: {exc}")
         for key in ("brand_accent", "brand_brass", "brand_side"):
             set_setting(key, br.clean_hex(form_str(key, 20)))
         set_setting("brand_logo_text", form_bool("brand_logo_text"))
@@ -838,7 +839,7 @@ def branding():
         for e in errors:
             flash(e, "error")
         if not errors:
-            flash(_("Erscheinungsbild gespeichert."), "success")
+            flash(_("Branding saved."), "success")
         return redirect(url_for("admin.branding"))
     return render_template("admin/branding.html", s=get_setting, colors=br.colors(), defaults=br.DEFAULTS)
 

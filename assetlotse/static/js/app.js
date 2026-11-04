@@ -1,4 +1,4 @@
-/* AssetLotse – Frontend-Logik (ohne Build-Schritt, ohne Abhängigkeiten). */
+/* AssetLotse – front-end logic (no build step, no dependencies). */
 (function () {
   "use strict";
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -6,9 +6,9 @@
   const CSRF = ($('meta[name="csrf-token"]') || {}).content || "";
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignorieren */ } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
   };
-  /* Übersetzung: T(<deutscher Text>, {name: wert}) – die Texte kommen vom Server (#i18n-strings). */
+  /* Translation: T(<English text>, {name: value}) – the texts come from the server (#i18n-strings). */
   const I18N = (() => {
     const el = document.getElementById("i18n-strings");
     try { return el ? JSON.parse(el.textContent) : {}; } catch (e) { return {}; }
@@ -18,7 +18,7 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  /* ------------------------------------------------------------ Grundfunktionen */
+  /* ------------------------------------------------------------ Basics */
   $$("[data-theme-toggle]").forEach((btn) => btn.addEventListener("click", () => {
     const root = document.documentElement;
     const dark = root.dataset.theme ? root.dataset.theme === "dark"
@@ -48,7 +48,7 @@
     if (document.body.classList.contains("nav-open") && !e.target.closest(".sidebar")) {
       setNav(false);
     }
-    // Benutzermenü schließen, wenn daneben getippt wird
+    // close the user menu when tapping outside it
     $$(".user-menu[open]").forEach((m) => { if (!m.contains(e.target)) m.removeAttribute("open"); });
   });
 
@@ -57,7 +57,7 @@
     if (msg && !window.confirm(msg)) e.preventDefault();
   }, true);
 
-  // Kleine Helfer statt eingebetteter on…-Attribute (erlaubt eine strenge Content-Security-Policy)
+  // small helpers instead of inline on… attributes (allows a strict Content Security Policy)
   document.addEventListener("submit", (e) => {
     if (e.target.hasAttribute && e.target.hasAttribute("data-no-submit")) e.preventDefault();
   }, true);
@@ -73,7 +73,7 @@
     if (e.key === "Enter") { e.preventDefault(); if (el.nextElementSibling) el.nextElementSibling.click(); }
   }));
   $$("[data-autosubmit]").forEach((el) => el.addEventListener("change", () => el.form && el.form.submit()));
-  // Bilder, die nicht laden, ausblenden
+  // hide images that fail to load
   document.addEventListener("error", (e) => {
     if (e.target.tagName === "IMG" && e.target.hasAttribute("data-hide-broken")) e.target.remove();
   }, true);
@@ -84,8 +84,8 @@
     if (el) el.scrollIntoView({ block: scrollTarget.dataset.scrollBlock || "start" });
   }
 
-  // Hinweise blenden sich nach 20 s aus – aber nicht, solange Maus oder Fokus darauf liegen.
-  // Fehler und Warnungen bleiben stehen, bis sie geschlossen werden.
+  // notices fade out after 20 s – but not while the mouse or focus is on them.
+  // errors and warnings stay until they are closed.
   $$(".flash").forEach((el) => {
     if (el.classList.contains("error") || el.classList.contains("warning")) return;
     let hold = false;
@@ -98,7 +98,7 @@
     setTimeout(fade, 20000);
   });
 
-  // Kachel-/Listenansicht im Katalog
+  // tile/list view in the catalogue
   const viewTarget = $("[data-view-target]");
   if (viewTarget) {
     const apply = (v) => {
@@ -112,7 +112,7 @@
     $$("[data-view]").forEach((b) => b.closest(".seg") && b.closest(".seg").classList.add("hide"));
   }
 
-  // Listen filtern (z. B. Gruppenmitglieder)
+  // filter lists (e.g. group members)
   $$("[data-filter-list]").forEach((input) => {
     const list = $(input.dataset.filterList);
     input.addEventListener("input", () => {
@@ -121,7 +121,7 @@
     });
   });
 
-  // Vorlagen für den Verzeichnisdienst
+  // presets for the directory service
   const PRESETS = {
     ad: { ldap_user_attr: "sAMAccountName", ldap_user_filter: "(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))", nested: true },
     samba: { ldap_user_attr: "sAMAccountName", ldap_user_filter: "(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))", nested: true },
@@ -136,7 +136,7 @@
     $$("[data-ldap-preset]").forEach((b) => b.classList.toggle("on", b === btn));
   }));
 
-  // AD-Gruppe per Klick in die passende Rollenliste übernehmen
+  // add an AD group to the matching role list with one click
   $$("[data-add-rule]").forEach((btn) => btn.addEventListener("click", () => {
     const box = $(`[data-rule-box="${btn.dataset.addRule}"]`);
     if (!box) return;
@@ -150,7 +150,7 @@
     setTimeout(() => { box.style.boxShadow = ""; }, 700);
   }));
 
-  // SMTP: Standard-Port passend zur Verschlüsselung setzen
+  // SMTP: set the default port to match the encryption
   const secSel = $("[data-smtp-security]"), portIn = $("[data-smtp-port]");
   if (secSel && portIn) {
     const defaults = { starttls: "587", ssl: "465", none: "25" };
@@ -159,7 +159,7 @@
     });
   }
 
-  /* ------------------------------------------------------------ Erscheinungsbild: Live-Vorschau */
+  /* ------------------------------------------------------------ Appearance: live preview */
   const brandForm = $("[data-branding-form]");
   if (brandForm) {
     const root = document.documentElement.style;
@@ -190,7 +190,7 @@
     $$("[data-color-reset]", brandForm).forEach((btn) => btn.addEventListener("click", () => {
       const key = btn.dataset.colorReset;
       $(`[data-color-value="${key}"]`).value = "";
-      $(`[data-color-label="${key}"]`).textContent = T("Standard");
+      $(`[data-color-label="${key}"]`).textContent = T("Default");
       $(`[data-color-picker="${key}"]`).value = btn.dataset.default;
       apply[key](btn.dataset.default);
     }));
@@ -222,7 +222,7 @@
     }));
   }
 
-  /* ------------------------------------------------------------ Sicherheitsschlüssel (WebAuthn) */
+  /* ------------------------------------------------------------ Security keys (WebAuthn) */
   const b64u = {
     dec(str) {
       const s = str.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((str.length + 3) % 4);
@@ -263,21 +263,21 @@
     return out;
   }
   const webauthnError = (err) => (err && err.name === "NotAllowedError")
-    ? T("Abgebrochen oder Zeit abgelaufen. Bitte erneut versuchen.")
-    : (err && err.name === "InvalidStateError") ? T("Dieser Schlüssel ist bereits registriert.")
-    : T("Fehler: {error}", { error: (err && (err.message || err.name)) || err });
+    ? T("Cancelled or timed out. Please try again.")
+    : (err && err.name === "InvalidStateError") ? T("This key is already registered.")
+    : T("Error: {error}", { error: (err && (err.message || err.name)) || err });
 
   $$("[data-webauthn-register]").forEach((btn) => {
     const box = btn.closest("[data-webauthn-register-box]");
     const status = $("[data-webauthn-status]", box);
     if (!webauthnOk()) {
       btn.disabled = true;
-      status.textContent = T("Sicherheitsschlüssel gehen nur über HTTPS (z. B. über deinen Reverse-Proxy), nicht per http://IP.");
+      status.textContent = T("Security keys only work over HTTPS (e.g. via your reverse proxy), not via http://IP.");
       return;
     }
     btn.addEventListener("click", async () => {
       btn.disabled = true;
-      status.textContent = T("Schlüssel einstecken und berühren …");
+      status.textContent = T("Insert and touch your key …");
       try {
         const begin = await api("/profil/sicherheit/schluessel/start", { method: "POST", body: "{}" });
         if (!begin.ok) throw new Error(begin.error);
@@ -297,12 +297,12 @@
     const status = $("[data-webauthn-status]");
     if (!webauthnOk()) {
       btn.disabled = true;
-      if (status) status.textContent = T("Sicherheitsschlüssel gehen nur über HTTPS.");
+      if (status) status.textContent = T("Security keys only work over HTTPS.");
       return;
     }
     const run = async () => {
       btn.disabled = true;
-      if (status) status.textContent = T("Schlüssel einstecken und berühren …");
+      if (status) status.textContent = T("Insert and touch your key …");
       try {
         const begin = await api("/login/2fa/schluessel/start", { method: "POST", body: "{}" });
         if (!begin.ok) throw new Error(begin.error);
@@ -320,7 +320,7 @@
 
   $$("[data-copy-codes]").forEach((btn) => btn.addEventListener("click", async () => {
     const text = $$("[data-codes] > div").map((d) => d.textContent.trim()).join("\n");
-    try { await navigator.clipboard.writeText(text); btn.textContent = T("✓ Kopiert"); } catch (e) { window.prompt(T("Codes:"), text); }
+    try { await navigator.clipboard.writeText(text); btn.textContent = T("✓ Copied"); } catch (e) { window.prompt(T("Codes:"), text); }
   }));
 
   async function api(url, opts = {}) {
@@ -331,14 +331,14 @@
     });
     let data = {};
     try { data = await res.json(); } catch (e) {
-      // kein JSON – meist ist die Sitzung abgelaufen und es kam die Anmeldeseite zurück
-      if (res.redirected || res.ok) data.error = T("Sitzung abgelaufen – bitte die Seite neu laden.");
+      // no JSON – usually the session has expired and the sign-in page came back
+      if (res.redirected || res.ok) data.error = T("Session expired – please reload the page.");
     }
-    if (!res.ok && !data.error) data.error = T("Fehler {status}", { status: res.status });
+    if (!res.ok && !data.error) data.error = T("Error {status}", { status: res.status });
     return data;
   }
 
-  /* ------------------------------------------------------------ Ausgabe: unbefristet */
+  /* ------------------------------------------------------------ Checkout: no due date */
   $$("[data-no-due]").forEach((box) => {
     const date = box.form && box.form.elements.due_at;
     const sync = () => { if (date) { date.disabled = box.checked; if (box.checked) date.value = ""; } };
@@ -346,17 +346,17 @@
     sync();
   });
 
-  /* ------------------------------------------------------------ Vertrauliche Angaben kopieren */
+  /* ------------------------------------------------------------ Copy confidential details */
   $$("[data-copy-secret]").forEach((btn) => btn.addEventListener("click", async () => {
     const box = $("[data-secret]");
     if (!box) return;
     const label = btn.innerHTML;
-    try { await navigator.clipboard.writeText(box.textContent.trim()); btn.textContent = T("✓ Kopiert"); }
-    catch (e) { window.getSelection().selectAllChildren(box); btn.textContent = T("Markiert – mit Strg+C kopieren"); }
+    try { await navigator.clipboard.writeText(box.textContent.trim()); btn.textContent = T("✓ Copied"); }
+    catch (e) { window.getSelection().selectAllChildren(box); btn.textContent = T("Selected – press Ctrl+C to copy"); }
     setTimeout(() => { btn.innerHTML = label; }, 2500);
   }));
 
-  /* ------------------------------------------------------------ Hilfe */
+  /* ------------------------------------------------------------ Help */
   const helpBox = $("[data-help-topics]");
   if (helpBox) {
     const topics = $$("[data-help-topic]", helpBox);
@@ -384,9 +384,9 @@
     });
   }
 
-  /* ------------------------------------------------------------ Erfassen: aus dem Bestand ergänzen
-     Bezeichnung oder Modell aus der Liste gewählt (oder genau so getippt) → leere Felder wie Hersteller,
-     Modell und Kategorie mit dem ausfüllen, was im Bestand meist dazugehört. Ausgefüllte Felder bleiben. */
+  /* ------------------------------------------------------------ Add item: complete from the inventory
+     Name or model picked from the list (or typed exactly like that) → fill empty fields such as manufacturer,
+     model and category with what usually goes with it in the inventory. Fields already filled in stay. */
   const knownEl = $("#asset-known");
   if (knownEl) {
     let known = {};
@@ -404,18 +404,18 @@
         const hit = table && Object.prototype.hasOwnProperty.call(table, input.value.trim()) ? table[input.value.trim()] : null;
         if (hit) Object.entries(hit).forEach(([k, v]) => fill(k, v));
       };
-      // „input“: Auswahl aus der Liste füllt sofort aus (Chrome meldet „change“ erst beim Verlassen des Felds);
-      // nur bei genau passendem Eintrag – beim Tippen eines Anfangs passiert nichts
+      // "input": picking from the list fills in at once (Chrome reports "change" only when leaving the field);
+      // only for an exactly matching entry – typing the beginning does nothing
       input.addEventListener("input", apply);
       input.addEventListener("change", apply);
     });
   }
 
-  /* ------------------------------------------------------------ Vorschläge beim Tippen
+  /* ------------------------------------------------------------ Suggestions while typing
      <input data-suggest="URL" data-suggest-for="suche|theke" data-suggest-action="open|issue"
-            [data-suggest-user="benutzername"] [data-suggest-more="URL mit ?q= am Ende"]>
-     Ein Barcodescanner tippt schnell und drückt Enter: Enter ohne markierten Vorschlag sendet das Formular wie
-     bisher ab – die Vorschläge stören den Scanner also nicht. */
+            [data-suggest-user="username"] [data-suggest-more="URL ending in ?q="]>
+     A barcode scanner types fast and presses Enter: Enter without a highlighted suggestion submits the form as
+     before – so the suggestions do not get in the scanner's way. */
   let suggestSeq = 0;
   $$("input[data-suggest]").forEach((input) => {
     const host = input.parentElement;
@@ -432,8 +432,8 @@
     input.setAttribute("aria-autocomplete", "list");
     input.setAttribute("aria-controls", boxId);
     input.setAttribute("aria-expanded", "false");
-    // shownQ: Text, zu dem die angezeigte Liste gehört. Nur dann darf Enter einen Vorschlag wählen – sonst
-    // (z. B. Scanner tippt nach einer Pfeil-Auswahl eine neue Nummer) wird das Formular normal abgeschickt.
+    // shownQ: the text the displayed list belongs to. Only then may Enter pick a suggestion – otherwise
+    // (e.g. the scanner types a new number after an arrow-key selection) the form is submitted normally.
     let timer = null, ctrl = null, items = [], active = -1, lastQ = null, shownQ = null, submitted = false;
 
     const mark = (i) => {
@@ -447,7 +447,7 @@
     const choose = (item) => {
       if (!item) return;
       if (input.dataset.suggestAction === "person" && item.post) {
-        // AD-Person ohne Konto: Konto übernehmen (POST mit CSRF-Token, der Server prüft live im AD)
+        // AD person without an account: take over the account (POST with CSRF token, the server checks live in AD)
         const form = document.createElement("form");
         form.method = "post";
         form.action = item.post.url;
@@ -482,7 +482,7 @@
     const render = (data, q) => {
       items = data.items || [];
       if (!items.length) {
-        box.innerHTML = `<div class="suggest-note">${esc(T("Keine Treffer."))}</div>`;
+        box.innerHTML = `<div class="suggest-note">${esc(T("No results."))}</div>`;
       } else {
         box.innerHTML = items.map((it, n) => {
           let sub = [it.numbers ? `<span class="mono">${esc(it.numbers)}</span>` : "", esc(it.category)]
@@ -492,11 +492,11 @@
             sub = esc(it.sub);
             badge = it.badge ? `<span class="badge accent">${esc(it.badge)}</span>` : "";
           } else if (input.dataset.suggestAction === "issue" && it.available > 0 && it.can_issue === false) {
-            badge = `<span class="badge warn">${esc(T("nicht für diese Person"))}</span>`;
+            badge = `<span class="badge warn">${esc(T("not for this person"))}</span>`;
           } else if (it.available > 0) {
-            badge = `<span class="badge ok">${esc(T("{n} von {total} frei", { n: it.available, total: it.quantity }))}</span>`;
+            badge = `<span class="badge ok">${esc(T("{n} of {total} free", { n: it.available, total: it.quantity }))}</span>`;
           } else {
-            badge = `<span class="badge warn">${esc(T("ausgegeben"))}</span>`;
+            badge = `<span class="badge warn">${esc(T("issued"))}</span>`;
           }
           const disabled = input.dataset.suggestAction === "issue" && !it.can_issue;
           return `<button type="button" tabindex="-1" class="suggest-item" role="option" id="${boxId}-${n}" data-n="${n}"${disabled ? ' aria-disabled="true"' : ""}>
@@ -506,7 +506,7 @@
       const more = input.dataset.suggestMore;
       if (more && (data.more || items.length)) {
         box.insertAdjacentHTML("beforeend",
-          `<a class="suggest-more" tabindex="-1" href="${esc(more + encodeURIComponent(q))}">${esc(T("Alle Treffer anzeigen"))}</a>`);
+          `<a class="suggest-more" tabindex="-1" href="${esc(more + encodeURIComponent(q))}">${esc(T("Show all results"))}</a>`);
       }
       box.hidden = false;
       input.setAttribute("aria-expanded", "true");
@@ -528,10 +528,10 @@
       fetch(url, { credentials: "same-origin", signal: ctrl.signal, headers: { Accept: "application/json" } })
         .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
         .then((data) => { if (!submitted && input.value.trim() === q && document.activeElement === input) render(data, q); })
-        .catch(() => { /* abgebrochen oder offline – ohne Vorschläge weiter */ });
+        .catch(() => { /* aborted or offline – carry on without suggestions */ });
     };
     input.addEventListener("input", () => {
-      mark(-1);                       // neue Eingabe: keine alte Auswahl mehr übernehmen
+      mark(-1);                       // new input: no longer take an old selection
       clearTimeout(timer); timer = setTimeout(load, 180);
     });
     input.addEventListener("focus", () => { if (input.value.trim()) { lastQ = null; load(); } });
@@ -548,21 +548,21 @@
       else if (e.key === "Escape") { e.preventDefault(); close(); }
     });
     input.addEventListener("blur", () => setTimeout(close, 120));
-    // Zurück-Taste (Seite aus dem Browser-Cache): alten Zustand verwerfen
+    // back button (page from the browser cache): discard the old state
     window.addEventListener("pageshow", (e) => {
       if (!e.persisted) return;
       submitted = false; lastQ = null; close();
       const hidden = input.form && input.form.querySelector('input[name="asset_id"]');
       if (hidden) hidden.remove();
     });
-    box.addEventListener("mousedown", (e) => e.preventDefault());   // Fokus im Feld lassen
+    box.addEventListener("mousedown", (e) => e.preventDefault());   // keep focus in the field
     box.addEventListener("click", (e) => {
       const el = e.target.closest(".suggest-item");
       if (el) choose(items[Number(el.dataset.n)]);
     });
   });
 
-  /* ------------------------------------------------------------ Inventar-/Seriennummer prüfen (Formular)
+  /* ------------------------------------------------------------ Check inventory/serial number (form)
      <input data-number-check="URL" data-field="inventory_no|serial_number" data-except="ID"> + [data-number-hint] */
   $$("input[data-number-check]").forEach((input) => {
     const hint = input.closest(".field").querySelector("[data-number-hint]");
@@ -575,23 +575,23 @@
       input.setAttribute("aria-invalid", data.taken ? "true" : "false");
       if (value && data.taken) {
         parts.push(data.by
-          ? `<span class="taken">${esc(T("Schon vergeben"))}</span> – <a href="${esc(data.by.url)}" target="_blank" rel="noopener">${esc(data.by.name)}</a>`
-          : `<span class="taken">${esc(T("Schon vergeben"))}</span>`);
+          ? `<span class="taken">${esc(T("Already in use"))}</span> – <a href="${esc(data.by.url)}" target="_blank" rel="noopener">${esc(data.by.name)}</a>`
+          : `<span class="taken">${esc(T("Already in use"))}</span>`);
       } else if (value && !(data.numbers && data.numbers.length)) {
-        parts.push(`<span class="free">${esc(T("Frei"))}</span>`);
+        parts.push(`<span class="free">${esc(T("Available"))}</span>`);
       }
       if (data.numbers && data.numbers.length && !(data.numbers.length === 1 && data.numbers[0].toLowerCase() === value.toLowerCase())) {
-        parts.push(`${esc(T("Vorhanden:"))} <span class="mono">${data.numbers.map(esc).join(", ")}</span>`);
+        parts.push(`${esc(T("Existing:"))} <span class="mono">${data.numbers.map(esc).join(", ")}</span>`);
       }
       if (data.next && data.next.toLowerCase() !== value.toLowerCase()) {
-        parts.push(`${esc(T("Nächste freie:"))} <button type="button" class="linklike mono" data-take="${esc(data.next)}">${esc(data.next)}</button>`);
+        parts.push(`${esc(T("Next free:"))} <button type="button" class="linklike mono" data-take="${esc(data.next)}">${esc(data.next)}</button>`);
       }
       hint.innerHTML = parts.join(" · ");
     };
     const check = () => {
       const value = input.value.trim();
       if (ctrl) ctrl.abort();
-      const mine = ++seq;              // ältere Antworten verwerfen
+      const mine = ++seq;              // discard older answers
       if (field === "serial_number" && !value) {
         hint.innerHTML = ""; input.classList.remove("is-taken"); input.setAttribute("aria-invalid", "false");
         return;
@@ -604,7 +604,7 @@
       fetch(url, { credentials: "same-origin", signal: ctrl.signal, headers: { Accept: "application/json" } })
         .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
         .then((data) => { if (mine === seq) show(data, value); })
-        .catch(() => { /* ohne Hinweis weiter – der Server prüft beim Speichern ohnehin */ });
+        .catch(() => { /* carry on without a hint – the server checks on saving anyway */ });
     };
     input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(check, 250); });
     input.addEventListener("focus", check);

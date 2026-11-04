@@ -16,12 +16,12 @@
   </td></tr>
   <tr><td style="padding:8px 24px 24px;font-size:12px;color:#5f6b78;line-height:1.5;border-top:1px solid #e9edf1;">
     {% if footer %}{{ footer|replace("\n", "<br>"|safe) }}<br><br>{% endif %}
-    {{ _("Diese Nachricht wurde automatisch von {library} versendet.", library=org_name) }}
-    {% if base_url and notification %}{{ _("Benachrichtigungen kannst du in deinem <a href=\"{url}\" style=\"color:{color};\">Profil</a> abschalten.", url=base_url ~ "/profil", color=mail_accent) }}{% endif %}
+    {{ _("This message was sent automatically by {library}.", library=org_name) }}
+    {% if base_url and notification %}{{ _('You can turn off notifications in your <a href="{url}" style="color:{color};">profile</a>.', url=base_url ~ "/profil", color=mail_accent) }}{% endif %}
     {% if imprint_url or privacy_url %}<br><br>
-      {%- if imprint_url %}<a href="{{ imprint_url }}" style="color:#5f6b78;">{{ _("Impressum") }}</a>{% endif %}
+      {%- if imprint_url %}<a href="{{ imprint_url }}" style="color:#5f6b78;">{{ _("Legal notice") }}</a>{% endif %}
       {%- if imprint_url and privacy_url %} · {% endif %}
-      {%- if privacy_url %}<a href="{{ privacy_url }}" style="color:#5f6b78;">{{ _("Datenschutz") }}</a>{% endif %}{% endif %}
+      {%- if privacy_url %}<a href="{{ privacy_url }}" style="color:#5f6b78;">{{ _("Privacy policy") }}</a>{% endif %}{% endif %}
   </td></tr>
 </table>
 </td></tr></table>

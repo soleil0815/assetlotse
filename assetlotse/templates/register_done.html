@@ -1,26 +1,26 @@
 {% extends "_auth.html" %}
 {% from "_macros.html" import icon %}
-{% block title %}{{ _("Registrierung") }}{% endblock %}
+{% block title %}{{ _("Registration") }}{% endblock %}
 {% block auth %}
 {% if state == "check_mail" %}
-<h2>{{ _("Fast geschafft") }}</h2>
-<p class="muted" style="margin-top: 8px">{% if email %}{{ _("Wir haben an <b>{email}</b> eine E-Mail mit einem Bestätigungslink geschickt.", email=email) }}{% else %}{{ _("Wir haben eine E-Mail mit einem Bestätigungslink geschickt.") }}{% endif %}
-  {{ _("Bitte klicke innerhalb von 48 Stunden darauf. Schau auch im Spam-Ordner nach.") }}</p>
+<h2>{{ _("Almost done") }}</h2>
+<p class="muted" style="margin-top: 8px">{% if email %}{{ _("We have sent an email with a confirmation link to <b>{email}</b>.", email=email) }}{% else %}{{ _("We have sent you an email with a confirmation link.") }}{% endif %}
+  {{ _("Please click it within 48 hours. Check your spam folder too.") }}</p>
 {% elif state == "verified" %}
-<h2>{{ _("E-Mail bestätigt") }}</h2>
+<h2>{{ _("Email confirmed") }}</h2>
 {% if approval %}
-<p class="muted" style="margin-top: 8px">{{ _("Danke! Dein Konto muss jetzt noch von der Verwaltung freigegeben werden.") }}
-  {{ _("Du bekommst eine E-Mail, sobald es so weit ist.") }}</p>
+<p class="muted" style="margin-top: 8px">{{ _("Thank you! Your account still has to be approved by the management team.") }}
+  {{ _("You'll receive an email as soon as it's ready.") }}</p>
 {% else %}
-<p class="muted" style="margin-top: 8px">{{ _("Danke! Dein Konto ist jetzt aktiv.") }}</p>
-<a class="btn primary lg block" style="margin-top: 18px" href="{{ url_for('main.login') }}">{{ icon("lock") }} {{ _("Zur Anmeldung") }}</a>
+<p class="muted" style="margin-top: 8px">{{ _("Thank you! Your account is now active.") }}</p>
+<a class="btn primary lg block" style="margin-top: 18px" href="{{ url_for('main.login') }}">{{ icon("lock") }} {{ _("Go to sign-in") }}</a>
 {% endif %}
 {% elif state == "expired" %}
-<h2>{{ _("Link abgelaufen") }}</h2>
-<p class="muted" style="margin-top: 8px">{{ _("Der Bestätigungslink ist nicht mehr gültig. Melde dich mit Benutzername und Passwort an – dort kannst du dir einen neuen Link schicken lassen.") }}</p>
+<h2>{{ _("Link expired") }}</h2>
+<p class="muted" style="margin-top: 8px">{{ _("The confirmation link is no longer valid. Sign in with your username and password – you can request a new link there.") }}</p>
 {% else %}
-<h2>{{ _("Danke für deine Registrierung") }}</h2>
-<p class="muted" style="margin-top: 8px">{{ _("Dein Konto muss noch von der Verwaltung freigegeben werden. Du bekommst Bescheid, sobald es so weit ist.") }}</p>
+<h2>{{ _("Thank you for registering") }}</h2>
+<p class="muted" style="margin-top: 8px">{{ _("Your account still has to be approved by the management team. You will be notified as soon as that happens.") }}</p>
 {% endif %}
-<p style="margin-top: 22px; font-size: 14px"><a href="{{ url_for('main.login') }}">{{ _("← Zur Anmeldung") }}</a></p>
+<p style="margin-top: 22px; font-size: 14px"><a href="{{ url_for('main.login') }}">{{ _("← Back to sign-in") }}</a></p>
 {% endblock %}

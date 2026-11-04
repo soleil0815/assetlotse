@@ -1,134 +1,134 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon %}
-{% block title %}{{ _("Einstellungen") }}{% endblock %}
+{% block title %}{{ _("Settings") }}{% endblock %}
 {% block content %}
-<div class="page-head"><div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Einstellungen") }}</h1></div></div>
+<div class="page-head"><div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Settings") }}</h1></div></div>
 <form method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="grid grid-2">
     <section class="card card-pad">
-      <h2 style="margin-bottom: 16px">{{ _("Allgemein") }}</h2>
-      <div class="field"><label for="f-org-name">{{ _("Name (Einrichtung oder Programm)") }}</label><input id="f-org-name" type="text" name="org_name" value="{{ s('org_name') }}"></div>
-      <div class="field"><label for="f-default-language">{{ _("Standardsprache") }}</label>
+      <h2 style="margin-bottom: 16px">{{ _("General") }}</h2>
+      <div class="field"><label for="f-org-name">{{ _("Name (organisation or program)") }}</label><input id="f-org-name" type="text" name="org_name" value="{{ s('org_name') }}"></div>
+      <div class="field"><label for="f-default-language">{{ _("Default language") }}</label>
         <select id="f-default-language" name="default_language">
           {% for code, label in LANGUAGES.items() %}<option value="{{ code }}" {{ 'selected' if s('default_language') == code }}>{{ label }}</option>{% endfor %}
         </select>
-        <small class="muted">{{ _("Für Besucher, deren Browser keine der beiden Sprachen bevorzugt, und für E-Mails an Benutzer ohne eigene Wahl. Jeder kann die Sprache oben rechts selbst umstellen.") }}</small></div>
-      <div class="field"><label for="f-catalog-visibility">{{ _("Sichtbarkeit des Bestands") }}</label>
+        <small class="muted">{{ _("For visitors whose browser prefers neither language, and for emails to users who haven't chosen one. Everyone can switch the language themselves at the top right.") }}</small></div>
+      <div class="field"><label for="f-catalog-visibility">{{ _("Inventory visibility") }}</label>
         <select id="f-catalog-visibility" name="catalog_visibility">
-          <option value="own" {{ 'selected' if s('catalog_visibility') not in ('groups', 'all') }}>{{ _("Mitarbeiter sehen nur ihre eigenen Gegenstände (kein Bestand)") }}</option>
-          <option value="groups" {{ 'selected' if s('catalog_visibility') == 'groups' }}>{{ _("Mitarbeiter sehen nur Gegenstände ihrer Gruppen und allgemeine Gegenstände") }}</option>
-          <option value="all" {{ 'selected' if s('catalog_visibility') == 'all' }}>{{ _("Alle sehen den gesamten Bestand (Ausgabe bleibt eingeschränkt)") }}</option>
+          <option value="own" {{ 'selected' if s('catalog_visibility') not in ('groups', 'all') }}>{{ _("Staff members only see their own items (no inventory)") }}</option>
+          <option value="groups" {{ 'selected' if s('catalog_visibility') == 'groups' }}>{{ _("Staff members only see items of their groups and general items") }}</option>
+          <option value="all" {{ 'selected' if s('catalog_visibility') == 'all' }}>{{ _("Everyone sees the whole inventory (issuing stays restricted)") }}</option>
         </select>
-        <small class="muted">{{ _("Standard: nur eigene Gegenstände – sinnvoll, wenn nur an der Ausgabetheke ausgegeben wird. Verwalter und Administratoren sehen den Bestand immer. Für die Selbstausleihe müssen Mitarbeiter den Bestand sehen.") }}</small></div>
+        <small class="muted">{{ _("Default: own items only – sensible if items are only issued at the desk. Managers and administrators always see the inventory. For self-checkout, staff members must be able to see the inventory.") }}</small></div>
 
-      <h2 style="margin: 22px 0 6px">{{ icon("shield") }} {{ _("Rechtliches") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in E-Mails. Bei Betrieb im Internet sind beide Angaben in der Regel Pflicht.") }}</p>
-      <div class="field"><label for="f-imprint-url">{{ _("Impressum (Adresse)") }}</label>
-        <input id="f-imprint-url" type="url" name="imprint_url" value="{{ s('imprint_url') }}" placeholder="{{ _('https://www.institut.de/impressum') }}"></div>
-      <div class="field"><label for="f-privacy-url">{{ _("Datenschutzerklärung (Adresse)") }}</label>
-        <input id="f-privacy-url" type="url" name="privacy_url" value="{{ s('privacy_url') }}" placeholder="{{ _('https://www.institut.de/datenschutz') }}">
-        <div class="hint">{{ _("Bei der Selbstregistrierung muss sie bestätigt werden.") }}</div></div>
+      <h2 style="margin: 22px 0 6px">{{ icon("shield") }} {{ _("Legal") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("Links appear on the sign-in page, in the sidebar and in emails. If AssetLotse is accessible on the internet, both are usually required.") }}</p>
+      <div class="field"><label for="f-imprint-url">{{ _("Legal notice (address)") }}</label>
+        <input id="f-imprint-url" type="url" name="imprint_url" value="{{ s('imprint_url') }}" placeholder="{{ _('https://www.example.org/legal-notice') }}"></div>
+      <div class="field"><label for="f-privacy-url">{{ _("Privacy policy (address)") }}</label>
+        <input id="f-privacy-url" type="url" name="privacy_url" value="{{ s('privacy_url') }}" placeholder="{{ _('https://www.example.org/privacy') }}">
+        <div class="hint">{{ _("It must be accepted during self-registration.") }}</div></div>
     </section>
 
     <section class="card card-pad">
-      <h2 style="margin-bottom: 16px">{{ _("Ausgabe") }}</h2>
+      <h2 style="margin-bottom: 16px">{{ _("Issuing") }}</h2>
       <div class="form-grid">
-        <div class="field span-3"><label for="f-loan-days">{{ _("Standard-Leihdauer (Tage)") }}</label><input id="f-loan-days" type="number" name="loan_days" min="0" value="{{ s('loan_days') }}">
-          <div class="hint">{{ _("0 = unbefristet (ohne Rückgabedatum)") }}</div></div>
-        <div class="field span-3"><label for="f-extension-days">{{ _("Verlängerung um (Tage)") }}</label><input id="f-extension-days" type="number" name="extension_days" min="1" value="{{ s('extension_days') }}"></div>
-        <div class="field span-3"><label for="f-max-extensions">{{ _("Max. Verlängerungen") }}</label><input id="f-max-extensions" type="number" name="max_extensions" min="0" value="{{ s('max_extensions') }}"></div>
-        <div class="field span-3"><label for="f-max-loans">{{ _("Max. Gegenstände pro Person") }}</label><input id="f-max-loans" type="number" name="max_loans" min="0" value="{{ s('max_loans') }}">
-          <div class="hint">{{ _("0 = unbegrenzt") }}</div></div>
+        <div class="field span-3"><label for="f-loan-days">{{ _("Default loan period (days)") }}</label><input id="f-loan-days" type="number" name="loan_days" min="0" value="{{ s('loan_days') }}">
+          <div class="hint">{{ _("0 = open-ended (no return date)") }}</div></div>
+        <div class="field span-3"><label for="f-extension-days">{{ _("Extend by (days)") }}</label><input id="f-extension-days" type="number" name="extension_days" min="1" value="{{ s('extension_days') }}"></div>
+        <div class="field span-3"><label for="f-max-extensions">{{ _("Max. extensions") }}</label><input id="f-max-extensions" type="number" name="max_extensions" min="0" value="{{ s('max_extensions') }}"></div>
+        <div class="field span-3"><label for="f-max-loans">{{ _("Max. items per person") }}</label><input id="f-max-loans" type="number" name="max_loans" min="0" value="{{ s('max_loans') }}">
+          <div class="hint">{{ _("0 = unlimited") }}</div></div>
       </div>
       <label class="check"><input type="checkbox" name="self_checkout" value="1" {{ 'checked' if s('self_checkout') == '1' }}>
-        <span>{{ _("Selbstausleihe") }}<small class="muted">{{ _("Mitarbeiter können sich erlaubte Gegenstände selbst per Klick nehmen.") }}</small></span></label>
+        <span>{{ _("Self-checkout") }}<small class="muted">{{ _("Staff members can take permitted items themselves with one click.") }}</small></span></label>
       <label class="check"><input type="checkbox" name="self_extend" value="1" {{ 'checked' if s('self_extend') == '1' }}>
-        <span>{{ _("Selbst verlängern") }}<small class="muted">{{ _("Bis zur maximalen Anzahl an Verlängerungen.") }}</small></span></label>
+        <span>{{ _("Self-service extension") }}<small class="muted">{{ _("Up to the maximum number of extensions.") }}</small></span></label>
       <label class="check"><input type="checkbox" name="self_return" value="1" {{ 'checked' if s('self_return') == '1' }}>
-        <span>{{ _("Selbst zurückgeben") }}<small class="muted">{{ _("Sonst nimmt ein Verwalter den Gegenstand zurück.") }}</small></span></label>
+        <span>{{ _("Self-return") }}<small class="muted">{{ _("Otherwise a manager checks the item back in.") }}</small></span></label>
     </section>
 
     <section class="card card-pad">
-      <h2 style="margin-bottom: 6px">{{ icon("user") }} {{ _("Selbstregistrierung") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Dürfen sich Mitarbeiter selbst ein Konto anlegen? Neue Konten haben immer die Rolle <b>Mitarbeiter</b>. Mit aktiver Registrierung erscheint auf der Anmeldeseite der Link „Jetzt registrieren“.") }}</p>
-      <div class="field"><label for="f-registration-mode">{{ _("Registrierung") }}</label>
+      <h2 style="margin-bottom: 6px">{{ icon("user") }} {{ _("Self-registration") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("May staff members create an account themselves? New accounts always get the role <b>Staff member</b>. With registration enabled, the sign-in page shows the link “Register now”.") }}</p>
+      <div class="field"><label for="f-registration-mode">{{ _("Registration") }}</label>
         <select id="f-registration-mode" name="registration_mode">
-          <option value="off" {{ 'selected' if s('registration_mode') == 'off' }}>{{ _("aus (Standard)") }}</option>
-          <option value="approval" {{ 'selected' if s('registration_mode') == 'approval' }}>{{ _("erlaubt – Freigabe durch Administrator nötig") }}</option>
-          <option value="open" {{ 'selected' if s('registration_mode') == 'open' }}>{{ _("erlaubt – Konto sofort aktiv") }}</option>
+          <option value="off" {{ 'selected' if s('registration_mode') == 'off' }}>{{ _("off (default)") }}</option>
+          <option value="approval" {{ 'selected' if s('registration_mode') == 'approval' }}>{{ _("allowed – approval by an administrator required") }}</option>
+          <option value="open" {{ 'selected' if s('registration_mode') == 'open' }}>{{ _("allowed – account active immediately") }}</option>
         </select></div>
       <label class="check"><input type="checkbox" name="registration_verify_email" value="1" {{ 'checked' if s('registration_verify_email') == '1' }}>
-        <span>{{ _("E-Mail-Adresse bestätigen lassen") }}<small class="muted">{{ _("Per Link in einer E-Mail, gültig 48 Stunden.") }}
-          {% if not mail_on %}<b style="color: var(--warn)">{{ _("Greift erst, wenn der E-Mail-Versand eingerichtet ist.") }}</b>{% endif %}</small></span></label>
+        <span>{{ _("Require email address confirmation") }}<small class="muted">{{ _("Via a link in an email, valid for 48 hours.") }}
+          {% if not mail_on %}<b style="color: var(--warn)">{{ _("Only takes effect once sending emails is set up.") }}</b>{% endif %}</small></span></label>
       <label class="check"><input type="checkbox" name="registration_notify_admins" value="1" {{ 'checked' if s('registration_notify_admins') == '1' }}>
-        <span>{{ _("Administratoren per E-Mail über neue Registrierungen informieren") }}</span></label>
-      <div class="field"><label for="f-registration-domains">{{ _("Nur diese E-Mail-Domains zulassen") }} <small>{{ _("(optional)") }}</small></label>
-        <input id="f-registration-domains" type="text" name="registration_domains" value="{{ s('registration_domains') }}" placeholder="{{ _('z. B. schule.de, eltern.schule.de') }}">
-        <div class="hint">{{ _("Leer = alle Adressen. Subdomains sind eingeschlossen.") }}</div></div>
+        <span>{{ _("Notify administrators of new registrations by email") }}</span></label>
+      <div class="field"><label for="f-registration-domains">{{ _("Only allow these email domains") }} <small>{{ _("(optional)") }}</small></label>
+        <input id="f-registration-domains" type="text" name="registration_domains" value="{{ s('registration_domains') }}" placeholder="{{ _('e.g. school.org, parents.school.org') }}">
+        <div class="hint">{{ _("Empty = all addresses. Subdomains are included.") }}</div></div>
       <div class="form-grid">
-        <div class="field span-3"><label for="f-registration-group-id">{{ _("Gruppe für neue Konten") }}</label>
+        <div class="field span-3"><label for="f-registration-group-id">{{ _("Group for new accounts") }}</label>
           <select id="f-registration-group-id" name="registration_group_id">
-            <option value="">{{ _("keine (nur allgemeine Gegenstände)") }}</option>
+            <option value="">{{ _("none (general items only)") }}</option>
             {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if s('registration_group_id') == g.id|string }}>{{ g.name }}</option>{% endfor %}
           </select></div>
-        <div class="field span-3"><label>{{ _("Datenschutzerklärung") }}</label>
-          <div class="hint" style="margin-top: 6px">{% if s('privacy_url') %}{{ _("Wird bei der Registrierung angezeigt und muss bestätigt werden.") }}{% else %}{{ _("Noch keine hinterlegt – siehe <i>Allgemein → Rechtliches</i>.") }}{% endif %}</div></div>
+        <div class="field span-3"><label>{{ _p("document", "Privacy policy") }}</label>
+          <div class="hint" style="margin-top: 6px">{% if s('privacy_url') %}{{ _("Shown during registration and must be accepted.") }}{% else %}{{ _("None set yet – see <i>General → Legal</i>.") }}{% endif %}</div></div>
       </div>
     </section>
 
     <section class="card card-pad" id="aufbewahrung">
-      <h2 style="margin-bottom: 6px">{{ icon("clock") }} {{ _("Aufbewahrung") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Abgeschlossene Ausleihen und das E-Mail-Protokoll werden nach Ablauf der Frist automatisch gelöscht (DSGVO: nur so lange speichern wie nötig). Pro Gegenstand bleibt nur die Anzahl der Ausleihen erhalten. Laufende und überfällige Ausleihen werden nie gelöscht.") }}</p>
-      <div class="field"><label for="f-retention-months">{{ _("Abgeschlossene Ausleihen löschen nach") }}</label>
+      <h2 style="margin-bottom: 6px">{{ icon("clock") }} {{ _("Retention") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("Completed loans and the e-mail log are deleted automatically once the period has passed (GDPR: keep data only as long as necessary). For each item, only the number of loans is kept. Current and overdue loans are never deleted.") }}</p>
+      <div class="field"><label for="f-retention-months">{{ _("Delete completed loans after") }}</label>
         <select id="f-retention-months" name="retention_months">
-          {% for m, label in [("3", _("3 Monaten")), ("6", _("6 Monaten")), ("12", _("12 Monaten (empfohlen)")), ("24", _("2 Jahren")), ("36", _("3 Jahren")), ("0", _("nie (nicht empfohlen)"))] %}
+          {% for m, label in [("3", _("3 months")), ("6", _("6 months")), ("12", _("12 months (recommended)")), ("24", _("2 years")), ("36", _("3 years")), ("0", _("never (not recommended)"))] %}
           <option value="{{ m }}" {{ 'selected' if s('retention_months') == m }}>{{ label }}</option>{% endfor %}
         </select>
-        <div class="hint">{{ _("gerechnet ab der Rückgabe · läuft einmal täglich automatisch") }}</div></div>
-      {% if s('retention_last_result') %}<p class="muted" style="font-size: 13px; margin: 0 0 10px">{{ _("Letzter Lauf:") }} {{ retention_result }}</p>{% endif %}
-      <button class="btn sm" type="submit" form="retention-now">{{ icon("check") }} {{ _("Jetzt bereinigen") }}</button>
+        <div class="hint">{{ _("counted from the return · runs automatically once a day") }}</div></div>
+      {% if s('retention_last_result') %}<p class="muted" style="font-size: 13px; margin: 0 0 10px">{{ _("Last run:") }} {{ retention_result }}</p>{% endif %}
+      <button class="btn sm" type="submit" form="retention-now">{{ icon("check") }} {{ _("Clean up now") }}</button>
     </section>
 
     <section class="card card-pad">
-      <h2 style="margin-bottom: 6px">{{ icon("shield") }} {{ _("Zwei-Faktor-Anmeldung") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Authenticator-App (TOTP) oder Sicherheitsschlüssel (YubiKey/FIDO2). Jeder kann sie im Profil freiwillig einrichten; hier legst du fest, für wen sie Pflicht ist. Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt.") }}</p>
-      <div class="field"><label for="f-mfa-policy">{{ _("Pflicht bei Zugriff von außen (Internet)") }}</label>
+      <h2 style="margin-bottom: 6px">{{ icon("shield") }} {{ _("Two-factor authentication") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("Authenticator app (TOTP) or security key (YubiKey/FIDO2). Anyone can set it up voluntarily in their profile; here you decide for whom it is mandatory. Those affected are guided through setup after their next sign-in.") }}</p>
+      <div class="field"><label for="f-mfa-policy">{{ _("Mandatory for access from outside (internet)") }}</label>
         <select id="f-mfa-policy" name="mfa_policy">
-          <option value="optional" {{ 'selected' if s('mfa_policy') == 'optional' }}>{{ _("niemanden (freiwillig)") }}</option>
-          <option value="admins" {{ 'selected' if s('mfa_policy') == 'admins' }}>{{ _("Administratoren") }}</option>
-          <option value="managers" {{ 'selected' if s('mfa_policy') == 'managers' }}>{{ _("Verwalter und Administratoren") }}</option>
-          <option value="all" {{ 'selected' if s('mfa_policy') == 'all' }}>{{ _("alle Benutzer") }}</option>
+          <option value="optional" {{ 'selected' if s('mfa_policy') == 'optional' }}>{{ _("nobody (voluntary)") }}</option>
+          <option value="admins" {{ 'selected' if s('mfa_policy') == 'admins' }}>{{ _("Administrators") }}</option>
+          <option value="managers" {{ 'selected' if s('mfa_policy') == 'managers' }}>{{ _("Managers and administrators") }}</option>
+          <option value="all" {{ 'selected' if s('mfa_policy') == 'all' }}>{{ _("all users") }}</option>
         </select></div>
-      <div class="field"><label for="f-mfa-internal">{{ _("Im internen Netz") }}</label>
+      <div class="field"><label for="f-mfa-internal">{{ _("On the internal network") }}</label>
         <select id="f-mfa-internal" name="mfa_internal">
-          <option value="same" {{ 'selected' if s('mfa_internal') == 'same' }}>{{ _("wie von außen") }}</option>
-          <option value="optional" {{ 'selected' if s('mfa_internal') == 'optional' }}>{{ _("keine Pflicht – wer 2FA eingerichtet hat, wird trotzdem gefragt") }}</option>
-          <option value="skip" {{ 'selected' if s('mfa_internal') == 'skip' }}>{{ _("keine Zwei-Faktor-Abfrage") }}</option>
+          <option value="same" {{ 'selected' if s('mfa_internal') == 'same' }}>{{ _("same as from outside") }}</option>
+          <option value="optional" {{ 'selected' if s('mfa_internal') == 'optional' }}>{{ _("not mandatory – users who have set up 2FA are still asked") }}</option>
+          <option value="skip" {{ 'selected' if s('mfa_internal') == 'skip' }}>{{ _("no two-factor prompt") }}</option>
         </select>
-        <div class="hint">{{ _("Eine intern ohne zweiten Faktor begonnene Sitzung gilt nicht von außen: Wer damit von außerhalb zugreift (z. B. Laptop zu Hause), muss sich neu anmelden. „Angemeldet bleiben“ wirkt dann nicht.") }}</div></div>
-      <div class="field"><label for="f-internal-networks">{{ _("Internes Netz") }}</label>
+        <div class="hint">{{ _("A session started internally without a second factor is not valid from outside: anyone using it from outside (e.g. a laptop at home) has to sign in again. “Stay signed in” does not apply then.") }}</div></div>
+      <div class="field"><label for="f-internal-networks">{{ _("Internal network") }}</label>
         <textarea id="f-internal-networks" name="internal_networks" rows="4" class="mono" placeholder="{{ default_networks }}">{{ s('internal_networks') }}</textarea>
-        <div class="hint">{{ _("Ein Netz pro Zeile, z. B. <code>192.168.10.0/24</code>. Leer = 10.x und 192.168.x (siehe Platzhalter) – Docker-Netze 172.16–31.x zählen nur, wenn du sie einträgst. Am besten auf euer tatsächliches LAN eingrenzen.") }}</div></div>
-      <div class="field"><label for="f-own-public-hosts">{{ _("Eigener Internetanschluss") }}</label>
-        <textarea id="f-own-public-hosts" name="own_public_hosts" rows="2" class="mono" placeholder="{{ _('mein-institut.dyndns.org') }}">{{ s('own_public_hosts') }}</textarea>
-        <div class="hint">{% if connection.own_ips %}{{ _("Feste öffentliche IP oder DynDNS-Name, ein Eintrag pro Zeile. Wer über diese Adresse kommt, gilt als intern – nötig, wenn interne Rechner die öffentliche Domain aufrufen und der Router sie dabei als eigene öffentliche IP ausgibt. DynDNS-Namen werden alle 5 Minuten neu aufgelöst (derzeit: <code>{ips}</code>).", ips=connection.own_ips|join(', ')) }}{% else %}{{ _("Feste öffentliche IP oder DynDNS-Name, ein Eintrag pro Zeile. Wer über diese Adresse kommt, gilt als intern – nötig, wenn interne Rechner die öffentliche Domain aufrufen und der Router sie dabei als eigene öffentliche IP ausgibt. DynDNS-Namen werden alle 5 Minuten neu aufgelöst.") }}{% endif %}</div>
-        <div class="notice warn" style="display: block; font-size: 12.5px; margin-top: 8px">{{ _("Achtung: Auch Geräte im <b>Gäste-WLAN</b> und alle anderen Geräte hinter eurem Router kommen mit dieser Adresse an und gelten dann als intern. Gäste-WLAN daher getrennt halten oder für AssetLotse sperren.") }}</div></div>
+        <div class="hint">{{ _("One network per line, e.g. <code>192.168.10.0/24</code>. Empty = 10.x and 192.168.x (see placeholder) – Docker networks 172.16–31.x only count if you enter them. Best restrict it to your actual LAN.") }}</div></div>
+      <div class="field"><label for="f-own-public-hosts">{{ _("Own internet connection") }}</label>
+        <textarea id="f-own-public-hosts" name="own_public_hosts" rows="2" class="mono" placeholder="{{ _('my-institute.dyndns.org') }}">{{ s('own_public_hosts') }}</textarea>
+        <div class="hint">{% if connection.own_ips %}{{ _("Static public IP or DynDNS name, one entry per line. Requests coming from this address count as internal – needed when internal computers open the public domain and the router passes them on with its own public IP. DynDNS names are re-resolved every 5 minutes (currently: <code>{ips}</code>).", ips=connection.own_ips|join(', ')) }}{% else %}{{ _("Static public IP or DynDNS name, one entry per line. Requests coming from this address count as internal – needed when internal computers open the public domain and the router passes them on with its own public IP. DynDNS names are re-resolved every 5 minutes.") }}{% endif %}</div>
+        <div class="notice warn" style="display: block; font-size: 12.5px; margin-top: 8px">{{ _("Caution: devices on the <b>guest Wi-Fi</b> and every other device behind your router also arrive with this address and are then treated as internal. Keep the guest Wi-Fi separate or block it from AssetLotse.") }}</div></div>
       <div class="notice {{ 'ok' if connection.internal else 'accent' }}" style="display: block; font-size: 13px; margin-bottom: 12px">
-        {% if connection.internal and connection.zone == 'own' %}{{ _("Deine aktuelle Verbindung ({ip}) gilt als <b>intern</b> (über den eigenen Internetanschluss).", ip=connection.ip) }}
-        {%- elif connection.internal %}{{ _("Deine aktuelle Verbindung ({ip}) gilt als <b>intern</b>.", ip=connection.ip) }}
-        {%- else %}{{ _("Deine aktuelle Verbindung ({ip}) gilt als <b>extern</b>.", ip=connection.ip) }}{% endif %}
-        {% if connection.proxy_without_ip %}<br>{{ _("Der Reverse-Proxy schickt keine Besucher-Adresse (<code>X-Forwarded-For</code>) – solche Zugriffe gelten aus Sicherheitsgründen immer als extern.") }}{% endif %}
-        <br><small>{{ _("Zum Prüfen einmal vom Handy über mobile Daten aufrufen: Dort muss „extern“ stehen.") }}</small></div>
-      <p class="muted" style="font-size: 12.5px">{{ _('Probleme mit dem zweiten Faktor? Unter <a href="{url}">Benutzer</a> → Konto öffnen → „Zwei-Faktor-Anmeldung zurücksetzen“ bzw. „Anmeldesperre aufheben“.', url=url_for('admin.users')) }}</p>
+        {% if connection.internal and connection.zone == 'own' %}{{ _("Your current connection ({ip}) counts as <b>internal</b> (via your own internet connection).", ip=connection.ip) }}
+        {%- elif connection.internal %}{{ _("Your current connection ({ip}) counts as <b>internal</b>.", ip=connection.ip) }}
+        {%- else %}{{ _("Your current connection ({ip}) counts as <b>external</b>.", ip=connection.ip) }}{% endif %}
+        {% if connection.proxy_without_ip %}<br>{{ _("The reverse proxy does not send a visitor address (<code>X-Forwarded-For</code>) – for security reasons such requests always count as external.") }}{% endif %}
+        <br><small>{{ _("To check, open the page once from a phone over mobile data: it must say “external” there.") }}</small></div>
+      <p class="muted" style="font-size: 12.5px">{{ _('Problems with the second factor? Under <a href="{url}">Users</a> → open the account → “Reset two-factor authentication” or “Lift sign-in lock”.', url=url_for('admin.users')) }}</p>
     </section>
 
   </div>
   <div class="actions" style="margin-top: 20px; justify-content: flex-end">
-    <button class="btn primary lg">{{ icon("check") }} {{ _("Speichern") }}</button>
+    <button class="btn primary lg">{{ icon("check") }} {{ _("Save") }}</button>
   </div>
 </form>
 <form id="retention-now" method="post" action="{{ url_for('admin.retention_run') }}"
-      data-confirm="{{ _('Alte Ausleihen und Protokolleinträge jetzt endgültig löschen?') }}">
+      data-confirm="{{ _('Permanently delete old loans and log entries now?') }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
 {% endblock %}

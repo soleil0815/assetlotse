@@ -293,7 +293,7 @@ class ModeTests(unittest.TestCase):
         self.assertEqual((m["kind"], m["build"], m["publish"]), ("check", True, False))
         m = ci.mode("pull_request", ref="refs/pull/7/merge")
         self.assertEqual((m["kind"], m["build"], m["publish"], m["lock"]), ("check", True, False, False))
-        m = ci.mode("workflow_dispatch", input_mode="release", ref=main)  # "veröffentlichen": by hand
+        m = ci.mode("workflow_dispatch", input_mode="release", ref=main)  # "release": by hand
         self.assertEqual((m["kind"], m["build"], m["publish"]), ("release", True, True))
         with self.assertRaises(SystemExit):
             ci.mode("workflow_dispatch", input_mode="release", ref="refs/heads/feature")   # only from main
@@ -408,17 +408,17 @@ class VersionPlanTests(unittest.TestCase):
                    {"kind": "python", "name": "cryptography", "old": "50.0.1", "new": "50.0.2"},
                    {"kind": "python", "name": "oldpkg", "old": "1.0", "new": None}]
         entry = ci.changelog_entry("1.9.5-s2", "1.9.5", "2026-10-26", changes)
-        self.assertTrue(entry.startswith("## 1.9.5-s2 – 2026-10-26\n\nSicherheitsupdate: gleiches Programm wie 1.9.5"))
-        for line in ("- Basis-Image: Python 3.13.16 → 3.13.17", "- Debian: libssl3t64 3.5.1-1 → 3.5.1-1+deb13u1",
-                     "- Debian: newpkg 1.0 (neu)", "- Python: cryptography 50.0.1 → 50.0.2",
-                     "- Python: oldpkg 1.0 (entfernt)"):
+        self.assertTrue(entry.startswith("## 1.9.5-s2 – 2026-10-26\n\nSecurity update: same program as 1.9.5"))
+        for line in ("- Base image: Python 3.13.16 → 3.13.17", "- Debian: libssl3t64 3.5.1-1 → 3.5.1-1+deb13u1",
+                     "- Debian: newpkg 1.0 (new)", "- Python: cryptography 50.0.1 → 50.0.2",
+                     "- Python: oldpkg 1.0 (removed)"):
             self.assertIn(line, entry)
         text = ci.insert_changelog("# Änderungen\n\nIntro.\n\n## 1.9.5 – 2026-10-24\n\nx\n", entry)
         self.assertLess(text.index("## 1.9.5-s2"), text.index("## 1.9.5 –"))
         self.assertTrue(text.startswith("# Änderungen\n\nIntro.\n\n## 1.9.5-s2"))
         many = ci.changelog_entry("1-s1", "1", "d", [{"kind": "debian", "name": f"p{i}", "old": "1", "new": "2"}
                                                     for i in range(100)], limit=10)
-        self.assertIn("… und 90 weitere", many)
+        self.assertIn("… and 90 more", many)
 
     def test_release_notes_from_changelog(self):
         cl = ("# Änderungen\n\n## 1.10.0-s1 – 2026-10-26\n\nSicherheitsupdate: x\n\n- Debian: a 1 → 2\n\n"

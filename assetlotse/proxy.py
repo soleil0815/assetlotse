@@ -1,17 +1,17 @@
-"""Automatischer Betrieb hinter einem Reverse-Proxy – ohne Konfiguration.
+"""Automatic operation behind a reverse proxy – without configuration.
 
-* X-Forwarded-For/-Proto/-Host werden nur von vertrauenswürdigen Absendern übernommen.
-  Standard: private Netze (10/8, 172.16/12, 192.168/16, 127/8, fc00::/7, ::1) – dort steht
-  praktisch immer der Reverse-Proxy (z. B. Nginx Proxy Manager im selben Docker-Netz).
-  Aus dem Internet direkt kommende Anfragen können die Header daher nicht fälschen.
-* Cookies erhalten das Secure-Flag automatisch, sobald die Anfrage per HTTPS kam
-  (direkt oder laut Proxy). Über http://IP:9343 im LAN funktioniert die Anmeldung weiterhin.
+* X-Forwarded-For/-Proto/-Host are only accepted from trusted senders.
+  Default: private networks (10/8, 172.16/12, 192.168/16, 127/8, fc00::/7, ::1) – that is
+  practically always where the reverse proxy sits (e.g. Nginx Proxy Manager in the same Docker network).
+  Requests coming directly from the internet therefore cannot forge the headers.
+* Cookies get the Secure flag automatically as soon as the request came via HTTPS
+  (directly or according to the proxy). Login via http://IP:9343 on the LAN keeps working.
 
-Umgebungsvariablen (optional):
-  ASSETLOTSE_TRUSTED_PROXIES  "private" (Standard), "none" oder Liste von Netzen/IPs,
-                               z. B. "172.18.0.0/16, 192.168.0.11"
-  ASSETLOTSE_SECURE_COOKIES   "auto" (Standard), "1" (immer) oder "0" (nie)
-  ASSETLOTSE_BEHIND_PROXY     veraltet; "0" entspricht TRUSTED_PROXIES=none
+Environment variables (optional):
+  ASSETLOTSE_TRUSTED_PROXIES  "private" (default), "none" or a list of networks/IPs,
+                               e.g. "172.18.0.0/16, 192.168.0.11"
+  ASSETLOTSE_SECURE_COOKIES   "auto" (default), "1" (always) or "0" (never)
+  ASSETLOTSE_BEHIND_PROXY     deprecated; "0" equals TRUSTED_PROXIES=none
 """
 from __future__ import annotations
 
@@ -47,12 +47,12 @@ def parse_networks(value: str | None) -> list:
         try:
             nets.append(ipaddress.ip_network(part, strict=False))
         except ValueError:
-            log.warning("ASSETLOTSE_TRUSTED_PROXIES: ungültiger Eintrag %r ignoriert", part)
+            log.warning("ASSETLOTSE_TRUSTED_PROXIES: invalid entry %r ignored", part)
     return nets
 
 
 class TrustedProxyFix:
-    """Wendet ProxyFix nur an, wenn die Verbindung von einem vertrauenswürdigen Proxy kommt."""
+    """Apply ProxyFix only if the connection comes from a trusted proxy."""
 
     def __init__(self, app: WSGIApplication, networks: list[IPNetwork]) -> None:
         self.app = app
@@ -75,7 +75,7 @@ class TrustedProxyFix:
 
 
 class SecureCookies:
-    """Setzt bei HTTPS-Anfragen das Secure-Flag an allen Cookies."""
+    """Set the Secure flag on all cookies for HTTPS requests."""
 
     def __init__(self, app: WSGIApplication, mode: str = "auto") -> None:
         self.app = app
@@ -108,5 +108,5 @@ def install(app: Flask, env: Mapping[str, str]) -> None:
     elif trusted is None and legacy == "1":
         trusted = "private"
     networks = parse_networks(trusted)
-    # Reihenfolge: erst Proxy-Header auswerten (setzt https), dann Cookies anpassen
+    # order: evaluate proxy headers first (sets https), then adjust cookies
     app.wsgi_app = TrustedProxyFix(SecureCookies(app.wsgi_app, mode), networks)  # type: ignore[method-assign]

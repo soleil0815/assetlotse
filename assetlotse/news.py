@@ -1,8 +1,8 @@
-"""Neuigkeiten in der App: kurze Hinweise zu neuen Funktionen, Sicherheitsupdates und Korrekturen.
+"""In-app news: short notes on new features, security updates and fixes.
 
-Die Einträge stehen in news.json (mit dem Programm ausgeliefert). Jede Person sieht nur, was sie betrifft
-(audience), und ein dezenter Punkt bei der Versionsnummer zeigt Ungelesenes an. Gelesen gilt alles bis zur
-Version, die beim letzten Öffnen der Seite lief (users.news_seen)."""
+The entries are in news.json (shipped with the program). Everyone only sees what concerns them
+(audience), and a subtle dot next to the version number indicates unread items. Everything up to the
+version that was running when the page was last opened counts as read (users.news_seen)."""
 from __future__ import annotations
 
 import functools
@@ -30,13 +30,13 @@ def _entries() -> tuple:
     try:
         data = _load_raw()
     except (OSError, ValueError) as exc:
-        log.warning("Neuigkeiten nicht lesbar: %s", exc)
+        log.warning("News cannot be read: %s", exc)
         return ()
     current = version_tuple(__version__)
     out = []
     for e in data.get("entries", []):
         if (e.get("kind") in KINDS and e.get("audience") in _RANK and e.get("de", {}).get("title")
-                and version_tuple(e.get("version", "")) <= current):       # nichts aus der Zukunft anzeigen
+                and version_tuple(e.get("version", "")) <= current):       # show nothing from the future
             out.append(e)
     out.sort(key=lambda e: version_tuple(e["version"]), reverse=True)
     return tuple(out)
@@ -52,8 +52,8 @@ def for_user(user) -> list[dict]:
 
 
 def _baseline(user) -> tuple:
-    """Bis zu welcher Version gilt alles als gelesen? Ohne Eintrag (neues Konto, erstes Update mit dieser
-    Funktion): alles vor der laufenden Version – dann ist nur Neues dieser Version ungelesen."""
+    """Up to which version does everything count as read? Without an entry (new account, first update with
+    this feature): everything before the running version – then only news of this version is unread."""
     seen = (user.news_seen or "").strip()
     if seen:
         return version_tuple(seen)
@@ -67,7 +67,7 @@ def unread(user) -> list[dict]:
 
 
 def mark_read(user) -> bool:
-    """Alles bis zur laufenden Version als gelesen merken. True, wenn sich etwas geändert hat."""
+    """Mark everything up to the running version as read. True if something changed."""
     if (user.news_seen or "") == __version__:
         return False
     user.news_seen = __version__

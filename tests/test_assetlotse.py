@@ -1,4 +1,4 @@
-"""AssetLotse-spezifisch: vertrauliche Angaben, unbefristete Ausgabe, Vorlagen, Kategorien, Nummernsuche."""
+"""AssetLotse-specific: confidential details, open-ended issue, templates, categories, number search."""
 import os
 import sys
 import tempfile
@@ -23,7 +23,7 @@ class Base(unittest.TestCase):
         self.ctx.push()
         db.create_all()
         from assetlotse.models import ensure_indexes
-        ensure_indexes()   # wie beim echten Start: u. a. eindeutige Inventar-/Seriennummern
+        ensure_indexes()   # as on a real start: among other things unique inventory/serial numbers
         from flask import g
 
         def _fresh():
@@ -34,8 +34,8 @@ class Base(unittest.TestCase):
         db.session.add_all([self.it, self.hr])
         db.session.commit()
         self.admin = self.make("admin", "admin")
-        self.vera = self.make("vera", "manager", [self.it])       # Verwalterin der Gruppe IT
-        self.hans = self.make("hans", "manager", [self.hr])       # Verwalter der Gruppe Personal
+        self.vera = self.make("vera", "manager", [self.it])       # manager of the IT group
+        self.hans = self.make("hans", "manager", [self.hr])       # manager of the Personal group
         self.mia = self.make("mia", "reader", [self.it])
         self.c = self.app.test_client()
 
@@ -57,7 +57,7 @@ class Base(unittest.TestCase):
         self.assertEqual(r.status_code, 302)
 
     def laptop(self, secret=KEY, **kw):
-        # Inventar-/Seriennummern sind eindeutig: der erste Laptop bekommt IT-0042/SN-1, weitere fortlaufende
+        # inventory/serial numbers are unique: the first laptop gets IT-0042/SN-1, further ones consecutive numbers
         n = Asset.query.count()
         a = Asset(name=kw.pop("name", "Laptop Dell"), category="Laptop",
                   inventory_no=kw.pop("inventory_no", "IT-0042" if n == 0 else f"IT-{42 + n:04d}"),
@@ -97,7 +97,7 @@ class SecretTests(Base):
         self.assertIn(KEY, r.get_data(as_text=True))
         self.assertEqual(r.headers.get("Cache-Control"), "no-store")
         self.assertEqual([(e.user_id, e.action) for e in SecretAccess.query], [(self.vera.id, "view")])
-        # Protokoll steht auf der Detailseite
+        # the log is shown on the detail page
         self.assertIn("angezeigt", self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True))
 
     def test_only_managers_of_this_item(self):
@@ -106,7 +106,7 @@ class SecretTests(Base):
         html = self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True)
         self.assertNotIn("Vertrauliche Angaben", html)
         self.assertEqual(self.c.post(f"/gegenstaende/{a.id}/vertraulich").status_code, 403)
-        self.login("hans")   # Verwalter einer anderen Gruppe
+        self.login("hans")   # manager of another group
         self.assertEqual(self.c.post(f"/gegenstaende/{a.id}/vertraulich").status_code, 403)
         self.assertEqual(SecretAccess.query.count(), 0)
         self.login("admin")
@@ -183,15 +183,15 @@ class SecretTests(Base):
         self.assertEqual(entries[0].user_label, "Vera (vera)")
 
     def test_general_items_only_for_admins(self):
-        """„Allgemein“ öffnet keine Geheimnisse – auch nicht für Verwalter ohne Gruppe."""
+        """“General” does not open secrets – not even for managers without a group."""
         a = self.laptop(group_id=None)
-        boss = self.make("boss", "manager")          # Verwalter ohne Gruppe (verwaltet den ganzen Bestand)
+        boss = self.make("boss", "manager")          # manager without a group (manages the entire stock)
         for name in ("vera", "hans", "boss"):
             self.login(name)
             with self.subTest(name=name):
                 self.assertEqual(self.c.post(f"/gegenstaende/{a.id}/vertraulich").status_code, 403)
                 self.assertNotIn("Anzeigen</button>", self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True))
-        # darf den Gegenstand weiter bearbeiten, das Geheimnis aber nicht überschreiben
+        # may still edit the item, but not overwrite the secret
         self.login("boss")
         r = self.c.post(f"/gegenstaende/{a.id}/bearbeiten", data={"name": "Neu", "quantity": "1", "secret": "x"},
                         follow_redirects=True)
@@ -209,7 +209,7 @@ class SecretTests(Base):
         self.c.post("/logout")
         self.login("admin")
         self.c.post(f"/admin/gruppen/{self.hr.id}/loeschen", follow_redirects=True)
-        self.assertIsNone(db.session.get(Group, self.hr.id))     # hans verliert so seine einzige Gruppe
+        self.assertIsNone(db.session.get(Group, self.hr.id))     # this way hans loses his only group
         self.c.post("/logout")
         self.login("hans")
         for x in (a, other):
@@ -323,7 +323,7 @@ class FormTests(Base):
                                                        "quantity": "1"}, follow_redirects=True)
             html = r.get_data(as_text=True)
             self.assertIn("ist bereits vergeben (bei „Laptop Dell“)", html)
-            self.assertIn('value="Zweiter"', html)          # Eingaben bleiben im Formular stehen
+            self.assertIn('value="Zweiter"', html)          # input stays in the form
             self.assertEqual(Asset.query.count(), 1)
 
     def test_name_required(self):
@@ -397,7 +397,7 @@ class LabelTests(Base):
         self.assertEqual(v[0], L.START_B)
         self.assertEqual(v[-1], L.STOP)
         self.assertEqual(v[-2], (v[0] + sum(i * x for i, x in enumerate(v[1:-2], start=1))) % 103)
-        self.assertEqual(L.code128_values("20240042")[0], L.START_C)        # Ziffern kompakt als Code C
+        self.assertEqual(L.code128_values("20240042")[0], L.START_C)        # digits compact as Code C
         with self.assertRaises(ValueError):
             L.code128_values("Ü-12")
 
@@ -424,7 +424,7 @@ class LabelTests(Base):
         self.assertEqual(r.mimetype, "application/pdf")
         self.assertEqual(self._pages(r.data), 1)
         self.assertIn(b"(IT-0042) Tj", r.data)
-        self.assertNotIn(b"448899", r.data)          # vertrauliche Angaben nie auf dem Etikett
+        self.assertNotIn(b"448899", r.data)          # confidential details never on the label
         self.assertIn(b"/MediaBox [0 0 175.75 82.2]", r.data)   # 62 × 29 mm
         r = self.c.get(f"/gegenstaende/{a.id}/etikett.pdf?anzahl=3")
         self.assertEqual(self._pages(r.data), 3)
@@ -438,7 +438,7 @@ class LabelTests(Base):
         db.session.commit()
         self.login("vera")
         r = self.c.get("/gegenstaende/etiketten.pdf?kategorie=Laptop")
-        self.assertEqual(self._pages(r.data), 2)       # nur eigene Gruppe, nur Laptops
+        self.assertEqual(self._pages(r.data), 2)       # own group only, laptops only
         self.assertNotIn(b"Fremd", r.data)
         r = self.c.get("/gegenstaende/etiketten.pdf?kategorie=Gibtsnicht", follow_redirects=True)
         self.assertIn("Keine Gegenstände für Etiketten", r.get_data(as_text=True))
@@ -456,7 +456,7 @@ class LabelTests(Base):
         self.login("admin")
         pdf = self.c.get(f"/gegenstaende/{a.id}/etikett.pdf").data
         self.assertIn(b"Schl\\374ssel \\(Haus\\) \\\\ \\304", pdf)
-        self.assertIn(f"(\\334-12 \\(#{a.id}\\)) Tj".encode(), pdf)   # Inventarnummer lesbar, Barcode #ID
+        self.assertIn(f"(\\334-12 \\(#{a.id}\\)) Tj".encode(), pdf)   # inventory number readable, barcode #ID
 
 
 class DashboardTests(Base):
@@ -471,18 +471,18 @@ class DashboardTests(Base):
         self.login("vera")
         html = self.c.get("/").get_data(as_text=True)
         self.assertIn("Bestand nach Kategorie", html)
-        self.assertIn("40 % ausgelastet", html)          # 2 von 5 Stück ausgegeben
+        self.assertIn("40 % ausgelastet", html)          # 2 of 5 pieces issued
         self.assertIn("1 in den nächsten 7 Tagen fällig", html)
-        self.assertIn('style="width: 25%"', html)         # Audio: 1 von 4
+        self.assertIn('style="width: 25%"', html)         # Audio: 1 of 4
         self.login("mia")
         self.assertNotIn("Bestand nach Kategorie", self.c.get("/").get_data(as_text=True))
 
 
 class ReviewRegressionTests(Base):
-    """Befunde aus dem Code-Review 1.1.0."""
+    """Findings from the 1.1.0 code review."""
 
     def test_moving_item_into_own_group_does_not_reveal_secret(self):
-        a = self.laptop(group_id=None)                      # „Allgemein“: Schlüssel nur für Admins
+        a = self.laptop(group_id=None)                      # “General”: key for admins only
         self.login("vera")
         self.c.post(f"/gegenstaende/{a.id}/bearbeiten", data={"name": a.name, "quantity": "1",
                                                                "group_id": self.it.id, "secret": "überschrieben"})
@@ -505,7 +505,7 @@ class ReviewRegressionTests(Base):
         self.login("admin")
         self.c.post("/theke", data={"modus": "ausgabe", "benutzer": "mia", "code": f"#{beamer.id}", "auto": "1"})
         self.assertEqual([l.asset_id for l in Loan.query], [beamer.id])
-        # Namenssuche liefert nur eine Auswahl – nie automatische Ausgabe
+        # name search only offers a choice – never an automatic issue
         self.c.post("/theke", data={"modus": "ausgabe", "benutzer": "vera", "code": "Leihg", "auto": "1"})
         self.assertEqual(Loan.query.count(), 1)
 
@@ -532,12 +532,12 @@ class ReviewRegressionTests(Base):
         a = self.laptop(secret="", inventory_no="INSTITUT-IT-2026-000042")
         self.assertEqual(L.barcode_value(a), f"#{a.id}")
         self.assertEqual(L.label_for(a).text, f"INSTITUT-IT-2026-000042 (#{a.id})")
-        a.inventory_no = "1234567890123456"                 # Ziffern: kompakt als Code C, bleibt erhalten
+        a.inventory_no = "1234567890123456"                 # digits: compact as Code C, is kept
         self.assertEqual(L.barcode_value(a), "1234567890123456")
 
     def test_text_fits_with_umlauts_and_foreign_letters(self):
         from assetlotse import labels as L
-        self.assertEqual(L.printable("Łódź Bu\u0308ro"), "Lódz Büro")   # ó gibt es in cp1252, ź nicht; NFD-Umlaut wird zusammengesetzt
+        self.assertEqual(L.printable("Łódź Bu\u0308ro"), "Lódz Büro")   # ó exists in cp1252, ź does not; an NFD umlaut is composed
         inner = (L.LABEL_W_MM - 2 * L.MARGIN_MM) * L.MM
         t = L.fit("Überwachungsmonitor ÖÄÜ Größenverstellbar für Übungsräume", 9, inner, True)
         self.assertTrue(t.endswith("…"))
@@ -545,8 +545,8 @@ class ReviewRegressionTests(Base):
 
 
 class _FakeConn:
-    """Minimaler LDAP-Nachbau für die Personensuche: Die Namenssuche (Filter mit *) liefert die festen Einträge
-    (unter Beachtung von size_limit), Gruppenabfragen liefern nichts – die Gruppen kommen aus memberOf."""
+    """Minimal LDAP stand-in for the people search: the name search (filter with *) returns the fixed entries
+    (respecting size_limit), group queries return nothing – the groups come from memberOf."""
 
     def __init__(self, entries):
         self.entries, self.response, self.filters = entries, [], []
@@ -591,15 +591,15 @@ class AdSearchTests(Base):
     def test_only_people_allowed_by_the_rules_are_found(self):
         d, conn = self.directory([
             _ad_entry("amueller", "Anna Müller", ["AL-Mitarbeiter"]),
-            _ad_entry("bmueller", "Bernd Müller", []),                                     # keine Regel -> unsichtbar
-            _ad_entry("cmueller", "Carla Müller", ["AL-Mitarbeiter"], uac=514),            # im AD deaktiviert
-            _ad_entry("dmueller", "Dirk Müller", [], ou="OU=IT,OU=Institut,DC=institut,DC=local"),   # OU-Regel
+            _ad_entry("bmueller", "Bernd Müller", []),                                     # no rule -> invisible
+            _ad_entry("cmueller", "Carla Müller", ["AL-Mitarbeiter"], uac=514),            # disabled in AD
+            _ad_entry("dmueller", "Dirk Müller", [], ou="OU=IT,OU=Institut,DC=institut,DC=local"),   # OU rule
             _ad_entry("emueller", "Eva Müller", ["AL-Admins"]),
         ])
         found, more = d.search_users("Müller")
         self.assertEqual({u.username: u.role for u in found}, {"amueller": "reader", "dmueller": "manager", "emueller": "admin"})
         self.assertFalse(more)
-        # gleicher Benutzerfilter wie beim Login; im AD serverseitig nur aktive, nicht abgelaufene Personen
+        # same user filter as on login; in AD only active, non-expired people (server side)
         flt = conn.filters[0]
         self.assertTrue(flt.startswith("(&(objectClass=user)(|"))
         for part in ("(objectCategory=person)", "(!(userAccountControl:1.2.840.113556.1.4.803:=2))", "accountExpires>="):
@@ -621,7 +621,7 @@ class AdSearchTests(Base):
     def test_known_accounts_are_skipped_before_the_limit(self):
         entries = [_ad_entry(f"mueller{i:02}", f"Müller {i:02}", ["AL-Mitarbeiter"]) for i in range(12)]
         d, _conn = self.directory(entries)
-        known = {f"Mueller{i:02}" for i in range(10)}          # Groß/Klein egal
+        known = {f"Mueller{i:02}" for i in range(10)}          # case does not matter
         found, more = d.search_users("Müller", exclude=known)
         self.assertEqual([u.username for u in found], ["mueller10", "mueller11"])
         self.assertFalse(more)
@@ -631,7 +631,7 @@ class AdSearchTests(Base):
         d, _conn = self.directory(entries)
         found, more = d.search_users("anna", candidates=30)
         self.assertEqual(found, [])
-        self.assertTrue(more)                                 # -> Hinweis „bitte genauer suchen“
+        self.assertTrue(more)                                 # -> notice “please search more precisely”
 
     def test_short_query_and_missing_service_account(self):
         from assetlotse.ldap_auth import Directory, LDAPError
@@ -656,14 +656,14 @@ class AdSearchTests(Base):
         from unittest import mock
         from assetlotse.ldap_auth import Directory
         self._enable_ad()
-        self.laptop(secret="", group_id=None)        # „Allgemein“ – darf jede Person bekommen
+        self.laptop(secret="", group_id=None)        # “General” – anyone may get it
         self.login("vera")
         with mock.patch.object(Directory, "search_users", return_value=([self._ldap_user("amueller")], False)):
             html = self.c.get("/theke?modus=ausgabe&benutzer=Müller").get_data(as_text=True)
         self.assertIn("Aus dem Active Directory", html)
         self.assertIn("amueller@institut.de", html)
         self.assertIsNone(User.query.filter_by(username="amueller").first())
-        # Übernehmen: der Server prüft die Person erneut im AD
+        # take over: the server checks the person again in AD
         with mock.patch.object(Directory, "check_account", return_value=self._ldap_user("amueller")) as chk:
             r = self.c.post("/theke/ad-konto", data={"username": "amueller"})
         chk.assert_called_once_with("amueller")
@@ -702,7 +702,7 @@ class AdSearchTests(Base):
         self.login("mia")
         self.assertEqual(self.c.post("/theke/ad-konto", data={"username": "x"}).status_code, 403)
         self.login("vera")
-        self.assertEqual(self.c.post("/theke/ad-konto", data={"username": "x"}).status_code, 400)   # AD aus
+        self.assertEqual(self.c.post("/theke/ad-konto", data={"username": "x"}).status_code, 400)   # AD off
 
     def test_ad_error_does_not_break_desk(self):
         from unittest import mock
@@ -713,9 +713,9 @@ class AdSearchTests(Base):
             r = self.c.get("/theke?modus=ausgabe&benutzer=Mi")
         self.assertEqual(r.status_code, 200)
         html = r.get_data(as_text=True)
-        self.assertNotIn("DSID-0815", html)          # technische Details nur für Administratoren
+        self.assertNotIn("DSID-0815", html)          # technical details for administrators only
         self.assertIn("nicht erreichbar", html)
-        self.assertIn("Mia", html)                  # lokale Treffer weiterhin da
+        self.assertIn("Mia", html)                  # local matches still there
         self.login("admin")
         with mock.patch.object(Directory, "search_users", side_effect=LDAPError("Bind abgelehnt DSID-0815")):
             self.assertIn("DSID-0815", self.c.get("/theke?modus=ausgabe&benutzer=Mi").get_data(as_text=True))
@@ -760,7 +760,7 @@ class AdSearchTests(Base):
     def test_unique_local_match_is_selected_without_ad(self):
         self.login("vera")
         html = self.c.get("/theke?modus=ausgabe&benutzer=ia").get_data(as_text=True)
-        self.assertIn("(mia)", html)                # direkt gewählt
+        self.assertIn("(mia)", html)                # selected directly
 
 
 class DeskStockSearchTests(Base):
@@ -779,7 +779,7 @@ class DeskStockSearchTests(Base):
         self.login("vera")
         html = self.c.get("/theke?modus=ausgabe&benutzer=mia&suche=headset").get_data(as_text=True)
         self.assertIn("Headset Jabra", html)
-        self.assertNotIn("Headset fremd", html)           # andere Gruppe: nicht ausgebbar für vera
+        self.assertNotIn("Headset fremd", html)           # other group: vera cannot issue it
         html = self.c.get("/theke?modus=ausgabe&benutzer=mia&kategorie=Laptop").get_data(as_text=True)
         self.assertIn("Laptop Dell", html)
         self.assertNotIn("Headset Jabra", html)
@@ -813,7 +813,7 @@ class DeskStockSearchTests(Base):
 
 
 class ReviewRound2Tests(DeskStockSearchTests):
-    """Befunde aus der zweiten Review-Runde der Theke."""
+    """Findings from the second review round of the desk."""
 
     def test_scan_line_keeps_focus_after_issuing_from_search(self):
         self.login("vera")
@@ -821,15 +821,15 @@ class ReviewRound2Tests(DeskStockSearchTests):
         self.assertRegex(html, r'id="desk-code"[^>]*autofocus')
         html = self.c.get("/theke?modus=ausgabe&benutzer=mia&suche=headset&fokus=suche").get_data(as_text=True)
         self.assertNotRegex(html, r'id="desk-code"[^>]*autofocus')
-        # Scan-Formular trägt die Suche weiter
+        # the scan form carries the search along
         self.assertIn('<input type="hidden" name="suche" value="headset">', html)
 
     def test_search_only_shows_items_the_person_may_get(self):
         self.login("admin")
-        hans = self.hans                                    # Gruppe Personal
+        hans = self.hans                                    # group Personal
         html = self.c.get(f"/theke?modus=ausgabe&benutzer={hans.username}&suche=headset").get_data(as_text=True)
         self.assertIn("Headset fremd", html)
-        self.assertNotIn("Headset Jabra", html)             # Gruppe IT – darf hans nicht bekommen
+        self.assertNotIn("Headset Jabra", html)             # group IT – hans may not get it
 
     def test_categories_limited_to_own_stock(self):
         db.session.add(Asset(name="Geheim", category="HR-Spezial", group_id=self.hr.id))
@@ -857,7 +857,7 @@ class ReviewRound2Tests(DeskStockSearchTests):
         orig = main_view.sync_ldap_user
 
         def sync_with_race(i, existing):
-            # Ein paralleler Klick legt das Konto genau jetzt an (eigene Verbindung)
+            # a parallel click creates the account right now (own connection)
             with db.engine.begin() as conn:
                 conn.execute(User.__table__.insert().values(username="race", role="reader", auth_source="ldap",
                                                             active=True, email_notifications=True, self_registered=False,

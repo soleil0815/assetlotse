@@ -1,4 +1,4 @@
-"""Betrieb/Deployment: Startsperre, Schlüssel, Schema-Nachrüstung, update.sh, Entrypoint, Zeitzone."""
+"""Operation/deployment: start lock, key, schema upgrade, update.sh, entrypoint, time zone."""
 import multiprocessing as mp
 import os
 import shutil
@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 HAS_FORK = "fork" in mp.get_all_start_methods()
 
 
-# ------------------------------------------------------------------ Hilfen für Mehrprozess-Tests
+# ------------------------------------------------------------------ helpers for multi-process tests
 def _start_app(data_dir, barrier, q):
     os.environ["ASSETLOTSE_DATA_DIR"] = data_dir
     os.environ["ASSETLOTSE_SCHEDULER"] = "0"
@@ -62,7 +62,7 @@ class TmpDir(unittest.TestCase):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
 
-# ------------------------------------------------------------------ 1. Startsperre / gleichzeitiger Start
+# ------------------------------------------------------------------ 1. start lock / simultaneous start
 @unittest.skipUnless(HAS_FORK, "braucht fork")
 class StartupRaceTest(TmpDir):
     def test_two_workers_start_on_empty_data_dir(self):
@@ -82,7 +82,7 @@ class StartupRaceTest(TmpDir):
             with open(inst / ".startup.lock", "a+b") as other:
                 with self.assertRaises(BlockingIOError):
                     fcntl.flock(other.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        with open(inst / ".startup.lock", "a+b") as other:   # nach dem Block wieder frei
+        with open(inst / ".startup.lock", "a+b") as other:   # free again after the block
             fcntl.flock(other.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
             fcntl.flock(other.fileno(), fcntl.LOCK_UN)
 
@@ -93,7 +93,7 @@ class StartupRaceTest(TmpDir):
 
 class EnsureColumnsTolerantTest(TmpDir):
     def test_duplicate_column_from_other_process_is_skipped(self):
-        """Hat ein anderer Prozess die Spalte inzwischen angelegt, bricht der Start nicht ab."""
+        """If another process has created the column in the meantime, the start does not abort."""
         app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{self.tmp}/x.db"})
         with app.app_context():
             import sqlalchemy
@@ -106,7 +106,7 @@ class EnsureColumnsTolerantTest(TmpDir):
                 def has_table(self, name):
                     return self.insp.has_table(name)
 
-                def get_columns(self, name):   # Stand „vor“ dem anderen Prozess: users.language fehlt
+                def get_columns(self, name):   # state “before” the other process: users.language is missing
                     cols = self.insp.get_columns(name)
                     return [c for c in cols if not (name == "users" and c["name"] == "language")]
 
@@ -151,7 +151,7 @@ class SecretKeyTest(TmpDir):
                 mock.patch.object(assetlotse.time, "sleep"):
             with self.assertRaises(SystemExit) as cm:
                 _secret_key(Path(self.tmp))
-        self.assertIn("leer", str(cm.exception))
+        self.assertIn("empty", str(cm.exception))
 
     def test_waits_for_other_writer(self):
         f = Path(self.tmp, "secret_key")
@@ -167,7 +167,7 @@ class SecretKeyTest(TmpDir):
             self.assertEqual(_secret_key(Path(self.tmp)), "abc123")
 
 
-# ------------------------------------------------------------------ 6. Schlüssel-Prüfwert
+# ------------------------------------------------------------------ 6. key check value
 class KeyMarkerTest(TmpDir):
     def _app(self, key):
         return create_app({"TESTING": True, "SECRET_KEY": key,
@@ -185,18 +185,18 @@ class KeyMarkerTest(TmpDir):
             self.assertTrue(marker)
             self.assertNotIn("schluessel-a", marker)
         self._dispose(app)
-        self._dispose(self._app("schluessel-a"))          # gleicher Schlüssel: startet
+        self._dispose(self._app("schluessel-a"))          # same key: starts
         with mock.patch.dict(os.environ, {"ASSETLOTSE_ACCEPT_NEW_KEY": ""}):
             with self.assertRaises(SystemExit) as cm:
                 self._app("schluessel-b")
-        self.assertIn("passt", str(cm.exception))
+        self.assertIn("does NOT match", str(cm.exception))
         self.assertIn("ASSETLOTSE_ACCEPT_NEW_KEY", str(cm.exception))
         with mock.patch.dict(os.environ, {"ASSETLOTSE_ACCEPT_NEW_KEY": "1"}):
             app = self._app("schluessel-b")
         with app.app_context():
             self.assertNotEqual(get_setting("secret_key_check"), marker)
         self._dispose(app)
-        self._dispose(self._app("schluessel-b"))          # danach ohne Variable
+        self._dispose(self._app("schluessel-b"))          # afterwards without the variable
         with self.assertRaises(SystemExit):
             self._app("schluessel-a")
 
@@ -212,7 +212,7 @@ class KeyMarkerTest(TmpDir):
         self._dispose(app)
 
 
-# ------------------------------------------------------------------ 7. DDL für ensure_columns
+# ------------------------------------------------------------------ 7. DDL for ensure_columns
 class AddColumnDDLTest(unittest.TestCase):
     def ddl(self, dialect, col):
         return _add_column_ddl(col.table, col, dialect)
@@ -221,7 +221,7 @@ class AddColumnDDLTest(unittest.TestCase):
         from sqlalchemy.dialects import mysql, sqlite
         col = Group.__table__.c.name
         self.assertTrue(self.ddl(mysql.dialect(), col)[0].startswith("ALTER TABLE `groups` ADD COLUMN name "))
-        # „key“ ist in MySQL reserviert
+        # “key” is reserved in MySQL
         k = Setting.__table__.c.key
         self.assertIn("ADD COLUMN `key`", self.ddl(mysql.dialect(), k)[0])
         self.assertTrue(self.ddl(sqlite.dialect(), User.__table__.c.language)[0]
@@ -232,7 +232,7 @@ class AddColumnDDLTest(unittest.TestCase):
         stmts = self.ddl(mysql.dialect(), User.__table__.c.totp_secret)
         self.assertEqual(stmts[0], "ALTER TABLE users ADD COLUMN totp_secret TEXT")
         self.assertEqual(stmts[1], "UPDATE users SET totp_secret = ''")
-        # VARCHAR behält DEFAULT + NOT NULL
+        # VARCHAR keeps DEFAULT + NOT NULL
         self.assertEqual(self.ddl(mysql.dialect(), User.__table__.c.language),
                          ["ALTER TABLE users ADD COLUMN language VARCHAR(5) DEFAULT '' NOT NULL"])
 
@@ -255,7 +255,7 @@ class AddColumnDDLTest(unittest.TestCase):
                         self.assertNotIn("DEFAULT", stmts[0])
 
 
-# ------------------------------------------------------------------ 8. Zeitzone
+# ------------------------------------------------------------------ 8. time zone
 class TimezoneFallbackTest(TmpDir):
     def test_system_zoneinfo_present(self):
         zdir = Path(self.tmp, "sys")
@@ -282,7 +282,7 @@ class TimezoneFallbackTest(TmpDir):
         env = {"TZ": "Europe/Berlin"}
         with self.assertLogs("assetlotse", "WARNING") as cm:
             self.assertIsNone(_ensure_timezone(env, [self.tmp], tzdata_root=self.tmp, tzset=lambda: None))
-        self.assertIn("Zeitzone TZ=Europe/Berlin nicht gefunden – Uhrzeiten in UTC", cm.output[0])
+        self.assertIn("Time zone TZ=Europe/Berlin not found – times in UTC", cm.output[0])
         self.assertEqual(env["TZ"], "Europe/Berlin")
 
     def test_posix_and_utc_need_no_file(self):
@@ -299,7 +299,7 @@ class TimezoneFallbackTest(TmpDir):
         self.assertEqual(env["TZ"], "../../etc/passwd")
 
 
-# ------------------------------------------------------------------ 3./4./5. Skripte und Doku
+# ------------------------------------------------------------------ 3./4./5. scripts and docs
 class ScriptsAndDocsTest(unittest.TestCase):
     def test_shell_syntax(self):
         subprocess.run(["sh", "-n", str(ROOT / "update.sh")], check=True)
@@ -366,7 +366,7 @@ class EntrypointBackupDirTest(unittest.TestCase):
                 with self.subTest(bad=bad):
                     r = subprocess.run(["sh", str(ROOT / "docker-entrypoint.sh"), "id", "-u"],
                                        env=dict(env, **bad), capture_output=True, text=True)
-                    if bad.get("PUID") == "":       # leer = Standard 1000
+                    if bad.get("PUID") == "":       # empty = default 1000
                         self.assertEqual(r.returncode, 0, r.stderr)
                     else:
                         self.assertNotEqual(r.returncode, 0)

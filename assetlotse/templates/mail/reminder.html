@@ -1,14 +1,14 @@
 {% extends "mail/_layout.html" %}{% from "mail/_asset.html" import asset_row with context %}
 {% block content %}
-<p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
+<p style="margin:0 0 12px;">{{ _("Hello {name},", name=user.name) }}</p>
 {% if overdue %}
-<p style="margin:0 0 6px;">{{ _n("das Rückgabedatum für diesen Gegenstand ist überschritten – bitte gib ihn bald zurück:", "das Rückgabedatum für diese Gegenstände ist überschritten – bitte gib sie bald zurück:", overdue|length) }}</p>
+<p style="margin:0 0 6px;">{{ _n("the return date for this item has passed – please return it soon:", "the return date for these items has passed – please return them soon:", overdue|length) }}</p>
 {% for l in overdue %}{{ asset_row(l) }}{% endfor %}
 {% endif %}
 {% if due_soon %}
-<p style="margin:{{ '16px' if overdue else '0' }} 0 6px;">{% if overdue %}{{ _("Außerdem bald zurückzugeben:") }}{% else %}{{ _n("dieser Gegenstand ist bald zurückzugeben:", "diese Gegenstände sind bald zurückzugeben:", due_soon|length) }}{% endif %}</p>
+<p style="margin:{{ '16px' if overdue else '0' }} 0 6px;">{% if overdue %}{{ _("Also due back soon:") }}{% else %}{{ _n("this item is due back soon:", "these items are due back soon:", due_soon|length) }}{% endif %}</p>
 {% for l in due_soon %}{{ asset_row(l) }}{% endfor %}
 {% endif %}
-{% if base_url %}<p style="margin:20px 0 10px;"><a href="{{ base_url }}/ausleihen" style="background:{{ mail_accent }};color:{{ mail_accent_ink }};padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600;display:inline-block;">{{ _("Ausleihen verlängern") if self_extend else _("Meine Gegenstände") }}</a></p>{% endif %}
-<p style="margin:14px 0;">{{ _("Danke!") }}</p>
+{% if base_url %}<p style="margin:20px 0 10px;"><a href="{{ base_url }}/ausleihen" style="background:{{ mail_accent }};color:{{ mail_accent_ink }};padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600;display:inline-block;">{{ _("Extend loans") if self_extend else _("My items") }}</a></p>{% endif %}
+<p style="margin:14px 0;">{{ _("Thank you!") }}</p>
 {% endblock %}

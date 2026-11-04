@@ -57,26 +57,26 @@
 {%- endmacro %}
 
 {% macro avail_badge(asset) -%}
-{%- if not asset.lendable and asset.available -%}<span class="badge" title="{{ _("Gruppe ohne Verleih") }}">{{ _("kein Verleih") }}</span>
-{%- elif asset.quantity == 0 -%}<span class="badge">{{ _("nicht im Bestand") }}</span>
-{%- elif asset.quantity == 1 and asset.available -%}<span class="badge ok">{{ _("verfügbar") }}</span>
-{%- elif asset.available > 0 -%}<span class="badge ok">{{ _("{available} von {quantity} frei", available=asset.available, quantity=asset.quantity) }}</span>
-{%- else -%}<span class="badge warn">{{ _("ausgegeben") }}</span>
+{%- if not asset.lendable and asset.available -%}<span class="badge" title="{{ _("Group without lending") }}">{{ _("no lending") }}</span>
+{%- elif asset.quantity == 0 -%}<span class="badge">{{ _("not in stock") }}</span>
+{%- elif asset.quantity == 1 and asset.available -%}<span class="badge ok">{{ _("available") }}</span>
+{%- elif asset.available > 0 -%}<span class="badge ok">{{ _("{available} of {quantity} free", available=asset.available, quantity=asset.quantity) }}</span>
+{%- else -%}<span class="badge warn">{{ _("issued") }}</span>
 {%- endif -%}
 {%- endmacro %}
 
 {% macro group_badge(group) -%}
 {%- if group -%}<span class="badge"><span class="dot" style="background: {{ group.color }}"></span>{{ group.name }}</span>
-{%- else -%}<span class="badge">{{ _("Allgemein") }}</span>
+{%- else -%}<span class="badge">{{ _("General") }}</span>
 {%- endif -%}
 {%- endmacro %}
 
 {% macro due_badge(loan) -%}
-{%- if loan.returned_at -%}<span class="badge">{{ _("zurück {date}", date=loan.returned_at|de_day) }}</span>
-{%- elif loan.due_at is none -%}<span class="badge accent">{{ _("unbefristet") }}</span>
-{%- elif loan.is_overdue -%}<span class="badge danger">{{ _("{n} Tg. überfällig", n=-loan.days_left) }}</span>
-{%- elif loan.days_left <= 3 -%}<span class="badge warn">{{ _("fällig {date}", date=loan.due_at|de_day) }}</span>
-{%- else -%}<span class="badge ok">{{ _("bis {date}", date=loan.due_at|de_day) }}</span>
+{%- if loan.returned_at -%}<span class="badge">{{ _("returned {date}", date=loan.returned_at|de_day) }}</span>
+{%- elif loan.due_at is none -%}<span class="badge accent">{{ _("open-ended") }}</span>
+{%- elif loan.is_overdue -%}<span class="badge danger">{{ _("{n}d overdue", n=-loan.days_left) }}</span>
+{%- elif loan.days_left <= 3 -%}<span class="badge warn">{{ _("due {date}", date=loan.due_at|de_day) }}</span>
+{%- else -%}<span class="badge ok">{{ _("until {date}", date=loan.due_at|de_day) }}</span>
 {%- endif -%}
 {%- endmacro %}
 
@@ -101,7 +101,7 @@
 {%- endmacro %}
 
 {% macro lang_switch(cls="") -%}
-<form class="lang-switch {{ cls }}" method="post" aria-label="{{ _('Sprache') }}">
+<form class="lang-switch {{ cls }}" method="post" aria-label="{{ _('Language') }}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="next" value="{{ request.full_path if request.method == 'GET' else '' }}">
   {%- for code, label in LANGUAGES.items() %}

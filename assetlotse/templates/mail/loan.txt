@@ -1,15 +1,15 @@
-{{ _("Ausgegeben: {title}", title=asset.name|safe) }}
-{{ _("Hallo {name},", name=user.name|safe) }}
+{{ _("Issued: {title}", title=asset.name|safe) }}
+{{ _("Hello {name},", name=user.name|safe) }}
 
-{{ _("dir wurde bei „{library}“ folgender Gegenstand ausgegeben:", library=org_name|safe) }}
+{{ _("the following item was issued to you at “{library}”:", library=org_name|safe) }}
 
   {{ asset.name }}{% if asset.inventory_no %} ({{ asset.inventory_no }}){% endif %}
-  {% if loan.due_at %}{{ _("Rückgabe bis: {date}", date=loan.due_at|de_day) }}{% else %}{{ _("Rückgabe: unbefristet") }}{% endif %}
-{% if loan.note %}  {{ _("Notiz: {note}", note=loan.note|safe) }}
+  {% if loan.due_at %}{{ _("Return by: {date}", date=loan.due_at|de_day) }}{% else %}{{ _("Return: open-ended") }}{% endif %}
+{% if loan.note %}  {{ _("Note: {note}", note=loan.note|safe) }}
 {% endif %}
-{{ _("Bitte geh sorgsam damit um.") }}
+{{ _("Please handle it with care.") }}
 {% if base_url %}
-{{ _("Deine Gegenstände:") }} {{ base_url }}/ausleihen
+{{ _("Your items:") }} {{ base_url }}/ausleihen
 {% endif %}{% if footer %}
 --
 {{ footer }}{% endif %}

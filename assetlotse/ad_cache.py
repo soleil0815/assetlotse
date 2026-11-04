@@ -1,12 +1,12 @@
-"""Zwischenspeicher der AD-Personen für die Personensuche an der Ausgabetheke.
+"""Cache of AD people for the people search at the checkout desk.
 
-Im Hintergrund (Standard: stündlich) werden alle Personen aus dem Active Directory gelesen, die sich nach den
-AD-Regeln anmelden dürften, und in der Tabelle `directory_people` abgelegt – nur Benutzername, Name und E-Mail.
-Jeder Abgleich ersetzt den Bestand vollständig: Wer im AD deaktiviert, abgelaufen, gelöscht oder nicht mehr
-berechtigt ist, fliegt raus. Schlägt ein Abgleich fehl oder ist er unvollständig, bleibt der alte Stand erhalten
-(und es wird nach 15 Minuten erneut versucht).
+In the background (default: hourly) all people from Active Directory who would be allowed to log in under the
+AD rules are read and stored in the table `directory_people` – only username, name and email.
+Each sync fully replaces the stored set: anyone disabled, expired, deleted or no longer authorized in AD
+is removed. If a sync fails or is incomplete, the previous state is kept
+(and it is retried after 15 minutes).
 
-Sicherheit: Der Zwischenspeicher dient nur zum Finden. „Konto übernehmen“ prüft die Person weiterhin live im AD.
+Security: the cache is only used for finding people. "Take over account" still checks the person live in AD.
 """
 from __future__ import annotations
 
@@ -24,13 +24,13 @@ from .models import DirectoryPerson, Setting, User, db, get_bool, get_int, get_s
 log = logging.getLogger(__name__)
 
 RETRY = timedelta(minutes=15)
-STALE_RUN = timedelta(minutes=30)      # so lange gilt ein laufender Abgleich als belegt (Absturzschutz)
+STALE_RUN = timedelta(minutes=30)      # a running sync counts as taken for this long (crash protection)
 MAX_USERS = 50000
 HOURS_CHOICES = (1, 2, 4, 8, 24)
 
 
 def available() -> bool:
-    """AD aktiv und Dienstkonto hinterlegt (ohne Dienstkonto lässt sich das Verzeichnis nicht lesen)."""
+    """AD enabled and service account configured (without one the directory cannot be read)."""
     from .ldap_auth import ldap_enabled
     return ldap_enabled() and bool(get_setting("ldap_bind_dn"))
 
@@ -40,7 +40,7 @@ def enabled() -> bool:
 
 
 def ready() -> bool:
-    """Gab es schon einen erfolgreichen Abgleich? Vorher wird live im AD gesucht."""
+    """Has there been a successful sync yet? Until then, searches go live to AD."""
     return enabled() and bool(get_setting("ldap_cache_synced_at"))
 
 
@@ -96,13 +96,13 @@ def _running() -> bool:
 
 
 def _claim(now: datetime) -> bool:
-    """Atomar „ich gleiche jetzt ab“ – auch bei mehreren Server-Prozessen läuft nur einer."""
+    """Atomically claim "I am syncing now" – only one runs, even with several server processes."""
     key = "ldap_cache_running"
     if db.session.get(Setting, key) is None:
         try:
             db.session.add(Setting(key=key, value=""))
             db.session.commit()
-        except Exception:  # noqa: BLE001 – ein anderer Prozess war schneller
+        except Exception:  # noqa: BLE001 – another process was faster
             db.session.rollback()
     stale = (now - STALE_RUN).isoformat(timespec="seconds")
     res = db.session.execute(update(Setting).where(Setting.key == key, or_(Setting.value == "", Setting.value < stale))
@@ -130,7 +130,7 @@ def due(now: datetime | None = None) -> bool:
 
 
 def sync(force: bool = False, now: datetime | None = None) -> dict | None:
-    """Abgleich ausführen, wenn er fällig ist (oder `force`). None = nicht gelaufen (nicht fällig, aus, belegt)."""
+    """Run the sync if it is due (or `force`). None = did not run (not due, disabled, taken)."""
     now = now or datetime.now()
     if not enabled() or (not force and not due(now)) or not _claim(now):
         return None
@@ -145,18 +145,18 @@ def sync(force: bool = False, now: datetime | None = None) -> dict | None:
         needs_admin, roles_kept = result.pop("needs_admin"), result.pop("roles_kept")
         warnings = []
         if roles_kept:
-            warnings.append(_("Rollen nicht herabgestuft (sonst kein Administrator mehr bzw. viele Konten auf einmal): "
-                              "{names} – bitte die AD-Regeln prüfen.", names=", ".join(roles_kept[:20])))
+            warnings.append(_("Roles not downgraded (otherwise no administrator would remain, or "
+                              "many accounts at once): {names} – please check the AD rules.", names=", ".join(roles_kept[:20])))
         if needs_admin:
-            warnings.append(_("Wieder im AD, aber ohne gespeicherte AD-Kennung – bitte prüfen, ob es dieselbe Person "
-                              "ist, und das Konto von Hand aktivieren: {names}", names=", ".join(needs_admin[:20])))
+            warnings.append(_("Back in AD, but without a stored AD identifier – please check whether "
+                              "it is the same person and activate the account by hand: {names}", names=", ".join(needs_admin[:20])))
         if not complete:
-            warnings.append(_("Die Liste aus dem AD ist unvollständig (Größenlimit des Servers oder mehr als {n} "
-                              "Personen) – es wurde nichts gelöscht oder deaktiviert.", n=MAX_USERS))
+            warnings.append(_("The list from AD is incomplete (server size limit or more "
+                              "than {n} people) – nothing was deleted or deactivated.", n=MAX_USERS))
         if duplicates:
-            warnings.append(_("Mehrere Konten gehören zur selben AD-Person: {names} – bitte unter Benutzer bereinigen.",
+            warnings.append(_("Several accounts belong to the same AD person: {names} – please clean up under Users.",
                               names=", ".join(duplicates[:20])))
-        # Warnungen sind keine Fehler: der nächste Abgleich kommt im normalen Takt
+        # warnings are not errors: the next sync runs on the normal schedule
         set_setting("ldap_cache_warning", " ".join(warnings))
         set_setting("ldap_cache_pending", json.dumps({"at": now.isoformat(), "users": pending})
                     if pending else "")
@@ -165,52 +165,52 @@ def sync(force: bool = False, now: datetime | None = None) -> dict | None:
         set_setting("ldap_cache_result", json.dumps(result))
         set_setting("ldap_cache_synced_at", now.isoformat(timespec="seconds"))
         db.session.commit()
-        log.info("AD-Abgleich: %(total)s Personen ohne Konto (%(added)s neu, %(removed)s entfernt); Konten: "
-                 "%(updated)s aktualisiert, %(renamed)s umbenannt, %(deactivated)s deaktiviert, "
-                 "%(reactivated)s wieder aktiv", result)
+        log.info("AD sync: %(total)s people without an account (%(added)s new, %(removed)s removed); accounts: "
+                 "%(updated)s updated, %(renamed)s renamed, %(deactivated)s deactivated, "
+                 "%(reactivated)s reactivated", result)
         return result
-    except Exception as exc:  # noqa: BLE001 – Fehler protokollieren, alter Stand bleibt
+    except Exception as exc:  # noqa: BLE001 – log the error, previous state stays
         db.session.rollback()
-        log.warning("Abgleich des AD-Zwischenspeichers fehlgeschlagen: %s", exc)
+        log.warning("AD cache sync failed: %s", exc)
         set_setting("ldap_cache_error", str(exc)[:500] or exc.__class__.__name__)
         db.session.commit()
         return {"error": str(exc)}
     finally:
         try:
             _release()
-        except Exception:  # noqa: BLE001 – z. B. Datenbank kurz gesperrt: zurücksetzen und noch einmal
+        except Exception:  # noqa: BLE001 – e.g. database briefly locked: roll back and try again
             db.session.rollback()
             try:
                 _release()
-            except Exception:  # noqa: BLE001 – spätestens nach 30 Minuten gilt die Sperre als verwaist
+            except Exception:  # noqa: BLE001 – after 30 minutes at the latest the lock counts as orphaned
                 db.session.rollback()
-                log.warning("Sperre des AD-Abgleichs konnte nicht freigegeben werden")
+                log.warning("Could not release the AD sync lock")
 
 
-MASS_DEACTIVATION = 0.2   # mehr als 20 % auf einmal: vermutlich falsche Einstellung – erst nach Bestätigung
+MASS_DEACTIVATION = 0.2   # more than 20 % at once: probably a misconfiguration – only after confirmation
 ROLE_RANK = {"reader": 0, "manager": 1, "admin": 2}
 
 
 def update_accounts(people, complete: bool, now: datetime | None = None) -> tuple[dict, set[int]]:
-    """Vorhandene AD-Konten in AssetLotse mit dem AD abgleichen – auch von Personen, die sich lange nicht
-    angemeldet haben (laufende Sitzungen prüft AssetLotse ohnehin alle 4 Stunden).
+    """Sync existing AD accounts in AssetLotse with AD – including people who have not logged in
+    for a long time (AssetLotse re-checks running sessions every 4 hours anyway).
 
-    Zuordnung Konto ↔ AD-Person über die feste Kennung (objectGUID/entryUUID); nur Konten ohne Kennung (Altkonten)
-    über den genauen Benutzernamen. Gepflegt werden Name, E-Mail, DN, Gruppen (mit „Gruppen automatisch zuordnen“),
-    Umbenennungen und – nur bei Konten, die sich schon selbst angemeldet haben – die Rolle.
+    Account ↔ AD person is matched via the stable ID (objectGUID/entryUUID); only accounts without an ID
+    (legacy accounts) via the exact username. Maintained are name, email, DN, groups (with "Assign groups
+    automatically"), renames and – only for accounts that have logged in themselves – the role.
 
-    Schutz vor Fehleinstellungen:
-    - Rollen: Würde danach kein aktiver Administrator mehr bleiben oder verlören viele Konten auf einmal Rechte
-      (mehr als 20 %, ab 2), werden die Herabstufungen nicht übernommen (Warnung).
-    - Deaktivieren (nicht mehr im AD): automatisch nur im Normalbetrieb. Erst nach Bestätigung auf der AD-Seite
-      („pending“): Administratoren, solange die Ersteinrichtung nicht bestätigt ist, bei mehr als 20 % (ab 2)
-      oder allen Konten, oder wenn danach kein aktiver Administrator bliebe. Bei unvollständiger Liste nie.
-    - Wieder aktiv: nur Konten mit gespeicherter Kennung (sonst könnte ein neu vergebener Name das Konto einer
-      früheren Person bekommen – das entscheidet dann ein Administrator).
-    - Mehrere Konten zu einer Person: das mit passender Kennung (sonst passendem Namen) wird gepflegt, die übrigen
-      bleiben unangetastet (Warnung).
+    Protection against misconfiguration:
+    - Roles: if no active administrator would remain, or many accounts would lose permissions at once
+      (more than 20 %, at least 2), the downgrades are not applied (warning).
+    - Deactivation (no longer in AD): automatic only in normal operation. Only after confirmation on the AD page
+      ("pending"): administrators, as long as the initial setup is not confirmed, more than 20 % (at least 2)
+      or all accounts, or if no active administrator would remain. Never with an incomplete list.
+    - Reactivation: only accounts with a stored ID (otherwise a reassigned name could get the account of a
+      former person – an administrator decides that).
+    - Several accounts for one person: the one with a matching ID (otherwise matching name) is maintained,
+      the others stay untouched (warning).
 
-    Liefert (Zahlen, ids der Personen aus `people`, die zu einem Konto gehören)."""
+    Returns (counts, ids of the persons from `people` that belong to an account)."""
     from .models import ROLE_ADMIN, Group
     from .views.main import may_reactivate, sync_ldap_user
     now = now or datetime.now()
@@ -220,32 +220,32 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
     by_name = {p.username.lower(): p for p in people}
     accounts = (User.query.filter(User.auth_source == "ldap").options(selectinload(User.groups))
                 .order_by(User.id).all())
-    taken_names = {u.lower() for (u,) in db.session.query(User.username).all()}   # Stand vor dem Abgleich
+    taken_names = {u.lower() for (u,) in db.session.query(User.username).all()}   # state before the sync
     ldap_groups = Group.query.filter(Group.ldap_dn != "").all()
     group_sync = get_bool("ldap_group_sync")
 
-    # 1) Konten den Personen zuordnen
+    # 1) Match accounts to people
     claims: dict[int, list[User]] = {}
     persons: dict[int, object] = {}
     missing: list[User] = []
-    account_guids = {u.ldap_guid for u in accounts if u.ldap_guid}   # einmal statt in jeder Runde
+    account_guids = {u.ldap_guid for u in accounts if u.ldap_guid}   # once instead of in every iteration
     for user in accounts:
         if user.ldap_guid:
             person = by_guid.get(user.ldap_guid)
-            if person is None:      # Kennung nicht (mehr) im AD; nur wenn das AD gar keine Kennungen liefert: Name
+            if person is None:      # ID not (or no longer) in AD; only if AD returns no IDs at all: name
                 cand = by_name.get(user.username.lower())
                 person = cand if cand is not None and not cand.guid else None
         else:
-            person = by_name.get(user.username.lower())      # Altkonto ohne Kennung: nur genauer Name, kein DN
+            person = by_name.get(user.username.lower())      # legacy account without ID: exact name only, no DN
             if person is not None and person.guid and person.guid in account_guids:
-                person = None       # die Person hat schon ein Konto mit ihrer Kennung
+                person = None       # the person already has an account with their ID
         if person is None:
             missing.append(user)
         else:
             claims.setdefault(id(person), []).append(user)
             persons[id(person)] = person
 
-    # 2) je Person genau ein Konto pflegen
+    # 2) Maintain exactly one account per person
     demoted: list[tuple[User, str, bool]] = []
     with db.session.no_autoflush:
         for pid, users in claims.items():
@@ -256,29 +256,29 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
             for other in users:
                 if other is not main:
                     stats["duplicates"].append(other.username)
-                    log.warning("AD-Abgleich: Konten %s und %s gehören zur selben AD-Person – %s bleibt unverändert",
+                    log.warning("AD sync: accounts %s and %s belong to the same AD person – %s stays unchanged",
                                 main.username, other.username, other.username)
             user = main
             if not user.active and not user.ldap_guid and person.guid:
-                if user.deactivated_by_sync:                   # gesperrtes Altkonto ohne Kennung: nicht anfassen
+                if user.deactivated_by_sync:                   # locked legacy account without ID: do not touch
                     stats["needs_admin"].append(user.username)
                 continue
             before = (user.username, user.display_name, user.email, user.role, sorted(g.id for g in user.groups))
             keep_name = None
             if person.username.lower() != user.username.lower():
                 if person.username.lower() in taken_names:
-                    log.warning("AD-Abgleich: %s heißt im AD jetzt %s – den Namen gibt es in AssetLotse schon, "
-                                "nicht umbenannt", user.username, person.username)
+                    log.warning("AD sync: %s is now called %s in AD – that name already exists in AssetLotse, "
+                                "not renamed", user.username, person.username)
                     keep_name = user.username
                 else:
                     stats["renamed"] += 1
             role, manages_all = user.role, bool(user.manages_all)
-            reactivate = not user.active and may_reactivate(user)    # vor dem Abgleich (Kennung!) prüfen
+            reactivate = not user.active and may_reactivate(user)    # check before the sync (ID!)
             sync_ldap_user(person, user, ldap_groups=ldap_groups, group_sync=group_sync)
             if keep_name:
                 user.username = keep_name
             if user.last_login is None:
-                user.role, user.manages_all = role, manages_all   # noch nie selbst angemeldet: Rolle bleibt (siehe Kontoübernahme)
+                user.role, user.manages_all = role, manages_all   # never logged in themselves: role stays (see account takeover)
             elif ROLE_RANK.get(user.role, 0) < ROLE_RANK.get(role, 0):
                 demoted.append((user, role, manages_all))
             if reactivate:
@@ -288,7 +288,7 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
             if after != before:
                 stats["updated"] += 1
 
-    # 3) Rollen: keine Massen-Herabstufung, nie ohne aktiven Administrator
+    # 3) Roles: no mass downgrade, never without an active administrator
     if demoted:
         signed_in = sum(1 for u in accounts if u.last_login is not None) or 1
         mass = len(demoted) >= 2 and len(demoted) > MASS_DEACTIVATION * signed_in
@@ -299,13 +299,13 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
                 if mass or old_role == ROLE_ADMIN:
                     user.role, user.manages_all = old_role, old_all
                     stats["roles_kept"].append(user.username)
-            log.warning("AD-Abgleich: Herabstufung von %s nicht übernommen (%s) – AD-Regeln prüfen",
-                        ", ".join(stats["roles_kept"]), "viele auf einmal" if mass else "kein Administrator mehr")
+            log.warning("AD sync: downgrade of %s not applied (%s) – check the AD rules",
+                        ", ".join(stats["roles_kept"]), "many at once" if mass else "no administrator left")
 
-    # 4) Nicht mehr im AD: deaktivieren – oder erst nach Bestätigung
+    # 4) No longer in AD: deactivate – or only after confirmation
     active_missing = [u for u in missing if u.active]
     if complete and not active_missing:
-        set_setting("ldap_cache_setup_confirmed", "1")      # nichts offen: Ersteinrichtung erledigt
+        set_setting("ldap_cache_setup_confirmed", "1")      # nothing pending: initial setup done
     if complete and active_missing:
         active_total = sum(1 for u in accounts if u.active)
         missing_ids = {u.id for u in active_missing}
@@ -324,23 +324,23 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
                 stats["deactivated"] += 1
         if hold:
             stats["pending"] = [[u.id, u.username] for u in hold]
-            log.warning("AD-Abgleich: %s Konten fehlen im AD – warten auf Bestätigung: %s",
+            log.warning("AD sync: %s accounts missing in AD – awaiting confirmation: %s",
                         len(hold), ", ".join(u.username for u in hold[:50]))
     db.session.flush()
     return stats, set(claims)
 
 
 def deactivate(user: User) -> None:
-    log.info("AD-Abgleich: Konto %s deaktiviert (im AD gesperrt, gelöscht oder nicht mehr berechtigt)", user.username)
+    log.info("AD sync: account %s deactivated (disabled, deleted or no longer authorized in AD)", user.username)
     user.active, user.deactivated_by_sync = False, True
     user.end_all_sessions()
 
 
 def confirm_pending(acting_user: User) -> int:
-    """Von der AD-Seite bestätigt: die beim letzten Abgleich zurückgehaltenen Konten deaktivieren.
+    """Confirmed on the AD page: deactivate the accounts held back by the last sync.
 
-    Nie das eigene Konto, nie den letzten aktiven Administrator und keine Konten, die sich seit dem Abgleich
-    angemeldet haben (dann sind sie offensichtlich wieder berechtigt)."""
+    Never the acting user's own account, never the last active administrator and no accounts that have
+    logged in since the sync (they are then obviously authorized again)."""
     from .models import ROLE_ADMIN
     data = _pending_data()
     try:
@@ -366,8 +366,8 @@ def confirm_pending(acting_user: User) -> int:
 
 
 def _store(people, complete: bool, now: datetime) -> dict:
-    """Bestand ersetzen. Konten, die es in AssetLotse schon gibt, braucht der Zwischenspeicher nicht."""
-    known = {u.lower() for (u,) in db.session.query(User.username).all()}   # auch lokale Konten gleichen Namens
+    """Replace the stored set. Accounts that already exist in AssetLotse are not needed in the cache."""
+    known = {u.lower() for (u,) in db.session.query(User.username).all()}   # also local accounts with the same name
     wanted = {}
     for p in people:
         key = p.username.strip().lower()
@@ -385,7 +385,7 @@ def _store(people, complete: bool, now: datetime) -> dict:
         else:
             row.username, row.display_name, row.email, row.synced_at = (
                 p.username[:200], (p.display_name or "")[:300], (p.email or "")[:300], now)
-    if complete:      # nur bei vollständiger Liste löschen: deaktiviert, gelöscht, nicht mehr berechtigt
+    if complete:      # delete only with a complete list: disabled, deleted, no longer authorized
         for row in existing.values():
             db.session.delete(row)
             removed += 1
@@ -394,11 +394,11 @@ def _store(people, complete: bool, now: datetime) -> dict:
 
 
 def clear() -> int:
-    """Zwischenspeicher leeren (beim Ausschalten oder wenn AD abgeschaltet wird).
+    """Empty the cache (when it is switched off or AD is disabled).
 
-    Vom Abgleich deaktivierte Konten bleiben gesperrt: Sonst tauchten ausgeschiedene Personen sofort wieder an der
-    Theke und in Erinnerungsmails auf. Wer wieder berechtigt ist, wird beim nächsten Abgleich bzw. bei der
-    Anmeldung über das AD reaktiviert; von Hand geht es unter Benutzer."""
+    Accounts deactivated by the sync stay locked: otherwise people who have left would immediately reappear at the
+    desk and in reminder emails. Anyone authorized again is reactivated on the next sync or on login via AD;
+    manually it can be done under Users."""
     n = DirectoryPerson.query.delete()
     for key in ("ldap_cache_synced_at", "ldap_cache_attempt_at", "ldap_cache_error", "ldap_cache_result",
                 "ldap_cache_warning", "ldap_cache_pending"):
@@ -408,12 +408,12 @@ def clear() -> int:
 
 
 def forget(username: str) -> None:
-    """Eine Person entfernen (z. B. nach Kontoübernahme oder wenn das AD sie nicht mehr freigibt)."""
+    """Remove a person (e.g. after account takeover or when AD no longer allows them)."""
     DirectoryPerson.query.filter(DirectoryPerson.username_key == (username or "").strip().lower()).delete()
 
 
 def search(query: str, limit: int = 10) -> list[DirectoryPerson]:
-    """Im Zwischenspeicher suchen (Benutzername, Name, E-Mail). Bereits vorhandene Konten werden ausgelassen."""
+    """Search the cache (username, name, email). Existing accounts are left out."""
     query = " ".join((query or "").split())[:100]
     if len(query) < 2:
         return []
@@ -429,7 +429,7 @@ def search(query: str, limit: int = 10) -> list[DirectoryPerson]:
 
 
 def maintain() -> None:
-    """Vom Hintergrund-Zeitplan aufgerufen: abgleichen, wenn fällig; ausgeschaltet → Reste entfernen."""
+    """Called by the background scheduler: sync if due; switched off → remove leftovers."""
     if enabled():
         sync()
     elif get_setting("ldap_cache_synced_at") or DirectoryPerson.query.first() is not None:
@@ -437,14 +437,14 @@ def maintain() -> None:
 
 
 def sync_in_background(app) -> None:
-    """„Jetzt abgleichen“: im eigenen Thread, damit die Seite nicht wartet."""
+    """"Sync now": in its own thread so the page does not wait."""
     def run():
         with app.app_context():
             try:
                 sync(force=True)
             except Exception:  # noqa: BLE001
-                log.exception("Abgleich des AD-Zwischenspeichers fehlgeschlagen")
-    if app.testing:         # in Tests sofort und im selben Ablauf
+                log.exception("AD cache sync failed")
+    if app.testing:         # in tests immediately and in the same flow
         sync(force=True)
         return
     threading.Thread(target=run, name="assetlotse-adcache", daemon=True).start()

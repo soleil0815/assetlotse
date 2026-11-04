@@ -1,15 +1,15 @@
-"""Internes Netz oder Zugriff von außen?
+"""Internal network or access from outside?
 
-Grundlage ist die echte Adresse des Besuchers. Hinter einem Reverse-Proxy übernimmt proxy.py sie aus
-X-Forwarded-For – aber nur, wenn die Verbindung von einem vertrauenswürdigen Proxy kommt.
+The basis is the visitor's real address. Behind a reverse proxy, proxy.py takes it from
+X-Forwarded-For – but only if the connection comes from a trusted proxy.
 
-Sicherheitsregeln:
-* Kommt eine Anfrage über den Proxy, ohne dass er die Besucher-Adresse mitschickt, gilt sie als
-  **extern** – sonst sähe jeder Zugriff aus dem Internet wie der (interne) Proxy aus.
-* Im Zweifel (Adresse nicht lesbar) gilt: extern.
-* Loopback (127.0.0.1, ::1) zählt nicht von selbst als intern: Darüber kommen vor allem Weiterleitungen
-  ohne Besucher-Adresse (SSH-Tunnel, stunnel, socat …), hinter denen jeder stehen kann. Wer das will,
-  trägt 127.0.0.0/8 bzw. ::1 unter „Internes Netz“ ausdrücklich ein.
+Security rules:
+* If a request comes via the proxy without the proxy sending the visitor address, it counts as
+  **external** – otherwise every access from the internet would look like the (internal) proxy.
+* When in doubt (address not readable): external.
+* Loopback (127.0.0.1, ::1) does not count as internal by itself: it mostly carries forwards
+  without a visitor address (SSH tunnel, stunnel, socat …), behind which anyone could be. If you want that,
+  add 127.0.0.0/8 or ::1 explicitly under "Internal network".
 """
 from __future__ import annotations
 
@@ -23,13 +23,13 @@ from .models import get_setting
 
 log = logging.getLogger(__name__)
 
-# Ohne 172.16.0.0/12: Dort legt Docker seine Netze an – sonst gälte z. B. jeder Zugriff, der über das
-# Docker-Gateway (172.17.0.1 …) ankommt, als intern. Wer sein LAN dort hat, trägt es ausdrücklich ein.
+# Without 172.16.0.0/12: Docker creates its networks there – otherwise e.g. every access arriving via the
+# Docker gateway (172.17.0.1 …) would count as internal. If your LAN is there, add it explicitly.
 DEFAULT_INTERNAL = "10.0.0.0/8\n192.168.0.0/16\nfc00::/7"
 
 
 def parse(text: str) -> tuple[list, list[str]]:
-    """Netze aus Text (eine pro Zeile, auch mit Komma); liefert (Netze, ungültige Einträge)."""
+    """Networks from text (one per line, commas also allowed); returns (networks, invalid entries)."""
     nets, bad = [], []
     for part in (text or "").replace(",", "\n").replace(";", "\n").splitlines():
         part = part.split("#")[0].strip()
@@ -53,7 +53,7 @@ def client_ip() -> str:
 
 
 def via_proxy_without_client_ip() -> bool:
-    """Proxy-Angaben vorhanden, aber keine Besucher-Adresse – dann ist die Herkunft unbekannt."""
+    """Proxy headers present but no visitor address – the origin is then unknown."""
     env = request.environ
     orig = env.get("werkzeug.proxy_fix.orig") or {}
     came_via_proxy = any(env.get(h) or orig.get(h) for h in
@@ -61,15 +61,15 @@ def via_proxy_without_client_ip() -> bool:
     return came_via_proxy and not (env.get("HTTP_X_FORWARDED_FOR") or orig.get("HTTP_X_FORWARDED_FOR"))
 
 
-# ---------------------------------------------------------------- eigener Internetanschluss
+# ---------------------------------------------------------------- own internet connection
 
 HOST_RE = __import__("re").compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\.?$", 2)
-RESOLVE_TTL = 300          # Sekunden: DynDNS-Namen alle 5 Minuten neu auflösen
+RESOLVE_TTL = 300          # seconds: re-resolve DynDNS names every 5 minutes
 _cache: dict[str, tuple[float, set, float]] = {}
 
 
 def parse_own(text: str) -> tuple[list[str], list[str]]:
-    """Einträge für den eigenen Anschluss: IP-Adressen oder DNS-Namen; liefert (gültige, ungültige)."""
+    """Entries for the own connection: IP addresses or DNS names; returns (valid, invalid)."""
     ok: list[str] = []
     bad: list[str] = []
     for part in (text or "").replace(",", "\n").replace(";", "\n").splitlines():
@@ -84,10 +84,10 @@ def parse_own(text: str) -> tuple[list[str], list[str]]:
 
 
 def _resolve(host: str, now: float) -> set:
-    """Adressen eines DynDNS-Namens, höchstens alle RESOLVE_TTL Sekunden neu aufgelöst.
+    """Addresses of a DynDNS name, re-resolved at most every RESOLVE_TTL seconds.
 
-    Cache: host → (Zeit der letzten erfolgreichen Auflösung, Adressen, Zeit des letzten Versuchs). Auch ein
-    fehlgeschlagener Versuch wird gemerkt – sonst würde bei einem DNS-Ausfall jede Anfrage neu auflösen."""
+    Cache: host → (time of last successful resolution, addresses, time of last attempt). A failed
+    attempt is remembered too – otherwise every request would re-resolve during a DNS outage."""
     import socket
     cached = _cache.get(host)
     if cached and now - cached[2] < RESOLVE_TTL:
@@ -95,8 +95,8 @@ def _resolve(host: str, now: float) -> set:
     try:
         ips = {str(info[4][0]).split("%")[0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)}
     except OSError as exc:
-        log.warning("Eigener Anschluss: %s lässt sich nicht auflösen (%s)", host, exc)
-        # letzte bekannte Adresse höchstens eine Stunde nach der letzten erfolgreichen Auflösung weiterverwenden
+        log.warning("Own connection: cannot resolve %s (%s)", host, exc)
+        # keep using the last known address for at most one hour after the last successful resolution
         if cached and now - cached[0] < 3600:
             _cache[host] = (cached[0], cached[1], now)
             return cached[1]
@@ -107,7 +107,7 @@ def _resolve(host: str, now: float) -> set:
 
 
 def own_public_ips() -> set:
-    """Aktuelle öffentliche Adresse(n) des eigenen Anschlusses (feste IP oder DynDNS-Name)."""
+    """Current public address(es) of the own connection (static IP or DynDNS name)."""
     import time
     entries, _ = parse_own(get_setting("own_public_hosts"))
     now = time.time()
@@ -120,7 +120,7 @@ def own_public_ips() -> set:
     return ips
 
 
-# ---------------------------------------------------------------- Einstufung
+# ---------------------------------------------------------------- Classification
 
 def _client_address() -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
     try:
@@ -133,7 +133,7 @@ def _client_address() -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
 
 
 def classify() -> str:
-    """'lan' (internes Netz), 'own' (über den eigenen Internetanschluss) oder 'extern'."""
+    """'lan' (internal network), 'own' (via the own internet connection) or 'extern' (outside)."""
     if not has_request_context() or via_proxy_without_client_ip():
         return "extern"
     ip = _client_address()
@@ -151,8 +151,8 @@ def is_internal() -> bool:
 
 
 def describe() -> dict:
-    """Für die Einstellungsseite: wie wird die aktuelle Verbindung eingestuft?"""
+    """For the settings page: how is the current connection classified?"""
     zone = classify()
-    return {"ip": client_ip() or _("unbekannt"), "internal": zone != "extern", "zone": zone,
+    return {"ip": client_ip() or _("unknown"), "internal": zone != "extern", "zone": zone,
             "own_ips": sorted(own_public_ips()),
             "proxy_without_ip": has_request_context() and via_proxy_without_client_ip()}

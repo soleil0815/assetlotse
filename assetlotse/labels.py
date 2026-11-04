@@ -1,26 +1,26 @@
-"""Etiketten mit Barcode als PDF – ohne zusätzliche Bibliotheken.
+"""Barcode labels as PDF – without extra libraries.
 
-Format: 62 × 29 mm (Brother-QL-Standardetikett DK-11209 bzw. Endlosband 62 mm), eine Seite je Etikett.
-Inhalt: Bezeichnung, Kategorie/Modell, Barcode (Code 128) und die Nummer im Klartext darunter.
+Format: 62 × 29 mm (Brother QL standard label DK-11209 or 62 mm continuous tape), one page per label.
+Content: name, category/model, barcode (Code 128) and the number in plain text below it.
 
-Der Barcode enthält die Inventarnummer. Fehlt sie, enthält sie Zeichen außerhalb von ASCII (z. B. „Ü-12“) oder
-ist sie zu lang für einen sicher lesbaren Barcode, wird stattdessen „#<interne Nummer>“ codiert – die Ausgabetheke
-findet beides; die Inventarnummer steht dann trotzdem im Klartext auf dem Etikett.
-Das PDF nutzt nur die Standardschriften Helvetica/Helvetica-Bold (in jedem PDF-Betrachter vorhanden).
+The barcode contains the inventory number. If it is missing, contains non-ASCII characters (e.g. "Ü-12") or
+is too long for a reliably readable barcode, "#<internal number>" is encoded instead – the issue desk finds
+both; the inventory number is still printed in plain text on the label.
+The PDF uses only the standard fonts Helvetica/Helvetica-Bold (available in every PDF viewer).
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-MM = 72 / 25.4                   # PDF-Punkte je Millimeter
+MM = 72 / 25.4                   # PDF points per millimeter
 LABEL_W_MM, LABEL_H_MM = 62.0, 29.0
 MARGIN_MM = 2.5
 BARCODE_H_MM = 10.5
-QUIET_MODULES = 10               # Ruhezone links und rechts (Pflicht für sicheres Scannen)
+QUIET_MODULES = 10               # quiet zone left and right (required for reliable scanning)
 MAX_MODULE_MM = 0.5
 MAX_LABELS = 500
 
-# Code-128-Muster (Strich, Lücke, Strich, … in Modulbreiten) für die Werte 0–106
+# Code 128 patterns (bar, space, bar, … in module widths) for the values 0–106
 _PATTERNS = (
     "212222 222122 222221 121223 121322 131222 122213 122312 132212 221213 "
     "221312 231212 112232 122132 122231 113222 123122 123221 223211 221132 "
@@ -37,12 +37,12 @@ _PATTERNS = (
 START_B, START_C, STOP = 104, 105, 106
 
 
-MAX_CODE_B = 16    # längere Codes werden auf 62 mm zu fein für 203/300-dpi-Etikettendrucker
-MAX_CODE_C = 32    # reine Ziffern (gerade Anzahl) brauchen nur halb so viel Platz
+MAX_CODE_B = 16    # longer codes get too fine on 62 mm for 203/300 dpi label printers
+MAX_CODE_C = 32    # digits only (even count) need only half the space
 
 
 def barcode_value(asset) -> str:
-    """Was im Barcode steht: Inventarnummer (druckbares ASCII, nicht zu lang) oder „#<ID>“."""
+    """What goes into the barcode: inventory number (printable ASCII, not too long) or "#<ID>"."""
     inv = (asset.inventory_no or "").strip()
     if inv and all(32 <= ord(c) <= 126 for c in inv):
         numeric = inv.isdigit() and len(inv) % 2 == 0 and len(inv) >= 4
@@ -52,20 +52,20 @@ def barcode_value(asset) -> str:
 
 
 def code128_values(text: str) -> list[int]:
-    """Symbolwerte inkl. Start, Prüfzeichen und Stopp. Reine Ziffernfolgen gerader Länge (≥ 4) als
-    Code C (doppelt so kompakt), sonst Code B."""
+    """Symbol values including start, check character and stop. Digit-only strings of even length (≥ 4)
+    as Code C (twice as compact), otherwise Code B."""
     if len(text) >= 4 and len(text) % 2 == 0 and text.isascii() and text.isdigit():
         values = [START_C] + [int(text[i:i + 2]) for i in range(0, len(text), 2)]
     else:
         if not text or any(not 32 <= ord(c) <= 126 for c in text):
-            raise ValueError("Code 128 B erlaubt nur druckbare ASCII-Zeichen")
+            raise ValueError("Code 128 B only allows printable ASCII characters")
         values = [START_B] + [ord(c) - 32 for c in text]
     check = (values[0] + sum(i * v for i, v in enumerate(values[1:], start=1))) % 103
     return values + [check, STOP]
 
 
 def code128_modules(text: str) -> list[tuple[int, int]]:
-    """Striche als (Startmodul, Breite in Modulen), ohne Ruhezone."""
+    """Bars as (start module, width in modules), without the quiet zone."""
     bars, pos = [], 0
     for v in code128_values(text):
         for i, w in enumerate(_PATTERNS[v]):
@@ -82,7 +82,7 @@ def module_count(text: str) -> int:
 
 # ---------------------------------------------------------------- Text (Helvetica, WinAnsi)
 
-# Breiten in 1/1000 em für Helvetica-Bold bzw. Helvetica (ASCII 32–126), aus den Adobe-AFM-Metriken
+# Widths in 1/1000 em for Helvetica-Bold and Helvetica (ASCII 32–126), from the Adobe AFM metrics
 _W_BOLD = [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556,
            556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778,
            722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333,
@@ -100,8 +100,8 @@ _W_WIDE = {"…": 1000, "—": 1000, "‰": 1000, "™": 1000, "Æ": 1000, "æ":
 
 
 def printable(text: str) -> str:
-    """Text so vorbereiten, wie er gedruckt wird: NFC, Zeichen außerhalb von cp1252 möglichst ohne Akzente
-    (Ł → L, ő → o), sonst „?“."""
+    """Prepare text as it will be printed: NFC, characters outside cp1252 without accents where possible
+    (Ł → L, ő → o), otherwise "?"."""
     import unicodedata
     out = []
     for c in unicodedata.normalize("NFC", text or ""):
@@ -126,10 +126,10 @@ def _char_width(c: str, table) -> int:
         return table[o - 32]
     if c in _W_WIDE:
         return _W_WIDE[c]
-    base = unicodedata.normalize("NFKD", c)[:1]           # Ä → A, ö → o: Breite des Grundbuchstabens
+    base = unicodedata.normalize("NFKD", c)[:1]           # Ä → A, ö → o: width of the base letter
     if base and 32 <= ord(base) <= 126 and base != c:
         return table[ord(base) - 32]
-    return 1000                                            # unbekannt: lieber zu breit schätzen
+    return 1000                                            # unknown: better estimate too wide
 
 
 def text_width(text: str, size: float, bold: bool = False) -> float:
@@ -138,7 +138,7 @@ def text_width(text: str, size: float, bold: bool = False) -> float:
 
 
 def fit(text: str, size: float, max_w: float, bold: bool = False) -> str:
-    """Text auf die Breite kürzen (mit „…“)."""
+    """Shorten text to the width (with "…")."""
     text = printable(" ".join((text or "").split()))
     if text_width(text, size, bold) <= max_w:
         return text
@@ -161,15 +161,15 @@ def _pdf_string(text: str) -> str:
     return "(" + "".join(out) + ")"
 
 
-# ---------------------------------------------------------------- Seite und PDF
+# ---------------------------------------------------------------- Page and PDF
 
 @dataclass
 class Label:
     title: str
     subtitle: str
-    code: str      # Barcode-Inhalt
-    footer: str    # z. B. Name der Einrichtung
-    text: str = "" # Klartext unter dem Barcode (Standard: der Code selbst)
+    code: str      # barcode content
+    footer: str    # e.g. name of the organization
+    text: str = "" # plain text below the barcode (default: the code itself)
 
 
 def label_for(asset, org_name: str = "") -> Label:
@@ -178,7 +178,7 @@ def label_for(asset, org_name: str = "") -> Label:
         sub = (sub + " · " if sub else "") + "S/N " + asset.serial_number
     code = barcode_value(asset)
     inv = (asset.inventory_no or "").strip()
-    # Inventarnummer immer lesbar drucken – auch wenn der Barcode ersatzweise „#ID“ enthält
+    # always print the inventory number legibly – even if the barcode contains "#ID" instead
     text = code if not inv or inv == code else f"{inv} ({code})"
     return Label(title=asset.name or "", subtitle=sub, code=code, footer=org_name or "", text=text)
 
@@ -192,14 +192,14 @@ def page_content(label: Label) -> bytes:
     ops: list[str] = []
     inner = W - 2 * M
 
-    # Bezeichnung (fett) und Zusatzzeile
+    # name (bold) and additional line
     y = H - M - 8.5
     ops.append(f"BT /F2 9 Tf {_f(M)} {_f(y)} Td {_pdf_string(fit(label.title, 9, inner, True))} Tj ET")
     if label.subtitle:
         y -= 8
         ops.append(f"BT /F1 6.5 Tf {_f(M)} {_f(y)} Td {_pdf_string(fit(label.subtitle, 6.5, inner))} Tj ET")
 
-    # Barcode, horizontal zentriert, mit Ruhezone
+    # barcode, horizontally centered, with quiet zone
     modules = module_count(label.code) + 2 * QUIET_MODULES
     module = min(MAX_MODULE_MM * MM, inner / modules)
     bar_h = BARCODE_H_MM * MM
@@ -209,12 +209,12 @@ def page_content(label: Label) -> bytes:
         ops.append(f"{_f(x0 + start * module)} {_f(bar_y)} {_f(width * module)} {_f(bar_h)} re")
     ops.append("f")
 
-    # Klartext der Nummer (mittig) und Einrichtung (rechts, klein)
+    # plain-text number (centered) and organization (right, small)
     code_text = fit(label.text or label.code, 8, inner * 0.6, True)
     cw = text_width(code_text, 8, True)
     ops.append(f"BT /F2 8 Tf {_f((W - cw) / 2)} {_f(M + 1.5)} Td {_pdf_string(code_text)} Tj ET")
     if label.footer:
-        room = (W - M) - ((W + cw) / 2 + 6)          # Platz rechts neben der Nummer
+        room = (W - M) - ((W + cw) / 2 + 6)          # space to the right of the number
         foot = fit(label.footer, 5.5, room) if room > 20 else ""
         fw = text_width(foot, 5.5)
         if foot and foot != "…":
@@ -222,18 +222,18 @@ def page_content(label: Label) -> bytes:
     return ("0 g\n" + "\n".join(ops) + "\n").encode("latin-1")
 
 
-def build_pdf(labels: list[Label], title: str = "Etiketten") -> bytes:
-    """Mehrseitiges PDF, eine Seite (= ein Etikett) je Eintrag."""
+def build_pdf(labels: list[Label], title: str = "Labels") -> bytes:
+    """Multi-page PDF, one page (= one label) per entry."""
     if not labels:
-        raise ValueError("keine Etiketten")
+        raise ValueError("no labels")
     W, H = LABEL_W_MM * MM, LABEL_H_MM * MM
-    objects: list[bytes] = []   # Objekt n steht an Index n-1
+    objects: list[bytes] = []   # object n is at index n-1
 
     def add(body: bytes) -> int:
         objects.append(body)
         return len(objects)
 
-    catalog = add(b"")          # wird unten gefüllt
+    catalog = add(b"")          # filled in below
     pages = add(b"")
     font_reg = add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
     font_bold = add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")

@@ -1,4 +1,4 @@
-"""Vertrauliche Angaben für die Person, der ein Gegenstand gerade ausgegeben ist (z. B. BitLocker-Schlüssel)."""
+"""Confidential details for the person an item is currently issued to (e.g. BitLocker key)."""
 from datetime import datetime
 from unittest import mock
 
@@ -29,7 +29,7 @@ class HolderSecretTests(Base):
         self.assertIn(KEY, r.get_data(as_text=True))
         self.assertEqual(r.headers.get("Cache-Control"), "no-store")
         self.assertEqual([(e.user_id, e.action) for e in SecretAccess.query], [(self.mia.id, "holder")])
-        # Der Schlüssel steht nicht dauerhaft auf der Seite
+        # the key does not stay on the page permanently
         self.assertNotIn(KEY, self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True))
 
     def test_wrong_or_missing_password(self):
@@ -54,7 +54,7 @@ class HolderSecretTests(Base):
         self.assertIn("Zu viele Fehlversuche", r.get_data(as_text=True))
 
     def test_not_without_switch(self):
-        a = self.laptop()                       # Freigabe aus (Standard)
+        a = self.laptop()                       # sharing off (default)
         self.give(a, self.mia)
         self.login("mia")
         self.assertNotIn("Dein Passwort", self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True))
@@ -77,14 +77,14 @@ class HolderSecretTests(Base):
         self.assertNotIn("Dein Passwort", html)
         self.assertNotIn(KEY, html)
         self.assertEqual(self.c.post(self.url(a), data={"password": PW}).status_code, 403)
-        self.login("hans")    # Verwalter einer anderen Gruppe
+        self.login("hans")    # manager of another group
         self.assertEqual(self.c.post(self.url(a), data={"password": PW}).status_code, 403)
         self.assertEqual(SecretAccess.query.count(), 0)
         self.assertIsNotNone(other)
 
     def test_holder_sees_own_item_even_outside_own_groups(self):
         a = self.laptop(secret_holder_view=True, group_id=self.hr.id)
-        self.give(a, self.mia, by=self.admin)   # mia ist nur in IT
+        self.give(a, self.mia, by=self.admin)   # mia is only in IT
         self.login("mia")
         self.assertEqual(self.c.get(f"/gegenstaende/{a.id}").status_code, 200)
         self.assertIn(KEY, self.c.post(self.url(a), data={"password": PW}).get_data(as_text=True))
@@ -100,7 +100,7 @@ class HolderSecretTests(Base):
         self.c.post(f"/gegenstaende/{a.id}/bearbeiten", data=data)
         self.assertFalse(db.session.get(Asset, a.id).secret_holder_view)
         self.assertEqual([e.action for e in SecretAccess.query.order_by(SecretAccess.id)], ["share_on", "share_off"])
-        # Verwalter ohne Recht auf die Angaben (nur „verwalten“ via globaler Rolle ohne Gruppe) kann nichts schalten
+        # a manager without access to the details (only “manage” via the global role without a group) cannot switch anything
         glob = self.make("gerd", "manager")
         self.login("gerd")
         data["secret_holder_view"] = "1"
@@ -132,11 +132,11 @@ class HolderSecretTests(Base):
         with mock.patch("assetlotse.ldap_auth.ldap_enabled", return_value=True), \
                 mock.patch("assetlotse.ldap_auth.authenticate", return_value=info) as auth:
             r = self.c.post(self.url(a), data={"password": "ad-pw"})
-            if r.status_code == 302:   # z. B. 2FA-/Sitzungsprüfung – dann über den Login-Weg testen
+            if r.status_code == 302:   # e.g. 2FA/session check – then test via the login path
                 self.skipTest("Sitzung ließ sich im Test nicht direkt setzen")
             self.assertIn(KEY, r.get_data(as_text=True))
             auth.assert_called_once_with("anna", "ad-pw")
-            # Anderes AD-Konto oder keine Zugangsregel mehr → abgelehnt
+            # other AD account or no access rule any more → refused
             info.dn = "CN=Mallory,OU=Staff,DC=x"
             self.assertNotIn(KEY, self.c.post(self.url(a), data={"password": "ad-pw"}, follow_redirects=True)
                              .get_data(as_text=True))
@@ -144,15 +144,15 @@ class HolderSecretTests(Base):
             self.assertNotIn(KEY, self.c.post(self.url(a), data={"password": "ad-pw"}, follow_redirects=True)
                              .get_data(as_text=True))
 
-    # ---- Befunde der Sicherheitsprüfung
+    # ---- findings of the security review
 
     def test_not_when_issued_by_someone_without_secret_rights(self):
-        a = self.laptop(secret_holder_view=True, group_id=None)   # „Allgemein“: Schlüssel nur für Admins
-        self.login("hans")                                        # Verwalter darf ausgeben, aber nicht sehen
+        a = self.laptop(secret_holder_view=True, group_id=None)   # “General”: key for admins only
+        self.login("hans")                                        # manager may issue, but not see
         self.c.post(f"/gegenstaende/{a.id}/ausgeben", data={})
         self.assertEqual(Loan.query.filter_by(user_id=self.hans.id).count(), 1)
         self.assertEqual(self.c.post(self.url(a), data={"password": PW}).status_code, 403)
-        # … und auch nicht über einen Kollegen
+        # … and not via a colleague either
         b = self.laptop(secret_holder_view=True, group_id=None, name="Laptop 2", inventory_no="IT-2", serial_number="S2")
         self.give(b, self.mia, by=self.hans)
         self.login("mia")
@@ -198,13 +198,13 @@ class HolderSecretTests(Base):
     def test_per_user_limit_across_addresses(self):
         a = self.laptop(secret_holder_view=True)
         self.give(a, self.mia)
-        for i in range(100):   # Grenze im internen Netz (der Testclient kommt von 127.0.0.1)
+        for i in range(100):   # limit in the internal network (the test client comes from 127.0.0.1)
             db.session.add(LoginAttempt(key=f"secret|mia|10.0.{i // 250}.{i % 250}", username="mia"))
         db.session.commit()
-        self.login("admin")   # irrelevant – mia meldet sich von hier nicht neu an
+        self.login("admin")   # irrelevant – mia does not sign in again from here
         with self.c.session_transaction() as s:
             s["_user_id"] = self.mia.get_id()
         r = self.c.post(self.url(a), data={"password": PW}, follow_redirects=True)
         self.assertNotIn(KEY, r.get_data(as_text=True))
         from assetlotse import lockout
-        self.assertNotIn("mia", lockout.locked_usernames())   # Schlüssel-Fehlversuche ≠ Anmeldesperre in der Übersicht
+        self.assertNotIn("mia", lockout.locked_usernames())   # failed key attempts ≠ login lockout on the dashboard

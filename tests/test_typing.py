@@ -1,8 +1,8 @@
-"""Typprüfung mit mypy (schrittweise, siehe mypy.ini) und was sie gefunden hat.
+"""Type checking with mypy (gradual, see mypy.ini) and what it found.
 
-- Die Module in den strengen Abschnitten von mypy.ini müssen fehlerfrei sein.
-- Alle anderen Funde werden nur aufgelistet (kein Fehler) – sie werden Modul für Modul abgebaut.
-Ohne installiertes mypy wird der Test übersprungen; im Prüflauf auf GitHub ist mypy Pflicht
+- The modules in the strict sections of mypy.ini must be free of errors.
+- All other findings are only listed (not an error) - they are reduced module by module.
+Without mypy installed the test is skipped; in the check run on GitHub mypy is required
 (ASSETLOTSE_REQUIRE_MYPY=1).
 """
 import configparser
@@ -74,7 +74,7 @@ class TypeCheckTest(unittest.TestCase):
 
 
 class FoundByTypeCheckTest(unittest.TestCase):
-    """Fehler, die mypy gefunden hat – damit sie nicht wiederkommen."""
+    """Bugs mypy found - so that they do not come back."""
 
     def test_refused_bind_gives_a_readable_message(self):
         # "msg=" collided with the first parameter of _(): a wrong service password ended in a TypeError (500)

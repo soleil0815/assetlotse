@@ -1,4 +1,4 @@
-"""Standard seit 1.4.0: Mitarbeiter sehen keinen Bestand, nur die Gegenstände, die ihnen ausgegeben sind."""
+"""Default since 1.4.0: staff see no stock, only the items issued to them."""
 import pytest
 from test_assetlotse import KEY, PW, Base
 
@@ -25,7 +25,7 @@ class OwnItemsOnlyTests(Base):
         self.assertTrue(r.headers["Location"].endswith("/ausleihen"))
         self.assertEqual(self.c.get(f"/gegenstaende/{a.id}").status_code, 404)
         html = self.c.get("/").get_data(as_text=True)
-        self.assertNotIn('href="/gegenstaende"', html)      # kein Menüpunkt, keine Suche
+        self.assertNotIn('href="/gegenstaende"', html)      # no menu item, no search
         self.assertNotIn("Neu im Bestand", html)
         self.assertNotIn("Beamer", html)
         help_html = self.c.get("/hilfe").get_data(as_text=True)
@@ -85,7 +85,7 @@ class OwnItemsOnlyTests(Base):
         self.assertIn(KEY, self.c.post(f"/gegenstaende/{a.id}/mein-schluessel", data={"password": PW})
                       .get_data(as_text=True))
 
-    # ---- Befunde aus dem Code-Review
+    # ---- findings from the code review
 
     def test_self_return_from_item_page_lands_on_my_items(self):
         set_setting("self_return", "1")

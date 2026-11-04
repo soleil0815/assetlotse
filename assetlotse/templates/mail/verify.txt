@@ -1,8 +1,8 @@
-{{ _("Bitte bestätige deine E-Mail-Adresse") }}
-{{ _("Hallo {name},", name=user.name|safe) }}
+{{ _("Please confirm your email address") }}
+{{ _("Hello {name},", name=user.name|safe) }}
 
-{{ _("danke für deine Registrierung bei „{library}“. Bitte bestätige deine E-Mail-Adresse innerhalb von 48 Stunden über diesen Link:", library=org_name|safe) }}
+{{ _("thank you for registering at “{library}”. Please confirm your email address within 48 hours using this link:", library=org_name|safe) }}
 
 {{ link }}
 
-{{ _("Falls du dich nicht registriert hast, kannst du diese Nachricht einfach ignorieren.") }}
+{{ _("If you didn't register, you can simply ignore this message.") }}

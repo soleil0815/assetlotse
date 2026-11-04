@@ -1,4 +1,4 @@
-"""Datenschutz bei Betrieb im Internet: keine Fremdserver im Browser, Rechtliches-Links, Cover-Proxy."""
+"""Privacy when running on the internet: no third-party servers in the browser, legal links, cover proxy."""
 import json
 import os
 import re
@@ -49,7 +49,7 @@ class NoThirdPartyTests(Base):
             text = f.read_text(encoding="utf-8")
             hit = re.search(r"(?:https?:)?//(?!www\.w3\.org)[a-z0-9-]+\.[a-z0-9.-]*[a-z]{2,}", text, re.I)
             with self.subTest(file=f.name):
-                self.assertIsNone(hit, f"{f.name} verweist auf {hit.group(0) if hit else ''}")
+                self.assertIsNone(hit, f"{f.name} references {hit.group(0) if hit else ''}")
 
     def test_pages_load_nothing_from_outside(self):
         set_setting("imprint_url", "https://institut.example/impressum")
@@ -61,7 +61,7 @@ class NoThirdPartyTests(Base):
         for url in ["/", "/gegenstaende", "/gegenstaende/neu", "/info", "/admin/einstellungen"]:
             page = self.c.get(url).get_data(as_text=True)
             pages.append(url)
-            # nur ausgehende Links (Impressum usw.) sind erlaubt, keine eingebundenen Ressourcen
+            # only outgoing links (imprint etc.) are allowed, no embedded resources
             for m in re.finditer(r"""<(link|script|img)\b[^>]*>""", page, re.I):
                 with self.subTest(url=url, tag=m.group(0)[:80]):
                     self.assertIsNone(EXTERNAL.search(m.group(0)))

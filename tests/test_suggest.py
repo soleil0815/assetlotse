@@ -1,4 +1,4 @@
-"""Vorschläge beim Tippen (Suche oben, Ausgabetheke) und Prüfung von Inventar-/Seriennummern."""
+"""Suggestions while typing (top search, issue desk) and checking of inventory/serial numbers."""
 import pytest
 from test_assetlotse import Base
 
@@ -34,7 +34,7 @@ class SuggestTests(Base):
 
     def test_search_respects_visibility(self):
         self.laptop(secret=None, group_id=self.hr.id, name="Personal-Laptop")
-        self.login("mia")                                   # Mitarbeiterin der Gruppe IT, Standard „groups“
+        self.login("mia")                                   # staff member of group IT, default "groups"
         self.assertEqual(self.items(q="Personal"), [])
 
     @pytest.mark.catalog_default
@@ -48,12 +48,12 @@ class SuggestTests(Base):
         self.laptop(secret=None, name="HR-Laptop", group_id=self.hr.id)
         self.login("mia")
         self.assertEqual(self.c.get("/vorschlaege?fuer=theke&q=Laptop").status_code, 403)
-        self.login("vera")                                  # verwaltet nur IT
+        self.login("vera")                                  # manages IT only
         names = [i["name"] for i in self.items(fuer="theke", q="Laptop")]
         self.assertEqual(names, ["IT-Laptop"])
         self.login("admin")
         hits = {i["name"]: i for i in self.items(fuer="theke", q="Laptop", benutzer="mia")}
-        self.assertEqual(set(hits), {"IT-Laptop"})          # mia ist nicht in Personal
+        self.assertEqual(set(hits), {"IT-Laptop"})          # mia is not in Personal
         self.assertTrue(hits["IT-Laptop"]["can_issue"])
 
     def test_desk_marks_issued_items(self):
@@ -97,7 +97,7 @@ class NumberTests(Base):
         self.assertFalse(d["taken"])
         self.assertEqual(d["numbers"], ["IT-0043", "IT-0041"])
         self.assertEqual(d["next"], "IT-0044")
-        self.assertEqual(self.check(feld="inventory_no", wert="")["next"], "IT-0044")   # Schema der letzten Nummer
+        self.assertEqual(self.check(feld="inventory_no", wert="")["next"], "IT-0044")   # pattern of the last number
         self.assertFalse(self.check(feld="serial_number", wert="neu")["taken"])
         self.assertTrue(self.check(feld="serial_number", wert="sit-0041")["taken"])
 
@@ -139,11 +139,11 @@ class NumberTests(Base):
         self.assertIn("ist bereits vergeben", html)
         db.session.expire_all()
         self.assertNotEqual(db.session.get(Asset, b.id).inventory_no, a.inventory_no)
-        self.assertNotEqual(db.session.get(Asset, b.id).name, "B")   # nichts halb gespeichert
+        self.assertNotEqual(db.session.get(Asset, b.id).name, "B")   # nothing half-saved
 
 
 class UniqueNumberReviewTests(Base):
-    """Befunde aus dem Code-Review: Umlaute, gleichzeitiges Speichern, Altdaten, Platzhalter."""
+    """Findings from the code review: umlauts, concurrent saving, legacy data, wildcards."""
 
     def post_new(self, **data):
         base = {"name": "Neu", "group_id": self.it.id, "quantity": "1"}
@@ -162,7 +162,7 @@ class UniqueNumberReviewTests(Base):
         self.laptop(secret=None)
         b = self.laptop(secret=None)
         self.login("vera")
-        with mock.patch("assetlotse.views.assets.find_number", return_value=None):   # App-Prüfung „übersehen“
+        with mock.patch("assetlotse.views.assets.find_number", return_value=None):   # app check "missed"
             html = self.post_new(name="Rennen", inventory_no="IT-0042")
             self.assertIn("gerade anderweitig vergeben", html)
             self.assertIn('value="Rennen"', html)
@@ -170,7 +170,7 @@ class UniqueNumberReviewTests(Base):
                                data={"name": "Geändert", "group_id": self.it.id, "quantity": "1",
                                      "inventory_no": "IT-0042"}).get_data(as_text=True)
             self.assertIn("gerade anderweitig vergeben", html)
-            self.assertIn('value="Geändert"', html)          # Eingaben bleiben stehen
+            self.assertIn('value="Geändert"', html)          # input is kept
         self.assertEqual(Asset.query.count(), 2)
         db.session.expire_all()
         self.assertNotEqual(db.session.get(Asset, b.id).name, "Geändert")
@@ -195,7 +195,7 @@ class UniqueNumberReviewTests(Base):
 
     def test_next_number_from_own_groups_only_when_empty(self):
         self.laptop(secret=None, inventory_no="IT-0001")
-        self.laptop(secret=None, inventory_no="HR-0007", group_id=self.hr.id)   # zuletzt angelegt, fremde Gruppe
+        self.laptop(secret=None, inventory_no="HR-0007", group_id=self.hr.id)   # created last, other group
         self.login("vera")
         d = self.c.get("/gegenstaende/nummer-pruefen?feld=inventory_no&wert=").get_json()
         self.assertEqual(d["next"], "IT-0002")

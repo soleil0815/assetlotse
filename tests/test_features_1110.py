@@ -1,5 +1,5 @@
-"""1.11.0: Nummer übernehmen statt neu anlegen, Gruppen ohne Verleih, Ausgabe aus dem Bestand, Vorschläge beim
-Erfassen, Foto der Vorlage, eigene Angaben für lokale Konten."""
+"""1.11.0: take over a number instead of creating a new item, groups without lending, issue from the stock,
+suggestions when entering items, photo of the template, own details for local accounts."""
 from test_assetlotse import Base
 
 from assetlotse.models import Asset, Group, Loan, User, db
@@ -15,13 +15,13 @@ def form(a, **kw):
 
 class NumberTakeOverTests(Base):
     def test_wrong_number_can_be_moved_in_one_step(self):
-        a = self.laptop(secret=None)                   # SN-1 – steht hier versehentlich
+        a = self.laptop(secret=None)                   # SN-1 – entered here by mistake
         b = self.laptop(secret=None)                   # SN-2
         self.login("vera")
         html = self.c.post(f"/gegenstaende/{b.id}/bearbeiten", data=form(b, serial_number="SN-1"),
                            follow_redirects=True).get_data(as_text=True)
         self.assertIn("bereits vergeben", html)
-        self.assertIn(f'name="take_serial_number" value="{a.id}"', html)      # Angebot zur Übernahme
+        self.assertIn(f'name="take_serial_number" value="{a.id}"', html)      # offer to take it over
         self.assertEqual(db.session.get(Asset, b.id).serial_number, "SN-2")
         html = self.c.post(f"/gegenstaende/{b.id}/bearbeiten",
                            data=form(b, serial_number="sn-1", take_serial_number=str(a.id)),
@@ -32,17 +32,17 @@ class NumberTakeOverTests(Base):
         self.assertEqual(db.session.get(Asset, b.id).serial_number, "sn-1")
         self.assertEqual(db.session.get(Asset, a.id).serial_number, "")
         self.assertIsNone(db.session.get(Asset, a.id).serial_key)
-        # jetzt ist SN-2 frei und kann bei A eingetragen werden – nichts bleibt „vergeben“
+        # now SN-2 is free and can be entered for A – nothing stays “taken”
         r = self.c.post(f"/gegenstaende/{a.id}/bearbeiten", data=form(db.session.get(Asset, a.id), serial_number="SN-2"),
                         follow_redirects=True)
         self.assertIn("Änderungen gespeichert", r.get_data(as_text=True))
 
     def test_take_over_both_numbers_in_one_step(self):
         a = self.laptop(secret=None)                   # IT-0042 / SN-1
-        c = self.laptop(secret=None)                   # IT-0044 / SN-3 (zweiter Gegenstand)
+        c = self.laptop(secret=None)                   # IT-0044 / SN-3 (second item)
         b = self.laptop(secret=None)
         self.login("vera")
-        # beide Nummern von A
+        # both numbers of A
         r = self.c.post(f"/gegenstaende/{b.id}/bearbeiten", data=form(
             b, inventory_no="IT-0042", serial_number="SN-1",
             take_inventory_no=str(a.id), take_serial_number=str(a.id)), follow_redirects=True)
@@ -52,7 +52,7 @@ class NumberTakeOverTests(Base):
         self.assertEqual((db.session.get(Asset, b.id).inventory_no, db.session.get(Asset, b.id).serial_number),
                          ("IT-0042", "SN-1"))
         self.assertEqual((db.session.get(Asset, a.id).inventory_no, db.session.get(Asset, a.id).serial_number), ("", ""))
-        # je eine Nummer von zwei verschiedenen Gegenständen (C hat Inventar-, B jetzt Seriennummer)
+        # one number each of two different items (C has the inventory number, B now the serial number)
         a2 = db.session.get(Asset, a.id)
         r = self.c.post(f"/gegenstaende/{a2.id}/bearbeiten", data=form(
             a2, inventory_no=c.inventory_no, serial_number="SN-1",
@@ -69,7 +69,7 @@ class NumberTakeOverTests(Base):
         self.assertIn(f'name="take_inventory_no" value="{a.id}" checked', html)
         self.assertIn(f'name="take_serial_number" value="{a.id}" >', html)
         db.session.expire_all()
-        self.assertEqual(db.session.get(Asset, a.id).inventory_no, a.inventory_no)      # nichts geändert
+        self.assertEqual(db.session.get(Asset, a.id).inventory_no, a.inventory_no)      # nothing changed
 
     def test_take_over_when_creating(self):
         a = self.laptop(secret=None)
@@ -82,7 +82,7 @@ class NumberTakeOverTests(Base):
         self.assertEqual(db.session.get(Asset, a.id).serial_number, "")
 
     def test_no_take_over_from_a_foreign_group(self):
-        a = self.laptop(secret=None, group_id=self.hr.id)          # vera verwaltet „Personal“ nicht
+        a = self.laptop(secret=None, group_id=self.hr.id)          # vera does not manage “Personal”
         b = self.laptop(secret=None)
         self.login("vera")
         html = self.c.post(f"/gegenstaende/{b.id}/bearbeiten",
@@ -112,7 +112,7 @@ class NoLendingGroupTests(Base):
         self.assertEqual(Loan.query.count(), 0)
         sug = self.c.get("/vorschlaege?q=Beamer&fuer=theke&benutzer=mia").get_json()
         self.assertEqual(sug["items"], [])
-        self.assertIn("Beamer fest", str(self.c.get("/vorschlaege?q=Beamer").get_json()))   # Suche oben: ja
+        self.assertIn("Beamer fest", str(self.c.get("/vorschlaege?q=Beamer").get_json()))   # search at the top: yes
         html = self.c.get("/theke?modus=ausgabe&benutzer=mia&suche=Beamer").get_data(as_text=True)
         self.assertNotIn("Beamer fest", html)
         r = self.c.post("/theke", data={"modus": "ausgabe", "benutzer": "mia", "code": a.inventory_no, "auto": "1"},
@@ -147,7 +147,7 @@ class IssueFromInventoryTests(Base):
         self.assertIn(f"/theke?modus=ausgabe&amp;gegenstand={a.id}", self.c.get("/gegenstaende").get_data(as_text=True))
         html = self.c.get(f"/theke?modus=ausgabe&gegenstand={a.id}").get_data(as_text=True)
         self.assertIn("Aus dem Bestand ausgeben", html)
-        self.assertIn(f'name="gegenstand" value="{a.id}"', html)          # bleibt bei der Personenwahl erhalten
+        self.assertIn(f'name="gegenstand" value="{a.id}"', html)          # is kept when choosing the person
         self.assertIn(f"gegenstand={a.id}", self.c.get(f"/theke/personen?q=mia&gegenstand={a.id}").get_json()["items"][0]["url"])
         html = self.c.get(f"/theke?modus=ausgabe&gegenstand={a.id}&benutzer=mia").get_data(as_text=True)
         self.assertIn("„Laptop Dell“ an Mia ausgeben", html)
@@ -163,7 +163,7 @@ class IssueFromInventoryTests(Base):
 
 
 class OwnMailChangeTests(Base):
-    """Selbst registrierte Konten: neue Adresse nur einmal vergeben und – mit Bestätigung – erst nach dem Link."""
+    """Self-registered accounts: a new address is assigned only once and – with confirmation – only after the link."""
     def setUp(self):
         super().setUp()
         from unittest import mock
@@ -189,13 +189,13 @@ class OwnMailChangeTests(Base):
         self.assertIn("Bestätigungslink an neu@schule.de", r.get_data(as_text=True))
         db.session.expire_all()
         u = db.session.get(User, self.mia.id)
-        self.assertEqual((u.display_name, u.email), ("Mia M", "mia@schule.de"))   # Name sofort, Adresse noch nicht
+        self.assertEqual((u.display_name, u.email), ("Mia M", "mia@schule.de"))   # name immediately, address not yet
         self.assertEqual(self.sent[0][0], "neu@schule.de")
         link = re.search(r"http://localhost(/profil/email-bestaetigen/\S+)", self.sent[0][1]).group(1)
         self.c.get(link)
         db.session.expire_all()
         self.assertEqual(db.session.get(User, self.mia.id).email, "neu@schule.de")
-        self.assertEqual(self.c.get(link).status_code, 404)          # alter Link gilt nicht mehr
+        self.assertEqual(self.c.get(link).status_code, 404)          # old link is no longer valid
 
     def test_address_of_another_account_is_refused(self):
         self.vera.email = "vera@schule.de"
@@ -258,7 +258,7 @@ class OwnDetailsTests(Base):
         self.assertEqual(db.session.get(User, self.mia.id).email, "mia@neu.de")
 
     def test_ad_account_cannot(self):
-        self.login("mia")                       # angemeldet – danach als AD-Konto behandeln
+        self.login("mia")                       # signed in – treated as an AD account afterwards
         self.mia.auth_source = "ldap"
         db.session.commit()
         html = self.c.get("/profil").get_data(as_text=True)

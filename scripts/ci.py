@@ -267,12 +267,12 @@ def check_changes(names: Iterable[str], dockerfile_diff: str) -> list[str]:
 
 
 # ---------------------------------------------------------------- changelog
-LABELS = {"base": "Basis-Image", "pip": "pip (nur beim Bau)", "debian": "Debian", "python": "Python"}
+LABELS = {"base": "Base image", "pip": "pip (build only)", "debian": "Debian", "python": "Python"}
 
 
 def changelog_entry(name: str, version: str, date: str, changes: list[dict], limit: int = 60) -> str:
     lines = [f"## {name} – {date}", "",
-             f"Sicherheitsupdate: gleiches Programm wie {version}, nur aktualisierte Pakete.", ""]
+             f"Security update: same program as {version}, only updated packages.", ""]
     items = []
     for c in changes:
         what = f"{LABELS.get(c['kind'], c['kind'])}: {c['name']}"
@@ -281,13 +281,13 @@ def changelog_entry(name: str, version: str, date: str, changes: list[dict], lim
         if c.get("old") and c.get("new"):
             items.append(f"- {what} {c['old']} → {c['new']}")
         elif c.get("new"):
-            items.append(f"- {what} {c['new']} (neu)")
+            items.append(f"- {what} {c['new']} (new)")
         else:
-            items.append(f"- {what} {c['old']} (entfernt)")
+            items.append(f"- {what} {c['old']} (removed)")
     if len(items) > limit:
         rest = len(items) - limit
-        items = items[:limit] + [f"- … und {rest} weitere (vollständig in `build/debian-packages.lock` "
-                                 "und `requirements.txt`)"]
+        items = items[:limit] + [f"- … and {rest} more (complete in `build/debian-packages.lock` "
+                                 "and `requirements.txt`)"]
     return "\n".join(lines + items) + "\n\n"
 
 
@@ -297,14 +297,14 @@ def release_notes(changelog: str, name: str, image_ref: str) -> str:
     if not m:
         raise SystemExit(f"CHANGELOG.md has no section for {name}")
     body = m.group(1).strip()
-    return (f"{body}\n\n---\n**Image:** `{image_ref}` (amd64 und arm64)\n\n"
-            "**Update:** automatisch mit einer Container-Verwaltung (Dockhand, Watchtower …), sonst auf dem Server "
-            "`docker compose pull && docker compose up -d` oder `./update.sh`.\n\n"
-            "**Neu installieren:** `docker-compose.yml` und `env.example` von hier herunterladen, `env.example` als "
-            "`.env` speichern, "
+    return (f"{body}\n\n---\n**Image:** `{image_ref}` (amd64 and arm64)\n\n"
+            "**Update:** automatically with a container manager (Dockhand, Watchtower …), otherwise on the server "
+            "`docker compose pull && docker compose up -d` or `./update.sh`.\n\n"
+            "**New installation:** download `docker-compose.yml` and `env.example` from here, save `env.example` as "
+            "`.env`, "
             "`docker compose up -d`.\n\n"
-            "**Ohne Internet:** die Image-Datei für den Server (`…-amd64.tar.gz` oder `…-arm64.tar.gz`) und "
-            "`update.sh` herunterladen, dann `./update.sh --offline <Datei>`.\n")
+            "**Without internet:** download the image file for the server (`…-amd64.tar.gz` or `…-arm64.tar.gz`) and "
+            "`update.sh`, then `./update.sh --offline <file>`.\n")
 
 
 def insert_changelog(text: str, entry: str) -> str:

@@ -1,4 +1,4 @@
-"""Sicherheitsprüfung 1.6.2: Links in Mails, Registrierung, Schlüsselanzeige, Caches, Einrichtung, Standorte."""
+"""Security review 1.6.2: links in mails, registration, secret display, caches, setup, locations."""
 import io
 import os
 import sys
@@ -76,7 +76,7 @@ class RegistrationMailTests(Base):
         set_setting("registration_verify_email", "1")
         db.session.commit()
         r = self.submit()
-        self.assertEqual(r.status_code, 503)                       # ohne eingestellte Adresse: keine Mail mit Link
+        self.assertEqual(r.status_code, 503)                       # without a configured address: no mail with a link
         self.assertEqual(self.sent, [])
         self.assertIsNone(User.query.filter_by(username="lena.s").first())
         set_setting("app_base_url", "https://lotse.schule.de")
@@ -134,7 +134,7 @@ class SecretAndCacheTests(Base):
 
     def test_reveal_needs_second_factor_when_skipped(self):
         self.login("vera")
-        self.vera.totp_enabled = True          # 2FA vorhanden, Sitzung aber ohne bestätigten Faktor
+        self.vera.totp_enabled = True          # 2FA set up, but session without a confirmed factor
         db.session.commit()
         r = self.c.post(f"/gegenstaende/{self.asset.id}/vertraulich")
         self.assertEqual(r.status_code, 302)
@@ -162,7 +162,7 @@ class SecretAndCacheTests(Base):
                     data={"name": "Laptop", "quantity": "1", "group_id": str(self.g.id),
                           "secret_holder_view_shown": "1", "secret_holder_view": "1"})
         db.session.refresh(self.asset)
-        self.assertTrue(self.asset.secret_holder_view)                   # mit bestätigtem Faktor geht es
+        self.assertTrue(self.asset.secret_holder_view)                   # works with a confirmed factor
 
     def test_logged_in_responses_not_cacheable(self):
         self.login("vera")
@@ -210,10 +210,10 @@ class FirstFactorTests(Base):
         self.c.post("/profil/sicherheit/app/bestaetigen", data={"code": twofa.totp_now(secret, time.time())})
         self.assertTrue(User.query.filter_by(username="lena").first().totp_enabled)
         from flask import g
-        g.pop("_login_user", None)        # Testkontext teilt g zwischen den Anfragen
-        self.assertEqual(self.c.get("/").status_code, 200)            # dieses Gerät bleibt angemeldet
+        g.pop("_login_user", None)        # test context shares g between requests
+        self.assertEqual(self.c.get("/").status_code, 200)            # this device stays logged in
         g.pop("_login_user", None)
-        self.assertEqual(other.get("/").status_code, 302)             # das andere ist abgemeldet
+        self.assertEqual(other.get("/").status_code, 302)             # the other one is logged out
 
 
 class SetupTests(Base):
@@ -224,11 +224,11 @@ class SetupTests(Base):
                         data={"username": "boss", "password": "einlangespasswort", "password2": "einlangespasswort"})
         self.assertEqual(r.status_code, 403)
         self.assertEqual(User.query.count(), 0)
-        # weitergereichte Angabe „localhost“ über einen Proxy zählt nicht
+        # a forwarded "localhost" claim via a proxy does not count
         r = self.c.get("/setup", environ_base={"REMOTE_ADDR": "172.18.0.2"},
                        headers={"X-Forwarded-For": "127.0.0.1"})
         self.assertEqual(r.status_code, 403)
-        # Proxy auf localhost, der die Besucher-Adresse nur als X-Real-IP mitschickt
+        # proxy on localhost that only sends the visitor address as X-Real-IP
         r = self.c.get("/setup", environ_base={"REMOTE_ADDR": "127.0.0.1"},
                        headers={"X-Real-IP": INTERNET, "X-Forwarded-Proto": "https"})
         self.assertEqual(r.status_code, 403)
@@ -249,7 +249,7 @@ class LocationLeakTests(Base):
         html = self.c.get("/standorte").get_data(as_text=True)
         self.assertIn("Regal A", html)
         self.assertNotIn("Tresor Vorstand", html)
-        # Raten über „übernehmen“ verrät nichts und macht den Ort nicht öffentlich
+        # guessing via "adopt" reveals nothing and does not make the location public
         r = self.c.post("/standorte/bestand", data={"value": "Tresor Vorstand", "target": "__neu__"},
                         follow_redirects=True)
         self.assertIn("nicht (mehr)", r.get_data(as_text=True))

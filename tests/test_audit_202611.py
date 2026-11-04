@@ -1,10 +1,10 @@
-"""Code-Audit 2026-11 (2.0.2): Regressionstests zu den bestätigten Funden.
+"""Code audit 2026-11 (2.0.2): regression tests for the confirmed findings.
 
-- Hinweis „docker-compose.yml veraltet“ zeigt die Zahlen statt %(found)s/%(want)s
-- Meldung bei zu neuer Datenbank nennt genau die Sicherung „-vor-<Version>“ (nicht -vor-2.0.10 für 2.0.1)
-- update.sh --cleanup: lässt Mountpunkte aus, schützt auch die Mounts aus docker-compose(.override).yml ohne
-  Container und bricht ab, wenn die Compose-Konfiguration nicht lesbar ist
-- update.sh: ein gestoppter Container zählt als bisherige Version (previous, Ausgabe, Zurückgehen)
+- notice “docker-compose.yml outdated” shows the numbers instead of %(found)s/%(want)s
+- message for a too-new database names exactly the backup “-vor-<version>” (not -vor-2.0.10 for 2.0.1)
+- update.sh --cleanup: skips mount points, also protects the mounts from docker-compose(.override).yml without
+  a container and aborts if the compose configuration cannot be read
+- update.sh: a stopped container counts as the previous version (previous, output, going back)
 """
 import json
 import unittest
@@ -32,9 +32,9 @@ class ComposeNoticeTests(std.AppBase):
         self.assertNotIn("%(", html)
 
     def test_translation_uses_the_same_placeholders(self):
-        en = json.loads((std.ROOT / "assetlotse" / "translations" / "en.json").read_text())
-        key = next(k for k in en if k.startswith("Die docker-compose.yml auf dem Server ist veraltet"))
-        for text in (key, en[key]):
+        de = json.loads((std.ROOT / "assetlotse" / "translations" / "de.json").read_text())
+        key = next(k for k in de if k.startswith("The docker-compose.yml on the server is out of date"))
+        for text in (key, de[key]):
             self.assertIn("{found}", text)
             self.assertIn("{want}", text)
 

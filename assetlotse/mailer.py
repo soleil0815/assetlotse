@@ -1,14 +1,14 @@
-"""E-Mail-Versand per SMTP und automatische Benachrichtigungen.
+"""Sending email via SMTP and automatic notifications.
 
-Benachrichtigungen
-  * loan     – Bestätigung bei Ausleihe
-  * return   – Bestätigung bei Rückgabe
-  * reminder – Erinnerung X Tage vor Fälligkeit (einmal pro Ausleihe)
-  * overdue  – Mahnung bei Überfälligkeit, Wiederholung alle N Tage, höchstens M-mal
-  * digest   – tägliche Übersicht überfälliger Ausleihen an Verwalter
-  * manual   – von einem Verwalter von Hand ausgelöst
-Erinnerungen werden pro Benutzer zu einer Mail zusammengefasst. Das Protokoll (MailLog)
-verhindert doppelten Versand – auch wenn mehrere Server-Prozesse laufen.
+Notifications
+  * loan     – confirmation when an item is issued
+  * return   – confirmation when an item is returned
+  * reminder – reminder X days before the due date (once per loan)
+  * overdue  – overdue notice, repeated every N days, at most M times
+  * digest   – daily summary of overdue loans for managers
+  * manual   – triggered by hand by a manager
+Reminders are combined into one mail per user. The log (MailLog) prevents sending twice –
+even when several server processes are running.
 """
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _org_name() -> str:
     return org_name()
 
 
-# ---------------------------------------------------------------- Versand
+# ---------------------------------------------------------------- Sending
 
 @dataclass
 class SmtpConfig:
@@ -86,7 +86,7 @@ def _ssl_context(verify: bool) -> ssl.SSLContext:
 
 def smtp_connect(cfg: SmtpConfig) -> smtplib.SMTP:
     if not cfg.host:
-        raise MailError(_("Kein SMTP-Server eingetragen."))
+        raise MailError(_("No SMTP server configured."))
     try:
         if cfg.security == "ssl":
             smtp = smtplib.SMTP_SSL(cfg.host, cfg.port, timeout=cfg.timeout, context=_ssl_context(cfg.verify))
@@ -96,7 +96,7 @@ def smtp_connect(cfg: SmtpConfig) -> smtplib.SMTP:
             if cfg.security == "starttls":
                 if not smtp.has_extn("starttls"):
                     smtp.quit()
-                    raise MailError(_("Der Server bietet kein STARTTLS an. Sicherheit auf „keine“ oder „SSL/TLS“ stellen."))
+                    raise MailError(_("The server does not offer STARTTLS. Set security to “none” or “SSL/TLS”."))
                 smtp.starttls(context=_ssl_context(cfg.verify))
                 smtp.ehlo()
         if cfg.user:
@@ -105,13 +105,13 @@ def smtp_connect(cfg: SmtpConfig) -> smtplib.SMTP:
     except MailError:
         raise
     except smtplib.SMTPAuthenticationError as exc:
-        raise MailError(_("Anmeldung am SMTP-Server fehlgeschlagen ({code}): {error}",
+        raise MailError(_("Sign-in to the SMTP server failed ({code}): {error}",
                           code=exc.smtp_code, error=_decode(exc.smtp_error))) from exc
     except ssl.SSLCertVerificationError as exc:
-        raise MailError(_("Zertifikat des SMTP-Servers nicht vertrauenswürdig ({reason}). "
-                          "Ggf. „Zertifikat prüfen“ abschalten (nur intern).", reason=exc.verify_message)) from exc
+        raise MailError(_("The SMTP server's certificate is not trusted ({reason}). If necessary, "
+                          "turn off “Verify certificate” (internal use only).", reason=exc.verify_message)) from exc
     except (OSError, smtplib.SMTPException) as exc:
-        raise MailError(_("SMTP-Server {host}:{port} – {error}", host=cfg.host, port=cfg.port,
+        raise MailError(_("SMTP server {host}:{port} – {error}", host=cfg.host, port=cfg.port,
                           error=f"{exc.__class__.__name__}: {exc}")) from exc
 
 
@@ -120,15 +120,15 @@ def _decode(v):
 
 
 def _one_line(value: str) -> str:
-    """Kopfzeilen dürfen keine Zeilenumbrüche enthalten (z. B. aus einer Bezeichnung)."""
+    """Header lines must not contain line breaks (e.g. from an item name)."""
     return " ".join(str(value or "").split())
 
 
 def build_message(cfg: SmtpConfig, to: str, subject: str, text: str, html: str | None = None) -> EmailMessage:
     if not cfg.sender:
-        raise MailError(_("Keine Absenderadresse eingetragen."))
+        raise MailError(_("No sender address configured."))
     if not valid_email(to):
-        raise MailError(_("Ungültige Empfängeradresse: {address}", address=_one_line(to)[:100]))
+        raise MailError(_("Invalid recipient address: {address}", address=_one_line(to)[:100]))
     subject = _one_line(subject)
     msg = EmailMessage()
     msg["From"] = formataddr((cfg.sender_name, cfg.sender))
@@ -148,7 +148,7 @@ def build_message(cfg: SmtpConfig, to: str, subject: str, text: str, html: str |
 def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind: str,
               loan_ids: list[int] | None = None, user_id: int | None = None,
               cfg: SmtpConfig | None = None, smtp: smtplib.SMTP | None = None) -> tuple[bool, str]:
-    """Versendet eine Mail und protokolliert sie (eine Protokollzeile je Ausleihe)."""
+    """Send a mail and log it (one log row per loan)."""
     cfg = cfg or SmtpConfig.from_settings()
     error = ""
     try:
@@ -158,7 +158,7 @@ def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind
         try:
             refused = conn.send_message(msg)
             if refused:
-                raise MailError(_("Empfänger abgelehnt: {recipients}", recipients=", ".join(refused)))
+                raise MailError(_("Recipient rejected: {recipients}", recipients=", ".join(refused)))
         finally:
             if own:
                 try:
@@ -167,8 +167,8 @@ def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind
                     pass
     except MailError as exc:
         error = str(exc)
-    except ValueError as exc:   # ungültige Kopfzeile o. Ä. – nie die Anfrage abbrechen lassen
-        error = _("Ungültige Nachricht: {error}", error=exc)
+    except ValueError as exc:   # invalid header or similar – never let it abort the request
+        error = _("Invalid message: {error}", error=exc)
     except (OSError, smtplib.SMTPException) as exc:
         error = f"{exc.__class__.__name__}: {_decode(getattr(exc, 'smtp_error', exc))}"
     status = "error" if error else "sent"
@@ -177,17 +177,17 @@ def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind
                                error=error[:1000], loan_id=lid, user_id=user_id))
     db.session.commit()
     if error:
-        log.warning("Mail an %s (%s) fehlgeschlagen: %s", to, kind, error)
+        log.warning("Mail to %s (%s) failed: %s", to, kind, error)
     return not error, error
 
 
-# ---------------------------------------------------------------- Inhalte
+# ---------------------------------------------------------------- Content
 
 def _ctx(**extra) -> dict:
     from .branding import mail_colors
     base = (get_setting("app_base_url") or "").rstrip("/")
     logo = get_setting("brand_logo")
-    # Logo nur als PNG (SVG zeigen viele Mailprogramme nicht an) und nur mit bekannter Adresse
+    # Logo only as PNG (many mail clients don't show SVG) and only with a known base URL
     logo_url = f"{base}/branding/{logo}" if base and logo and not logo.endswith(".svg") else ""
     return {"org_name": _org_name(), "base_url": base,
             "mail_logo_url": logo_url, "mail_logo_plate": get_setting("brand_logo_plate") == "1",
@@ -198,18 +198,18 @@ def _ctx(**extra) -> dict:
 
 
 def render_mail(template: str, **ctx) -> tuple[str, str, str]:
-    """Liefert (Betreff, Text, HTML) aus templates/mail/<template>.txt/.html.
+    """Return (subject, text, HTML) from templates/mail/<template>.txt/.html.
 
-    Die erste Zeile der .txt-Vorlage ist der Betreff."""
+    The first line of the .txt template is the subject."""
     from .i18n import force_locale, user_language
     lang = ctx.pop("lang", None) or (user_language(ctx["user"]) if ctx.get("user") is not None else None)
-    if not lang:   # ohne Empfänger (z. B. Testmail): Sprache der laufenden Anfrage
+    if not lang:   # without a recipient (e.g. test mail): language of the current request
         from .i18n import get_locale
         lang = get_locale()
-    # Nur diese Mails lassen sich im Profil abschalten („E-Mail-Benachrichtigungen“) – nur dort steht der Hinweis darauf
+    # Only these mails can be turned off in the profile ("Email notifications") – only they carry the note about it
     ctx.setdefault("notification", template in ("loan", "return", "reminder", "digest",
                                                         "registration_admin", "approved"))
-    with force_locale(lang):   # in der Sprache des Empfängers
+    with force_locale(lang):   # in the recipient's language
         c = _ctx(**ctx)
         raw = render_template(f"mail/{template}.txt", **c).strip("\n")
         subject, _sep, body = raw.partition("\n")
@@ -221,7 +221,7 @@ EMAIL_RE = __import__("re").compile(r"^[^@\s,;<>\"']+@[^@\s,;<>\"']+\.[^@\s,;<>\
 
 
 def valid_email(addr: str) -> bool:
-    """Genau eine einfache Adresse – keine Kommas/Leerzeichen (sonst mehrere Empfänger möglich)."""
+    """Exactly one simple address – no commas/spaces (otherwise several recipients would be possible)."""
     return bool(addr) and len(addr) <= 254 and bool(EMAIL_RE.match(addr))
 
 
@@ -234,7 +234,7 @@ def can_notify(user: User | None) -> bool:
 
 
 def _send_async(fn, *args):
-    """Mail im Hintergrund senden, damit Ausleihe/Rückgabe nicht auf den SMTP-Server warten."""
+    """Send mail in the background so issuing/returning does not wait for the SMTP server."""
     app = current_app._get_current_object()
     if app.config.get("MAIL_SYNC") or app.config.get("TESTING"):
         fn(*args)
@@ -245,7 +245,7 @@ def _send_async(fn, *args):
             try:
                 fn(*args)
             except Exception:  # noqa: BLE001
-                log.exception("Hintergrund-Mailversand fehlgeschlagen")
+                log.exception("Background mail sending failed")
 
     threading.Thread(target=run, daemon=True).start()
 
@@ -270,27 +270,27 @@ def notify_return(loan: Loan):
 
 def send_manual_reminder(loan: Loan) -> tuple[bool, str]:
     if not mail_active():
-        return False, _("E-Mail-Versand ist nicht eingerichtet.")
+        return False, _("Email sending is not set up.")
     if not can_notify(loan.user):
-        return False, _("{name} hat keine E-Mail-Adresse oder hat Benachrichtigungen abgeschaltet.", name=loan.user.name)
+        return False, _("{name} has no email address or has turned off notifications.", name=loan.user.name)
     if loan.due_at is None:
-        return False, _("Die Ausleihe ist unbefristet.")
+        return False, _("The loan is open-ended.")
     subject, text, html = render_mail("reminder", user=loan.user, due_soon=[] if loan.is_overdue else [loan],
                                       overdue=[loan] if loan.is_overdue else [])
     return send_mail(loan.user.email, subject, text, html, kind="manual", loan_ids=[loan.id], user_id=loan.user_id)
 
 
-# ---------------------------------------------------------------- Tägliche Erinnerungen
+# ---------------------------------------------------------------- Daily reminders
 
 def _sent(loan_id: int, kind: str):
     return MailLog.query.filter_by(loan_id=loan_id, kind=kind, status="sent")
 
 
 def collect_due(today: date | None = None) -> dict[int, dict]:
-    """Ermittelt je Benutzer, welche Ausleihen erinnert bzw. gemahnt werden müssen."""
+    """Determine per user which loans need a reminder or an overdue notice."""
     today = today or date.today()
     per_user: dict[int, dict] = {}
-    # Unbefristete Ausleihen (ohne Rückgabedatum) brauchen keine Erinnerung
+    # Open-ended loans (without a due date) need no reminder
     active = Loan.query.filter(Loan.returned_at.is_(None), Loan.due_at.isnot(None)).all()
     rem_days = get_int("mail_reminder_days", 2)
     repeat = max(1, get_int("mail_overdue_repeat_days", 7))
@@ -314,14 +314,14 @@ def collect_due(today: date | None = None) -> dict[int, dict]:
 
 
 def _remind(user, bucket: dict, cfg, smtp) -> bool:
-    """Erinnerung/Mahnung an eine Person (eine Mail für alles). True, wenn alles verschickt wurde."""
+    """Reminder/overdue notice to one person (one mail for everything). True if everything was sent."""
     subject, text, html = render_mail("reminder", user=user, due_soon=bucket["due_soon"], overdue=bucket["overdue"])
     ok_r = ok_o = True
     if bucket["due_soon"]:
         ok_r, _err = send_mail(user.email, subject, text, html, kind="reminder", cfg=cfg, smtp=smtp,
                                loan_ids=[l.id for l in bucket["due_soon"]], user_id=user.id)
     if bucket["overdue"]:
-        if bucket["due_soon"]:  # gleiche Mail, nur zusätzlich protokollieren
+        if bucket["due_soon"]:  # same mail, just log it additionally
             for l in bucket["overdue"]:
                 db.session.add(MailLog(kind="overdue", to_addr=user.email, subject=subject,
                                        status="sent" if ok_r else "error", loan_id=l.id, user_id=user.id))
@@ -334,7 +334,7 @@ def _remind(user, bucket: dict, cfg, smtp) -> bool:
 
 
 def run_notifications(today: date | None = None) -> dict:
-    """Versendet Erinnerungen, Mahnungen und die Verwalter-Übersicht. Liefert eine Statistik."""
+    """Send reminders, overdue notices and the manager summary. Returns statistics."""
     stats = {"sent": 0, "errors": 0, "loans": 0, "digest": 0}
     if not mail_active():
         stats["skipped"] = "inactive"
@@ -347,7 +347,7 @@ def run_notifications(today: date | None = None) -> dict:
     except MailError as exc:
         stats["errors"] += 1
         stats["error"] = str(exc)
-        log.warning("Erinnerungslauf: %s", exc)
+        log.warning("Reminder run: %s", exc)
         return stats
     reconnected = False
     try:
@@ -355,15 +355,15 @@ def run_notifications(today: date | None = None) -> dict:
             user = bucket["user"]
             try:
                 ok = _remind(user, bucket, cfg, smtp)
-            except Exception:  # noqa: BLE001 – eine Person darf nie den Lauf für alle anderen abbrechen
+            except Exception:  # noqa: BLE001 – one person must never abort the run for everyone else
                 db.session.rollback()
                 ok = False
-                log.exception("Erinnerung an %s fehlgeschlagen", user.username)
+                log.exception("Reminder to %s failed", user.username)
             stats["sent" if ok else "errors"] += 1
             stats["loans"] += len(bucket["due_soon"]) + len(bucket["overdue"])
             if not ok and not reconnected:
-                # Häufigster Grund: Der Mailserver hat die Verbindung nach einigen Mails getrennt – einmal neu
-                # verbinden. Fehlgeschlagene Mails gelten nicht als gesendet und werden später nachgeholt.
+                # Most common reason: the mail server closed the connection after a few mails – reconnect
+                # once. Failed mails do not count as sent and are retried later.
                 reconnected = True
                 try:
                     smtp.quit()
@@ -374,7 +374,7 @@ def run_notifications(today: date | None = None) -> dict:
                 except MailError as exc:
                     smtp = None
                     stats["error"] = str(exc)
-                    log.warning("Erinnerungslauf: Neuverbindung fehlgeschlagen: %s", exc)
+                    log.warning("Reminder run: reconnect failed: %s", exc)
                     return stats
 
         if get_bool("mail_digest"):
@@ -404,27 +404,27 @@ def _send_digests(cfg, smtp, today) -> int:
             continue
         if MailLog.query.filter(MailLog.kind == "digest", MailLog.user_id == m.id, MailLog.status == "sent",
                                 MailLog.created_at >= day_start).first():
-            continue   # heute schon verschickt (z. B. „Jetzt versenden“ oder send-reminders zusätzlich)
-        try:      # ein Fehler bei einer Person (z. B. Datenbank kurz gesperrt) hält die anderen nicht auf
+            continue   # already sent today (e.g. "Send now" or send-reminders in addition)
+        try:      # an error for one person (e.g. database briefly locked) does not hold up the others
             subject, text, html = render_mail("digest", user=m, loans=mine)
             ok, _err = send_mail(m.email, subject, text, html, kind="digest", cfg=cfg, smtp=smtp, user_id=m.id)
         except Exception:  # noqa: BLE001
             db.session.rollback()
-            log.exception("Übersicht an %s nicht verschickt", m.username)
+            log.exception("Summary to %s not sent", m.username)
             continue
         sent += 1 if ok else 0
     return sent
 
 
-# ---------------------------------------------------------------- Zeitplan
+# ---------------------------------------------------------------- Schedule
 
 def _claim_today(today_str: str, key: str = "mail_last_run") -> bool:
-    """Atomar „heute laufe ich“ beanspruchen – verhindert Doppelläufe bei mehreren Prozessen."""
+    """Atomically claim "I am running today" – prevents duplicate runs with several processes."""
     if db.session.get(Setting, key) is None:
         try:
             db.session.add(Setting(key=key, value=""))
             db.session.commit()
-        except Exception:  # noqa: BLE001 – anderer Prozess war schneller
+        except Exception:  # noqa: BLE001 – another process was faster
             db.session.rollback()
     res = db.session.execute(update(Setting).where(Setting.key == key, Setting.value != today_str)
                              .values(value=today_str))
@@ -432,8 +432,8 @@ def _claim_today(today_str: str, key: str = "mail_last_run") -> bool:
     return res.rowcount == 1
 
 
-RETRY_MINUTES = 15   # nach einem Verbindungsfehler frühestens so viel später erneut versuchen
-MAX_RETRIES = 3      # einzelne fehlgeschlagene Mails: höchstens so oft am selben Tag nachholen
+RETRY_MINUTES = 15   # after a connection error, retry no earlier than this much later
+MAX_RETRIES = 3      # individual failed mails: retry at most this often on the same day
 
 
 def run_scheduled(now: datetime | None = None) -> dict | None:
@@ -453,8 +453,8 @@ def run_scheduled(now: datetime | None = None) -> dict | None:
     tries = get_setting("mail_retries")
     done_today = int(tries.split(":", 1)[1]) if tries.startswith(today_str + ":") and tries.split(":", 1)[1].isdigit() else 0
     if stats.get("error") or (stats.get("errors") and done_today < MAX_RETRIES):
-        # SMTP nicht erreichbar oder einzelne Mails fehlgeschlagen: Tag wieder freigeben, damit ein späterer
-        # Durchlauf nachholt. Bereits gesendete Erinnerungen werden dabei nicht wiederholt (nur status=sent zählt).
+        # SMTP unreachable or individual mails failed: release the day again so a later run catches up.
+        # Reminders already sent are not repeated (only status=sent counts).
         db.session.execute(update(Setting).where(Setting.key == "mail_last_run", Setting.value == today_str)
                            .values(value=previous or ""))
         set_setting("mail_retry_after", (now + timedelta(minutes=RETRY_MINUTES)).isoformat(timespec="seconds"))
@@ -463,12 +463,12 @@ def run_scheduled(now: datetime | None = None) -> dict | None:
         set_setting("mail_retry_after", "")
     set_setting("mail_last_result", stats_record(now, stats))
     db.session.commit()
-    log.info("Erinnerungslauf: %s", stats)
+    log.info("Reminder run: %s", stats)
     return stats
 
 
 def stats_record(when: datetime, stats: dict, manual: bool = False) -> str:
-    """Ergebnis eines Laufs sprachneutral speichern (Anzeige in der Sprache des Betrachters)."""
+    """Store the result of a run language-neutrally (shown in the viewer's language)."""
     import json
     return json.dumps({"at": when.isoformat(timespec="minutes"), "manual": manual, "stats": stats})
 
@@ -480,26 +480,26 @@ def last_result_text(raw: str) -> str:
         rec = json.loads(raw)
         at = datetime.fromisoformat(rec["at"])
     except (ValueError, TypeError, KeyError):
-        return raw or ""   # ältere Einträge (fertiger deutscher Text)
-    label = format_datetime(at) + (" " + _("(manuell)") if rec.get("manual") else "")
+        return raw or ""   # older entries (ready-made German text)
+    label = format_datetime(at) + (" " + _("(manual)") if rec.get("manual") else "")
     return f"{label}: {format_stats(rec.get('stats') or {})}"
 
 
 def format_stats(stats: dict) -> str:
     if stats.get("skipped"):
-        return _("E-Mail-Versand ist nicht aktiv.") if stats["skipped"] == "inactive" else str(stats["skipped"])
+        return _("Email sending is not active.") if stats["skipped"] == "inactive" else str(stats["skipped"])
     if stats.get("error"):
-        return _("Fehler – {error}", error=stats["error"])
-    txt = _("{sent} Mail(s) an Mitarbeiter zu {loans} Ausleihe(n)", sent=stats["sent"], loans=stats["loans"])
+        return _("Error – {error}", error=stats["error"])
+    txt = _("{sent} e-mail(s) to staff members about {loans} loan(s)", sent=stats["sent"], loans=stats["loans"])
     if stats.get("digest"):
-        txt += ", " + _("{n} Übersicht(en) an Verwalter", n=stats["digest"])
+        txt += ", " + _("{n} summary/summaries to managers", n=stats["digest"])
     if stats.get("errors"):
-        txt += ", " + _("{n} Fehler", n=stats["errors"])
+        txt += ", " + _("{n} error(s)", n=stats["errors"])
     return txt
 
 
 def cleanup_unverified(days: int = 7) -> int:
-    """Selbst registrierte Konten, deren E-Mail nach X Tagen nicht bestätigt wurde, löschen."""
+    """Delete self-registered accounts whose email was not confirmed after X days."""
     from datetime import timedelta
     limit = datetime.now() - timedelta(days=days)
     stale = User.query.filter(User.self_registered.is_(True), User.email_verified.is_(False),
@@ -508,13 +508,13 @@ def cleanup_unverified(days: int = 7) -> int:
     deleted = 0
     for u in stale:
         try:
-            delete_user(u)   # auch mit abgeschlossenen Ausleihen (sonst IntegrityError)
+            delete_user(u)   # also with completed loans (otherwise IntegrityError)
             deleted += 1
         except OpenLoansError:
             pass
     if deleted:
         db.session.commit()
-        log.info("%d unbestätigte Registrierung(en) gelöscht", deleted)
+        log.info("%d unconfirmed registration(s) deleted", deleted)
     return deleted
 
 
@@ -531,11 +531,11 @@ def start_scheduler(app, interval: int = 300):
         from .backup import run_daily as run_backup_daily
         from .lockout import cleanup as cleanup_lockouts
         from .retention import run_daily as run_retention_daily
-        # Jede Aufgabe einzeln: Ein Fehler in einer darf die anderen nicht überspringen.
-        jobs = [("Registrierungen aufräumen", cleanup_unverified), ("Anmeldesperren aufräumen", cleanup_lockouts),
-                ("Datensicherung", run_backup_daily),            # zuerst sichern …
-                ("Aufbewahrungsfristen", run_retention_daily),   # … dann aufräumen (wartet auf die Sicherung)
-                ("Erinnerungen", run_scheduled)]
+        # Each job separately: an error in one must not skip the others.
+        jobs = [("clean up registrations", cleanup_unverified), ("clean up sign-in lockouts", cleanup_lockouts),
+                ("backup", run_backup_daily),               # back up first …
+                ("retention", run_retention_daily),         # … then clean up (waits for the backup)
+                ("reminders", run_scheduled)]
         time.sleep(20)
         while True:
             for name, job in jobs:
@@ -543,7 +543,7 @@ def start_scheduler(app, interval: int = 300):
                     with app.app_context():
                         job()
                 except Exception:  # noqa: BLE001
-                    log.exception("Fehler im Zeitplan (%s)", name)
+                    log.exception("Error in the scheduler (%s)", name)
                     try:
                         with app.app_context():
                             db.session.rollback()
@@ -552,9 +552,9 @@ def start_scheduler(app, interval: int = 300):
             try:
                 with app.app_context():
                     from .ad_cache import maintain as maintain_ad_cache
-                    maintain_ad_cache()         # AD-Personen für die Theke (stündlich o. ä., nur wenn fällig)
+                    maintain_ad_cache()         # AD people for the desk (hourly or so, only when due)
             except Exception:  # noqa: BLE001
-                log.exception("Fehler beim Abgleich des AD-Zwischenspeichers")
+                log.exception("Error while syncing the AD cache")
             time.sleep(interval)
 
     threading.Thread(target=loop, name="assetlotse-mail", daemon=True).start()
