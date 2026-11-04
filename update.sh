@@ -101,8 +101,17 @@ compose_version() {   # version of a docker-compose.yml (files before 2.0.0 have
 image_label() {       # image_label REF LABEL
     docker image inspect -f "{{index .Config.Labels \"$2\"}}" "$1" 2>/dev/null || true
 }
-container_id() {      # also a stopped container ("ps -q" alone lists only running ones)
-    { $DC ps -aq "$SERVICE" 2>/dev/null || $DC ps -q "$SERVICE" 2>/dev/null; } | head -n 1
+container_id() {      # the service container – running, otherwise a stopped one ("ps -q" lists only running ones);
+                      # never a one-off container of "docker compose run" ("ps -a" lists those, too)
+    _cid="$($DC ps -q "$SERVICE" 2>/dev/null | head -n 1)"
+    if [ -z "$_cid" ]; then
+        for _c in $($DC ps -aq "$SERVICE" 2>/dev/null); do
+            if [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.oneoff"}}' "$_c" 2>/dev/null)" != True ]; then
+                _cid="$_c"; break
+            fi
+        done
+    fi
+    printf '%s\n' "$_cid"
 }
 
 if docker compose version >/dev/null 2>&1; then DC="docker compose"
@@ -176,7 +185,7 @@ protected_paths() {   # one resolved path per line
     done
 }
 compose_sources() {   # bind mount sources from "docker compose config" (long and short syntax)
-    sed -n -e 's/^[[:space:]]*source:[[:space:]]*//p' \
+    sed -n -e 's/^[[:space:]]*\(-[[:space:]]*\)\{0,1\}source:[[:space:]]*//p' \
            -e 's/^[[:space:]]*-[[:space:]]*\(["'\'']\{0,1\}\/[^:]*\):.*/\1/p' \
         | sed -e 's/^["'\'']//' -e 's/["'\'']$//' | grep '^/' || :
 }

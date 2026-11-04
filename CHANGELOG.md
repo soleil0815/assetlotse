@@ -14,7 +14,8 @@ Ergebnisse des monatlichen Code-Audits (Teilprüfung der Änderungen seit 1.12.0
   einbindet, waren nur geschützt, solange ein Container existierte (nach `docker compose down` nicht mehr). Jetzt
   liest das Skript die Einbindungen auch aus `docker compose config`; ist sie nicht lesbar, löscht es nichts.
 - **`./update.sh` bei gestopptem Container:** Die zuletzt gelaufene Version wurde nicht erkannt – kein Angebot zum
-  Zurückgehen, und `--rollback` startete die Version von vor zwei Updates. Gestoppte Container zählen jetzt mit.
+  Zurückgehen, und `--rollback` startete die Version von vor zwei Updates. Gestoppte Container zählen jetzt mit,
+  übrig gebliebene Container von `docker compose run` nicht.
 - **Hinweis „docker-compose.yml veraltet“:** zeigte `%(found)s`/`%(want)s` statt der Versionsnummern.
 - **Ältere Version auf neuerer Datenbank:** Die Meldung konnte eine falsche Sicherung nennen (`-vor-2.0.10` für
   2.0.1). Jetzt wird nur die Sicherung genau dieser Version genannt.

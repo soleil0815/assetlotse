@@ -104,6 +104,35 @@ class StoppedContainerTests(std.FakeDocker):
         self.assertEqual((self.state / "tags" / f"{std.IMAGE}:previous".replace("/", "_")).read_text().strip(), "old")
         self.assertIn("1.12.0-s1 → 2.0.0", r.stdout)
 
+    def test_one_off_container_is_not_the_previous_version(self):
+        # "docker compose run" without --rm left a container of an older image (listed first by "ps -a")
+        (self.state / "running").rename(self.state / "stopped")
+        (self.state / "oneoff").write_text("v21\n")
+        r = self.run_update("-y")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual((self.state / "tags" / f"{std.IMAGE}:previous".replace("/", "_")).read_text().strip(), "old")
+        self.assertIn("1.12.0-s1 → 2.0.0", r.stdout)
+
+
+class ComposeSourcesTests(std.FakeDocker):
+    def test_long_syntax_of_docker_compose_v1(self):
+        # docker-compose 1.x writes the long form with sorted keys: "- source: …" in the list item itself
+        i = self.inst
+        for d in ("packages", "build"):
+            (i / d).mkdir()
+            (i / d / "a.db").write_text("backup")
+        (self.state / "running").unlink()
+        (self.state / "config").write_text(
+            "services:\n  assetlotse:\n    volumes:\n"
+            f"    - source: {i / 'packages'}\n      target: /p\n      type: bind\n"
+            f"    - \"{i / 'build'}:/b:rw\"\n")
+        r = self.run_update("--cleanup", "-y")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual((i / "packages" / "a.db").read_text(), "backup")
+        self.assertEqual((i / "build" / "a.db").read_text(), "backup")
+        self.assertIn("packages  (protected", r.stdout)
+        self.assertIn("build  (protected", r.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

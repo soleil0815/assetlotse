@@ -6,6 +6,7 @@
 #   tags/<ref>              local tags → image id
 #   running                 image id of the running container (missing = no container)
 #   stopped                 image id of a stopped container ("compose ps -a" lists it, "compose ps" does not)
+#   oneoff                  image id of a stopped one-off container of "compose run" (listed first by "ps -a")
 #   config                  output of "docker compose config";  config_fails: it fails
 #   mounts                  mount sources of the running container
 #   local_images            "repository:tag" lines for "docker image ls assetlotse"
@@ -30,7 +31,7 @@ if [ "$1" = compose ]; then
         version) exit 0 ;;
         ps)
             [ ! -f "$S/running" ] || { echo cid1; exit 0; }
-            case "$*" in *-a*) [ ! -f "$S/stopped" ] || echo cid1 ;; esac
+            case "$*" in *-a*) [ ! -f "$S/oneoff" ] || echo oneoffcid; [ ! -f "$S/stopped" ] || echo cid1 ;; esac
             exit 0 ;;
         config) [ ! -f "$S/config_fails" ] || exit 1; [ ! -f "$S/config" ] || cat "$S/config"; exit 0 ;;
         logs) echo "fake log line"; [ ! -f "$S/logtext" ] || cat "$S/logtext"; exit 0 ;;
@@ -72,7 +73,8 @@ case "$1" in
         fmt="$3"; target="$4"
         case "$fmt" in
             *com.docker.compose.project*) [ -n "${FAKE_PROJECT:-}" ] || exit 1; echo "$FAKE_PROJECT" ;;
-            "{{.Image}}") cat "$S/running" 2>/dev/null || cat "$S/stopped" ;;
+            *oneoff*) if [ "$target" = oneoffcid ]; then echo True; else echo False; fi ;;
+            "{{.Image}}") if [ "$target" = oneoffcid ]; then cat "$S/oneoff"; else cat "$S/running" 2>/dev/null || cat "$S/stopped"; fi ;;
             *State.Health*)
                 id="$(cat "$S/running")"; echo "$(cat "$S/images/$id/health" 2>/dev/null || echo healthy) 0" ;;
             *Mounts*) cat "$S/mounts" 2>/dev/null ;;
