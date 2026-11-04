@@ -190,7 +190,7 @@
     $$("[data-color-reset]", brandForm).forEach((btn) => btn.addEventListener("click", () => {
       const key = btn.dataset.colorReset;
       $(`[data-color-value="${key}"]`).value = "";
-      $(`[data-color-label="${key}"]`).textContent = T("Standard");
+      $(`[data-color-label="${key}"]`).textContent = T("Default");
       $(`[data-color-picker="${key}"]`).value = btn.dataset.default;
       apply[key](btn.dataset.default);
     }));
@@ -263,21 +263,21 @@
     return out;
   }
   const webauthnError = (err) => (err && err.name === "NotAllowedError")
-    ? T("Abgebrochen oder Zeit abgelaufen. Bitte erneut versuchen.")
-    : (err && err.name === "InvalidStateError") ? T("Dieser Schlüssel ist bereits registriert.")
-    : T("Fehler: {error}", { error: (err && (err.message || err.name)) || err });
+    ? T("Cancelled or timed out. Please try again.")
+    : (err && err.name === "InvalidStateError") ? T("This key is already registered.")
+    : T("Error: {error}", { error: (err && (err.message || err.name)) || err });
 
   $$("[data-webauthn-register]").forEach((btn) => {
     const box = btn.closest("[data-webauthn-register-box]");
     const status = $("[data-webauthn-status]", box);
     if (!webauthnOk()) {
       btn.disabled = true;
-      status.textContent = T("Sicherheitsschlüssel gehen nur über HTTPS (z. B. über deinen Reverse-Proxy), nicht per http://IP.");
+      status.textContent = T("Security keys only work over HTTPS (e.g. via your reverse proxy), not via http://IP.");
       return;
     }
     btn.addEventListener("click", async () => {
       btn.disabled = true;
-      status.textContent = T("Schlüssel einstecken und berühren …");
+      status.textContent = T("Insert and touch your key …");
       try {
         const begin = await api("/profil/sicherheit/schluessel/start", { method: "POST", body: "{}" });
         if (!begin.ok) throw new Error(begin.error);
@@ -297,12 +297,12 @@
     const status = $("[data-webauthn-status]");
     if (!webauthnOk()) {
       btn.disabled = true;
-      if (status) status.textContent = T("Sicherheitsschlüssel gehen nur über HTTPS.");
+      if (status) status.textContent = T("Security keys only work over HTTPS.");
       return;
     }
     const run = async () => {
       btn.disabled = true;
-      if (status) status.textContent = T("Schlüssel einstecken und berühren …");
+      if (status) status.textContent = T("Insert and touch your key …");
       try {
         const begin = await api("/login/2fa/schluessel/start", { method: "POST", body: "{}" });
         if (!begin.ok) throw new Error(begin.error);
@@ -320,7 +320,7 @@
 
   $$("[data-copy-codes]").forEach((btn) => btn.addEventListener("click", async () => {
     const text = $$("[data-codes] > div").map((d) => d.textContent.trim()).join("\n");
-    try { await navigator.clipboard.writeText(text); btn.textContent = T("✓ Kopiert"); } catch (e) { window.prompt(T("Codes:"), text); }
+    try { await navigator.clipboard.writeText(text); btn.textContent = T("✓ Copied"); } catch (e) { window.prompt(T("Codes:"), text); }
   }));
 
   async function api(url, opts = {}) {
@@ -332,9 +332,9 @@
     let data = {};
     try { data = await res.json(); } catch (e) {
       // kein JSON – meist ist die Sitzung abgelaufen und es kam die Anmeldeseite zurück
-      if (res.redirected || res.ok) data.error = T("Sitzung abgelaufen – bitte die Seite neu laden.");
+      if (res.redirected || res.ok) data.error = T("Session expired – please reload the page.");
     }
-    if (!res.ok && !data.error) data.error = T("Fehler {status}", { status: res.status });
+    if (!res.ok && !data.error) data.error = T("Error {status}", { status: res.status });
     return data;
   }
 
@@ -351,8 +351,8 @@
     const box = $("[data-secret]");
     if (!box) return;
     const label = btn.innerHTML;
-    try { await navigator.clipboard.writeText(box.textContent.trim()); btn.textContent = T("✓ Kopiert"); }
-    catch (e) { window.getSelection().selectAllChildren(box); btn.textContent = T("Markiert – mit Strg+C kopieren"); }
+    try { await navigator.clipboard.writeText(box.textContent.trim()); btn.textContent = T("✓ Copied"); }
+    catch (e) { window.getSelection().selectAllChildren(box); btn.textContent = T("Selected – press Ctrl+C to copy"); }
     setTimeout(() => { btn.innerHTML = label; }, 2500);
   }));
 
@@ -482,7 +482,7 @@
     const render = (data, q) => {
       items = data.items || [];
       if (!items.length) {
-        box.innerHTML = `<div class="suggest-note">${esc(T("Keine Treffer."))}</div>`;
+        box.innerHTML = `<div class="suggest-note">${esc(T("No results."))}</div>`;
       } else {
         box.innerHTML = items.map((it, n) => {
           let sub = [it.numbers ? `<span class="mono">${esc(it.numbers)}</span>` : "", esc(it.category)]
@@ -492,11 +492,11 @@
             sub = esc(it.sub);
             badge = it.badge ? `<span class="badge accent">${esc(it.badge)}</span>` : "";
           } else if (input.dataset.suggestAction === "issue" && it.available > 0 && it.can_issue === false) {
-            badge = `<span class="badge warn">${esc(T("nicht für diese Person"))}</span>`;
+            badge = `<span class="badge warn">${esc(T("not for this person"))}</span>`;
           } else if (it.available > 0) {
-            badge = `<span class="badge ok">${esc(T("{n} von {total} frei", { n: it.available, total: it.quantity }))}</span>`;
+            badge = `<span class="badge ok">${esc(T("{n} of {total} free", { n: it.available, total: it.quantity }))}</span>`;
           } else {
-            badge = `<span class="badge warn">${esc(T("ausgegeben"))}</span>`;
+            badge = `<span class="badge warn">${esc(T("issued"))}</span>`;
           }
           const disabled = input.dataset.suggestAction === "issue" && !it.can_issue;
           return `<button type="button" tabindex="-1" class="suggest-item" role="option" id="${boxId}-${n}" data-n="${n}"${disabled ? ' aria-disabled="true"' : ""}>
@@ -506,7 +506,7 @@
       const more = input.dataset.suggestMore;
       if (more && (data.more || items.length)) {
         box.insertAdjacentHTML("beforeend",
-          `<a class="suggest-more" tabindex="-1" href="${esc(more + encodeURIComponent(q))}">${esc(T("Alle Treffer anzeigen"))}</a>`);
+          `<a class="suggest-more" tabindex="-1" href="${esc(more + encodeURIComponent(q))}">${esc(T("Show all results"))}</a>`);
       }
       box.hidden = false;
       input.setAttribute("aria-expanded", "true");
@@ -575,16 +575,16 @@
       input.setAttribute("aria-invalid", data.taken ? "true" : "false");
       if (value && data.taken) {
         parts.push(data.by
-          ? `<span class="taken">${esc(T("Schon vergeben"))}</span> – <a href="${esc(data.by.url)}" target="_blank" rel="noopener">${esc(data.by.name)}</a>`
-          : `<span class="taken">${esc(T("Schon vergeben"))}</span>`);
+          ? `<span class="taken">${esc(T("Already in use"))}</span> – <a href="${esc(data.by.url)}" target="_blank" rel="noopener">${esc(data.by.name)}</a>`
+          : `<span class="taken">${esc(T("Already in use"))}</span>`);
       } else if (value && !(data.numbers && data.numbers.length)) {
-        parts.push(`<span class="free">${esc(T("Frei"))}</span>`);
+        parts.push(`<span class="free">${esc(T("Available"))}</span>`);
       }
       if (data.numbers && data.numbers.length && !(data.numbers.length === 1 && data.numbers[0].toLowerCase() === value.toLowerCase())) {
-        parts.push(`${esc(T("Vorhanden:"))} <span class="mono">${data.numbers.map(esc).join(", ")}</span>`);
+        parts.push(`${esc(T("Existing:"))} <span class="mono">${data.numbers.map(esc).join(", ")}</span>`);
       }
       if (data.next && data.next.toLowerCase() !== value.toLowerCase()) {
-        parts.push(`${esc(T("Nächste freie:"))} <button type="button" class="linklike mono" data-take="${esc(data.next)}">${esc(data.next)}</button>`);
+        parts.push(`${esc(T("Next free:"))} <button type="button" class="linklike mono" data-take="${esc(data.next)}">${esc(data.next)}</button>`);
       }
       hint.innerHTML = parts.join(" · ");
     };

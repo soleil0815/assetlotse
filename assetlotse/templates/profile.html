@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, thumb, due_badge, role_badge, group_badge, lang_switch %}
-{% block title %}{{ _("Profil") }}{% endblock %}
+{% block title %}{{ _("Profile") }}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div style="display:flex; gap: 16px; align-items: center">
     <span class="avatar" style="width:58px;height:58px;font-size:20px">{{ current_user.initials }}</span>
-    <div><div class="eyebrow">{{ _("Profil") }}</div><h1>{{ current_user.name }}</h1></div>
+    <div><div class="eyebrow">{{ _("Profile") }}</div><h1>{{ current_user.name }}</h1></div>
   </div>
 </div>
 <div class="split">
   <section class="card">
-    <div class="card-head"><h2>{{ _("Ausleihverlauf") }}</h2></div>
+    <div class="card-head"><h2>{{ _("Loan history") }}</h2></div>
     {% for loan in history %}
     <div class="list-row">
       <div class="mini-thumb">{{ thumb(loan.asset) }}</div>
@@ -18,82 +18,82 @@
         <small>{{ loan.loaned_at|de_day }}</small></div>
       {{ due_badge(loan) }}
     </div>
-    {% else %}<div class="empty">{{ _("Noch keine Ausleihen.") }}</div>{% endfor %}
-    {% if retention_months %}<p class="muted" style="font-size: 12.5px; padding: 10px 18px 14px; margin: 0">{{ _n("Abgeschlossene Ausleihen werden {n} Monat nach der Rückgabe automatisch gelöscht.", "Abgeschlossene Ausleihen werden {n} Monate nach der Rückgabe automatisch gelöscht.", retention_months) }}</p>{% endif %}
+    {% else %}<div class="empty">{{ _("No loans yet.") }}</div>{% endfor %}
+    {% if retention_months %}<p class="muted" style="font-size: 12.5px; padding: 10px 18px 14px; margin: 0">{{ _n("Completed loans are deleted automatically {n} month after return.", "Completed loans are deleted automatically {n} months after return.", retention_months) }}</p>{% endif %}
   </section>
   <div class="stack">
     <section class="card card-pad">
       <dl class="kv">
-        <dt>{{ _("Benutzername") }}</dt><dd>{{ current_user.username }}</dd>
-        <dt>{{ _("Rolle") }}</dt><dd>{{ role_badge(current_user) }}</dd>
-        <dt>{{ _("Anmeldung") }}</dt><dd>{{ "Active Directory" if current_user.auth_source == "ldap" else _("Lokales Konto") }}</dd>
-        <dt>{{ _("E-Mail") }}</dt><dd>{{ current_user.email or "–" }}</dd>
-        <dt>{{ _("Gruppen") }}</dt><dd><div class="chips">{% for g in current_user.groups %}{{ group_badge(g) }}{% else %}–{% endfor %}</div></dd>
+        <dt>{{ _("Username") }}</dt><dd>{{ current_user.username }}</dd>
+        <dt>{{ _("Role") }}</dt><dd>{{ role_badge(current_user) }}</dd>
+        <dt>{{ _("Sign-in") }}</dt><dd>{{ "Active Directory" if current_user.auth_source == "ldap" else _("Local account") }}</dd>
+        <dt>{{ _("Email") }}</dt><dd>{{ current_user.email or "–" }}</dd>
+        <dt>{{ _("Groups") }}</dt><dd><div class="chips">{% for g in current_user.groups %}{{ group_badge(g) }}{% else %}–{% endfor %}</div></dd>
         {% if current_user.ldap_dn %}<dt>DN</dt><dd class="mono" style="font-size:12px">{{ current_user.ldap_dn }}</dd>{% endif %}
       </dl>
     </section>
     <section class="card card-pad">
-      <h3 style="margin-bottom: 14px">{{ icon("user") }} {{ _("Meine Angaben") }}</h3>
+      <h3 style="margin-bottom: 14px">{{ icon("user") }} {{ _("My details") }}</h3>
       {% if current_user.auth_source == "local" %}
       <form method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="data">
         <div class="field"><label for="f-display-name">{{ _("Name") }}</label><input id="f-display-name" type="text" name="display_name" value="{{ current_user.display_name or '' }}" maxlength="200" autocomplete="name"></div>
-        <div class="field"><label for="f-email">{{ _("E-Mail-Adresse") }}</label><input id="f-email" type="email" name="email" value="{{ current_user.email or '' }}" maxlength="200" autocomplete="email" {{ "required" if current_user.self_registered }}></div>
-        {% if current_user.pending_email %}<div class="notice" style="margin-bottom: 12px">{{ icon("mail") }}<div>{{ _("Wartet auf Bestätigung: <b>{email}</b> – bitte den Link in der E-Mail an diese Adresse öffnen. Bis dahin gilt die bisherige Adresse.", email=current_user.pending_email) }}</div></div>{% endif %}
-        <button class="btn">{{ icon("check") }} {{ _("Speichern") }}</button>
+        <div class="field"><label for="f-email">{{ _("Email address") }}</label><input id="f-email" type="email" name="email" value="{{ current_user.email or '' }}" maxlength="200" autocomplete="email" {{ "required" if current_user.self_registered }}></div>
+        {% if current_user.pending_email %}<div class="notice" style="margin-bottom: 12px">{{ icon("mail") }}<div>{{ _("Waiting for confirmation: <b>{email}</b> – please open the link in the email sent to this address. Until then the previous address applies.", email=current_user.pending_email) }}</div></div>{% endif %}
+        <button class="btn">{{ icon("check") }} {{ _("Save") }}</button>
       </form>
       {% else %}
       <dl class="kv">
         <dt>{{ _("Name") }}</dt><dd>{{ current_user.display_name or "–" }}</dd>
-        <dt>{{ _("E-Mail") }}</dt><dd>{{ current_user.email or "–" }}</dd>
+        <dt>{{ _("Email") }}</dt><dd>{{ current_user.email or "–" }}</dd>
       </dl>
-      <p class="muted" style="font-size: 13px; margin: 8px 0 0">{{ _("Name und E-Mail kommen aus dem Active Directory und werden bei der Anmeldung übernommen – ändern lassen sie sich nur dort.") }}</p>
+      <p class="muted" style="font-size: 13px; margin: 8px 0 0">{{ _("Name and e-mail come from Active Directory and are taken over at sign-in – they can only be changed there.") }}</p>
       {% endif %}
     </section>
     <section class="card card-pad">
       <div class="actions" style="justify-content: space-between">
-        <h3>{{ icon("globe") }} {{ _("Sprache") }}</h3>
+        <h3>{{ icon("globe") }} {{ _("Language") }}</h3>
         {{ lang_switch() }}
       </div>
-      <p class="muted" style="font-size: 13px; margin: 8px 0 0">{{ _("Gilt für die Oberfläche und für E-Mails an dich.") }}</p>
+      <p class="muted" style="font-size: 13px; margin: 8px 0 0">{{ _("Applies to the interface and to emails sent to you.") }}</p>
     </section>
     <section class="card card-pad">
       <div class="actions" style="justify-content: space-between">
-        <h3>{{ icon("shield") }} {{ _("Zwei-Faktor-Anmeldung") }}</h3>
-        {% if current_user.has_2fa %}<span class="badge ok">{{ _("aktiv") }}</span>{% else %}<span class="badge">{{ _("nicht aktiv") }}</span>{% endif %}
+        <h3>{{ icon("shield") }} {{ _("Two-factor authentication") }}</h3>
+        {% if current_user.has_2fa %}<span class="badge ok">{{ _("active") }}</span>{% else %}<span class="badge">{{ _("not active") }}</span>{% endif %}
       </div>
-      <p class="muted" style="font-size: 13.5px; margin: 8px 0 12px">{{ _("Authenticator-App oder Sicherheitsschlüssel (YubiKey) zusätzlich zum Passwort.") }}</p>
-      <a class="btn" href="{{ url_for('security.settings') }}">{{ icon("lock") }} {{ _("Verwalten") }}</a>
+      <p class="muted" style="font-size: 13.5px; margin: 8px 0 12px">{{ _("Authenticator app or security key (YubiKey) in addition to your password.") }}</p>
+      <a class="btn" href="{{ url_for('security.settings') }}">{{ icon("lock") }} {{ _("Manage") }}</a>
     </section>
     {% if mail_on %}
     <section class="card card-pad">
-      <h3 style="margin-bottom: 14px">{{ icon("mail") }} {{ _("E-Mail-Benachrichtigungen") }}</h3>
+      <h3 style="margin-bottom: 14px">{{ icon("mail") }} {{ _("Email notifications") }}</h3>
       <form method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="notify">
         {% if current_user.auth_source != "local" and not current_user.email %}
-        <div class="notice warn" style="margin-bottom: 12px">{{ _("Im Active Directory ist für dich keine E-Mail-Adresse hinterlegt.") }}</div>
+        <div class="notice warn" style="margin-bottom: 12px">{{ _("No email address is stored for you in Active Directory.") }}</div>
         {% endif %}
         <label class="check"><input type="checkbox" name="email_notifications" value="1" {{ 'checked' if current_user.email_notifications }}>
-          <span>{{ _("Bestätigungen, Erinnerungen und Mahnungen per E-Mail erhalten") }}</span></label>
-        <button class="btn">{{ icon("check") }} {{ _("Speichern") }}</button>
+          <span>{{ _("Receive confirmations, reminders and overdue notices by email") }}</span></label>
+        <button class="btn">{{ icon("check") }} {{ _("Save") }}</button>
       </form>
     </section>
     {% endif %}
     {% if current_user.auth_source == "local" %}
     <section class="card card-pad">
-      <h3 style="margin-bottom: 14px">{{ _("Passwort ändern") }}</h3>
+      <h3 style="margin-bottom: 14px">{{ _("Change password") }}</h3>
       <form method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="field"><label for="f-current">{{ _("Aktuelles Passwort") }}</label><input id="f-current" type="password" name="current" required autocomplete="current-password"></div>
-        <div class="field"><label for="f-new">{{ _("Neues Passwort") }}</label><input id="f-new" type="password" name="new" required minlength="10" autocomplete="new-password"></div>
-        <div class="field"><label for="f-new2">{{ _("Wiederholen") }}</label><input id="f-new2" type="password" name="new2" required minlength="10" autocomplete="new-password"></div>
-        <button class="btn primary">{{ icon("lock") }} {{ _("Ändern") }}</button>
+        <div class="field"><label for="f-current">{{ _("Current password") }}</label><input id="f-current" type="password" name="current" required autocomplete="current-password"></div>
+        <div class="field"><label for="f-new">{{ _("New password") }}</label><input id="f-new" type="password" name="new" required minlength="10" autocomplete="new-password"></div>
+        <div class="field"><label for="f-new2">{{ _("Repeat") }}</label><input id="f-new2" type="password" name="new2" required minlength="10" autocomplete="new-password"></div>
+        <button class="btn primary">{{ icon("lock") }} {{ _("Change") }}</button>
       </form>
     </section>
     {% else %}
-    <div class="notice">{{ icon("server") }}<div>{{ _("Dein Passwort wird im Active Directory verwaltet.") }}</div></div>
+    <div class="notice">{{ icon("server") }}<div>{{ _("Your password is managed in Active Directory.") }}</div></div>
     {% endif %}
   </div>
 </div>

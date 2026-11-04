@@ -30,7 +30,7 @@ from .i18n import gettext as _
 
 __version__ = "2.0.2"
 APP_NAME = "AssetLotse"
-LICENSE_NAME = "GNU AGPL v3 oder später"
+LICENSE_NAME = "GNU AGPL v3 or later"
 # Wo der Quellcode zu finden ist (AGPL § 13). Wer AssetLotse verändert betreibt, trägt hier
 # bzw. in ASSETLOTSE_SOURCE_URL die Adresse des eigenen, veränderten Quellcodes ein.
 DEFAULT_SOURCE_URL = ""
@@ -368,7 +368,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     csrf.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "main.login"
-    login_manager.login_message = "Bitte melde dich an."
+    login_manager.login_message = "Please sign in."
     from .i18n import gettext as _gettext
     login_manager.localize_callback = _gettext
     login_manager.login_message_category = "info"
@@ -509,7 +509,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             log.info("LDAP-Konto %s nicht mehr berechtigt – Sitzung beendet", current_user.username)
             session.clear()     # zuerst – logout_user() merkt sich darin, dass das Merk-Cookie gelöscht wird
             logout_user()
-            flash(_("Deine Anmeldung ist abgelaufen. Bitte melde dich erneut an."), "info")
+            flash(_("Your session has expired. Please sign in again."), "info")
             return redirect(url_for("main.login"))
         from .views.main import sync_ldap_user
         sync_ldap_user(info, current_user._get_current_object())
@@ -588,8 +588,8 @@ def create_app(test_config: dict | None = None) -> Flask:
     # ------------------------------------------------------------ Fehlerseiten
     @app.errorhandler(403)
     def forbidden(_e):
-        return render_template("error.html", code=403, title=_("Kein Zugriff"),
-                               text=_("Dafür fehlt dir die Berechtigung.")), 403
+        return render_template("error.html", code=403, title=_("Access denied"),
+                               text=_("You don't have permission to do that.")), 403
 
     @app.errorhandler(OverflowError)
     def too_large_number(_e):
@@ -599,8 +599,8 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     @app.errorhandler(404)
     def not_found(_e):
-        return render_template("error.html", code=404, title=_("Nicht gefunden"),
-                               text=_("Diese Seite oder diesen Gegenstand gibt es nicht.")), 404
+        return render_template("error.html", code=404, title=_("Not found"),
+                               text=_("This page or item does not exist.")), 404
 
     @app.errorhandler(IntegrityError)
     def integrity_error(_e):
@@ -608,8 +608,8 @@ def create_app(test_config: dict | None = None) -> Flask:
         # sondern zurück zum Formular mit Hinweis
         db.session.rollback()
         logging.getLogger(__name__).warning("Speichern abgelehnt (eindeutiger Wert schon vorhanden): %s", _e.orig)
-        flash(_("Das konnte nicht gespeichert werden, weil es den Eintrag gerade schon gibt. Bitte prüfen und "
-                "erneut versuchen."), "error")
+        flash(_("This could not be saved because the entry already "
+                "exists. Please check and try again."), "error")
         from urllib.parse import urlsplit
 
         from .views import safe_next
@@ -619,8 +619,8 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     @app.errorhandler(CSRFError)
     def csrf_error(_e):
-        return render_template("error.html", code=400, title=_("Sitzung abgelaufen"),
-                               text=_("Bitte lade die Seite neu und versuche es noch einmal.")), 400
+        return render_template("error.html", code=400, title=_("Session expired"),
+                               text=_("Please reload the page and try again.")), 400
 
     # ------------------------------------------------------------ CLI
     @app.cli.command("reset-password")

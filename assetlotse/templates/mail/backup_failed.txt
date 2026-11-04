@@ -1,8 +1,8 @@
-{{ _("Datensicherung fehlgeschlagen") }}
-{{ _("Hallo {name},", name=user.name|safe) }}
+{{ _("Backup failed") }}
+{{ _("Hello {name},", name=user.name|safe) }}
 
-{{ _("die automatische Datensicherung von „{library}“ ist fehlgeschlagen:", library=org_name|safe) }}
+{{ _("the automatic backup of “{library}” has failed:", library=org_name|safe) }}
 
 {{ localize(message) if localize else message }}
 
-{{ _("Bitte unter Administration → Datensicherung nachsehen") }}{% if base_url %}: {{ base_url }}/admin/datensicherung{% endif %}
+{{ _("Please check under Administration → Backup") }}{% if base_url %}: {{ base_url }}/admin/datensicherung{% endif %}

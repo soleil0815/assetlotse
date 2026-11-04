@@ -28,8 +28,8 @@ log = logging.getLogger(__name__)
 PREFIX = "assetlotse-"
 NAME_RE = re.compile(r"^assetlotse-(\d{4}-\d{2}-\d{2})_(\d{6})(-vor-\d+\.\d+\.\d+|-[a-z-]*[a-z])?(-\d+)?\.db$")
 PART_MAX_AGE = 3600   # unfertige *.part-Dateien erst nach 1 Stunde als Reste abgebrochener Läufe löschen
-KIND_LABELS = {"": "automatisch", "-manuell": "manuell", "-vor-wiederherstellung": "vor Wiederherstellung",
-               "-vor-update": "vor Update"}
+KIND_LABELS = {"": "automatic", "-manuell": "manual", "-vor-wiederherstellung": "before restore",
+               "-vor-update": "before update"}
 KEEP_UPGRADE = 3      # Sicherungen „vor <Version>“: die neuesten drei zählen nicht mit – sie braucht, wer zurückgeht
 KEEP_MIN, KEEP_MAX = 1, 100
 
@@ -79,12 +79,12 @@ def localized_message(msg: str) -> str:
     from .i18n import _, get_locale
     en = get_locale() == "en"
     patterns = [
-        (r"^(\S+) gesichert \((.+)\)$", lambda m: _("{name} gesichert ({size})", name=m.group(1),
+        (r"^(\S+) gesichert \((.+)\)$", lambda m: _("{name} backed up ({size})", name=m.group(1),
                                                      size=m.group(2).replace(",", ".") if en else m.group(2))),
-        (r"^Sicherung fehlgeschlagen: (.*)$", lambda m: _("Sicherung fehlgeschlagen: {error}", error=m.group(1))),
-        (r"^Datenbankdatei (.+) nicht gefunden\.$", lambda m: _("Datenbankdatei {path} nicht gefunden.", path=m.group(1))),
-        (r"^Sicherung (\S+) nicht gefunden\.$", lambda m: _("Sicherung {name} nicht gefunden.", name=m.group(1))),
-        (r"^Sicherung (\S+) ist beschädigt\.$", lambda m: _("Sicherung {name} ist beschädigt.", name=m.group(1))),
+        (r"^Sicherung fehlgeschlagen: (.*)$", lambda m: _("Backup failed: {error}", error=m.group(1))),
+        (r"^Datenbankdatei (.+) nicht gefunden\.$", lambda m: _("Database file {path} not found.", path=m.group(1))),
+        (r"^Sicherung (\S+) nicht gefunden\.$", lambda m: _("Backup {name} not found.", name=m.group(1))),
+        (r"^Sicherung (\S+) ist beschädigt\.$", lambda m: _("Backup {name} is damaged.", name=m.group(1))),
     ]
     for pat, fn in patterns:
         m = re.match(pat, msg or "", re.S)
@@ -111,7 +111,7 @@ def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: 
     """Sicherung anlegen; kind: '' (automatisch), '-manuell', '-vor-wiederherstellung'."""
     src_path = database_file()
     if src_path is None:
-        raise BackupError("Automatische Sicherung gibt es nur für SQLite.")
+        raise BackupError("Automatic backups are only available for SQLite.")
     if not src_path.exists():
         raise BackupError(f"Datenbankdatei {src_path} nicht gefunden.")
     now = now or datetime.now()
@@ -139,7 +139,7 @@ def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: 
     _unlink_siblings(part)
     if not _integrity_ok(part):
         _unlink_part(part)
-        raise BackupError("Die Sicherung ist beschädigt (integrity_check) und wurde verworfen.")
+        raise BackupError("The backup is damaged (integrity_check) and was discarded.")
     _unlink_siblings(part)
     try:
         os.chmod(part, 0o600)  # enthält personenbezogene Daten
@@ -172,7 +172,7 @@ def list_backups() -> list[dict]:
         seq = int(m.group(4)[1:]) if m.group(4) else 0   # „-1“, „-2“ …: später in derselben Sekunde
         upgrade = kind == "-vor-update" or bool(re.match(r"-vor-\d", kind))
         items.append({"name": p.name, "path": p, "size": p.stat().st_size, "created": created,
-                      "kind": KIND_LABELS["-vor-update"] if upgrade else KIND_LABELS.get(kind, "manuell"),
+                      "kind": KIND_LABELS["-vor-update"] if upgrade else KIND_LABELS.get(kind, "manual"),
                       "upgrade": upgrade, "_seq": seq})
     items.sort(key=lambda x: (x["created"], x["_seq"]), reverse=True)
     return items
@@ -226,7 +226,7 @@ def restore_backup(name: str) -> Path | None:
         raise BackupError(f"Sicherung {name} ist beschädigt.")
     target = database_file()
     if target is None:
-        raise BackupError("Wiederherstellen geht nur mit SQLite.")
+        raise BackupError("Restoring only works with SQLite.")
     # ohne Aufräumen – sonst könnte gerade die Sicherung gelöscht werden, die zurückgespielt werden soll
     safety = create_backup("-vor-wiederherstellung", rotate_after=False) if target.exists() else None
     db.session.remove()
@@ -289,7 +289,7 @@ def warning() -> str:
         return ""
     if get_setting("backup_last_ok") > get_setting("backup_last_error"):
         return ""
-    return _("Die letzte Datensicherung ist fehlgeschlagen.")
+    return _("The last backup failed.")
 
 
 def _notify_admins(message: str) -> None:

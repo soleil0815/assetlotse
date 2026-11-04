@@ -4,9 +4,9 @@
 {% block content %}
 {% set manage = current_user.can_manage(asset) %}
 {% if catalog_hidden() %}
-<a href="{{ url_for('loans.index') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Meine Gegenstände") }}</a>
+<a href="{{ url_for('loans.index') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("My items") }}</a>
 {% else %}
-<a href="{{ url_for('assets.index') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Bestand") }}</a>
+<a href="{{ url_for('assets.index') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Inventory") }}</a>
 {% endif %}
 
 <div class="asset-hero">
@@ -16,12 +16,12 @@
       <div class="actions">{{ group_badge(asset.group) }} {% if not catalog_hidden() %}{{ avail_badge(asset) }}{% endif %}</div>
       {% if manage %}
       <div class="actions">
-        <a class="btn sm" href="{{ url_for('assets.edit', asset_id=asset.id) }}">{{ icon("edit") }} {{ _("Bearbeiten") }}</a>
-        <a class="btn sm" href="{{ url_for('assets.label', asset_id=asset.id) }}" target="_blank" rel="noopener" title="{{ _("Etikett 62 × 29 mm als PDF") }}">{{ icon("tag") }} {{ _("Etikett") }}</a>
-        <a class="btn sm" href="{{ url_for('assets.create', vorlage=asset.id) }}" title="{{ _("Neuen Gegenstand mit denselben Angaben anlegen") }}">{{ icon("copy") }} {{ _("Ähnlichen anlegen") }}</a>
-        <form method="post" action="{{ url_for('assets.delete', asset_id=asset.id) }}" data-confirm="{{ _("„{title}“ wirklich löschen? Der Ausleihverlauf wird ebenfalls entfernt.", title=asset.name) }}">
+        <a class="btn sm" href="{{ url_for('assets.edit', asset_id=asset.id) }}">{{ icon("edit") }} {{ _("Edit") }}</a>
+        <a class="btn sm" href="{{ url_for('assets.label', asset_id=asset.id) }}" target="_blank" rel="noopener" title="{{ _("Label 62 × 29 mm as PDF") }}">{{ icon("tag") }} {{ _("Label") }}</a>
+        <a class="btn sm" href="{{ url_for('assets.create', vorlage=asset.id) }}" title="{{ _("Add a new item with the same details") }}">{{ icon("copy") }} {{ _("Add similar") }}</a>
+        <form method="post" action="{{ url_for('assets.delete', asset_id=asset.id) }}" data-confirm="{{ _("Really delete “{title}”? The loan history will be removed as well.", title=asset.name) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn sm danger">{{ icon("trash") }} {{ _("Löschen") }}</button>
+          <button class="btn sm danger">{{ icon("trash") }} {{ _("Delete") }}</button>
         </form>
       </div>
       {% endif %}
@@ -30,11 +30,11 @@
     {% if asset.maker_model %}<div class="sub">{{ asset.maker_model }}</div>{% endif %}
 
     <dl class="facts">
-      <div><dt>{{ _("Kategorie") }}</dt><dd>{% if asset.category and not catalog_hidden() %}<a href="{{ url_for('assets.index', kategorie=asset.category) }}">{{ asset.category }}</a>{% else %}{{ asset.category or "–" }}{% endif %}</dd></div>
-      <div><dt>{{ _("Inventarnummer") }}</dt><dd class="mono">{{ asset.inventory_no or "–" }}</dd></div>
-      <div><dt>{{ _("Seriennummer") }}</dt><dd class="mono">{{ asset.serial_number or "–" }}</dd></div>
-      <div><dt>{{ _("Standort") }}</dt><dd>{{ asset.location or "–" }}</dd></div>
-      <div><dt>{{ _("Anzahl") }}</dt><dd>{{ asset.quantity }}</dd></div>
+      <div><dt>{{ _("Category") }}</dt><dd>{% if asset.category and not catalog_hidden() %}<a href="{{ url_for('assets.index', kategorie=asset.category) }}">{{ asset.category }}</a>{% else %}{{ asset.category or "–" }}{% endif %}</dd></div>
+      <div><dt>{{ _("Inventory number") }}</dt><dd class="mono">{{ asset.inventory_no or "–" }}</dd></div>
+      <div><dt>{{ _("Serial number") }}</dt><dd class="mono">{{ asset.serial_number or "–" }}</dd></div>
+      <div><dt>{{ _("Location") }}</dt><dd>{{ asset.location or "–" }}</dd></div>
+      <div><dt>{{ _("Quantity") }}</dt><dd>{{ asset.quantity }}</dd></div>
     </dl>
     {% if asset.description %}<div class="desc">{{ asset.description }}</div>{% endif %}
   </div>
@@ -42,94 +42,94 @@
 
 <div class="grid grid-2" style="margin-top: 30px">
   <section class="card card-pad">
-    <h2 style="margin-bottom: 14px">{{ _("Ausgabe") }}</h2>
+    <h2 style="margin-bottom: 14px">{{ _("Issuing") }}</h2>
     {% if not catalog_hidden() %}
     <div class="avail">
       <div class="num">{{ asset.available }}</div>
-      <div><b>{{ _n("von {n} Stück verfügbar", "von {n} Stück verfügbar", asset.quantity) }}</b><br>
-        <small>{{ _("Ausgabe ohne festes Rückgabedatum") if not loan_days else _("Rückgabe nach {days} Tagen", days=loan_days) }}</small></div>
+      <div><b>{{ _n("of {n} available", "of {n} available", asset.quantity) }}</b><br>
+        <small>{{ _("Issued without a fixed return date") if not loan_days else _("Return after {days} days", days=loan_days) }}</small></div>
     </div>
     {% endif %}
 
     {% if own_loan %}
       <div class="notice accent" style="margin-bottom: 12px">{{ icon("asset") }}
-        <div>{{ _("Dieser Gegenstand ist dir ausgegeben.") }} {{ due_badge(own_loan) }}</div></div>
+        <div>{{ _("This item is issued to you.") }} {{ due_badge(own_loan) }}</div></div>
       <div class="actions">
         {% if can_extend %}
         <form method="post" action="{{ url_for('loans.extend', loan_id=own_loan.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="next" value="{{ url_for('assets.detail', asset_id=asset.id) }}">
-          <button class="btn">{{ icon("extend") }} {{ _("Verlängern") }}</button></form>
+          <button class="btn">{{ icon("extend") }} {{ _("Extend") }}</button></form>
         {% endif %}
         {% if self_return or manage %}
         <form method="post" action="{{ url_for('loans.give_back', loan_id=own_loan.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           {# Nach der Rückgabe ist die Detailseite für Mitarbeiter ohne Bestand nicht mehr sichtbar #}
           <input type="hidden" name="next" value="{{ url_for('loans.index') if catalog_hidden() else url_for('assets.detail', asset_id=asset.id) }}">
-          <button class="btn">{{ icon("return") }} {{ _("Zurückgeben") }}</button></form>
+          <button class="btn">{{ icon("return") }} {{ _p("verb", "Return") }}</button></form>
         {% endif %}
       </div>
       {% if current_user.can_view_own_secret(asset) and not current_user.can_view_secret(asset) %}
       <div class="own-secret" style="margin-top: 16px">
-        <h3 style="margin-bottom: 8px">{{ icon("key") }} {{ _("Vertrauliche Angaben") }}</h3>
+        <h3 style="margin-bottom: 8px">{{ icon("key") }} {{ _("Confidential details") }}</h3>
         {% if own_secret %}
         <div class="secret-box" data-secret>{{ own_secret }}</div>
         <div class="actions">
-          <button type="button" class="btn sm" data-copy-secret>{{ icon("copy") }} {{ _("Kopieren") }}</button>
-          <a class="btn sm ghost" href="{{ url_for('assets.detail', asset_id=asset.id) }}">{{ icon("x") }} {{ _("Ausblenden") }}</a>
+          <button type="button" class="btn sm" data-copy-secret>{{ icon("copy") }} {{ _("Copy") }}</button>
+          <a class="btn sm ghost" href="{{ url_for('assets.detail', asset_id=asset.id) }}">{{ icon("x") }} {{ _("Hide") }}</a>
         </div>
-        <p class="muted" style="margin-top: 8px">{{ _("Sichtbar nur, solange dir der Gegenstand ausgegeben ist. Das Anzeigen wurde protokolliert.") }}</p>
+        <p class="muted" style="margin-top: 8px">{{ _("Visible only while this item is issued to you. This view has been logged.") }}</p>
         {% elif current_user.has_2fa and not session.get("mfa_ok") %}
-        <p class="muted" style="margin-bottom: 10px">{{ _("Du hast dich in dieser Sitzung ohne zweiten Faktor angemeldet. Bestätige ihn zuerst, dann kannst du die Angaben mit deinem Passwort anzeigen.") }}</p>
+        <p class="muted" style="margin-bottom: 10px">{{ _("You signed in without a second factor in this session. Confirm it first, then you can view the details with your password.") }}</p>
         <form method="post" action="{{ url_for('security.stepup') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="next" value="{{ url_for('assets.detail', asset_id=asset.id) }}">
-          <button class="btn">{{ icon("lock") }} {{ _("Zweiten Faktor bestätigen") }}</button>
+          <button class="btn">{{ icon("lock") }} {{ _("Confirm second factor") }}</button>
         </form>
         {% else %}
-        <p class="muted" style="margin-bottom: 10px">{{ _("Z. B. der BitLocker-Wiederherstellungsschlüssel. Zum Anzeigen bitte dein Passwort eingeben – jedes Anzeigen wird protokolliert.") }}</p>
+        <p class="muted" style="margin-bottom: 10px">{{ _("E.g. the BitLocker recovery key. Enter your password to view it – every view is logged.") }}</p>
         <form method="post" action="{{ url_for('assets.reveal_own_secret', asset_id=asset.id) }}" class="actions" autocomplete="off">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="password" name="password" required autocomplete="current-password" placeholder="{{ _("Dein Passwort") }}" aria-label="{{ _("Dein Passwort") }}" style="max-width: 260px">
-          <button class="btn">{{ icon("eye") }} {{ _("Anzeigen") }}</button>
+          <input type="password" name="password" required autocomplete="current-password" placeholder="{{ _("Your password") }}" aria-label="{{ _("Your password") }}" style="max-width: 260px">
+          <button class="btn">{{ icon("eye") }} {{ _("Reveal") }}</button>
         </form>
         {% endif %}
       </div>
       {% endif %}
     {% elif not asset.lendable %}
-      <div class="notice">{{ icon("lock") }}<div>{{ _("Dieser Gegenstand gehört zur Gruppe <b>{group}</b>, deren Gegenstände nicht verliehen werden.", group=asset.group.name) }}</div></div>
+      <div class="notice">{{ icon("lock") }}<div>{{ _("This item belongs to the group <b>{group}</b>, whose items are not lent out.", group=asset.group.name) }}</div></div>
     {% elif not current_user.can_borrow(asset) %}
-      <div class="notice warn">{{ icon("lock") }}<div>{{ _("Dieser Gegenstand gehört zur Gruppe <b>{group}</b>. Nur Mitglieder dieser Gruppe können ihn bekommen.", group=asset.group.name) }}</div></div>
+      <div class="notice warn">{{ icon("lock") }}<div>{{ _("This item belongs to the group <b>{group}</b>. Only members of this group can receive it.", group=asset.group.name) }}</div></div>
     {% elif asset.available > 0 and self_checkout and not manage %}
       <form method="post" action="{{ url_for('loans.borrow', asset_id=asset.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn primary lg">{{ icon("loan") }} {{ _("Für mich ausleihen") }}</button>
+        <button class="btn primary lg">{{ icon("loan") }} {{ _("Borrow for myself") }}</button>
       </form>
     {% elif asset.available > 0 and not manage %}
-      <div class="notice">{{ icon("desk") }}<div>{{ _("Ausgegeben wird dieser Gegenstand von der Verwaltung.") }}</div></div>
+      <div class="notice">{{ icon("desk") }}<div>{{ _("This item is issued by the management team.") }}</div></div>
     {% elif asset.available == 0 %}
-      <div class="notice">{{ icon("clock") }}<div>{{ _("Derzeit ist alles ausgegeben.") }}</div></div>
+      <div class="notice">{{ icon("clock") }}<div>{{ _("Everything is currently issued.") }}</div></div>
     {% endif %}
 
     {% if manage and asset.available > 0 and asset.lendable %}
     <hr>
     <div class="actions" style="justify-content: space-between; margin-bottom: 10px">
-      <h3>{{ _("Ausgeben an …") }}</h3>
-      <a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', gegenstand=asset.id) }}" title="{{ _("Person suchen – auch im Active Directory") }}">{{ icon("search") }} {{ _("Person suchen") }}</a>
+      <h3>{{ _("Issue to …") }}</h3>
+      <a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', gegenstand=asset.id) }}" title="{{ _("Find a person – also in Active Directory") }}">{{ icon("search") }} {{ _("Find person") }}</a>
     </div>
     <form method="post" action="{{ url_for('loans.borrow', asset_id=asset.id) }}" class="form-grid">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="field span-6"><label for="f-user-id">{{ _("Person") }}</label>
         <select id="f-user-id" name="user_id" required>
-          <option value="">{{ _("– auswählen –") }}</option>
-          {% for u in users %}<option value="{{ u.id }}">{{ u.name }} ({{ u.username }}){% if u.id == current_user.id %} – {{ _("ich") }}{% endif %}</option>{% endfor %}
+          <option value="">{{ _("– select –") }}</option>
+          {% for u in users %}<option value="{{ u.id }}">{{ u.name }} ({{ u.username }}){% if u.id == current_user.id %} – {{ _("me") }}{% endif %}</option>{% endfor %}
         </select>
-        <div class="hint">{{ _("Es werden nur Personen angezeigt, die diesen Gegenstand bekommen dürfen.") }}</div></div>
-      <div class="field span-3"><label for="f-due-at">{{ _("Rückgabe bis") }}</label><input id="f-due-at" type="date" name="due_at"></div>
+        <div class="hint">{{ _("Only people who may receive this item are shown.") }}</div></div>
+      <div class="field span-3"><label for="f-due-at">{{ _("Return by") }}</label><input id="f-due-at" type="date" name="due_at"></div>
       <div class="field span-3"><label>&nbsp;</label>
-        <label class="check"><input type="checkbox" name="no_due" value="1" data-no-due {{ "checked" if not loan_days }}> {{ _("unbefristet") }}</label></div>
-      <div class="field span-6"><label for="f-note">{{ _("Notiz <small>(optional)</small>") }}</label><input id="f-note" type="text" name="note" maxlength="500" placeholder="{{ _("z. B. Zubehör: Netzteil, Tasche") }}"></div>
-      <div class="span-6"><button class="btn primary">{{ icon("check") }} {{ _("Ausgeben") }}</button></div>
+        <label class="check"><input type="checkbox" name="no_due" value="1" data-no-due {{ "checked" if not loan_days }}> {{ _("open-ended") }}</label></div>
+      <div class="field span-6"><label for="f-note">{{ _("Note <small>(optional)</small>") }}</label><input id="f-note" type="text" name="note" maxlength="500" placeholder="{{ _("e.g. accessories: power supply, bag") }}"></div>
+      <div class="span-6"><button class="btn primary">{{ icon("check") }} {{ _("Issue") }}</button></div>
     </form>
     {% endif %}
   </section>
@@ -137,40 +137,40 @@
   {% if manage %}
   <div class="stack">
     <section class="card card-pad">
-      <div class="card-head" style="padding: 0 0 10px; border: 0"><h2>{{ icon("key") }} {{ _("Vertrauliche Angaben") }}</h2></div>
+      <div class="card-head" style="padding: 0 0 10px; border: 0"><h2>{{ icon("key") }} {{ _("Confidential details") }}</h2></div>
       {% if not current_user.can_view_secret(asset) %}
-        <p class="muted">{% if asset.has_secret %}{{ _("Hinterlegt.") }} {% endif %}{{ _("Vertrauliche Angaben sehen nur Administratoren und Verwalter, die Mitglied der Gruppe dieses Gegenstands sind.") }}</p>
+        <p class="muted">{% if asset.has_secret %}{{ _("Stored.") }} {% endif %}{{ _("Confidential details are only visible to administrators and to managers who are members of this item's group.") }}</p>
       {% elif not asset.has_secret %}
-        <p class="muted">{{ _("Keine hinterlegt. Unter „Bearbeiten“ kannst du z. B. einen BitLocker-Wiederherstellungsschlüssel oder eine PIN speichern – verschlüsselt und nur für Administratoren und Verwalter der Gruppe sichtbar.") }}</p>
+        <p class="muted">{{ _("None stored. Under “Edit” you can store e.g. a BitLocker recovery key or a PIN – encrypted and visible only to administrators and managers of the group.") }}</p>
       {% elif secret %}
         <div class="secret-box" data-secret>{{ secret }}</div>
         <div class="actions">
-          <button type="button" class="btn sm" data-copy-secret>{{ icon("copy") }} {{ _("Kopieren") }}</button>
-          <a class="btn sm ghost" href="{{ url_for('assets.detail', asset_id=asset.id) }}">{{ icon("x") }} {{ _("Ausblenden") }}</a>
+          <button type="button" class="btn sm" data-copy-secret>{{ icon("copy") }} {{ _("Copy") }}</button>
+          <a class="btn sm ghost" href="{{ url_for('assets.detail', asset_id=asset.id) }}">{{ icon("x") }} {{ _("Hide") }}</a>
         </div>
       {% else %}
-        <p class="muted">{{ _("Hinterlegt am {date}. Jedes Anzeigen wird protokolliert.", date=asset.secret_updated_at|de_date if asset.secret_updated_at else "–") }}{% if asset.secret_holder_view %} {{ _("Die Person, der der Gegenstand ausgegeben ist, darf sie selbst ansehen.") }}{% endif %}</p>
+        <p class="muted">{{ _("Stored on {date}. Every reveal is logged.", date=asset.secret_updated_at|de_date if asset.secret_updated_at else "–") }}{% if asset.secret_holder_view %} {{ _("The person this item is issued to may view them themselves.") }}{% endif %}</p>
         {% if current_user.has_2fa and not session.get("mfa_ok") %}
-        <p class="muted" style="margin-top: 8px">{{ _("Du hast dich in dieser Sitzung ohne zweiten Faktor angemeldet. Bestätige ihn zuerst, dann kannst du die Angaben anzeigen.") }}</p>
+        <p class="muted" style="margin-top: 8px">{{ _("You signed in without a second factor in this session. Confirm it first, then you can show the details.") }}</p>
         <form method="post" action="{{ url_for('security.stepup') }}" style="margin-top: 10px">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="next" value="{{ url_for('assets.detail', asset_id=asset.id) }}">
-          <button class="btn">{{ icon("lock") }} {{ _("Zweiten Faktor bestätigen") }}</button>
+          <button class="btn">{{ icon("lock") }} {{ _("Confirm second factor") }}</button>
         </form>
         {% else %}
         <form method="post" action="{{ url_for('assets.reveal_secret', asset_id=asset.id) }}" style="margin-top: 10px">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn">{{ icon("eye") }} {{ _("Anzeigen") }}</button>
+          <button class="btn">{{ icon("eye") }} {{ _("Reveal") }}</button>
         </form>
         {% endif %}
       {% endif %}
       {% if asset.secret_log and current_user.can_view_secret(asset) %}
       <details style="margin-top: 14px">
-        <summary class="muted" style="cursor: pointer">{{ _("Protokoll") }}</summary>
+        <summary class="muted" style="cursor: pointer">{{ _("Log") }}</summary>
         {% for e in asset.secret_log[:20] %}
         <div class="list-row" style="padding: 6px 0">
-          <div class="grow"><b>{{ e.user.name if e.user else (e.user_label or _("gelöschtes Konto")) }}</b><small>{{ e.at|de_date }}</small></div>
-          <span class="badge">{{ {"view": _("angezeigt"), "holder": _("angezeigt (Ausleiher)"), "change": _("geändert"), "delete": _("gelöscht"), "remove": _("Gegenstand gelöscht"), "share_on": _("Freigabe für Ausleiher an"), "share_off": _("Freigabe für Ausleiher aus")}.get(e.action, e.action) }}</span>
+          <div class="grow"><b>{{ e.user.name if e.user else (e.user_label or _("deleted account")) }}</b><small>{{ e.at|de_date }}</small></div>
+          <span class="badge">{{ {"view": _("revealed"), "holder": _("viewed (borrower)"), "change": _("changed"), "delete": _("deleted"), "remove": _("item deleted"), "share_on": _("borrower access on"), "share_off": _("borrower access off")}.get(e.action, e.action) }}</span>
         </div>
         {% endfor %}
       </details>
@@ -178,7 +178,7 @@
     </section>
 
     <section class="card">
-      <div class="card-head"><h2>{{ _("Verlauf") }}</h2><span class="muted">{{ _n("{n} Vorgang", "{n} Vorgänge", asset.loans|length + (asset.archived_loans or 0)) }}{% if asset.archived_loans %} · {{ _("{n} ältere ohne Einzeldaten", n=asset.archived_loans) }}{% endif %}</span></div>
+      <div class="card-head"><h2>{{ _("History") }}</h2><span class="muted">{{ _n("{n} entry", "{n} entries", asset.loans|length + (asset.archived_loans or 0)) }}{% if asset.archived_loans %} · {{ _("{n} older ones without details", n=asset.archived_loans) }}{% endif %}</span></div>
       {% for loan in asset.loans[:30] %}
       <div class="list-row">
         <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ loan.user.initials }}</span>
@@ -188,11 +188,11 @@
         <form method="post" action="{{ url_for('loans.give_back', loan_id=loan.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="next" value="{{ url_for('assets.detail', asset_id=asset.id) }}">
-          <button class="btn sm" title="{{ _("Rückgabe") }}">{{ icon("return") }}</button></form>
+          <button class="btn sm" title="{{ _("Return") }}">{{ icon("return") }}</button></form>
         {% endif %}
       </div>
       {% else %}
-      <div class="empty">{{ _("Noch nie ausgegeben.") }}</div>
+      <div class="empty">{{ _("Never issued.") }}</div>
       {% endfor %}
     </section>
   </div>

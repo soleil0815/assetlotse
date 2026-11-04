@@ -65,11 +65,11 @@ def _open_image(raw: bytes, draft: tuple[int, int] | None = None):
         probe.verify()
         img = Image.open(io.BytesIO(raw), formats=IMAGE_FORMATS)
     except Exception as exc:  # noqa: BLE001
-        raise BrandingError(_("Die Datei ist kein gültiges Bild (erlaubt: PNG, JPG, WebP, GIF, beim Logo auch SVG).")) from exc
+        raise BrandingError(_("The file is not a valid image (allowed: PNG, JPG, WebP, GIF, and SVG for the logo).")) from exc
     if img.format not in IMAGE_FORMATS:
-        raise BrandingError(_("Bildformat {format} wird nicht unterstützt.", format=img.format))
+        raise BrandingError(_("Image format {format} is not supported.", format=img.format))
     if img.width * img.height > MAX_PIXELS:
-        raise BrandingError(_("Das Bild ist zu groß (mehr als 50 Megapixel)."))
+        raise BrandingError(_("The image is too large (more than 50 megapixels)."))
     img.seek(0)
     if draft and img.format in ("JPEG", "MPO"):
         img.draft("RGB", draft)
@@ -79,12 +79,12 @@ def _open_image(raw: bytes, draft: tuple[int, int] | None = None):
 def _check_svg(raw: bytes) -> bytes:
     head = raw[:1000].lstrip().lower()
     if not (head.startswith(b"<svg") or head.startswith(b"<?xml")) or b"<svg" not in raw[:5000].lower():
-        raise BrandingError(_("Die SVG-Datei ist ungültig."))
+        raise BrandingError(_("The SVG file is invalid."))
     if len(raw) > 512 * 1024:
-        raise BrandingError(_("SVG-Logos dürfen höchstens 512 KB groß sein."))
+        raise BrandingError(_("SVG logos may be at most 512 KB."))
     if SVG_FORBIDDEN.search(raw) or re.search(rb"<!ENTITY", raw, re.I):
-        raise BrandingError(_("Das SVG enthält Skripte, eingebettete Inhalte oder externe Verweise und wird aus "
-                              "Sicherheitsgründen abgelehnt. Bitte als PNG hochladen."))
+        raise BrandingError(_("The SVG contains scripts, embedded content or external references "
+                              "and is rejected for security reasons. Please upload it as PNG."))
     return raw
 
 
@@ -266,10 +266,15 @@ def mail_colors() -> dict:
 # ---------------------------------------------------------------- Für die Vorlagen
 
 def _default_text(key: str) -> str:
-    """Unveränderte Standardtexte (deutsch gespeichert) in der Sprache der Oberfläche zeigen."""
+    """Show unchanged default texts in the language of the interface (also the German ones that versions
+    before 2.1 stored)."""
+    from .i18n import catalog
     from .models import DEFAULT_SETTINGS
     value = get_setting(key)
-    return _(value) if value and value == DEFAULT_SETTINGS.get(key) else value
+    default = DEFAULT_SETTINGS.get(key)
+    if value and default and value in (default, catalog("de").get(default)):
+        return _(default)
+    return value
 
 
 def org_name() -> str:

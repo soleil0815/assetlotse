@@ -508,7 +508,7 @@ class DatabaseVersionTests(AppBase):
             self.assertEqual(sorted(n for n in left if "-vor-" in n), sorted(names[2:5]))   # newest three
             self.assertEqual(sorted(n for n in left if "-vor-" not in n), sorted(names[8:10]))
             kinds = {b["name"]: b["kind"] for b in backup.list_backups()}
-            self.assertEqual(kinds[names[4]], "vor Update")
+            self.assertEqual(kinds[names[4]], "before update")
 
 
 class ComposeVersionTests(AppBase):

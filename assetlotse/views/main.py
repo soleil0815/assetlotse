@@ -118,11 +118,11 @@ def login():
         key = f"{lockout.norm(username)}|{request.remote_addr}"
         from .. import netzone
         if lockout.throttled(key) or lockout.user_throttled(username, internal=netzone.is_internal()):
-            flash(_("Zu viele Fehlversuche. Bitte warte einige Minuten."), "error")
+            flash(_("Too many failed attempts. Please wait a few minutes."), "error")
             return render_template("login.html", username=username), 429
 
         user = User.query.filter(func.lower(User.username) == username.lower()).first()
-        error = _("Benutzername oder Passwort ist falsch.")
+        error = _("Incorrect username or password.")
         ok_user = None
 
         if user is not None and user.auth_source == "local":
@@ -176,7 +176,7 @@ def login():
                 db.session.rollback()
                 ok_user = None
                 log.exception("Unerwarteter Fehler bei der LDAP-Anmeldung")
-                error = _("Anmeldung derzeit nicht möglich. Bitte versuche es später erneut.")
+                error = _("Sign-in is currently not possible. Please try again later.")
 
         # Selbst registrierte Konten: Passwort stimmt, aber noch nicht bestätigt/freigegeben.
         # Diese Hinweise sieht nur, wer das richtige Passwort kennt.
@@ -184,7 +184,7 @@ def login():
             session["resend_uid"] = ok_user.id
             return render_template("login.html", username=username, unverified=True), 403
         if ok_user is not None and ok_user.pending_approval:
-            flash(_("Dein Konto wartet noch auf die Freigabe durch die Verwaltung."), "info")
+            flash(_("Your account is still waiting for approval by the management team."), "info")
             return render_template("login.html", username=username), 403
 
         if ok_user is not None and not ok_user.active:
@@ -212,7 +212,7 @@ def logout():
               "webauthn_state", "webauthn_reg_state", "ldap_ok_at"):
         session.pop(k, None)
     logout_user()
-    flash(_("Du wurdest abgemeldet."), "info")
+    flash(_("You have been signed out."), "info")
     return redirect(url_for("main.login"))
 
 
@@ -248,25 +248,25 @@ def setup():
         # Einmal eingerichtet: Auch ohne Administrator (z. B. versehentlich gelöscht) darf hier niemand
         # über das Web ein neues Admin-Konto anlegen.
         return render_template(
-            "error.html", code=403, title=_("Einrichtung bereits abgeschlossen"),
-            text=_("Es gibt kein Administratorkonto mehr. Lege auf dem Server eines an: "
-                   "docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi create-admin NAME")), 403
+            "error.html", code=403, title=_("Setup already completed"),
+            text=_("There is no administrator account any more. Create one on the server: docker compose "
+                   "exec assetlotse docker-entrypoint.sh flask --app wsgi create-admin NAME")), 403
     if not _setup_allowed():
         # Frische Installation, offen im Internet: wer zuerst kommt, wäre Admin. Daher nur aus dem internen
         # Netz (oder über localhost/SSH-Tunnel), sonst auf dem Server per Befehl.
         log.warning("Ersteinrichtung von %s abgelehnt (nicht im internen Netz)", request.remote_addr)
         return render_template(
-            "error.html", code=403, title=_("Einrichtung nur aus dem internen Netz"),
-            text=_("Die Ersteinrichtung ist nur aus dem internen Netz möglich. Lege das erste Admin-Konto sonst "
-                   "auf dem Server an: docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi "
-                   "create-admin NAME")), 403
+            "error.html", code=403, title=_("Setup only from the internal network"),
+            text=_("Initial setup is only possible from the internal network. Otherwise "
+                   "create the first admin account on the server: docker compose exec assetlotse "
+                   "docker-entrypoint.sh flask --app wsgi create-admin NAME")), 403
     if request.method == "POST":
         username = form_str("username", 120)
         password = request.form.get("password") or ""
         if not username or len(password) < MIN_PASSWORD_LENGTH:
-            flash(_("Benutzername und ein Passwort mit mindestens {n} Zeichen sind nötig.", n=MIN_PASSWORD_LENGTH), "error")
+            flash(_("A username and a password of at least {n} characters are required.", n=MIN_PASSWORD_LENGTH), "error")
         elif password != request.form.get("password2"):
-            flash(_("Die Passwörter stimmen nicht überein."), "error")
+            flash(_("The passwords do not match."), "error")
         else:
             admin = User(username=username, display_name=form_str("display_name", 200) or username,
                          email=form_str("email", 200), role=ROLE_ADMIN, auth_source="local")
@@ -276,7 +276,7 @@ def setup():
             set_setting("setup_completed", "1")
             db.session.commit()
             login_user(admin)
-            flash(_("Willkommen! AssetLotse ist eingerichtet."), "success")
+            flash(_("Welcome! AssetLotse is set up."), "success")
             return redirect(url_for("main.dashboard"))
     return render_template("setup.html")
 
@@ -338,7 +338,7 @@ def profile():
     if request.method == "POST" and request.form.get("action") == "notify":
         current_user.email_notifications = bool(request.form.get("email_notifications"))
         db.session.commit()
-        flash(_("Benachrichtigungen gespeichert."), "success")
+        flash(_("Notifications saved."), "success")
         return redirect(url_for("main.profile"))
     if request.method == "POST" and request.form.get("action") == "data":
         # Name und E-Mail ändern nur lokale (z. B. selbst registrierte) Konten – bei AD-Konten kommen sie aus dem AD
@@ -348,43 +348,43 @@ def profile():
         name = form_str("display_name", 200)
         mail = form_str("email", 200)
         if mail and not valid_email(mail):
-            flash(_("Bitte eine gültige E-Mail-Adresse eingeben."), "error")
+            flash(_("Please enter a valid email address."), "error")
             return redirect(url_for("main.profile"))
         current_user.display_name = name
         if mail.lower() != (current_user.email or "").lower():
             from .register import _allowed_domain, email_taken, needs_verification, send_email_change
             if mail and email_taken(mail, current_user):
                 db.session.rollback()
-                flash(_("Diese E-Mail-Adresse wird bereits von einem anderen Konto verwendet."), "error")
+                flash(_("This email address is already used by another account."), "error")
                 return redirect(url_for("main.profile"))
             if current_user.self_registered:
                 # gleiche Regeln wie bei der Registrierung: Adresse Pflicht, erlaubte Domain und – wenn dort eine
                 # Bestätigung verlangt wird – erst nach Klick auf den Link übernommen
                 if not mail or not _allowed_domain(mail):
                     db.session.rollback()
-                    flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
+                    flash(_("This email address is not allowed for your account."), "error")
                     return redirect(url_for("main.profile"))
                 if needs_verification():
                     db.session.commit()                    # der Name gilt sofort
                     result = send_email_change(current_user, mail)
                     if result == "sent":
-                        flash(_("Gespeichert. Wir haben einen Bestätigungslink an {email} geschickt – die neue "
-                                "Adresse gilt, sobald du ihn öffnest.", email=mail), "info")
+                        flash(_("Saved. We have sent a confirmation link to {email} "
+                                "– the new address applies as soon as you open it.", email=mail), "info")
                     elif result == "limit":
-                        flash(_("Name gespeichert. Zu viele Änderungen der E-Mail-Adresse – bitte in einer Stunde "
-                                "noch einmal versuchen."), "error")
+                        flash(_("Name saved. Too many changes of the email "
+                                "address – please try again in an hour."), "error")
                     elif result == "no_base":
-                        flash(_("Name gespeichert. Die neue E-Mail-Adresse kann gerade nicht bestätigt werden, weil "
-                                "der Mailversand nicht vollständig eingerichtet ist – bitte die Administration "
-                                "informieren."), "error")
+                        flash(_("Name saved. The new email address cannot be confirmed "
+                                "right now because email delivery is not fully set "
+                                "up – please inform the administrators."), "error")
                     else:
-                        flash(_("Name gespeichert. Die Bestätigungs-E-Mail konnte nicht gesendet werden – die Adresse "
-                                "bleibt unverändert. Bitte später noch einmal versuchen."), "error")
+                        flash(_("Name saved. The confirmation email could not be sent – "
+                                "the address stays unchanged. Please try again later."), "error")
                     return redirect(url_for("main.profile"))
             current_user.email = mail
             current_user.pending_email = ""
         db.session.commit()
-        flash(_("Deine Angaben wurden gespeichert."), "success")
+        flash(_("Your details have been saved."), "success")
         return redirect(url_for("main.profile"))
     if request.method == "POST":
         if current_user.auth_source != "local":
@@ -395,21 +395,21 @@ def profile():
         key = f"pwchange|{lockout.norm(current_user.username)}"
         if lockout.throttled(key):
             # Bremse gegen Raten des aktuellen Passworts aus einer fremden Sitzung heraus
-            flash(_("Zu viele Fehlversuche. Bitte warte einige Minuten."), "error")
+            flash(_("Too many failed attempts. Please wait a few minutes."), "error")
         elif not current_user.check_password(current):
             lockout.fail(key, current_user.username)
             log.warning("Passwortwechsel: aktuelles Passwort von %s falsch", current_user.username)
-            flash(_("Das aktuelle Passwort ist falsch."), "error")
+            flash(_("Your current password is incorrect."), "error")
         elif len(new) < MIN_PASSWORD_LENGTH:
-            flash(_("Das neue Passwort muss mindestens {n} Zeichen haben.", n=MIN_PASSWORD_LENGTH), "error")
+            flash(_("The new password must be at least {n} characters long.", n=MIN_PASSWORD_LENGTH), "error")
         elif new != request.form.get("new2"):
-            flash(_("Die neuen Passwörter stimmen nicht überein."), "error")
+            flash(_("The new passwords do not match."), "error")
         else:
             lockout.clear(key)
             current_user.set_password(new)   # meldet alle anderen Geräte ab …
             db.session.commit()
             _stay_signed_in(current_user._get_current_object())      # … dieses Gerät bleibt angemeldet
-            flash(_("Passwort geändert. Andere Geräte wurden abgemeldet."), "success")
+            flash(_("Password changed. Other devices have been signed out."), "success")
             return redirect(url_for("main.profile"))
     history = (Loan.query.filter_by(user_id=current_user.id)
                .order_by(Loan.loaned_at.desc()).limit(50).all())
@@ -433,7 +433,7 @@ def logout_everywhere():
     current_user.end_all_sessions()
     db.session.commit()
     _stay_signed_in(current_user._get_current_object())
-    flash(_("Alle anderen Geräte wurden abgemeldet."), "success")
+    flash(_("All other devices have been signed out."), "success")
     return redirect(url_for("security.settings"))
 
 

@@ -145,16 +145,16 @@ def sync(force: bool = False, now: datetime | None = None) -> dict | None:
         needs_admin, roles_kept = result.pop("needs_admin"), result.pop("roles_kept")
         warnings = []
         if roles_kept:
-            warnings.append(_("Rollen nicht herabgestuft (sonst kein Administrator mehr bzw. viele Konten auf einmal): "
-                              "{names} – bitte die AD-Regeln prüfen.", names=", ".join(roles_kept[:20])))
+            warnings.append(_("Roles not downgraded (otherwise no administrator would remain, or "
+                              "many accounts at once): {names} – please check the AD rules.", names=", ".join(roles_kept[:20])))
         if needs_admin:
-            warnings.append(_("Wieder im AD, aber ohne gespeicherte AD-Kennung – bitte prüfen, ob es dieselbe Person "
-                              "ist, und das Konto von Hand aktivieren: {names}", names=", ".join(needs_admin[:20])))
+            warnings.append(_("Back in AD, but without a stored AD identifier – please check whether "
+                              "it is the same person and activate the account by hand: {names}", names=", ".join(needs_admin[:20])))
         if not complete:
-            warnings.append(_("Die Liste aus dem AD ist unvollständig (Größenlimit des Servers oder mehr als {n} "
-                              "Personen) – es wurde nichts gelöscht oder deaktiviert.", n=MAX_USERS))
+            warnings.append(_("The list from AD is incomplete (server size limit or more "
+                              "than {n} people) – nothing was deleted or deactivated.", n=MAX_USERS))
         if duplicates:
-            warnings.append(_("Mehrere Konten gehören zur selben AD-Person: {names} – bitte unter Benutzer bereinigen.",
+            warnings.append(_("Several accounts belong to the same AD person: {names} – please clean up under Users.",
                               names=", ".join(duplicates[:20])))
         # Warnungen sind keine Fehler: der nächste Abgleich kommt im normalen Takt
         set_setting("ldap_cache_warning", " ".join(warnings))

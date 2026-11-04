@@ -1,5 +1,5 @@
 {% extends "mail/_layout.html" %}
 {% block content %}
-<p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
-<p style="margin:0 0 12px;">{{ _("danke! Die Rückgabe von <b>„{title}“</b> ist verbucht.", title=asset.name) }}</p>
+<p style="margin:0 0 12px;">{{ _("Hello {name},", name=user.name) }}</p>
+<p style="margin:0 0 12px;">{{ _("thank you! The return of <b>“{title}”</b> has been recorded.", title=asset.name) }}</p>
 {% endblock %}

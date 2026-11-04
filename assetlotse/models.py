@@ -31,8 +31,8 @@ ROLE_ADMIN = "admin"
 from .i18n import _l  # noqa: E402
 
 ROLES = {
-    ROLE_READER: _l("Mitarbeiter"),
-    ROLE_MANAGER: _l("Verwalter"),
+    ROLE_READER: _l("Staff member"),
+    ROLE_MANAGER: _l("Manager"),
     ROLE_ADMIN: _l("Administrator"),
 }
 
@@ -516,8 +516,8 @@ DEFAULT_SETTINGS = {
     "brand_brass": "",
     "brand_side": "",
     "login_show_shelf": "1",
-    "login_eyebrow": "Willkommen",
-    "login_text": "Wer hat was? Gegenstände ausgeben, zurücknehmen und im Blick behalten.",
+    "login_eyebrow": "Welcome",
+    "login_text": "Who has what? Issue items, check them back in and keep track.",
 }
 
 

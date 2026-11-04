@@ -164,10 +164,10 @@ class NestedGroupTests(unittest.TestCase):
         d = make_dir()
         found = names(d.user_groups(fake, LENA, "lena", fake.user_entry(LENA)))
         self.assertEqual(found, {
-            "Lehrer": "direkt",
-            "Domänen-Benutzer": "primär",
-            "IT-Verwalter": "verschachtelt",
-            "IT-Mitarbeiter": "verschachtelt",
+            "Lehrer": "direct",
+            "Domänen-Benutzer": "primary",
+            "IT-Verwalter": "nested",
+            "IT-Mitarbeiter": "nested",
         })
 
     def test_groups_outside_user_ou_are_found(self):
@@ -180,25 +180,25 @@ class NestedGroupTests(unittest.TestCase):
     def test_without_in_chain_token_groups_still_work(self):
         fake = FakeDirectory(ad_entries(), in_chain=False)
         found = names(make_dir().user_groups(fake, LENA, "lena", fake.user_entry(LENA)))
-        self.assertEqual(found.get("IT-Verwalter"), "verschachtelt")
-        self.assertEqual(found.get("IT-Mitarbeiter"), "verschachtelt")
+        self.assertEqual(found.get("IT-Verwalter"), "nested")
+        self.assertEqual(found.get("IT-Mitarbeiter"), "nested")
 
     def test_without_token_groups_in_chain_still_works(self):
         fake = FakeDirectory(ad_entries(), token_groups=False)
         found = names(make_dir().user_groups(fake, LENA, "lena", fake.user_entry(LENA)))
-        self.assertEqual(found.get("IT-Verwalter"), "verschachtelt")
-        self.assertEqual(found.get("IT-Mitarbeiter"), "verschachtelt")  # über die primäre Gruppe
+        self.assertEqual(found.get("IT-Verwalter"), "nested")
+        self.assertEqual(found.get("IT-Mitarbeiter"), "nested")  # über die primäre Gruppe
 
     def test_nested_disabled_only_direct_and_primary(self):
         fake = FakeDirectory(ad_entries())
         found = names(make_dir(nested=False).user_groups(fake, LENA, "lena", fake.user_entry(LENA)))
-        self.assertEqual(found, {"Lehrer": "direkt", "Domänen-Benutzer": "primär"})
+        self.assertEqual(found, {"Lehrer": "direct", "Domänen-Benutzer": "primary"})
 
     def test_circular_groups(self):
         fake = FakeDirectory(ad_entries())
         found = names(make_dir().user_groups(fake, MAX, "max", fake.user_entry(MAX)))
-        self.assertEqual(found.get("Ring1"), "direkt")
-        self.assertEqual(found.get("Ring2"), "verschachtelt")
+        self.assertEqual(found.get("Ring1"), "direct")
+        self.assertEqual(found.get("Ring2"), "nested")
 
     def test_roles_from_nested_groups(self):
         fake = FakeDirectory(ad_entries())
@@ -227,7 +227,7 @@ class NestedGroupTests(unittest.TestCase):
         d = make_dir(base_dn="ou=people,dc=example,dc=org")
         entry = {"dn": u, "attributes": {"memberOf": []}, "raw_attributes": {}}
         found = names(d.user_groups(fake, u, "anna", entry))
-        self.assertEqual(found, {"team": "direkt", "posix": "direkt", "bibliothek": "verschachtelt"})
+        self.assertEqual(found, {"team": "direct", "posix": "direct", "bibliothek": "nested"})
 
 
 class AuthenticateEndToEndTests(unittest.TestCase):
@@ -240,7 +240,7 @@ class AuthenticateEndToEndTests(unittest.TestCase):
             info = d.authenticate("lena", "geheim")
         self.assertEqual(info.role, "manager")
         self.assertEqual(info.matched_rule, "IT-Verwalter")
-        self.assertEqual(info.group_info[G["dombenutzer"]], "primär")
+        self.assertEqual(info.group_info[G["dombenutzer"]], "primary")
 
     def test_login_test_page_shows_origin(self):
         from unittest import mock
@@ -256,12 +256,12 @@ class AuthenticateEndToEndTests(unittest.TestCase):
             info = ldap_auth.LDAPUser(username="lena", dn=LENA, display_name="Lena", role="manager",
                                       matched_rule="IT-Verwalter",
                                       groups=[G["lehrer"], G["verwalter"]],
-                                      group_info={G["lehrer"]: "direkt", G["verwalter"]: "verschachtelt"})
+                                      group_info={G["lehrer"]: "direct", G["verwalter"]: "nested"})
             with mock.patch.object(ldap_auth.Directory, "authenticate", return_value=info):
                 html = c.post("/admin/verzeichnisdienst", data={
                     "action": "test_user", "test_user": "lena", "test_password": "x",
                     "ldap_server": "ldap://dc1", "ldap_base_dn": BASE}).get_data(as_text=True)
-            self.assertIn("verschachtelt", html)
+            self.assertIn("nested", html)
             self.assertIn("<b>IT-Verwalter</b>", html)
             db.session.remove()
 

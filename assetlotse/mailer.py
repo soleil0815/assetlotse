@@ -86,7 +86,7 @@ def _ssl_context(verify: bool) -> ssl.SSLContext:
 
 def smtp_connect(cfg: SmtpConfig) -> smtplib.SMTP:
     if not cfg.host:
-        raise MailError(_("Kein SMTP-Server eingetragen."))
+        raise MailError(_("No SMTP server configured."))
     try:
         if cfg.security == "ssl":
             smtp = smtplib.SMTP_SSL(cfg.host, cfg.port, timeout=cfg.timeout, context=_ssl_context(cfg.verify))
@@ -96,7 +96,7 @@ def smtp_connect(cfg: SmtpConfig) -> smtplib.SMTP:
             if cfg.security == "starttls":
                 if not smtp.has_extn("starttls"):
                     smtp.quit()
-                    raise MailError(_("Der Server bietet kein STARTTLS an. Sicherheit auf „keine“ oder „SSL/TLS“ stellen."))
+                    raise MailError(_("The server does not offer STARTTLS. Set security to “none” or “SSL/TLS”."))
                 smtp.starttls(context=_ssl_context(cfg.verify))
                 smtp.ehlo()
         if cfg.user:
@@ -105,13 +105,13 @@ def smtp_connect(cfg: SmtpConfig) -> smtplib.SMTP:
     except MailError:
         raise
     except smtplib.SMTPAuthenticationError as exc:
-        raise MailError(_("Anmeldung am SMTP-Server fehlgeschlagen ({code}): {error}",
+        raise MailError(_("Sign-in to the SMTP server failed ({code}): {error}",
                           code=exc.smtp_code, error=_decode(exc.smtp_error))) from exc
     except ssl.SSLCertVerificationError as exc:
-        raise MailError(_("Zertifikat des SMTP-Servers nicht vertrauenswürdig ({reason}). "
-                          "Ggf. „Zertifikat prüfen“ abschalten (nur intern).", reason=exc.verify_message)) from exc
+        raise MailError(_("The SMTP server's certificate is not trusted ({reason}). If necessary, "
+                          "turn off “Verify certificate” (internal use only).", reason=exc.verify_message)) from exc
     except (OSError, smtplib.SMTPException) as exc:
-        raise MailError(_("SMTP-Server {host}:{port} – {error}", host=cfg.host, port=cfg.port,
+        raise MailError(_("SMTP server {host}:{port} – {error}", host=cfg.host, port=cfg.port,
                           error=f"{exc.__class__.__name__}: {exc}")) from exc
 
 
@@ -126,9 +126,9 @@ def _one_line(value: str) -> str:
 
 def build_message(cfg: SmtpConfig, to: str, subject: str, text: str, html: str | None = None) -> EmailMessage:
     if not cfg.sender:
-        raise MailError(_("Keine Absenderadresse eingetragen."))
+        raise MailError(_("No sender address configured."))
     if not valid_email(to):
-        raise MailError(_("Ungültige Empfängeradresse: {address}", address=_one_line(to)[:100]))
+        raise MailError(_("Invalid recipient address: {address}", address=_one_line(to)[:100]))
     subject = _one_line(subject)
     msg = EmailMessage()
     msg["From"] = formataddr((cfg.sender_name, cfg.sender))
@@ -158,7 +158,7 @@ def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind
         try:
             refused = conn.send_message(msg)
             if refused:
-                raise MailError(_("Empfänger abgelehnt: {recipients}", recipients=", ".join(refused)))
+                raise MailError(_("Recipient rejected: {recipients}", recipients=", ".join(refused)))
         finally:
             if own:
                 try:
@@ -168,7 +168,7 @@ def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind
     except MailError as exc:
         error = str(exc)
     except ValueError as exc:   # ungültige Kopfzeile o. Ä. – nie die Anfrage abbrechen lassen
-        error = _("Ungültige Nachricht: {error}", error=exc)
+        error = _("Invalid message: {error}", error=exc)
     except (OSError, smtplib.SMTPException) as exc:
         error = f"{exc.__class__.__name__}: {_decode(getattr(exc, 'smtp_error', exc))}"
     status = "error" if error else "sent"
@@ -270,11 +270,11 @@ def notify_return(loan: Loan):
 
 def send_manual_reminder(loan: Loan) -> tuple[bool, str]:
     if not mail_active():
-        return False, _("E-Mail-Versand ist nicht eingerichtet.")
+        return False, _("Email sending is not set up.")
     if not can_notify(loan.user):
-        return False, _("{name} hat keine E-Mail-Adresse oder hat Benachrichtigungen abgeschaltet.", name=loan.user.name)
+        return False, _("{name} has no email address or has turned off notifications.", name=loan.user.name)
     if loan.due_at is None:
-        return False, _("Die Ausleihe ist unbefristet.")
+        return False, _("The loan is open-ended.")
     subject, text, html = render_mail("reminder", user=loan.user, due_soon=[] if loan.is_overdue else [loan],
                                       overdue=[loan] if loan.is_overdue else [])
     return send_mail(loan.user.email, subject, text, html, kind="manual", loan_ids=[loan.id], user_id=loan.user_id)
@@ -481,20 +481,20 @@ def last_result_text(raw: str) -> str:
         at = datetime.fromisoformat(rec["at"])
     except (ValueError, TypeError, KeyError):
         return raw or ""   # ältere Einträge (fertiger deutscher Text)
-    label = format_datetime(at) + (" " + _("(manuell)") if rec.get("manual") else "")
+    label = format_datetime(at) + (" " + _("(manual)") if rec.get("manual") else "")
     return f"{label}: {format_stats(rec.get('stats') or {})}"
 
 
 def format_stats(stats: dict) -> str:
     if stats.get("skipped"):
-        return _("E-Mail-Versand ist nicht aktiv.") if stats["skipped"] == "inactive" else str(stats["skipped"])
+        return _("Email sending is not active.") if stats["skipped"] == "inactive" else str(stats["skipped"])
     if stats.get("error"):
-        return _("Fehler – {error}", error=stats["error"])
-    txt = _("{sent} Mail(s) an Mitarbeiter zu {loans} Ausleihe(n)", sent=stats["sent"], loans=stats["loans"])
+        return _("Error – {error}", error=stats["error"])
+    txt = _("{sent} e-mail(s) to staff members about {loans} loan(s)", sent=stats["sent"], loans=stats["loans"])
     if stats.get("digest"):
-        txt += ", " + _("{n} Übersicht(en) an Verwalter", n=stats["digest"])
+        txt += ", " + _("{n} summary/summaries to managers", n=stats["digest"])
     if stats.get("errors"):
-        txt += ", " + _("{n} Fehler", n=stats["errors"])
+        txt += ", " + _("{n} error(s)", n=stats["errors"])
     return txt
 
 

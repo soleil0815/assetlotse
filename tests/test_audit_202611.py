@@ -32,9 +32,9 @@ class ComposeNoticeTests(std.AppBase):
         self.assertNotIn("%(", html)
 
     def test_translation_uses_the_same_placeholders(self):
-        en = json.loads((std.ROOT / "assetlotse" / "translations" / "en.json").read_text())
-        key = next(k for k in en if k.startswith("Die docker-compose.yml auf dem Server ist veraltet"))
-        for text in (key, en[key]):
+        de = json.loads((std.ROOT / "assetlotse" / "translations" / "de.json").read_text())
+        key = next(k for k in de if k.startswith("The docker-compose.yml on the server is out of date"))
+        for text in (key, de[key]):
             self.assertIn("{found}", text)
             self.assertIn("{want}", text)
 

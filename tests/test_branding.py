@@ -144,7 +144,7 @@ class BrandingTests(unittest.TestCase):
         self.c.post("/admin/erscheinungsbild", data={"action": "reset"})
         self.assertEqual(self.files(), [])
         self.assertEqual(get_setting("brand_accent"), "")
-        self.assertEqual(get_setting("login_eyebrow"), "Willkommen")
+        self.assertEqual(get_setting("login_eyebrow"), "Welcome")
 
     def test_reader_has_no_access_and_preview(self):
         self.assertEqual(self.c.get("/admin/erscheinungsbild/vorschau").status_code, 200)

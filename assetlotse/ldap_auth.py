@@ -53,7 +53,7 @@ class LDAPUser:
     groups: list[str] = field(default_factory=list)
     role: str | None = None
     matched_rule: str = ""
-    group_info: dict = field(default_factory=dict)  # DN -> direkt | primär | verschachtelt
+    group_info: dict = field(default_factory=dict)  # DN -> direct | primary | nested
     guid: str = ""   # feste Kennung (AD: objectGUID, OpenLDAP: entryUUID) – bleibt bei Umbenennungen gleich
 
 
@@ -145,9 +145,9 @@ class Directory:
         except ValueError:
             self.timeout = 8
         if not self.servers:
-            raise LDAPError(_("Kein LDAP-Server konfiguriert."))
+            raise LDAPError(_("No LDAP server configured."))
         if not self.base_dn:
-            raise LDAPError(_("Keine Basis-DN konfiguriert."))
+            raise LDAPError(_("No base DN configured."))
 
     # ---------------------------------------------------------------- Verbindung
     def _server_pool(self):
@@ -171,7 +171,7 @@ class Directory:
 
         if not password:
             # Leeres Passwort = anonymer Bind -> niemals als Erfolg werten
-            raise LDAPError(_("Leeres Passwort."))
+            raise LDAPError(_("Empty password."))
         conn = None
         try:
             conn = Connection(self._server_pool(), user=user, password=password,
@@ -179,12 +179,12 @@ class Directory:
                               auto_referrals=False, read_only=True)
             conn.open(read_server_info=False)
             if self.security == "starttls" and not conn.start_tls(read_server_info=False):
-                raise LDAPError(_("StartTLS fehlgeschlagen: {error}", error=(conn.result or {}).get('description')))
+                raise LDAPError(_("StartTLS failed: {error}", error=(conn.result or {}).get('description')))
             if not conn.bind(read_server_info=False):
                 desc = conn.result.get("description", "")
                 msg = conn.result.get("message", "")
                 # nicht "msg=": so heißt schon der erste Parameter von _() – das gäbe einen TypeError statt der Meldung
-                raise LDAPError(_("Bind abgelehnt ({desc}). {detail}", desc=desc, detail=msg).strip())
+                raise LDAPError(_("Bind refused ({desc}). {detail}", desc=desc, detail=msg).strip())
             return conn
         except (LDAPException, LDAPError) as exc:
             if conn is not None:
@@ -196,9 +196,9 @@ class Directory:
                 raise
             text = str(exc)
             if "CERTIFICATE_VERIFY_FAILED" in text or "certificate verify failed" in text:
-                raise LDAPError(_("Das Zertifikat des Domänencontrollers ist nicht vertrauenswürdig. "
-                                  "Unter „TLS-Zertifikat“ auf „Zertifikat vom DC abrufen“ klicken und bestätigen.")) from exc
-            raise LDAPError(_("LDAP-Fehler: {error}", error=exc)) from exc
+                raise LDAPError(_("The domain controller's certificate is not trusted. Under “TLS "
+                                  "certificate”, click “Fetch certificate from DC” and confirm.")) from exc
+            raise LDAPError(_("LDAP error: {error}", error=exc)) from exc
 
     def service_connection(self, username: str | None = None, password: str | None = None):
         if self.bind_dn:
@@ -207,7 +207,7 @@ class Directory:
             principal = username if ("@" in username or "\\" in username or not self.upn_suffix) \
                 else f"{username}@{self.upn_suffix}"
             return self.connect(principal, password)
-        raise LDAPError(_("Weder Dienstkonto (Bind-DN) noch UPN-Suffix für direkten Bind konfiguriert."))
+        raise LDAPError(_("Neither a service account (bind DN) nor a UPN suffix for direct bind is configured."))
 
     # ---------------------------------------------------------------- Suche
     # Vorübergehende Serverfehler (operationsError, timeLimit, adminLimit, busy, unavailable, other): Mit
@@ -235,12 +235,12 @@ class Directory:
                                 "objectClass", self.user_attr] + GUID_ATTRS, size_limit=2)
         failed = self._search_failed(conn)
         if failed:
-            raise LDAPError(_("Suche im Verzeichnis fehlgeschlagen: {error}", error=failed[1]))
+            raise LDAPError(_("Directory search failed: {error}", error=failed[1]))
         entries = [e for e in (conn.response or []) if e.get("type") == "searchResEntry"]
         if not entries:
-            raise LDAPUserNotFound(_("Benutzer '{username}' nicht unterhalb von {base} gefunden.", username=username, base=self.base_dn))
+            raise LDAPUserNotFound(_("User '{username}' not found below {base}.", username=username, base=self.base_dn))
         if len(entries) > 1:
-            raise LDAPAmbiguous(_("Benutzername '{username}' ist nicht eindeutig.", username=username))
+            raise LDAPAmbiguous(_("Username '{username}' is not unique.", username=username))
         return entries[0]
 
     # ---------------------------------------------------------------- Gruppen
@@ -260,7 +260,7 @@ class Directory:
             failed = self._search_failed(conn)
             if failed and failed[0] in self.TRANSIENT_CODES:
                 # Server gerade nicht bereit: lieber abbrechen als Gruppen (und damit Rechte) zu verlieren
-                raise LDAPError(_("Suche im Verzeichnis fehlgeschlagen: {error}", error=failed[1]))
+                raise LDAPError(_("Directory search failed: {error}", error=failed[1]))
             return []      # z. B. Suchverfahren nicht unterstützt – die anderen Verfahren decken es ab
         return [e["dn"] for e in conn.response if e.get("type") == "searchResEntry"]
 
@@ -293,7 +293,7 @@ class Directory:
                     found[dn] = source
 
         # 1) Direkte Mitgliedschaften
-        add(_as_list(attrs.get("memberOf")), "direkt")
+        add(_as_list(attrs.get("memberOf")), "direct")
 
         # 2) Primäre Gruppe (AD/Samba: primaryGroupID + Domänen-SID des Benutzers)
         sid = (raw.get("objectSid") or [None])[0]
@@ -302,13 +302,13 @@ class Directory:
         if sid and pgid.isdigit() and len(sid) >= 12:
             primary_sid = sid[:-4] + int(pgid).to_bytes(4, "little")
             primary_dns = self._sids_to_dns(conn, base, [primary_sid])
-            add(primary_dns, "primär")
+            add(primary_dns, "primary")
 
         if self.nested:
             # 3) AD/Samba-AD: alle (auch verschachtelten) Gruppen über LDAP_MATCHING_RULE_IN_CHAIN
-            add(self._search_dns(conn, base, f"(member:{IN_CHAIN}:={escape_filter(user_dn)})"), "verschachtelt")
+            add(self._search_dns(conn, base, f"(member:{IN_CHAIN}:={escape_filter(user_dn)})"), "nested")
             for pdn in primary_dns:  # Gruppen, in denen die primäre Gruppe Mitglied ist
-                add(self._search_dns(conn, base, f"(member:{IN_CHAIN}:={escape_filter(pdn)})"), "verschachtelt")
+                add(self._search_dns(conn, base, f"(member:{IN_CHAIN}:={escape_filter(pdn)})"), "nested")
 
             # 4) AD/Samba-AD: tokenGroups – exakt die Sicherheitsgruppen aus dem Anmeldetoken
             if conn.search(user_dn, "(objectClass=*)", BASE, attributes=["tokenGroups"]):
@@ -316,13 +316,13 @@ class Directory:
                     if e.get("type") == "searchResEntry":
                         sids = (e.get("raw_attributes") or {}).get("tokenGroups") or []
                         if sids:
-                            add(self._sids_to_dns(conn, base, list(sids)), "verschachtelt")
+                            add(self._sids_to_dns(conn, base, list(sids)), "nested")
 
         # 5) OpenLDAP / klassische Samba-Domäne (kein memberOf, keine IN_CHAIN-Regel)
         if not found:
             flt = (f"(|(member={escape_filter(user_dn)})(uniqueMember={escape_filter(user_dn)})"
                    f"(memberUid={escape_filter(username)}))")
-            add(self._search_dns(conn, base, flt), "direkt")
+            add(self._search_dns(conn, base, flt), "direct")
             if self.nested:
                 queue, seen = list(found), {normalize_dn(d) for d in found}
                 for _ in range(10):  # Ebene für Ebene nach oben
@@ -333,7 +333,7 @@ class Directory:
                             if normalize_dn(parent) not in seen:
                                 seen.add(normalize_dn(parent))
                                 nxt.append(parent)
-                    add(nxt, "verschachtelt")
+                    add(nxt, "nested")
                     if not nxt:
                         break
                     queue = nxt
@@ -374,7 +374,7 @@ class Directory:
         if "@" in username and self.user_attr.lower() == "samaccountname":
             username = username.split("@", 1)[0]
         if not username or not password:
-            raise LDAPError(_("Benutzername oder Passwort fehlt."))
+            raise LDAPError(_("Username or password missing."))
 
         svc = self.service_connection(username, password)
         user_conn = None
@@ -413,7 +413,7 @@ class Directory:
         Liefert None, wenn das Konto fehlt oder im AD deaktiviert ist. Verbindungsprobleme lösen
         LDAPError aus – dann bleibt die Sitzung bestehen (ein AD-Ausfall soll niemanden aussperren)."""
         if not self.bind_dn:
-            raise LDAPError(_("Ohne Dienstkonto kann eine Sitzung nicht nachgeprüft werden."))
+            raise LDAPError(_("A session cannot be re-checked without a service account."))
         svc = self.service_connection()
         try:
             try:
@@ -468,7 +468,7 @@ class Directory:
         if len(query) < 2:
             return [], False
         if not self.bind_dn:
-            raise LDAPError(_("Für die Suche im Verzeichnis ist ein Dienstkonto (Bind-DN) nötig."))
+            raise LDAPError(_("Searching the directory requires a service account (bind DN)."))
         exclude = {x.lower() for x in (exclude or set())}
         q = escape_filter(query[:64])
         name_attrs = sorted({self.user_attr, "displayName", "cn", "givenName", "sn", "mail"})
@@ -546,7 +546,7 @@ class Directory:
         if code == 4:            # sizeLimitExceeded
             raise _SizeLimit(res.get("description", "sizeLimitExceeded"))
         if code not in (0,):
-            raise LDAPError(_("Lesen aus dem Verzeichnis abgebrochen: {error}",
+            raise LDAPError(_("Reading from the directory was aborted: {error}",
                               error=f"{res.get('description', code)} {res.get('message', '')}".strip()))
 
     def all_users(self, max_users: int = 50000) -> tuple[list[LDAPUser], bool]:
@@ -561,7 +561,7 @@ class Directory:
         Liefert (Personen, vollständig). „vollständig“ ist False, wenn mehr als `max_users` Konten passen –
         dann darf der Aufrufer nichts löschen."""
         if not self.bind_dn:
-            raise LDAPError(_("Für den Abgleich ist ein Dienstkonto (Bind-DN) nötig."))
+            raise LDAPError(_("Synchronisation requires a service account (bind DN)."))
         group_flt = ("(|(objectClass=group)(objectClass=groupOfNames)"
                      "(objectClass=groupOfUniqueNames)(objectClass=posixGroup))")
         group_attrs = ["cn", "memberOf", "objectSid"] + ([] if self.is_ad else ["member", "uniqueMember", "memberUid"])
@@ -577,8 +577,8 @@ class Directory:
             try:
                 groups_read = list(self._paged_entries(conn, self.group_base(), group_flt, group_attrs))
             except _SizeLimit as exc:   # ohne alle Gruppen wären die Rollen falsch – dann lieber gar nicht
-                raise LDAPError(_("Lesen der Gruppen am Größenlimit des Servers abgebrochen ({error}) – "
-                                  "Limit für das Dienstkonto erhöhen.", error=exc)) from exc
+                raise LDAPError(_("Reading the groups stopped at the server's size limit "
+                                  "({error}) – raise the limit for the service account.", error=exc)) from exc
             for e in groups_read:
                 key = normalize_dn(e["dn"])
                 display_dn[key] = e["dn"]
@@ -664,8 +664,8 @@ class Directory:
         ok = conn.search(self.base_dn, "(objectClass=*)", "BASE", attributes=["objectClass"])
         conn.unbind()
         if not ok:
-            raise LDAPError(_("Bind erfolgreich, aber Basis-DN '{base}' nicht lesbar.", base=self.base_dn))
-        return _("Verbindung erfolgreich. Angemeldet als {who}. Basis-DN ist erreichbar.", who=who or self.bind_dn)
+            raise LDAPError(_("Bind successful, but base DN '{base}' is not readable.", base=self.base_dn))
+        return _("Connection successful. Signed in as {who}. Base DN is reachable.", who=who or self.bind_dn)
 
 
 def _as_list(v):

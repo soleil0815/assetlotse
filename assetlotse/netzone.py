@@ -153,6 +153,6 @@ def is_internal() -> bool:
 def describe() -> dict:
     """Für die Einstellungsseite: wie wird die aktuelle Verbindung eingestuft?"""
     zone = classify()
-    return {"ip": client_ip() or _("unbekannt"), "internal": zone != "extern", "zone": zone,
+    return {"ip": client_ip() or _("unknown"), "internal": zone != "extern", "zone": zone,
             "own_ips": sorted(own_public_ips()),
             "proxy_without_ip": has_request_context() and via_proxy_without_client_ip()}

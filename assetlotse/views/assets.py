@@ -15,7 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from werkzeug.utils import secure_filename
 
-from ..i18n import _, get_locale
+from ..i18n import _, _p, get_locale
 from ..models import (Asset, Group, Loan, SecretAccess, User, db, get_bool, get_int, get_setting,
                       catalog_hidden, manageable_assets_query, visible_assets_query)
 from . import form_int, form_str, get_by_id, manager_required, parse_id
@@ -137,7 +137,7 @@ def _apply_image(asset: Asset):
         ext = os.path.splitext(secure_filename(upload.filename))[1].lower()
         clean = _clean_image(upload.read()) if ext in IMAGE_EXT else None
         if clean is None:
-            flash(_("Foto: Die Datei ist kein gültiges Bild (erlaubt: JPG, PNG, WEBP oder GIF)."), "error")
+            flash(_("Photo: the file is not a valid image (allowed: JPG, PNG, WEBP or GIF)."), "error")
         else:
             asset.image_file = _store_image_bytes(clean)
             return
@@ -261,12 +261,12 @@ def reveal_secret(asset_id):
         abort(403)
     if current_user.has_2fa and not session.get("mfa_ok"):
         # Ohne zweiten Faktor angemeldet (z. B. internes Netz): Schlüssel erst nach Bestätigung
-        flash(_("Bitte bestätige zuerst deinen zweiten Faktor (Authenticator-App, Sicherheitsschlüssel oder "
-                "Wiederherstellungscode) – du hast dich in dieser Sitzung ohne ihn angemeldet."), "warning")
+        flash(_("Please confirm your second factor first (authenticator app, security "
+                "key or recovery code) – you signed in to this session without it."), "warning")
         return redirect(url_for("assets.detail", asset_id=asset.id))
     secret = asset.get_secret()
     if asset.has_secret and not secret:
-        flash(_("Die vertraulichen Angaben sind mit dem aktuellen Schlüssel nicht lesbar."), "error")
+        flash(_("The confidential details cannot be read with the current key."), "error")
         return redirect(url_for("assets.detail", asset_id=asset.id))
     if secret:
         SecretAccess.record(asset, current_user, "view")
@@ -318,17 +318,17 @@ def reveal_own_secret(asset_id):
     back = redirect(url_for("assets.detail", asset_id=asset.id))
     if current_user.has_2fa and not session.get("mfa_ok"):
         # In dieser Sitzung ohne zweiten Faktor angemeldet (z. B. internes Netz): erst nachholen
-        flash(_("Bitte bestätige zuerst deinen zweiten Faktor (Authenticator-App, Sicherheitsschlüssel oder "
-                "Wiederherstellungscode) – du hast dich in dieser Sitzung ohne ihn angemeldet."), "warning")
+        flash(_("Please confirm your second factor first (authenticator app, security "
+                "key or recovery code) – you signed in to this session without it."), "warning")
         return back
     key = f"secret|{lockout.norm(current_user.username)}|{request.remote_addr}"
     if lockout.throttled(key) or lockout.user_throttled(current_user.username, internal=netzone.is_internal()):
-        flash(_("Zu viele Fehlversuche. Bitte warte einige Minuten."), "error")
+        flash(_("Too many failed attempts. Please wait a few minutes."), "error")
         return back
     if not _confirm_password(current_user, request.form.get("password") or ""):
         lockout.fail(key, current_user.username)
         log.warning("Vertrauliche Angaben von Gegenstand %s: Passwort von %s falsch", asset.id, current_user.username)
-        flash(_("Das Passwort ist falsch."), "error")
+        flash(_("The password is incorrect."), "error")
         return back
     lockout.clear(key)
     # Die AD-Prüfung kann Sekunden dauern – wurde inzwischen zurückgegeben, gibt es nichts mehr
@@ -337,7 +337,7 @@ def reveal_own_secret(asset_id):
         abort(403)
     secret = asset.get_secret()
     if not secret:
-        flash(_("Die vertraulichen Angaben sind mit dem aktuellen Schlüssel nicht lesbar."), "error")
+        flash(_("The confidential details cannot be read with the current key."), "error")
         return back
     SecretAccess.record(asset, current_user, "holder")
     db.session.commit()
@@ -496,19 +496,19 @@ def _fill_asset_fields(asset: Asset) -> str | None:
     asset.quantity = form_int("quantity", 1, 0, MAX_QUANTITY)
     if asset.quantity < len(asset.active_loans):
         asset.quantity = len(asset.active_loans)
-        flash(_("Die Anzahl kann nicht kleiner sein als die Zahl der ausgegebenen Stücke."), "warning")
+        flash(_("The quantity cannot be smaller than the number of pieces currently issued."), "warning")
     gid = request.form.get("group_id")
     new_group = _check_group_allowed(parse_id(gid)) if parse_id(gid) else None
     if (asset.id and asset.has_secret and new_group != asset.group_id
             and not current_user.can_view_secret(asset)):
         # Sonst könnte sich ein Verwalter Zugriff auf fremde Schlüssel verschaffen, indem er den Gegenstand
         # in seine eigene Gruppe verschiebt.
-        flash(_("Die Gruppe eines Gegenstands mit vertraulichen Angaben dürfen nur Administratoren und "
-                "Verwalter ändern, die diese Angaben sehen dürfen – die Gruppe bleibt unverändert."), "warning")
+        flash(_("Only administrators and managers who may see its confidential details "
+                "can change the group of such an item – the group stays unchanged."), "warning")
     else:
         asset.group_id = new_group
     if asset.inventory_no.startswith("#"):
-        return _("Die Inventarnummer darf nicht mit „#“ beginnen – „#Nummer“ ist für die interne Nummer reserviert.")
+        return _("The inventory number must not start with “#” – “#number” is reserved for the internal number.")
     return location_error
 
 
@@ -522,8 +522,8 @@ def _apply_secret(asset: Asset, allowed: bool) -> list[str]:
     if not allowed:
         if (request.form.get("secret") or request.form.get("remove_secret")
                 or ("secret_holder_view_shown" in request.form and share != bool(asset.secret_holder_view))):
-            flash(_("Vertrauliche Angaben dürfen hier nur Administratoren und Verwalter der Gruppe des "
-                    "Gegenstands ändern – sie wurden nicht gespeichert."), "warning")
+            flash(_("Only administrators and managers of the item's group may "
+                    "change confidential details – they were not saved."), "warning")
         return []
     from flask import session
     wants_change = bool(request.form.get("secret") or request.form.get("remove_secret")
@@ -531,8 +531,8 @@ def _apply_secret(asset: Asset, allowed: bool) -> list[str]:
     if wants_change and asset.has_secret and current_user.has_2fa and not session.get("mfa_ok"):
         # Wie beim Anzeigen: Ohne bestätigten zweiten Faktor keine Änderung an hinterlegten Angaben – sonst ließe
         # sich der Schlüssel über die Freigabe für die ausleihende Person doch ansehen.
-        flash(_("Vertrauliche Angaben ändern geht erst nach Bestätigung deines zweiten Faktors – sie wurden nicht "
-                "gespeichert."), "warning")
+        flash(_("Confidential details can only be changed after confirming "
+                "your second factor – they were not saved."), "warning")
         return []
     actions = []
     if request.form.get("remove_secret") and asset.has_secret:
@@ -545,8 +545,8 @@ def _apply_secret(asset: Asset, allowed: bool) -> list[str]:
         actions.append("change")
     if share and (asset.quantity or 0) != 1:
         if not asset.secret_holder_view:
-            flash(_("Die Freigabe für die ausleihende Person gibt es nur bei Einzelstücken (Anzahl 1) – "
-                    "sonst sähen alle, die ein Stück haben, dieselben Angaben."), "warning")
+            flash(_("Sharing with the borrower is only available for single items (quantity "
+                    "1) – otherwise everyone holding a piece would see the same details."), "warning")
         share = False
     if "secret_holder_view_shown" in request.form and share != bool(asset.secret_holder_view):
         asset.secret_holder_view = share
@@ -573,7 +573,7 @@ def find_number(field: str, value: str, exclude_id: int | None = None) -> Asset 
 
 
 def _number_label(field: str) -> str:
-    return _("Inventarnummer") if field == "inventory_no" else _("Seriennummer")
+    return _("Inventory number") if field == "inventory_no" else _("Serial number")
 
 
 def _number_conflicts(asset: Asset, previous: dict | None = None) -> dict:
@@ -600,16 +600,16 @@ def _number_conflicts_inner(asset: Asset, previous: dict) -> dict:
             takeovers.append((field, other))
             offers[field] = {"asset": other, "checked": True}   # bei anderem Fehler angehakt wieder anbieten
             continue
-        where = _("bei „{name}“", name=other.name) if mine else _("bei einem Gegenstand einer anderen Gruppe")
+        where = _("on “{name}”", name=other.name) if mine else _("on an item of another group")
         if asset.id and number_key(previous.get(field)) == number_key(value):
-            warnings.append(_("{label} „{value}“ ist doppelt vergeben (auch {where}) – bitte bei Gelegenheit "
-                              "korrigieren.", label=_number_label(field), value=value, where=where))
+            warnings.append(_("{label} “{value}” is used twice (also {where}) "
+                              "– please correct it when you get a chance.", label=_number_label(field), value=value, where=where))
         else:
-            errors.append(_("{label} „{value}“ ist bereits vergeben ({where}). Jede Nummer darf es nur einmal "
-                            "geben.", label=_number_label(field), value=value, where=where))
+            errors.append(_("{label} “{value}” is already in use ({where}). "
+                            "Each number may only exist once.", label=_number_label(field), value=value, where=where))
             if mine:
                 offers[field] = {"asset": other, "checked": False}
-                errors.append(_("Steht sie dort versehentlich, kannst du sie unten übernehmen."))
+                errors.append(_("If it is there by mistake, you can take it over below."))
     return {"error": " ".join(errors) or None, "warning": " ".join(warnings) or None,
             "offers": offers, "takeovers": takeovers}
 
@@ -629,7 +629,7 @@ def _take_over_numbers(takeovers) -> list[str]:
                                .execution_options(synchronize_session=False))
     for _field, other, *_rest in plan:
         db.session.expire(other)
-    return [_("{label} „{value}“ wurde bei „{name}“ entfernt – trag dort bitte die richtige ein.",
+    return [_("{label} “{value}” was removed from “{name}” – please enter the correct one there.",
               label=_number_label(field), value=value, name=name) for field, _o, _i, name, value in plan]
 
 
@@ -646,7 +646,7 @@ def create():
         if error:
             flash(error, "error")
         elif not asset.name:
-            flash(_("Eine Bezeichnung ist erforderlich."), "error")
+            flash(_("A name is required."), "error")
         elif (conflict := _number_conflicts(asset))["error"]:
             flash(conflict["error"], "error")
             offers = conflict["offers"]
@@ -663,9 +663,9 @@ def create():
                 db.session.commit()
             except IntegrityError:   # gleichzeitig dieselbe Nummer vergeben (eindeutiger Index)
                 db.session.rollback()
-                flash(_("Die Inventar- oder Seriennummer wurde gerade anderweitig vergeben – bitte prüfen."), "error")
+                flash(_("The inventory or serial number has just been assigned elsewhere – please check."), "error")
                 return _render_form(asset, is_new=True)
-            flash(_("„{name}“ wurde angelegt.", name=asset.name), "success")
+            flash(_("“{name}” has been added.", name=asset.name), "success")
             for note in notes:
                 flash(note, "warning")
             if request.form.get("next_action") == "another":
@@ -702,7 +702,7 @@ def edit(asset_id):
         if error:
             flash(error, "error")
         elif not asset.name:
-            flash(_("Eine Bezeichnung ist erforderlich."), "error")
+            flash(_("A name is required."), "error")
         elif (conflict := _number_conflicts(asset, previous))["error"]:
             flash(conflict["error"], "error")
             return _render_form(asset, is_new=False, offers=conflict["offers"])
@@ -716,10 +716,10 @@ def edit(asset_id):
                 db.session.commit()
             except IntegrityError:
                 db.session.rollback()
-                flash(_("Die Inventar- oder Seriennummer wurde gerade anderweitig vergeben – bitte prüfen."), "error")
+                flash(_("The inventory or serial number has just been assigned elsewhere – please check."), "error")
                 _fill_asset(asset)          # Eingaben wieder ins Formular (ohne zu speichern)
                 return _render_form(asset, is_new=False)
-            flash(_("Änderungen gespeichert."), "success")
+            flash(_("Changes saved."), "success")
             for note in notes:
                 flash(note, "warning")
             if warning:
@@ -755,11 +755,11 @@ def delete(asset_id):
     db.session.expire(asset, ["loans"])
     if asset.active_loans:
         db.session.rollback()
-        flash(_("Der Gegenstand ist noch ausgegeben und kann nicht gelöscht werden."), "error")
+        flash(_("The item is still issued and cannot be deleted."), "error")
         return redirect(url_for("assets.detail", asset_id=asset.id))
     if asset.has_secret and not current_user.can_view_secret(asset):
-        flash(_("Gegenstände mit vertraulichen Angaben dürfen nur Administratoren und Verwalter der Gruppe "
-                "löschen."), "error")
+        flash(_("Items with confidential details can only be deleted "
+                "by administrators and managers of the group."), "error")
         return redirect(url_for("assets.detail", asset_id=asset.id))
     name = asset.name
     if asset.has_secret:   # Löschen samt Geheimnis im Protokoll festhalten (bleibt nach dem Löschen erhalten)
@@ -767,7 +767,7 @@ def delete(asset_id):
         db.session.flush()
     db.session.delete(asset)
     db.session.commit()
-    flash(_("„{name}“ wurde gelöscht.", name=name), "success")
+    flash(_("“{name}” has been deleted.", name=name), "success")
     return redirect(url_for("assets.index"))
 
 
@@ -779,8 +779,8 @@ def export_csv():
     """Bestand als CSV (für Excel). Vertrauliche Angaben werden nie exportiert."""
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";")
-    w.writerow([_(h) for h in ["ID", "Bezeichnung", "Kategorie", "Hersteller", "Modell", "Seriennummer",
-                               "Inventarnummer", "Standort", "Gruppe", "Anzahl", "Verfügbar", "Ausgegeben an"]])
+    w.writerow(["ID", _p("label", "Name"), _("Category"), _("Manufacturer"), _("Model"), _("Serial number"),
+                _("Inventory number"), _("Location"), _("Group"), _("Quantity"), _p("status", "Available"), _("Issued to")])
 
     def cell(v):
         # Schutz vor Formel-Einschleusung in Excel: Inhalte, die mit = + - @ beginnen, als Text markieren
@@ -794,7 +794,7 @@ def export_csv():
     for a in rows:
         holders = ", ".join(sorted(l.user.name for l in a.active_loans))
         w.writerow([cell(v) for v in [a.id, a.name, a.category, a.manufacturer, a.model, a.serial_number,
-                                      a.inventory_no, a.location, a.group.name if a.group else _("Allgemein"),
+                                      a.inventory_no, a.location, a.group.name if a.group else _("General"),
                                       a.quantity, a.available, holders]])
     return Response("﻿" + buf.getvalue(), mimetype="text/csv",
                     headers={"Content-Disposition": "attachment; filename=" + (
@@ -806,7 +806,7 @@ def export_csv():
 def _labels_response(items: list, filename: str):
     from ..branding import org_name
     from ..labels import build_pdf, label_for
-    pdf = build_pdf([label_for(a, org_name()) for a in items], title=_("Etiketten"))
+    pdf = build_pdf([label_for(a, org_name()) for a in items], title=_("Labels"))
     return Response(pdf, mimetype="application/pdf", headers={
         "Content-Disposition": f"inline; filename={filename}",
         "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
@@ -832,10 +832,10 @@ def labels():
     query = _apply_filters(manageable_assets_query(current_user), _filter_args())
     items = query.order_by(Asset.inventory_no, Asset.name, Asset.id).limit(MAX_LABELS + 1).all()
     if not items:
-        flash(_("Keine Gegenstände für Etiketten gefunden."), "info")
+        flash(_("No items found for labels."), "info")
         return redirect(url_for("assets.index", **{k: v for k, v in _filter_args().items() if v}))
     if len(items) > MAX_LABELS:
-        flash(_("Zu viele Gegenstände für einen Druck (höchstens {n}). Bitte die Auswahl eingrenzen.",
+        flash(_("Too many items for one print run (at most {n}). Please narrow the selection.",
                 n=MAX_LABELS), "error")
         return redirect(url_for("assets.index", **{k: v for k, v in _filter_args().items() if v}))
     return _labels_response(items, "labels.pdf" if get_locale() == "en" else "etiketten.pdf")

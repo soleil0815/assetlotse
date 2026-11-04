@@ -58,7 +58,7 @@ def check(value: str, previous: str = "") -> tuple[str, str | None]:
         return c, None
     if value == (previous or "").strip():
         return value, None
-    return previous or "", _("Standort „{value}“ ist nicht festgelegt. Bitte aus der Liste wählen.", value=value)
+    return previous or "", _("Location “{value}” is not defined. Please choose from the list.", value=value)
 
 
 def _usage() -> dict[str, int]:
@@ -77,7 +77,7 @@ def _can_change_all(location: str) -> bool:
 
 
 def _assets(n: int) -> str:
-    return _n("{n} Gegenstand", "{n} Gegenstände", n)
+    return _n("{n} item", "{n} items", n)
 
 
 def _move_assets(old: str, new: str) -> int:
@@ -124,12 +124,12 @@ def create():
         added.append(name)
     db.session.commit()
     if added:
-        flash(_("{n} Standort(e) angelegt: {names}", n=len(added),
+        flash(_("{n} location(s) added: {names}", n=len(added),
                 names=", ".join(added[:8]) + (" …" if len(added) > 8 else "")), "success")
     if skipped:
-        flash(_("Schon vorhanden: {names}", names=", ".join(skipped[:8])), "info")
+        flash(_("Already exist: {names}", names=", ".join(skipped[:8])), "info")
     if not added and not skipped:
-        flash(_("Bitte mindestens einen Namen eingeben."), "error")
+        flash(_("Please enter at least one name."), "error")
     return redirect(url_for("locations.index"))
 
 
@@ -141,13 +141,13 @@ def rename(loc_id):
         return redirect(url_for("locations.index"))
     new = re.sub(r"\s+", " ", form_str("name", MAX_LEN)).strip()
     if not new:
-        flash(_("Der Name darf nicht leer sein."), "error")
+        flash(_("The name must not be empty."), "error")
     elif new.lower() != loc.name.lower() and canonical(new) is not None:
-        flash(_("„{new}“ gibt es schon. Zum Zusammenlegen „{old}“ löschen, nachdem die Gegenstände umgezogen sind.",
+        flash(_("“{new}” already exists. To merge, delete “{old}” after the items have been moved.",
                 new=new, old=loc.name), "error")
     elif not _can_change_all(loc.name):
-        flash(_("„{name}“ wird auch von Gegenständen anderer Gruppen genutzt – Umbenennen nur durch Administratoren "
-                "oder Verwalter ohne Gruppe.", name=loc.name), "error")
+        flash(_("“{name}” is also used by items of other groups – only administrators "
+                "or managers without a group can rename it.", name=loc.name), "error")
     else:
         old = loc.name
         n = _move_assets(old, new)
@@ -155,9 +155,9 @@ def rename(loc_id):
         loc.note = form_str("note", 300)
         db.session.commit()
         if n and old != new:
-            flash(_("„{old}“ heißt jetzt „{new}“ – {assets} angepasst.", old=old, new=new, assets=_assets(n)), "success")
+            flash(_("“{old}” is now called “{new}” – {assets} updated.", old=old, new=new, assets=_assets(n)), "success")
         else:
-            flash(_("„{old}“ heißt jetzt „{new}“.", old=old, new=new), "success")
+            flash(_("“{old}” is now called “{new}”.", old=old, new=new), "success")
     return redirect(url_for("locations.index"))
 
 
@@ -169,12 +169,12 @@ def delete(loc_id):
         return redirect(url_for("locations.index"))
     n = Asset.query.filter(Asset.location == loc.name).count()
     if n:
-        flash(_("„{name}“ ist noch bei {assets} eingetragen. Erst umbenennen oder die Gegenstände umstellen.",
+        flash(_("“{name}” is still assigned to {assets}. Rename it first or move the items.",
                 name=loc.name, assets=_assets(n)), "error")
     else:
         db.session.delete(loc)
         db.session.commit()
-        flash(_("Standort „{name}“ gelöscht.", name=loc.name), "success")
+        flash(_("Location “{name}” deleted.", name=loc.name), "success")
     return redirect(url_for("locations.index"))
 
 
@@ -187,10 +187,10 @@ def adopt():
     # nur im eigenen Bestand zählen – sonst ließen sich Orte anderer Gruppen erraten
     count = manageable_assets_query(current_user).filter(Asset.location == old).count() if old else 0
     if not old or not count:
-        flash(_("Dieser Eintrag kommt im Bestand nicht (mehr) vor."), "info")
+        flash(_("This entry no longer occurs in the inventory."), "info")
     elif target == "__neu__" and not _can_change_all(old):
-        flash(_("„{name}“ kommt auch bei Gegenständen anderer Gruppen vor – Ersetzen nur durch Administratoren "
-                "oder Verwalter ohne Gruppe.", name=old), "error")
+        flash(_("“{name}” is also used by items of other groups – only administrators "
+                "or managers without a group can replace it.", name=old), "error")
     elif target == "__neu__":
         clean = re.sub(r"\s+", " ", old).strip()
         if canonical(clean) is None:
@@ -198,16 +198,16 @@ def adopt():
         if clean != old:
             _move_assets(old, canonical(clean) or clean)
         db.session.commit()
-        flash(_("„{name}“ ist jetzt ein festgelegter Standort.", name=clean), "success")
+        flash(_("“{name}” is now a defined location.", name=clean), "success")
     else:
         loc = get_by_id(Location, parse_id(target) or 0)
         if loc is None:
-            flash(_("Bitte einen Standort auswählen."), "error")
+            flash(_("Please choose a location."), "error")
         elif not _can_change_all(old):
-            flash(_("„{name}“ kommt auch bei Gegenständen anderer Gruppen vor – Ersetzen nur durch Administratoren "
-                    "oder Verwalter ohne Gruppe.", name=old), "error")
+            flash(_("“{name}” is also used by items of other groups – only administrators "
+                    "or managers without a group can replace it.", name=old), "error")
         else:
             n = _move_assets(old, loc.name)
             db.session.commit()
-            flash(_("„{old}“ durch „{new}“ ersetzt – {assets} angepasst.", old=old, new=loc.name, assets=_assets(n)), "success")
+            flash(_("“{old}” replaced by “{new}” – {assets} updated.", old=old, new=loc.name, assets=_assets(n)), "success")
     return redirect(url_for("locations.index"))

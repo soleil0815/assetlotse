@@ -203,7 +203,7 @@ class BackupTests(Base):
         for p in (p2, p3, p4):
             self.assertIn(p.name, names)
             self.assertIsNotNone(backup.find_backup(p.name))
-        self.assertEqual({i["kind"] for i in backup.list_backups() if i["name"] == p4.name}, {"automatisch"})
+        self.assertEqual({i["kind"] for i in backup.list_backups() if i["name"] == p4.name}, {"automatic"})
         self.assertEqual(backup.rotate(1), 3)
 
     def test_rotate_keeps_fresh_part_files(self):

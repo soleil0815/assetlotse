@@ -1,54 +1,54 @@
 {% extends "base.html" %}
 {% from "_macros.html" import icon, thumb, avail_badge, group_badge, pagination %}
-{% block title %}{{ _("Bestand") }}{% endblock %}
+{% block title %}{{ _("Inventory") }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <div><div class="eyebrow">{{ _("Bestand") }}</div>
-    <h1>{% if q %}{{ _("Suche nach „{q}“", q=q) }}{% elif category %}{{ category }}{% else %}{{ _("Alle Gegenstände") }}{% endif %}</h1>
-    <p>{{ _("1 Eintrag gefunden") if total == 1 else _("{n} Einträge gefunden", n=total) }}</p></div>
+  <div><div class="eyebrow">{{ _("Inventory") }}</div>
+    <h1>{% if q %}{{ _("Search for “{q}”", q=q) }}{% elif category %}{{ category }}{% else %}{{ _("All items") }}{% endif %}</h1>
+    <p>{{ _("1 entry found") if total == 1 else _("{n} entries found", n=total) }}</p></div>
   {% if current_user.is_manager %}
   <div class="actions">
     <a class="btn" href="{{ url_for('assets.labels', q=q or None, kategorie=category or None, gruppe=group or None, standort=location or None, status=status or None) }}" target="_blank" rel="noopener"
-       title="{{ _('Etiketten (62 × 29 mm) für die Gegenstände dieser Auswahl') }}">{{ icon("tag") }} {{ _("Etiketten") }}</a>
+       title="{{ _('Labels (62 × 29 mm) for the items of this selection') }}">{{ icon("tag") }} {{ _("Labels") }}</a>
     <a class="btn" href="{{ url_for('assets.export_csv') }}">{{ icon("download") }} CSV</a>
-    <a class="btn primary" href="{{ url_for('assets.create', kategorie=category or None) }}">{{ icon("plus") }} {{ _("Gegenstand anlegen") }}</a>
+    <a class="btn primary" href="{{ url_for('assets.create', kategorie=category or None) }}">{{ icon("plus") }} {{ _("Add item") }}</a>
   </div>
   {% endif %}
 </div>
 
 <form class="toolbar" method="get">
-  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _("Suchen …") }}" aria-label="{{ _("Bestand durchsuchen") }}">
+  <input class="grow" type="search" name="q" value="{{ q }}" placeholder="{{ _("Search …") }}" aria-label="{{ _("Search the inventory") }}">
   {% if categories %}
-  <select name="kategorie" data-autosubmit aria-label="{{ _("Kategorie") }}">
-    <option value="">{{ _("Alle Kategorien") }}</option>
+  <select name="kategorie" data-autosubmit aria-label="{{ _("Category") }}">
+    <option value="">{{ _("All categories") }}</option>
     {% for c in categories %}<option value="{{ c }}" {{ 'selected' if category == c }}>{{ c }}</option>{% endfor %}
   </select>
   {% endif %}
-  <select name="gruppe" data-autosubmit aria-label="{{ _("Gruppe") }}">
-    <option value="">{{ _("Alle Gruppen") }}</option>
-    <option value="allgemein" {{ 'selected' if group == 'allgemein' }}>{{ _("Allgemein") }}</option>
+  <select name="gruppe" data-autosubmit aria-label="{{ _("Group") }}">
+    <option value="">{{ _("All groups") }}</option>
+    <option value="allgemein" {{ 'selected' if group == 'allgemein' }}>{{ _("General") }}</option>
     {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if group == g.id|string }}>{{ g.name }}</option>{% endfor %}
   </select>
   {% if location_names %}
-  <select name="standort" data-autosubmit aria-label="{{ _("Standort") }}">
-    <option value="">{{ _("Alle Standorte") }}</option>
+  <select name="standort" data-autosubmit aria-label="{{ _("Location") }}">
+    <option value="">{{ _("All locations") }}</option>
     {% for n in location_names %}<option value="{{ n }}" {{ 'selected' if location == n }}>{{ n }}</option>{% endfor %}
   </select>
   {% endif %}
   <select name="status" data-autosubmit aria-label="{{ _("Status") }}">
-    <option value="">{{ _("Jeder Status") }}</option>
-    <option value="verfuegbar" {{ 'selected' if status == 'verfuegbar' }}>{{ _("Verfügbar") }}</option>
-    <option value="ausgegeben" {{ 'selected' if status == 'ausgegeben' }}>{{ _("Ausgegeben") }}</option>
+    <option value="">{{ _("Any status") }}</option>
+    <option value="verfuegbar" {{ 'selected' if status == 'verfuegbar' }}>{{ _p("status", "Available") }}</option>
+    <option value="ausgegeben" {{ 'selected' if status == 'ausgegeben' }}>{{ _("Issued") }}</option>
   </select>
-  <select name="sort" data-autosubmit aria-label="{{ _("Sortierung") }}">
-    <option value="name" {{ 'selected' if sort == 'name' }}>{{ _("Bezeichnung A–Z") }}</option>
-    <option value="category" {{ 'selected' if sort == 'category' }}>{{ _("Kategorie A–Z") }}</option>
-    <option value="inventory" {{ 'selected' if sort == 'inventory' }}>{{ _("Inventarnummer") }}</option>
-    <option value="new" {{ 'selected' if sort == 'new' }}>{{ _("Zuletzt angelegt") }}</option>
+  <select name="sort" data-autosubmit aria-label="{{ _("Sort order") }}">
+    <option value="name" {{ 'selected' if sort == 'name' }}>{{ _("Name A–Z") }}</option>
+    <option value="category" {{ 'selected' if sort == 'category' }}>{{ _("Category A–Z") }}</option>
+    <option value="inventory" {{ 'selected' if sort == 'inventory' }}>{{ _("Inventory number") }}</option>
+    <option value="new" {{ 'selected' if sort == 'new' }}>{{ _("Recently added") }}</option>
   </select>
-  <div class="seg" role="group" aria-label="{{ _("Ansicht") }}">
-    <button type="button" data-view="list" title="{{ _("Liste") }}">{{ icon("list") }}</button>
-    <button type="button" data-view="grid" title="{{ _("Kacheln") }}">{{ icon("grid") }}</button>
+  <div class="seg" role="group" aria-label="{{ _("View") }}">
+    <button type="button" data-view="list" title="{{ _("List") }}">{{ icon("list") }}</button>
+    <button type="button" data-view="grid" title="{{ _("Tiles") }}">{{ icon("grid") }}</button>
   </div>
 </form>
 
@@ -65,7 +65,7 @@
   </div>
   <div class="card table-wrap view-list">
     <table class="assets-table">
-      <thead><tr><th>{{ _("Bezeichnung") }}</th><th>{{ _("Inventarnummer") }}</th><th>{{ _("Kategorie") }}</th><th>{{ _("Standort") }}</th><th>{{ _("Gruppe") }}</th><th>{{ _("Status") }}</th>{% if current_user.is_manager %}<th>{{ _("Ausgegeben an") }}</th>{% endif %}</tr></thead>
+      <thead><tr><th>{{ _p("label", "Name") }}</th><th>{{ _("Inventory number") }}</th><th>{{ _("Category") }}</th><th>{{ _("Location") }}</th><th>{{ _("Group") }}</th><th>{{ _("Status") }}</th>{% if current_user.is_manager %}<th>{{ _("Issued to") }}</th>{% endif %}</tr></thead>
       <tbody>
       {% for asset in assets %}
         <tr>
@@ -78,8 +78,8 @@
           <td>{{ group_badge(asset.group) }}</td>
           <td>{{ avail_badge(asset) }}</td>
           {% if current_user.is_manager %}{# Namen nur für Verwalter dieses Gegenstands (Datenschutz) #}
-          <td class="holder">{% if current_user.can_manage(asset) %}{% set holders = asset.active_loans|map(attribute="user.name")|list %}{{ holders[:2]|join(", ") }}{% if holders|length > 2 %} {{ _("+{n} weitere", n=holders|length - 2) }}{% endif %}
-            {%- if asset.available > 0 and asset.lendable %}{{ " " if holders }}<a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', gegenstand=asset.id) }}" title="{{ _("An eine Person ausgeben") }}">{{ icon("loan") }} {{ _("Ausgeben") }}</a>
+          <td class="holder">{% if current_user.can_manage(asset) %}{% set holders = asset.active_loans|map(attribute="user.name")|list %}{{ holders[:2]|join(", ") }}{% if holders|length > 2 %} {{ _("+{n} more", n=holders|length - 2) }}{% endif %}
+            {%- if asset.available > 0 and asset.lendable %}{{ " " if holders }}<a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', gegenstand=asset.id) }}" title="{{ _("Issue to a person") }}">{{ icon("loan") }} {{ _("Issue") }}</a>
             {%- elif not holders %}–{% endif %}{% else %}–{% endif %}</td>{% endif %}
         </tr>
       {% endfor %}
@@ -90,8 +90,8 @@
 {{ pagination(page, pages, "assets.index", {"q": q, "kategorie": category, "gruppe": group, "standort": location, "status": status, "sort": sort}) }}
 {% else %}
 <div class="card empty">{{ icon("search") }}
-  <div>{{ _("Keine Gegenstände gefunden.") }}</div>
-  {% if current_user.is_manager %}<a href="{{ url_for('assets.create') }}">{{ _("Neuen Gegenstand anlegen →") }}</a>{% endif %}
+  <div>{{ _("No items found.") }}</div>
+  {% if current_user.is_manager %}<a href="{{ url_for('assets.create') }}">{{ _("Add a new item →") }}</a>{% endif %}
 </div>
 {% endif %}
 {% endblock %}

@@ -74,7 +74,7 @@ def fields(s: str) -> set[str]:
 class CatalogTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.en = json.loads((PKG / "translations" / "en.json").read_text(encoding="utf-8"))
+        cls.en = json.loads((PKG / "translations" / "de.json").read_text(encoding="utf-8"))
 
     def test_everything_translated(self):
         missing = sorted((template_msgids() | python_msgids() | js_msgids()) - set(self.en))

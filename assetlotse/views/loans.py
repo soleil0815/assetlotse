@@ -44,13 +44,13 @@ DEFAULT_DUE = object()   # „Standard-Leihdauer verwenden“ (None heißt: unbe
 def lend_asset(asset: Asset, borrower: User, due=DEFAULT_DUE, note: str = "") -> tuple[bool, str]:
     """Zentrale Ausgabelogik inkl. aller Prüfungen."""
     if not borrower.active:
-        return False, _("{name} ist gesperrt.", name=borrower.name)
+        return False, _("{name} is blocked.", name=borrower.name)
     if not asset.lendable:
-        return False, _("„{title}“ gehört zur Gruppe „{group}“ – deren Gegenstände werden nicht verliehen.",
+        return False, _("“{title}” belongs to the group “{group}” – its items are not lent out.",
                         title=asset.name, group=asset.group.name)
     if not borrower.can_borrow(asset):
         grp = asset.group.name if asset.group else "–"
-        return False, _("{name} gehört nicht zur Gruppe „{group}“ und darf diesen Gegenstand nicht bekommen.", name=borrower.name, group=grp)
+        return False, _("{name} is not a member of the group “{group}” and may not receive this item.", name=borrower.name, group=grp)
     limit = get_int("max_loans", 0)
     try:
         lock_asset(asset.id)
@@ -64,27 +64,27 @@ def lend_asset(asset: Asset, borrower: User, due=DEFAULT_DUE, note: str = "") ->
                       .filter(Loan.asset_id == asset.id, Loan.returned_at.is_(None)).group_by(Loan.user_id).all())
         if borrower.id in active:
             db.session.rollback()
-            return False, _("{name} hat diesen Gegenstand bereits.", name=borrower.name)
+            return False, _("{name} already has this item.", name=borrower.name)
         if sum(active.values()) >= quantity:
             db.session.rollback()
-            return False, _("Kein Stück verfügbar.")
+            return False, _("No piece available.")
         if limit and count_active_loans(borrower.id) >= limit:
             db.session.rollback()
-            return False, _("{name} hat bereits die maximale Anzahl von {limit} Gegenständen.", name=borrower.name, limit=limit)
+            return False, _("{name} already has the maximum of {limit} items.", name=borrower.name, limit=limit)
         loan = Loan(asset_id=asset.id, user_id=borrower.id, issued_by_id=current_user.id,
                     due_at=default_due_date() if due is DEFAULT_DUE else due, note=note[:500])
         db.session.add(loan)
         db.session.commit()
     except IntegrityError:   # eindeutiger Index: dieselbe Person hat den Gegenstand gerade eben schon bekommen
         db.session.rollback()
-        return False, _("{name} hat diesen Gegenstand bereits.", name=borrower.name)
+        return False, _("{name} already has this item.", name=borrower.name)
     except OperationalError:  # z. B. Datenbank zu lange gesperrt
         db.session.rollback()
-        return False, _("Die Datenbank ist gerade beschäftigt. Bitte versuch es gleich noch einmal.")
+        return False, _("The database is busy right now. Please try again in a moment.")
     notify_loan(loan)
     if loan.due_at is None:
-        return True, _("„{title}“ an {name} ausgegeben (unbefristet).", title=asset.name, name=borrower.name)
-    return True, _("„{title}“ an {name} ausgegeben – zurück bis {date}.", title=asset.name, name=borrower.name,
+        return True, _("“{title}” issued to {name} (open-ended).", title=asset.name, name=borrower.name)
+    return True, _("“{title}” issued to {name} – return by {date}.", title=asset.name, name=borrower.name,
                    date=format_day(loan.due_at))
 
 
@@ -95,9 +95,9 @@ def return_loan(loan: Loan) -> str:
     db.session.commit()
     db.session.refresh(loan)
     if res.rowcount != 1:
-        return _("„{title}“ war bereits zurückgegeben.", title=loan.asset.name)
+        return _("“{title}” had already been returned.", title=loan.asset.name)
     notify_return(loan)
-    return _("„{title}“ von {name} zurückgenommen.", title=loan.asset.name, name=loan.user.name)
+    return _("“{title}” returned by {name}.", title=loan.asset.name, name=loan.user.name)
 
 
 @bp.route("/gegenstaende/<int:asset_id>/ausgeben", methods=["POST"])
@@ -122,10 +122,10 @@ def borrow(asset_id):
         try:
             due = date.fromisoformat(request.form["due_at"])
         except ValueError:
-            flash(_("Ungültiges Rückgabedatum."), "error")
+            flash(_("Invalid return date."), "error")
             return _back(url_for("assets.detail", asset_id=asset.id))
         if isinstance(due, date) and not (date.today() <= due <= date.today() + timedelta(days=3650)):
-            flash(_("Das Fälligkeitsdatum muss zwischen heute und in zehn Jahren liegen."), "error")
+            flash(_("The due date must be between today and ten years from now."), "error")
             return _back(url_for("assets.detail", asset_id=asset.id))
     ok, msg = lend_asset(asset, borrower, due, request.form.get("note", ""))
     flash(msg, "success" if ok else "error")
@@ -140,7 +140,7 @@ def give_back(loan_id):
     if not (own or current_user.can_manage(loan.asset)):
         abort(404 if catalog_hidden(current_user) and loan.user_id != current_user.id else 403)
     if loan.returned_at:
-        flash(_("Diese Ausleihe ist bereits abgeschlossen."), "info")
+        flash(_("This loan has already been closed."), "info")
     else:
         flash(return_loan(loan), "success")
     return _back(url_for("loans.index"))
@@ -156,19 +156,19 @@ def extend(loan_id):
         abort(404 if catalog_hidden(current_user) and loan.user_id != current_user.id else 403)
     if not manager and not loan.asset.lendable:
         # Gruppe mit „Kein Verleih“: zurückgeben ja, selbst verlängern nein (Verwalter entscheiden selbst)
-        flash(_("Gegenstände der Gruppe „{group}“ werden nicht verliehen – bitte zurückgeben oder an die Verwaltung "
-                "wenden.", group=loan.asset.group.name), "error")
+        flash(_("Items of the group “{group}” are not lent out "
+                "– please return it or contact the management.", group=loan.asset.group.name), "error")
         return _back(url_for("loans.index"))
     max_ext, days = get_int("max_extensions", 2), get_int("extension_days", 14)
     for _attempt in range(3):
         if loan.returned_at:
-            flash(_("Diese Ausleihe ist bereits abgeschlossen."), "info")
+            flash(_("This loan has already been closed."), "info")
             break
         if loan.due_at is None:
-            flash(_("Diese Ausleihe ist unbefristet – eine Verlängerung ist nicht nötig."), "info")
+            flash(_("This loan is open-ended – no extension needed."), "info")
             break
         if not manager and loan.extensions >= max_ext:
-            flash(_("Die maximale Anzahl an Verlängerungen ist erreicht. Bitte wende dich an die Verwaltung."), "error")
+            flash(_("The maximum number of extensions has been reached. Please contact the management team."), "error")
             break
         old_ext = loan.extensions
         new_due = max(loan.due_at, date.today()) + timedelta(days=days)
@@ -178,7 +178,7 @@ def extend(loan_id):
             .values(extensions=Loan.extensions + 1, due_at=new_due).execution_options(synchronize_session=False))
         db.session.commit()
         if res.rowcount == 1:
-            flash(_("Verlängert bis {date}.", date=format_day(new_due)), "success")
+            flash(_("Extended until {date}.", date=format_day(new_due)), "success")
             break
         db.session.refresh(loan)   # parallele Änderung – mit dem neuen Stand noch einmal prüfen
     return _back(url_for("loans.index"))
@@ -191,11 +191,11 @@ def remind(loan_id):
     if not current_user.can_manage(loan.asset):
         abort(403)
     if loan.returned_at:
-        flash(_("Diese Ausleihe ist bereits abgeschlossen."), "info")
+        flash(_("This loan has already been closed."), "info")
         return _back(url_for("loans.index"))
     ok, msg = send_manual_reminder(loan)
-    flash(_("Erinnerung an {email} gesendet.", email=loan.user.email) if ok
-          else _("Keine Erinnerung gesendet: {reason}", reason=msg),
+    flash(_("Reminder sent to {email}.", email=loan.user.email) if ok
+          else _("No reminder sent: {reason}", reason=msg),
           "success" if ok else "error")
     return _back(url_for("loans.index"))
 
@@ -295,18 +295,18 @@ def _find_people(query: str):
         except LDAPError as exc:
             log.warning("AD-Personensuche fehlgeschlagen: %s", exc)
             # Details (Bind-Fehler, DNs …) nur für Administratoren – Verwalter bekommen eine allgemeine Meldung
-            ad_error = str(exc) if current_user.is_admin else _("Das Active Directory ist gerade nicht erreichbar.")
+            ad_error = str(exc) if current_user.is_admin else _("Active Directory cannot be reached right now.")
         except Exception:  # noqa: BLE001 – ein AD-Problem darf die Theke nicht lahmlegen
             log.exception("AD-Personensuche fehlgeschlagen")
-            ad_error = _("Das Active Directory ist gerade nicht erreichbar.")
+            ad_error = _("Active Directory cannot be reached right now.")
     if len(people) == 1 and not ad_people and not ad_more:
         return people[0], [], [], ad_error
     if ad_more:
-        flash(_("Es gibt möglicherweise weitere Personen im Active Directory – bitte genauer suchen."), "info")
+        flash(_("There may be more people in Active Directory – please search more precisely."), "info")
     elif len(people) > 10:
-        flash(_("Mehr als 10 Konten passen – bitte genauer suchen."), "info")
+        flash(_("More than 10 accounts match – please search more precisely."), "info")
     elif not people and not ad_people:
-        flash(_("Keine Person zu „{query}“ gefunden.", query=query), "error")
+        flash(_("No person found for “{query}”.", query=query), "error")
     return None, people[:10], ad_people, ad_error
 
 
@@ -334,7 +334,7 @@ def people_suggest():
             for p in ad_cache.search(q, limit=max(0, 10 - len(items)) or 1):
                 items.append({"name": p.display_name or p.username,
                               "sub": " · ".join(x for x in (p.username, p.email) if x),
-                              "badge": _("AD – noch kein Konto"),
+                              "badge": _("AD – no account yet"),
                               "post": {"url": url_for("loans.desk_ad_account", gegenstand=preset),
                                        "username": p.username}})
     resp = jsonify({"items": items[:10]})
@@ -359,37 +359,37 @@ def desk_ad_account():
     try:
         info = Directory().check_account(username)
     except LDAPAmbiguous:
-        flash(_("„{name}“ ist im Active Directory nicht eindeutig – bitte die Administration informieren.",
+        flash(_("“{name}” is not unique in Active Directory – please inform the administrators.",
                 name=username), "error")
         return redirect(back)
     except LDAPError as exc:
         log.warning("AD-Kontoübernahme %s fehlgeschlagen: %s", username, exc)
         flash(_("Active Directory: {error}", error=str(exc)) if current_user.is_admin
-              else _("Das Active Directory ist gerade nicht erreichbar."), "error")
+              else _("Active Directory cannot be reached right now."), "error")
         return redirect(back)
     except Exception as exc:  # noqa: BLE001 – z. B. Netzwerkfehler von ldap3: Hinweis statt Fehlerseite
         log.exception("AD-Kontoübernahme %s fehlgeschlagen", username)
         flash(_("Active Directory: {error}", error=str(exc)) if current_user.is_admin
-              else _("Das Active Directory ist gerade nicht erreichbar."), "error")
+              else _("Active Directory cannot be reached right now."), "error")
         return redirect(back)
     if info is None or info.role is None:
         from .. import ad_cache
         ad_cache.forget(username)          # nicht bis zum nächsten Abgleich weiter anzeigen
         db.session.commit()
-        flash(_("„{name}“ ist im Active Directory nicht (mehr) für AssetLotse freigegeben.", name=username), "error")
+        flash(_("“{name}” is not (or no longer) permitted for AssetLotse in Active Directory.", name=username), "error")
         return redirect(back)
     from .main import find_ldap_account, guid_conflict, legacy_locked
     existing = find_ldap_account(info)
     if legacy_locked(info, existing):
-        flash(_("Zu „{name}“ gibt es ein gesperrtes älteres Konto ohne AD-Kennung – ein Administrator muss prüfen, ob "
-                "es dieselbe Person ist (Konto aktivieren oder umbenennen).", name=info.username), "error")
+        flash(_("There is a locked older account for “{name}” without an AD identifier – an administrator "
+                "must check whether it is the same person (activate or rename the account).", name=info.username), "error")
         return redirect(back)
     if guid_conflict(info, existing):
-        flash(_("Den Benutzernamen „{name}“ hat in AssetLotse ein früheres Konto einer anderen Person. Bitte das alte "
-                "Konto unter Administration → Benutzer umbenennen.", name=info.username), "error")
+        flash(_("In AssetLotse, the username “{name}” belongs to an earlier account of a different "
+                "person. Please rename the old account under Administration → Users.", name=info.username), "error")
         return redirect(back)
     if existing is not None and existing.auth_source != "ldap":
-        flash(_("Es gibt bereits ein lokales Konto „{name}“ – es wird nicht mit dem Active Directory verknüpft.",
+        flash(_("A local account “{name}” already exists – it will not be linked to Active Directory.",
                 name=existing.username), "error")
         return redirect(back)
     previous_role = existing.role if existing is not None else None
@@ -422,7 +422,7 @@ def desk_ad_account():
     log.info("AD-Konto %s an der Ausgabetheke übernommen durch %s (Rolle %s)", user.username,
              current_user.username, user.role)
     if existing is None:
-        flash(_("{name} aus dem Active Directory übernommen.", name=user.name), "success")
+        flash(_("{name} taken over from Active Directory.", name=user.name), "success")
     return redirect(url_for("loans.desk", modus="ausgabe", benutzer=user.username, gegenstand=preset))
 
 
@@ -511,7 +511,7 @@ def desk():
                                     gegenstand=preset.id if preset is not None else None,
                                     **{k: v for k, v in _stock_args().items() if v and k != "frei"}))
         if not assets:
-            flash(_("Kein Gegenstand zu „{code}“ gefunden.", code=code), "error")
+            flash(_("No item found for “{code}”.", code=code), "error")
 
     stock = _stock_args()
     stock_results = _stock_search(stock, borrower) if mode == "ausgabe" else None
@@ -538,7 +538,7 @@ def _preset_asset() -> Asset | None:
     if asset is None or not current_user.can_manage(asset):
         return None
     if not asset.lendable:
-        flash(_("„{title}“ gehört zur Gruppe „{group}“ – deren Gegenstände werden nicht verliehen.",
+        flash(_("“{title}” belongs to the group “{group}” – its items are not lent out.",
                 title=asset.name, group=asset.group.name), "error")
         return None
     return asset

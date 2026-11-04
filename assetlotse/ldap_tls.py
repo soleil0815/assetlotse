@@ -113,7 +113,7 @@ class CertInfo:
     not_after: str
     sha256: str
     names: list[str]
-    kind: str  # Stamm-CA | Zwischen-CA | Server
+    kind: str  # Root CA | Intermediate CA | Self-signed | Server
     expired: bool
 
 
@@ -121,9 +121,9 @@ def describe(cert: x509.Certificate) -> CertInfo:
     from datetime import datetime
     na = cert.not_valid_after_utc
     if is_self_signed(cert):
-        kind = "Stamm-CA" if _is_ca(cert) else "Selbstsigniert"
+        kind = "Root CA" if _is_ca(cert) else "Self-signed"
     elif _is_ca(cert):
-        kind = "Zwischen-CA"
+        kind = "Intermediate CA"
     else:
         kind = "Server"
     fp = cert.fingerprint(hashes.SHA256()).hex().upper()
@@ -140,7 +140,7 @@ def describe(cert: x509.Certificate) -> CertInfo:
 def _read_ldap_message(sock: socket.socket) -> bytes:
     head = sock.recv(2)
     if len(head) < 2 or head[0] != 0x30:
-        raise CertFetchError(_("Unerwartete Antwort – ist das ein LDAP-Server?"))
+        raise CertFetchError(_("Unexpected response – is this an LDAP server?"))
     length = head[1]
     if length & 0x80:
         n = length & 0x7F
@@ -164,9 +164,9 @@ def _starttls(sock: socket.socket):
     pos = resp.find(b"\x78")
     code_pos = resp.find(b"\x0a\x01", pos)
     if pos < 0 or code_pos < 0:
-        raise CertFetchError(_("StartTLS-Antwort nicht verstanden."))
+        raise CertFetchError(_("StartTLS response not understood."))
     if resp[code_pos + 2] != 0:
-        raise CertFetchError(_("Server lehnt StartTLS ab (LDAP-Code {code}).", code=resp[code_pos + 2]))
+        raise CertFetchError(_("Server refuses StartTLS (LDAP code {code}).", code=resp[code_pos + 2]))
 
 
 def server_chain(host: str, port: int, ldaps: bool, timeout: int = 8) -> list[x509.Certificate]:
@@ -174,7 +174,7 @@ def server_chain(host: str, port: int, ldaps: bool, timeout: int = 8) -> list[x5
     try:
         raw = socket.create_connection((host, port), timeout=timeout)
     except OSError as exc:
-        raise CertFetchError(_("{host}:{port} nicht erreichbar ({error}).", host=host, port=port, error=exc)) from exc
+        raise CertFetchError(_("{host}:{port} not reachable ({error}).", host=host, port=port, error=exc)) from exc
     try:
         if not ldaps:
             _starttls(raw)
@@ -187,9 +187,9 @@ def server_chain(host: str, port: int, ldaps: bool, timeout: int = 8) -> list[x5
             else:
                 ders = [tls.getpeercert(binary_form=True)]
     except ssl.SSLError as exc:
-        raise CertFetchError(_("TLS-Handshake mit {host}:{port} fehlgeschlagen ({error}).", host=host, port=port, error=exc.reason or exc)) from exc
+        raise CertFetchError(_("TLS handshake with {host}:{port} failed ({error}).", host=host, port=port, error=exc.reason or exc)) from exc
     except OSError as exc:
-        raise CertFetchError(_("Verbindung zu {host}:{port} abgebrochen ({error}).", host=host, port=port, error=exc)) from exc
+        raise CertFetchError(_("Connection to {host}:{port} aborted ({error}).", host=host, port=port, error=exc)) from exc
     finally:
         try:
             raw.close()
@@ -197,7 +197,7 @@ def server_chain(host: str, port: int, ldaps: bool, timeout: int = 8) -> list[x5
             pass
     certs = [x509.load_der_x509_certificate(d) for d in ders if d]
     if not certs:
-        raise CertFetchError(_("Der Server hat kein Zertifikat gesendet."))
+        raise CertFetchError(_("The server did not send a certificate."))
     return certs
 
 
@@ -285,7 +285,7 @@ class FetchResult:
 def fetch_trust_anchors(directory, servers: list[str], security: str, timeout: int = 8) -> FetchResult:
     """Holt die Zertifikate aller konfigurierten DCs und bestimmt die Vertrauensanker."""
     if security not in ("ldaps", "starttls") and not any(s.lower().startswith("ldaps://") for s in servers):
-        raise CertFetchError(_("Bitte zuerst „LDAPS“ oder „StartTLS“ als Sicherheit wählen."))
+        raise CertFetchError(_("Please choose “LDAPS” or “StartTLS” as security first."))
     notes, chains, host_ok = [], [], {}
     for entry in servers:
         host, port, ldaps = parse_server(entry, security)
@@ -296,7 +296,7 @@ def fetch_trust_anchors(directory, servers: list[str], security: str, timeout: i
         leaf = chain[0]
         host_ok[host] = hostname_matches(leaf, host)
     if not chains:
-        raise CertFetchError(_("Kein Server konfiguriert."))
+        raise CertFetchError(_("No server configured."))
 
     pool = [c for ch in chains for c in ch]
     full = [complete_chain(ch, pool) for ch in chains]
@@ -309,7 +309,7 @@ def fetch_trust_anchors(directory, servers: list[str], security: str, timeout: i
             pool += aia
             full = [complete_chain(ch, pool) for ch in full]
             if all(is_self_signed(ch[-1]) for ch in full):
-                notes.append(_("Stamm-CA über die AIA-Adresse im Zertifikat ergänzt."))
+                notes.append(_("Root CA added via the AIA address in the certificate."))
 
     if not all(is_self_signed(ch[-1]) for ch in full) and directory is not None and directory.bind_dn:
         try:
@@ -318,7 +318,7 @@ def fetch_trust_anchors(directory, servers: list[str], security: str, timeout: i
                 pool += ad
                 full = [complete_chain(ch, pool) for ch in full]
                 if all(is_self_signed(ch[-1]) for ch in full):
-                    notes.append(_("Stamm-CA aus dem Active Directory (Public Key Services) ergänzt."))
+                    notes.append(_("Root CA added from Active Directory (Public Key Services)."))
         except Exception as exc:  # noqa: BLE001
             log.info("CA-Abfrage im AD fehlgeschlagen: %s", exc)
 
@@ -328,8 +328,8 @@ def fetch_trust_anchors(directory, servers: list[str], security: str, timeout: i
             anchors = ch[1:] if len(ch) > 1 else ch  # CAs ohne Server-Zertifikat
         else:
             anchors = ch
-            notes.append(_("Für „{subject}“ wurde keine Stamm-CA gefunden – "
-                           "das Server-Zertifikat selbst wird vertraut. Nach einer Erneuerung bitte erneut abrufen.",
+            notes.append(_("No root CA was found for “{subject}” – the server certificate "
+                           "itself is trusted. Please fetch it again after renewal.",
                            subject=ch[0].subject.rfc4514_string()))
         for c in anchors:
             fp = c.fingerprint(hashes.SHA256())
@@ -397,6 +397,6 @@ def _check_hostname(wrapped, host: str):
     if not hostname_matches(cert, host):
         names = ", ".join(_names(cert)) or cert.subject.rfc4514_string()
         raise LDAPCertificateError(
-            _("Hostname '{host}' steht nicht im Zertifikat des Servers (enthalten: {names}). "
-              "Bitte den DNS-Namen des DCs als Server eintragen oder die Hostname-Prüfung abschalten.",
+            _("Hostname '{host}' is not in the server's certificate (contains: {names}). Please "
+              "enter the DC's DNS name as the server or turn off hostname verification.",
               host=host, names=names))

@@ -22,7 +22,7 @@ from flask_login import current_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import func
 
-from ..i18n import _
+from ..i18n import _, _p
 from ..models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLE_READER, Group, User, db, get_bool, get_setting
 from . import form_str
 
@@ -216,10 +216,10 @@ def register():
             return render_template("register_done.html", state="check_mail" if needs_verification() else "approval")
         if not started:  # Sitzung abgelaufen o. Ä. – Formular einfach erneut anzeigen
             session["reg_started"] = time.time() - MIN_FILL_SECONDS
-            flash(_("Bitte sende das Formular noch einmal ab."), "info")
+            flash(_("Please submit the form again."), "info")
             return render_template("register.html", v=values, privacy=privacy), 400
         if _rate_limited(ip) or _rate_limited(f"try|{ip}", ATTEMPTS_PER_HOUR):
-            flash(_("Zu viele Registrierungen von deinem Anschluss. Bitte versuche es später erneut."), "error")
+            flash(_("Too many registrations from your connection. Please try again later."), "error")
             return render_template("register.html", v=values, privacy=privacy), 429
 
         _count(f"try|{ip}")
@@ -229,38 +229,38 @@ def register():
         if needs_verification() and not _base_url():
             log.warning("Registrierung abgelehnt: E-Mail-Bestätigung ist an, aber keine Adresse für Links in "
                         "E-Mails eingestellt (Administration → E-Mail)")
-            flash(_("Die Registrierung ist gerade nicht möglich. Bitte versuche es später erneut."), "error")
+            flash(_("Registration is not possible right now. Please try again later."), "error")
             return render_template("register.html", v=values, privacy=privacy), 503
         if not USERNAME_RE.match(username):
-            error = _("Benutzername: 3–40 Zeichen, nur Buchstaben, Ziffern, Punkt, Binde- und Unterstrich.")
+            error = _("Username: 3–40 characters, only letters, digits, full stop, hyphen and underscore.")
         elif username.lower() in RESERVED:
-            error = _("Dieser Benutzername ist nicht verfügbar.")
+            error = _("This username is not available.")
         elif not name:
-            error = _("Bitte gib deinen Namen an.")
+            error = _("Please enter your name.")
         elif not __import__("assetlotse.mailer", fromlist=["valid_email"]).valid_email(email):
-            error = _("Bitte gib eine gültige E-Mail-Adresse an.")
+            error = _p("alt", "Please enter a valid email address.")
         elif not _allowed_domain(email):
-            error = _("Mit dieser E-Mail-Adresse ist keine Registrierung möglich.")
+            error = _("Registration is not possible with this email address.")
         elif len(password) < MIN_PASSWORD_LENGTH:
-            error = _("Das Passwort muss mindestens {n} Zeichen haben.", n=MIN_PASSWORD_LENGTH)
+            error = _("The password must be at least {n} characters long.", n=MIN_PASSWORD_LENGTH)
         elif password.lower() in (username.lower(), email):
-            error = _("Das Passwort darf nicht dem Benutzernamen oder der E-Mail-Adresse entsprechen.")
+            error = _("The password must not be the same as your username or email address.")
         elif password != request.form.get("password2"):
-            error = _("Die Passwörter stimmen nicht überein.")
+            error = _("The passwords do not match.")
         elif privacy and not request.form.get("privacy"):
-            error = _("Bitte bestätige die Datenschutzhinweise.")
+            error = _("Please confirm the privacy policy.")
         elif User.query.filter(func.lower(User.username) == username.lower()).first():
-            error = _("Dieser Benutzername ist bereits vergeben.")
+            error = _("This username is already taken.")
         elif User.query.filter(func.lower(User.email) == email).first():
             # Bewusst offen gemeldet: Verbergen ließe sich das ohnehin nicht (der Benutzername wäre sonst frei
             # bzw. belegt). Gebremst wird das Abfragen über die Grenze je Anschluss.
-            error = _("Mit dieser E-Mail-Adresse gibt es bereits ein Konto.")
+            error = _("An account with this email address already exists.")
         else:
             in_ad = _exists_in_directory(username)
             if in_ad is None:
-                error = _("Die Registrierung ist gerade nicht möglich. Bitte versuche es später erneut.")
+                error = _("Registration is not possible right now. Please try again later.")
             elif in_ad:
-                error = _("Dieser Benutzername ist bereits vergeben.")
+                error = _("This username is already taken.")
         if error:
             flash(error, "error")
             session["reg_started"] = time.time() - MIN_FILL_SECONDS  # erneutes Absenden sofort erlaubt
@@ -285,13 +285,13 @@ def register():
                  username, email, user.pending_approval, verify)
         if verify:
             if not send_verification(user):
-                flash(_("Die Bestätigungs-E-Mail konnte gerade nicht gesendet werden. Melde dich später an – "
-                        "dort kannst du sie erneut anfordern."), "warning")
+                flash(_("The confirmation email could not be sent right now. "
+                        "Sign in later – you can request it again there."), "warning")
             return render_template("register_done.html", state="check_mail", email=email)
         notify_admins(user)
         if user.active:
             from .security import start_login
-            flash(_("Willkommen! Dein Konto ist eingerichtet."), "success")
+            flash(_("Welcome! Your account is set up."), "success")
             return start_login(user, False, None)
         return render_template("register_done.html", state="approval")
 
@@ -324,7 +324,7 @@ def confirm_email_change(token):
     try:
         data = _change_serializer().loads(token, max_age=VERIFY_MAX_AGE)
     except SignatureExpired:
-        flash(_("Der Bestätigungslink ist abgelaufen. Bitte die neue Adresse im Profil noch einmal eintragen."), "error")
+        flash(_("The confirmation link has expired. Please enter the new address in your profile again."), "error")
         return redirect(url_for("main.profile"))
     except BadSignature:
         abort(404)
@@ -337,16 +337,16 @@ def confirm_email_change(token):
     user.pending_email = ""
     if not _allowed_domain(new):
         db.session.commit()
-        flash(_("Diese E-Mail-Adresse ist für dein Konto nicht erlaubt."), "error")
+        flash(_("This email address is not allowed for your account."), "error")
         return redirect(url_for("main.profile"))
     if email_taken(new, user):
         db.session.commit()
-        flash(_("Diese E-Mail-Adresse wird inzwischen von einem anderen Konto verwendet."), "error")
+        flash(_("This email address is now used by another account."), "error")
         return redirect(url_for("main.profile"))
     user.email = new
     db.session.commit()
     log.info("E-Mail-Adresse geändert und bestätigt: %s", user.username)
-    flash(_("Deine neue E-Mail-Adresse ist bestätigt."), "success")
+    flash(_("Your new email address is confirmed."), "success")
     return redirect(url_for("main.profile"))
 
 

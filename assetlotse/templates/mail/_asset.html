@@ -4,11 +4,11 @@
   <div style="font-weight:600;font-size:15px;">{% if base_url %}<a href="{{ base_url }}/gegenstaende/{{ loan.asset.id }}" style="color:#1d2421;text-decoration:none;">{{ loan.asset.name }}</a>{% else %}{{ loan.asset.name }}{% endif %}</div>
   {% if loan.asset.inventory_no or loan.asset.serial_number %}<div style="font-size:13px;color:#5f6b78;">{{ [loan.asset.inventory_no, (_("S/N") ~ " " ~ loan.asset.serial_number) if loan.asset.serial_number else ""]|select|join(" · ") }}</div>{% endif %}
   <div style="margin-top:6px;font-size:13px;">
-    {% if loan.due_at is none %}<span style="background:#e3edf2;color:#2f5f78;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _("unbefristet") }}</span>
-    {% elif loan.is_overdue %}<span style="background:#f8e1db;color:#c0392b;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _n("seit {date} überfällig ({n} Tag)", "seit {date} überfällig ({n} Tage)", -loan.days_left, date=loan.due_at|de_day) }}</span>
-    {% elif loan.days_left == 0 %}<span style="background:#fbedcc;color:#a8710e;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _("heute zurückgeben") }}</span>
-    {% else %}<span style="background:#dcefe2;color:#2e7a4b;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _("zurück bis {date}", date=loan.due_at|de_day) }}</span>{% endif %}
-    {% if loan.asset.location %}<span style="color:#5f6b78;"> · {{ _("Standort {location}", location=loan.asset.location) }}</span>{% endif %}
+    {% if loan.due_at is none %}<span style="background:#e3edf2;color:#2f5f78;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _("open-ended") }}</span>
+    {% elif loan.is_overdue %}<span style="background:#f8e1db;color:#c0392b;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _n("overdue since {date} ({n} day)", "overdue since {date} ({n} days)", -loan.days_left, date=loan.due_at|de_day) }}</span>
+    {% elif loan.days_left == 0 %}<span style="background:#fbedcc;color:#a8710e;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _("return today") }}</span>
+    {% else %}<span style="background:#dcefe2;color:#2e7a4b;padding:2px 8px;border-radius:99px;font-weight:600;">{{ _("return by {date}", date=loan.due_at|de_day) }}</span>{% endif %}
+    {% if loan.asset.location %}<span style="color:#5f6b78;"> · {{ _("Location {location}", location=loan.asset.location) }}</span>{% endif %}
   </div>
 </td></tr></table>
 {%- endmacro %}

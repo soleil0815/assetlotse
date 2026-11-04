@@ -1,16 +1,16 @@
 {% extends "mail/_layout.html" %}
 {% block content %}
-<p style="margin:0 0 12px;">{{ _("Hallo {name},", name=user.name) }}</p>
-<p style="margin:0 0 12px;">{{ _n("aktuell ist <b>{n} Ausleihe</b> überfällig:", "aktuell sind <b>{n} Ausleihen</b> überfällig:", loans|length) }}</p>
+<p style="margin:0 0 12px;">{{ _("Hello {name},", name=user.name) }}</p>
+<p style="margin:0 0 12px;">{{ _n("<b>{n} loan</b> is currently overdue:", "<b>{n} loans</b> are currently overdue:", loans|length) }}</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px;">
-  <tr><th align="left" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#5f6b78;font-size:12px;">{{ _("Gegenstand") }}</th>
-      <th align="left" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#5f6b78;font-size:12px;">{{ _("Ausgegeben an") }}</th>
-      <th align="right" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#5f6b78;font-size:12px;">{{ _("Überfällig") }}</th></tr>
+  <tr><th align="left" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#5f6b78;font-size:12px;">{{ _("Item") }}</th>
+      <th align="left" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#5f6b78;font-size:12px;">{{ _("Issued to") }}</th>
+      <th align="right" style="padding:8px;border-bottom:1px solid #e1e6eb;color:#5f6b78;font-size:12px;">{{ _("Overdue") }}</th></tr>
   {% for l in loans %}
   <tr><td style="padding:8px;border-bottom:1px solid #e9edf1;">{{ l.asset.name }}</td>
       <td style="padding:8px;border-bottom:1px solid #e9edf1;">{{ l.user.name }}{% if l.user.email %}<br><span style="color:#5f6b78;font-size:12px;">{{ l.user.email }}</span>{% endif %}</td>
-      <td align="right" style="padding:8px;border-bottom:1px solid #e9edf1;color:#c0392b;font-weight:600;white-space:nowrap;">{{ _("{n} Tg.", n=-l.days_left) }}</td></tr>
+      <td align="right" style="padding:8px;border-bottom:1px solid #e9edf1;color:#c0392b;font-weight:600;white-space:nowrap;">{{ _("{n} d", n=-l.days_left) }}</td></tr>
   {% endfor %}
 </table>
-{% if base_url %}<p style="margin:20px 0 10px;"><a href="{{ base_url }}/ausleihen?ansicht=ueberfaellig" style="background:{{ mail_accent }};color:{{ mail_accent_ink }};padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600;display:inline-block;">{{ _("Zur Übersicht") }}</a></p>{% endif %}
+{% if base_url %}<p style="margin:20px 0 10px;"><a href="{{ base_url }}/ausleihen?ansicht=ueberfaellig" style="background:{{ mail_accent }};color:{{ mail_accent_ink }};padding:10px 18px;border-radius:10px;text-decoration:none;font-weight:600;display:inline-block;">{{ _("Go to overview") }}</a></p>{% endif %}
 {% endblock %}

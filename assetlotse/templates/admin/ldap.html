@@ -4,11 +4,11 @@
 {% block content %}
 <div class="page-head">
   <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Active Directory / LDAP") }}</h1>
-    <p>{{ _("Anmeldung mit Domänenkonten aus Windows Server AD oder Samba AD. Lokale Konten (z. B. der Admin) funktionieren immer zusätzlich.") }}</p></div>
+    <p>{{ _("Sign-in with domain accounts from Windows Server AD or Samba AD. Local accounts (e.g. the admin) always work as well.") }}</p></div>
 </div>
 
 {% if test_error %}
-<div class="notice danger" style="margin-bottom: 18px">{{ icon("alert") }}<div><b>{{ _("Test fehlgeschlagen:") }}</b> {{ test_error }}</div></div>
+<div class="notice danger" style="margin-bottom: 18px">{{ icon("alert") }}<div><b>{{ _("Test failed:") }}</b> {{ test_error }}</div></div>
 {% endif %}
 {% if test_result and test_result.message %}
 <div class="notice ok" style="margin-bottom: 18px">{{ icon("check") }}<div>{{ test_result.message }}</div></div>
@@ -17,23 +17,23 @@
 {% set u = test_result.user %}
 <section class="card card-pad" style="margin-bottom: 18px">
   <div class="actions" style="justify-content: space-between; margin-bottom: 14px">
-    <h2>{{ _("Testergebnis: {name}", name=u.display_name) }}</h2>
-    {% if u.role %}<span class="badge ok">{{ icon("check") }} {{ _("Anmeldung erlaubt als {role}", role=ROLES[u.role]) }}</span>
-    {% else %}<span class="badge danger">{{ icon("x") }} {{ _("Anmeldung würde abgelehnt") }}</span>{% endif %}
+    <h2>{{ _("Test result: {name}", name=u.display_name) }}</h2>
+    {% if u.role %}<span class="badge ok">{{ icon("check") }} {{ _("Sign-in allowed as {role}", role=ROLES[u.role]) }}</span>
+    {% else %}<span class="badge danger">{{ icon("x") }} {{ _("Sign-in would be refused") }}</span>{% endif %}
   </div>
   <dl class="kv">
     <dt>DN</dt><dd class="mono">{{ u.dn }}</dd>
-    <dt>{{ _("Benutzername") }}</dt><dd>{{ u.username }}</dd>
-    <dt>{{ _("E-Mail") }}</dt><dd>{{ u.email or "–" }}</dd>
-    <dt>{{ _("Greifende Regel") }}</dt><dd class="mono">{{ u.matched_rule or _("keine") }}</dd>
-    <dt>{{ _("Gruppen ({n})", n=u.groups|length) }}</dt><dd>
+    <dt>{{ _("Username") }}</dt><dd>{{ u.username }}</dd>
+    <dt>{{ _("Email") }}</dt><dd>{{ u.email or "–" }}</dd>
+    <dt>{{ _("Matching rule") }}</dt><dd class="mono">{{ u.matched_rule or _("none") }}</dd>
+    <dt>{{ _("Groups ({n})", n=u.groups|length) }}</dt><dd>
       {% for dn, src in u.group_info.items() %}
       <div style="display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px">
-        <span class="badge {{ 'accent' if src == 'direkt' else ('brass' if src == 'primär' else '') }}" style="min-width: 92px; justify-content: center">{{ _(src) }}</span>
+        <span class="badge {{ 'accent' if src in ('direct', 'direkt') else ('brass' if src in ('primary', 'primär') else '') }}" style="min-width: 92px; justify-content: center">{{ _(src) }}</span>
         <span><b>{{ group_cn(dn) }}</b> <small class="mono" style="font-size: 11px; overflow-wrap: anywhere">{{ dn }}</small></span>
       </div>
       {% else %}–{% endfor %}
-      <small class="muted">{{ _("direkt = selbst Mitglied · primär = primäre Gruppe (z. B. Domänen-Benutzer) · verschachtelt = über eine andere Gruppe") }}</small>
+      <small class="muted">{{ _("direct = member itself · primary = primary group (e.g. Domain Users) · nested = via another group") }}</small>
     </dd>
   </dl>
 </section>
@@ -47,196 +47,196 @@
     <div class="stack">
     <section class="card card-pad">
       <div class="actions" style="justify-content: space-between; margin-bottom: 16px">
-        <h2>{{ _("Verbindung") }}</h2>
-        <div class="seg" role="group" aria-label="{{ _('Vorlage') }}">
+        <h2>{{ _("Connection") }}</h2>
+        <div class="seg" role="group" aria-label="{{ _('Template') }}">
           <button type="button" data-ldap-preset="ad">Windows AD</button>
           <button type="button" data-ldap-preset="samba">Samba AD</button>
           <button type="button" data-ldap-preset="openldap">OpenLDAP</button>
         </div>
       </div>
       <label class="check"><input type="checkbox" name="ldap_enabled" value="1" {{ 'checked' if v.ldap_enabled == '1' }}>
-        <span><b>{{ _("Anmeldung über Verzeichnisdienst aktivieren") }}</b></span></label>
+        <span><b>{{ _("Enable sign-in via directory service") }}</b></span></label>
       <div class="form-grid">
         <div class="field span-4"><label for="f-ldap-server">{{ _("Server") }}</label>
           <input id="f-ldap-server" class="mono" type="text" name="ldap_server" value="{{ v.ldap_server }}" placeholder="ldap://dc1.firma.local, ldap://dc2.firma.local">
-          <div class="hint">{{ _("Mehrere Domänencontroller mit Komma trennen (Failover).") }}</div></div>
-        <div class="field span-2"><label for="f-ldap-security">{{ _("Sicherheit") }}</label>
+          <div class="hint">{{ _("Separate several domain controllers with commas (failover).") }}</div></div>
+        <div class="field span-2"><label for="f-ldap-security">{{ _("Security") }}</label>
           <select id="f-ldap-security" name="ldap_security">
-            <option value="none" {{ 'selected' if v.ldap_security == 'none' }}>{{ _("keine (389)") }}</option>
+            <option value="none" {{ 'selected' if v.ldap_security == 'none' }}>{{ _("none (389)") }}</option>
             <option value="starttls" {{ 'selected' if v.ldap_security == 'starttls' }}>StartTLS (389)</option>
             <option value="ldaps" {{ 'selected' if v.ldap_security == 'ldaps' }}>LDAPS (636)</option>
           </select></div>
-        <div class="field span-6"><label for="f-ldap-base-dn">{{ _("Basis-DN") }}</label>
+        <div class="field span-6"><label for="f-ldap-base-dn">{{ _("Base DN") }}</label>
           <input id="f-ldap-base-dn" class="mono" type="text" name="ldap_base_dn" value="{{ v.ldap_base_dn }}" placeholder="DC=firma,DC=local"></div>
-        <div class="field span-6"><label for="f-ldap-bind-dn">{{ _("Dienstkonto (Bind-DN)") }}</label>
-          <input id="f-ldap-bind-dn" class="mono" type="text" name="ldap_bind_dn" value="{{ v.ldap_bind_dn }}" placeholder="{{ _('CN=svc-assetlotse,OU=Dienstkonten,DC=firma,DC=local  oder  svc-assetlotse@firma.local') }}"></div>
-        <div class="field span-6"><label for="f-ldap-bind-password">{{ _("Passwort des Dienstkontos") }}</label>
+        <div class="field span-6"><label for="f-ldap-bind-dn">{{ _("Service account (bind DN)") }}</label>
+          <input id="f-ldap-bind-dn" class="mono" type="text" name="ldap_bind_dn" value="{{ v.ldap_bind_dn }}" placeholder="{{ _('CN=svc-assetlotse,OU=ServiceAccounts,DC=company,DC=local  or  svc-assetlotse@company.local') }}"></div>
+        <div class="field span-6"><label for="f-ldap-bind-password">{{ _("Service account password") }}</label>
           <input id="f-ldap-bind-password" type="password" name="ldap_bind_password" value="" autocomplete="new-password"
-                 placeholder="{{ _('•••••••• gespeichert – leer lassen = unverändert') if has_pw else '' }}">
-          {% if has_pw %}<label class="check" style="margin-top: 8px"><input type="checkbox" name="clear_bind_password" value="1"> {{ _("Gespeichertes Passwort löschen") }}</label>{% endif %}</div>
-        <div class="field span-6"><label for="f-ldap-upn-suffix">{{ _("UPN-Suffix") }} <small>{{ _("(nur ohne Dienstkonto)") }}</small></label>
+                 placeholder="{{ _('•••••••• saved – leave empty = unchanged') if has_pw else '' }}">
+          {% if has_pw %}<label class="check" style="margin-top: 8px"><input type="checkbox" name="clear_bind_password" value="1"> {{ _("Delete saved password") }}</label>{% endif %}</div>
+        <div class="field span-6"><label for="f-ldap-upn-suffix">{{ _("UPN suffix") }} <small>{{ _("(only without service account)") }}</small></label>
           <input id="f-ldap-upn-suffix" class="mono" type="text" name="ldap_upn_suffix" value="{{ v.ldap_upn_suffix }}" placeholder="firma.local">
-          <div class="hint">{{ _("Ohne Dienstkonto meldet sich jeder Benutzer direkt als <code>benutzer@firma.local</code> an und sucht sich selbst.") }}</div></div>
-        <div class="field span-3"><label for="f-ldap-user-attr">{{ _("Login-Attribut") }}</label>
+          <div class="hint">{{ _("Without a service account, every user binds directly as <code>user@company.local</code> and looks themselves up.") }}</div></div>
+        <div class="field span-3"><label for="f-ldap-user-attr">{{ _("Login attribute") }}</label>
           <input id="f-ldap-user-attr" class="mono" type="text" name="ldap_user_attr" value="{{ v.ldap_user_attr }}"></div>
         <div class="field span-3"><label for="f-ldap-timeout">{{ _("Timeout (s)") }}</label>
           <input id="f-ldap-timeout" type="number" name="ldap_timeout" value="{{ v.ldap_timeout }}" min="1" max="60"></div>
-        <div class="field span-6"><label for="f-ldap-user-filter">{{ _("Benutzerfilter") }}</label>
+        <div class="field span-6"><label for="f-ldap-user-filter">{{ _("User filter") }}</label>
           <input id="f-ldap-user-filter" class="mono" type="text" name="ldap_user_filter" value="{{ v.ldap_user_filter }}">
-          <div class="hint">{{ _("z. B. <code>(&amp;(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))</code> schließt deaktivierte AD-Konten aus.") }}</div></div>
+          <div class="hint">{{ _("e.g. <code>(&amp;(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))</code> excludes disabled AD accounts.") }}</div></div>
       </div>
       <label class="check"><input type="checkbox" name="ldap_nested_groups" value="1" {{ 'checked' if v.ldap_nested_groups == '1' }}>
-        <span>{{ _("Verschachtelte Gruppen auflösen") }}<small class="muted">{{ _("AD/Samba-AD: Mitgliedschaft über Untergruppen zählt mit.") }}</small></span></label>
+        <span>{{ _("Resolve nested groups") }}<small class="muted">{{ _("AD/Samba AD: membership via subgroups counts too.") }}</small></span></label>
       <label class="check"><input type="checkbox" name="ldap_group_sync" value="1" {{ 'checked' if v.ldap_group_sync == '1' }}>
-        <span>{{ _("Gruppen automatisch zuordnen") }}<small class="muted">{{ _n("Über die bei der Gruppe hinterlegte AD-Gruppe ({n} Gruppe verknüpft).", "Über die bei der Gruppe hinterlegte AD-Gruppe ({n} Gruppen verknüpft).", ldap_groups|length) }}</small></span></label>
+        <span>{{ _("Assign groups automatically") }}<small class="muted">{{ _n("Via the AD group set on the group ({n} group linked).", "Via the AD group set on the group ({n} groups linked).", ldap_groups|length) }}</small></span></label>
     </section>
 
     <section class="card card-pad" id="ad-cache">
-      <h2 style="margin-bottom: 6px">{{ icon("users") }} {{ _("Abgleich im Hintergrund") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("AssetLotse liest regelmäßig alle Personen, die sich nach den Regeln unten anmelden dürften:") }}</p>
+      <h2 style="margin-bottom: 6px">{{ icon("users") }} {{ _("Background synchronisation") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("AssetLotse regularly reads everyone who may sign in under the rules below:") }}</p>
       <ul class="muted" style="font-size: 13.5px; margin: 0 0 10px 18px">
-        <li>{{ _("Personen ohne AssetLotse-Konto werden mit Benutzername, Name und E-Mail zwischengespeichert – die Ausgabetheke findet sie sofort. „Konto übernehmen“ prüft trotzdem immer noch einmal direkt im AD.") }}</li>
-        <li>{{ _("Vorhandene AD-Konten werden aktualisiert: Name, E-Mail, Gruppen (bei „Gruppen automatisch zuordnen“) und Umbenennungen im AD. Die Rolle nur bei Konten, die sich schon selbst angemeldet haben.") }}</li>
-        <li>{{ _("Im AD deaktivierte, abgelaufene, gelöschte oder nicht mehr berechtigte Personen fliegen aus dem Zwischenspeicher; ihre AssetLotse-Konten werden deaktiviert (Ausleihen bleiben) und automatisch wieder aktiv, wenn die Person zurückkommt.") }}</li>
+        <li>{{ _("People without an AssetLotse account are cached with username, name and email – the issue desk finds them instantly. “Take over” still checks directly in AD every time.") }}</li>
+        <li>{{ _("Existing AD accounts are updated: name, email, groups (with “Assign groups automatically”) and renames in AD. The role only for accounts that have signed in themselves before.") }}</li>
+        <li>{{ _("People disabled, expired, deleted or no longer authorised in AD are removed from the cache; their AssetLotse accounts are deactivated (loans remain) and reactivated automatically when the person returns.") }}</li>
       </ul>
       <label class="check"><input type="checkbox" name="ldap_cache_enabled" value="1" {{ 'checked' if v.ldap_cache_enabled == '1' }}>
-        <span>{{ _("Im Hintergrund mit dem AD abgleichen") }}<small class="muted">{{ _("Ausschalten löscht den Zwischenspeicher; dann sucht die Theke wieder direkt im AD (langsamer) und Konten werden nur bei der Anmeldung aktualisiert.") }}</small></span></label>
-      <div class="field" style="max-width: 280px; margin-top: 10px"><label for="f-ldap-cache-hours">{{ _("Abgleich") }}</label>
+        <span>{{ _("Synchronise with AD in the background") }}<small class="muted">{{ _("Switching off deletes the cache; the desk then searches AD directly again (slower) and accounts are only updated at sign-in.") }}</small></span></label>
+      <div class="field" style="max-width: 280px; margin-top: 10px"><label for="f-ldap-cache-hours">{{ _("Synchronisation") }}</label>
         <select id="f-ldap-cache-hours" name="ldap_cache_hours">
-          {% for h in cache_hours %}<option value="{{ h }}" {{ 'selected' if v.ldap_cache_hours == h|string }}>{{ _n("jede Stunde", "alle {n} Stunden", h) if h < 24 else _("einmal täglich") }}</option>{% endfor %}
+          {% for h in cache_hours %}<option value="{{ h }}" {{ 'selected' if v.ldap_cache_hours == h|string }}>{{ _n("every hour", "every {n} hours", h) if h < 24 else _("once a day") }}</option>{% endfor %}
         </select></div>
       <div class="notice {{ 'warn' if cache.error else '' }}" style="margin-top: 10px">{{ icon("server") }}<div>
-        {% if not cache.available %}{{ _("Noch nicht aktiv: Active Directory einschalten und ein Dienstkonto (Bind-DN) hinterlegen.") }}
-        {% elif not cache.enabled %}{{ _("Ausgeschaltet – an der Ausgabetheke wird direkt im AD gesucht.") }}
-        {% elif cache.running %}{{ _("Abgleich läuft gerade …") }}
-        {% elif cache.synced_at %}{{ _n("Zuletzt abgeglichen: {date} – {n} Person ohne AssetLotse-Konto im Zwischenspeicher.", "Zuletzt abgeglichen: {date} – {n} Personen ohne AssetLotse-Konto im Zwischenspeicher.", cache.count, date=cache.synced_at|de_date) }}
-        {% else %}{{ _("Noch nicht abgeglichen – der erste Abgleich startet nach dem Speichern bzw. in wenigen Minuten.") }}{% endif %}
-        {% if cache.result and cache.enabled and cache.synced_at %}<br><small>{{ _("{total} Personen ohne Konto · Konten: {updated} aktualisiert, {renamed} umbenannt, {deactivated} deaktiviert, {reactivated} wieder aktiv", total=cache.result.total, updated=cache.result.updated, renamed=cache.result.renamed, deactivated=cache.result.deactivated, reactivated=cache.result.reactivated) }}</small>{% endif %}
-        {% if cache.error and cache.enabled %}<br><b>{{ _("Fehler:") }}</b> {{ cache.error }}{% endif %}
-        {% if cache.warning and cache.enabled %}<br><b>{{ _("Achtung:") }}</b> {{ cache.warning }}{% endif %}
+        {% if not cache.available %}{{ _("Not active yet: enable Active Directory and enter a service account (bind DN).") }}
+        {% elif not cache.enabled %}{{ _("Off – the issue desk searches AD directly.") }}
+        {% elif cache.running %}{{ _("Synchronisation running …") }}
+        {% elif cache.synced_at %}{{ _n("Last synchronised: {date} – {n} person without an AssetLotse account in the cache.", "Last synchronised: {date} – {n} people without an AssetLotse account in the cache.", cache.count, date=cache.synced_at|de_date) }}
+        {% else %}{{ _("Not synchronised yet – the first run starts after saving or within a few minutes.") }}{% endif %}
+        {% if cache.result and cache.enabled and cache.synced_at %}<br><small>{{ _("{total} people without an account · accounts: {updated} updated, {renamed} renamed, {deactivated} deactivated, {reactivated} reactivated", total=cache.result.total, updated=cache.result.updated, renamed=cache.result.renamed, deactivated=cache.result.deactivated, reactivated=cache.result.reactivated) }}</small>{% endif %}
+        {% if cache.error and cache.enabled %}<br><b>{{ _("Error:") }}</b> {{ cache.error }}{% endif %}
+        {% if cache.warning and cache.enabled %}<br><b>{{ _("Attention:") }}</b> {{ cache.warning }}{% endif %}
       </div></div>
       {% if cache.pending and cache.enabled %}
       <div class="notice warn" style="margin-top: 10px">{{ icon("alert") }}<div>
-        <b>{{ _n("{n} AssetLotse-Konto gibt es im AD nicht mehr (gelöscht, deaktiviert oder nicht mehr berechtigt).", "{n} AssetLotse-Konten gibt es im AD nicht mehr (gelöscht, deaktiviert oder nicht mehr berechtigt).", cache.pending|length) }}</b><br>
-        {{ _("Weil das der erste Abgleich ist oder ungewöhnlich viele betroffen wären, wurden sie nicht automatisch deaktiviert. Bitte prüfen – bei einer falschen Einstellung (Basis-DN, Filter, Regeln) erst diese korrigieren.") }}
+        <b>{{ _n("{n} AssetLotse account no longer exists in AD (deleted, disabled or no longer authorised).", "{n} AssetLotse accounts no longer exist in AD (deleted, disabled or no longer authorised).", cache.pending|length) }}</b><br>
+        {{ _("Because this is the first synchronisation or an unusually large number would be affected, they were not deactivated automatically. Please check – if a setting is wrong (base DN, filter, rules), correct it first.") }}
         <div class="mono" style="font-size: 12.5px; margin: 6px 0">{{ cache.pending[:100]|join(", ") }}{% if cache.pending|length > 100 %} …{% endif %}</div>
-        <button class="btn sm danger" formaction="{{ url_for('admin.ldap_cache_confirm') }}" formmethod="post" formnovalidate>{{ icon("lock") }} {{ _("Diese Konten deaktivieren") }}</button>
+        <button class="btn sm danger" formaction="{{ url_for('admin.ldap_cache_confirm') }}" formmethod="post" formnovalidate>{{ icon("lock") }} {{ _("Deactivate these accounts") }}</button>
       </div></div>
       {% endif %}
       {% if cache.enabled %}
-      <button class="btn" style="margin-top: 12px" formaction="{{ url_for('admin.ldap_cache_sync') }}" formmethod="post" formnovalidate>{{ icon("extend") }} {{ _("Jetzt abgleichen") }}</button>
+      <button class="btn" style="margin-top: 12px" formaction="{{ url_for('admin.ldap_cache_sync') }}" formmethod="post" formnovalidate>{{ icon("extend") }} {{ _("Synchronise now") }}</button>
       {% endif %}
     </section>
 
     <section class="card card-pad" id="tls">
       <div class="actions" style="justify-content: space-between; margin-bottom: 6px">
-        <h2>{{ _("TLS-Zertifikat") }}</h2>
-        {% if stored_certs %}<span class="badge ok">{{ icon("lock") }} {{ _("{n} hinterlegt", n=stored_certs|length) }}</span>
-        {% else %}<span class="badge">{{ _("keins hinterlegt") }}</span>{% endif %}
+        <h2>{{ _("TLS certificate") }}</h2>
+        {% if stored_certs %}<span class="badge ok">{{ icon("lock") }} {{ _("{n} stored", n=stored_certs|length) }}</span>
+        {% else %}<span class="badge">{{ _("none stored") }}</span>{% endif %}
       </div>
-      <p class="muted" style="font-size: 13.5px">{{ _("Das Zertifikat wird direkt vom Domänencontroller geholt (LDAPS oder StartTLS), dabei wird die Stamm-CA automatisch ergänzt – über die AIA-Adresse im Zertifikat oder aus dem AD selbst. Du prüfst den Fingerabdruck und bestätigst.") }}</p>
+      <p class="muted" style="font-size: 13.5px">{{ _("The certificate is fetched directly from the domain controller (LDAPS or StartTLS), and the root CA is added automatically – via the AIA address in the certificate or from AD itself. You check the fingerprint and confirm.") }}</p>
 
       {% if fetched %}
       <div class="notice accent" style="margin: 14px 0; display: block">
-        <b>{{ _("Vom Server erhalten – bitte prüfen:") }}</b>
+        <b>{{ _("Received from the server – please check:") }}</b>
         {% for c, trusted in fetched.certs %}
         <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line)">
           <div class="actions">
-            <span class="badge {{ 'brass' if c.kind == 'Stamm-CA' else ('accent' if c.kind == 'Zwischen-CA' else '') }}">{{ _(c.kind) }}</span>
-            {% if trusted %}<span class="badge ok">{{ icon("check") }} {{ _("wird vertraut") }}</span>{% endif %}
-            {% if c.expired %}<span class="badge danger">{{ _("abgelaufen") }}</span>{% endif %}
+            <span class="badge {{ 'brass' if c.kind in ('Root CA', 'Stamm-CA') else ('accent' if c.kind in ('Intermediate CA', 'Zwischen-CA') else '') }}">{{ _(c.kind) }}</span>
+            {% if trusted %}<span class="badge ok">{{ icon("check") }} {{ _("trusted") }}</span>{% endif %}
+            {% if c.expired %}<span class="badge danger">{{ _("expired") }}</span>{% endif %}
           </div>
           <dl class="kv" style="margin-top: 8px; font-size: 13px">
-            <dt>{{ _("Inhaber") }}</dt><dd class="mono">{{ c.subject }}</dd>
-            <dt>{{ _("Aussteller") }}</dt><dd class="mono">{{ c.issuer }}</dd>
-            {% if c.names %}<dt>{{ _("Namen") }}</dt><dd class="mono">{{ c.names|join(", ") }}</dd>{% endif %}
-            <dt>{{ _("Gültig bis") }}</dt><dd>{{ c.not_after }}</dd>
+            <dt>{{ _p("certificate", "Subject") }}</dt><dd class="mono">{{ c.subject }}</dd>
+            <dt>{{ _("Issuer") }}</dt><dd class="mono">{{ c.issuer }}</dd>
+            {% if c.names %}<dt>{{ _("Names") }}</dt><dd class="mono">{{ c.names|join(", ") }}</dd>{% endif %}
+            <dt>{{ _("Valid until") }}</dt><dd>{{ c.not_after }}</dd>
             <dt>SHA-256</dt><dd class="mono" style="font-size: 11.5px">{{ c.sha256 }}</dd>
           </dl>
         </div>
         {% endfor %}
         {% for n in fetched.notes %}<p style="margin-top: 10px"><small>ℹ {{ n }}</small></p>{% endfor %}
         {% for host, ok in fetched.hosts.items() if not ok %}
-        <p style="margin-top: 10px; color: var(--warn)"><small>⚠ {{ _("„{host}“ steht nicht im Server-Zertifikat. Trage besser den DNS-Namen des DCs ein (siehe „Namen“) oder schalte die Hostname-Prüfung ab.", host=host) }}</small></p>
+        <p style="margin-top: 10px; color: var(--warn)"><small>⚠ {{ _("“{host}” is not in the server certificate. Better enter the DC's DNS name (see “Names”) or turn off hostname verification.", host=host) }}</small></p>
         {% endfor %}
         <textarea name="pending_pem" hidden>{{ fetched.pem }}</textarea>
         <span hidden data-scroll-to="tls" data-scroll-block="start"></span>
         <div class="actions" style="margin-top: 14px">
-          <button class="btn primary" name="action" value="trust_cert" formnovalidate>{{ icon("check") }} {{ _("Vertrauen &amp; speichern") }}</button>
-          <a class="btn ghost" href="{{ url_for('admin.ldap') }}">{{ _("Verwerfen") }}</a>
+          <button class="btn primary" name="action" value="trust_cert" formnovalidate>{{ icon("check") }} {{ _("Trust &amp; save") }}</button>
+          <a class="btn ghost" href="{{ url_for('admin.ldap') }}">{{ _("Discard") }}</a>
         </div>
       </div>
       {% endif %}
 
       {% for c in stored_certs %}
       <div class="list-row" style="padding: 10px 0">
-        <span class="badge {{ 'brass' if c.kind == 'Stamm-CA' else ('accent' if c.kind == 'Zwischen-CA' else '') }}">{{ _(c.kind) }}</span>
+        <span class="badge {{ 'brass' if c.kind in ('Root CA', 'Stamm-CA') else ('accent' if c.kind in ('Intermediate CA', 'Zwischen-CA') else '') }}">{{ _(c.kind) }}</span>
         <div class="grow"><b class="mono" style="font-size: 12.5px">{{ c.subject }}</b>
-          <small>{{ _("gültig bis {date}", date=c.not_after) }}{% if c.expired %} – <span style="color: var(--danger)">{{ _("abgelaufen") }}</span>{% endif %} · SHA-256 {{ c.sha256[:23] }}…</small></div>
+          <small>{{ _("valid until {date}", date=c.not_after) }}{% if c.expired %} – <span style="color: var(--danger)">{{ _("expired") }}</span>{% endif %} · SHA-256 {{ c.sha256[:23] }}…</small></div>
       </div>
       {% endfor %}
 
       <div class="actions" style="margin-top: 12px">
-        <button class="btn" name="action" value="fetch_cert" formnovalidate>{{ icon("download") }} {{ _("Zertifikat vom DC abrufen") }}</button>
+        <button class="btn" name="action" value="fetch_cert" formnovalidate>{{ icon("download") }} {{ _("Fetch certificate from DC") }}</button>
         {% if stored_certs %}<button class="btn danger" name="action" value="clear_cert" formnovalidate
-          data-confirm-click="{{ _('Gespeicherte Zertifikate entfernen?') }}">{{ icon("trash") }} {{ _("Entfernen") }}</button>{% endif %}
+          data-confirm-click="{{ _('Remove saved certificates?') }}">{{ icon("trash") }} {{ _("Remove") }}</button>{% endif %}
       </div>
       <hr>
       <label class="check"><input type="checkbox" name="ldap_verify_cert" value="1" {{ 'checked' if v.ldap_verify_cert == '1' }}>
-        <span>{{ _("Zertifikat prüfen") }}<small class="muted">{{ _("Nur zu Testzwecken abschalten.") }}</small></span></label>
+        <span>{{ _("Verify certificate") }}<small class="muted">{{ _("Only turn off for testing.") }}</small></span></label>
       <label class="check"><input type="checkbox" name="ldap_check_hostname" value="1" {{ 'checked' if v.ldap_check_hostname == '1' }}>
-        <span>{{ _("Hostname prüfen") }}<small class="muted">{{ _("Der Servername muss im Zertifikat stehen. Abschalten, wenn du den DC per IP-Adresse ansprichst.") }}</small></span></label>
+        <span>{{ _("Verify hostname") }}<small class="muted">{{ _("The server name must be in the certificate. Turn off if you address the DC by IP address.") }}</small></span></label>
       <details style="margin-top: 6px">
-        <summary class="muted" style="cursor: pointer; font-size: 13.5px">{{ _("Erweitert: eigene CA-Datei") }}</summary>
-        <div class="field" style="margin-top: 10px"><label for="f-ldap-ca-file">{{ _("CA-Zertifikat (Pfad auf dem Server)") }}</label>
+        <summary class="muted" style="cursor: pointer; font-size: 13.5px">{{ _("Advanced: custom CA file") }}</summary>
+        <div class="field" style="margin-top: 10px"><label for="f-ldap-ca-file">{{ _("CA certificate (path on the server)") }}</label>
           <input id="f-ldap-ca-file" class="mono" type="text" name="ldap_ca_file" value="{{ v.ldap_ca_file }}" placeholder="/certs/firma-root-ca.pem">
-          <div class="hint">{{ _("Wird zusätzlich zu den abgerufenen Zertifikaten verwendet.") }}</div></div>
+          <div class="hint">{{ _("Used in addition to the fetched certificates.") }}</div></div>
       </details>
     </section>
     </div>
 
     <div class="stack">
       <section class="card card-pad">
-        <h2 style="margin-bottom: 6px">{{ _("Wer darf was?") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("Trage pro Rolle die <b>AD-Gruppen</b> ein – eine pro Zeile, einfach mit ihrem Namen (z. B. <code>IT-Admins</code>). Mitglieder verschachtelter Gruppen zählen mit. Die höchste passende Rolle gewinnt; wer in keiner Gruppe ist, kann sich nicht anmelden.") }}</p>
-        <div class="field"><label for="f-ldap-admin-rules">{{ icon("shield") }} {{ _("Administratoren") }}</label>
+        <h2 style="margin-bottom: 6px">{{ _("Who can do what?") }}</h2>
+        <p class="muted" style="font-size: 13.5px">{{ _("Enter the <b>AD groups</b> for each role – one per line, simply by name (e.g. <code>IT-Admins</code>). Members of nested groups count too. The highest matching role wins; anyone in none of the groups cannot sign in.") }}</p>
+        <div class="field"><label for="f-ldap-admin-rules">{{ icon("shield") }} {{ _("Administrators") }}</label>
           <textarea id="f-ldap-admin-rules" class="rule-box" name="ldap_admin_rules" data-rule-box="admin" placeholder="{{ _('IT-Admins') }}">{{ v.ldap_admin_rules }}</textarea></div>
-        <div class="field"><label for="f-ldap-manager-rules">{{ icon("assets") }} {{ _("Verwalter (geben aus, pflegen Bestand)") }}</label>
+        <div class="field"><label for="f-ldap-manager-rules">{{ icon("assets") }} {{ _("Managers (issue items, maintain inventory)") }}</label>
           <textarea id="f-ldap-manager-rules" class="rule-box" name="ldap_manager_rules" data-rule-box="manager" placeholder="{{ _('IT-Support') }}">{{ v.ldap_manager_rules }}</textarea></div>
-        <div class="field"><label for="f-ldap-login-rules">{{ icon("user") }} {{ _("Mitarbeiter (Anmeldung erlaubt)") }}</label>
-          <textarea id="f-ldap-login-rules" class="rule-box" name="ldap_login_rules" data-rule-box="reader" placeholder="{{ _('Mitarbeiter') }}&#10;{{ _('Domänen-Benutzer') }}">{{ v.ldap_login_rules }}</textarea></div>
+        <div class="field"><label for="f-ldap-login-rules">{{ icon("user") }} {{ _("Staff members (sign-in allowed)") }}</label>
+          <textarea id="f-ldap-login-rules" class="rule-box" name="ldap_login_rules" data-rule-box="reader" placeholder="{{ _('Staff member') }}&#10;{{ _('Domain Users') }}">{{ v.ldap_login_rules }}</textarea></div>
         <details class="muted" style="font-size: 13px; margin-bottom: 14px">
-          <summary style="cursor: pointer">{{ _("Weitere Möglichkeiten") }}</summary>
-          <p style="margin-top: 8px">{{ _("Statt eines Gruppennamens geht auch der vollständige DN einer Gruppe (<code>CN=IT-Admins,OU=Gruppen,DC=institut,DC=local</code>) – sinnvoll, wenn es denselben Namen mehrfach gibt – oder eine OU (<code>OU=Mitarbeiter,DC=institut,DC=local</code>): dann zählen alle Benutzer darunter.") }}</p>
+          <summary style="cursor: pointer">{{ _("More options") }}</summary>
+          <p style="margin-top: 8px">{{ _("Instead of a group name you can also use the full DN of a group (<code>CN=IT-Admins,OU=Groups,DC=institute,DC=local</code>) – useful if the same name exists more than once – or an OU (<code>OU=Staff,DC=institute,DC=local</code>): then all users below it count.") }}</p>
         </details>
 
         <hr>
-        <h3 style="margin-bottom: 8px">{{ _("Gruppen aus dem AD auswählen") }}</h3>
+        <h3 style="margin-bottom: 8px">{{ _("Choose groups from AD") }}</h3>
         <div class="input-group">
-          <input type="search" name="group_query" aria-label="{{ _("AD-Gruppen suchen") }}" value="{{ group_query }}" placeholder="{{ _('Name enthält … (leer = alle)') }}"
+          <input type="search" name="group_query" aria-label="{{ _("Search AD groups") }}" value="{{ group_query }}" placeholder="{{ _('Name contains … (empty = all)') }}"
                  data-enter-clicks-next>
-          <button class="btn" name="action" value="list_groups" formnovalidate>{{ icon("search") }} {{ _("Gruppen laden") }}</button>
+          <button class="btn" name="action" value="list_groups" formnovalidate>{{ icon("search") }} {{ _("Load groups") }}</button>
         </div>
         {% if ad_groups is not none %}
         <div id="ad-groups" style="margin-top: 12px">
           {% if ad_groups %}
-          <input type="search" aria-label="{{ _('AD-Gruppen filtern') }}" placeholder="{{ _('In {n} Gruppen filtern …', n=ad_groups|length) }}" data-filter-list="#ad-group-list" style="margin-bottom: 8px">
+          <input type="search" aria-label="{{ _('Filter AD groups') }}" placeholder="{{ _('Filter {n} groups …', n=ad_groups|length) }}" data-filter-list="#ad-group-list" style="margin-bottom: 8px">
           <div id="ad-group-list" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px">
             {% for g in ad_groups %}
             <div class="list-row" data-filter-item style="padding: 9px 12px">
               <div class="grow"><b>{{ g.name }}</b><small class="mono" style="font-size: 11px">{{ g.dn }}</small>
                 {% if g.description %}<small>{{ g.description }}</small>{% endif %}</div>
               <div class="seg">
-                <button type="button" data-add-rule="admin" data-name="{{ g.name }}" title="{{ _('Als Administratoren') }}">{{ _("Admin") }}</button>
-                <button type="button" data-add-rule="manager" data-name="{{ g.name }}" title="{{ _('Als Verwalter') }}">{{ _("Verwalter") }}</button>
-                <button type="button" data-add-rule="reader" data-name="{{ g.name }}" title="{{ _('Als Mitarbeiter') }}">{{ _("Mitarbeiter") }}</button>
+                <button type="button" data-add-rule="admin" data-name="{{ g.name }}" title="{{ _('As administrators') }}">{{ _("Admin") }}</button>
+                <button type="button" data-add-rule="manager" data-name="{{ g.name }}" title="{{ _('As managers') }}">{{ _("Manager") }}</button>
+                <button type="button" data-add-rule="reader" data-name="{{ g.name }}" title="{{ _('As staff member') }}">{{ _("Staff member") }}</button>
               </div>
             </div>
             {% endfor %}
           </div>
-          <p class="muted" style="font-size: 12.5px; margin-top: 8px">{{ _("Klick fügt die Gruppe oben ein – danach <b>Speichern</b>.") }}</p>
+          <p class="muted" style="font-size: 12.5px; margin-top: 8px">{{ _("A click adds the group above – then <b>Save</b>.") }}</p>
           {% else %}
-          <div class="notice">{{ _("Keine Gruppen gefunden.") }}</div>
+          <div class="notice">{{ _("No groups found.") }}</div>
           {% endif %}
         </div>
         <span hidden data-scroll-to="ad-groups" data-scroll-block="center"></span>
@@ -244,20 +244,20 @@
       </section>
 
       <section class="card card-pad">
-        <h2 style="margin-bottom: 6px">{{ _("Testen") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("Getestet wird mit den Werten im Formular – auch ungespeichert.") }}</p>
-        <button class="btn" name="action" value="test_bind" formnovalidate>{{ icon("server") }} {{ _("Verbindung testen") }}</button>
+        <h2 style="margin-bottom: 6px">{{ _p("verb", "Test") }}</h2>
+        <p class="muted" style="font-size: 13.5px">{{ _("Tests use the values in the form – even if not saved.") }}</p>
+        <button class="btn" name="action" value="test_bind" formnovalidate>{{ icon("server") }} {{ _("Test connection") }}</button>
         <hr>
         <div class="form-grid">
-          <div class="field span-3"><label for="f-test-user">{{ _("Benutzername") }}</label><input id="f-test-user" type="text" name="test_user" autocomplete="off"></div>
-          <div class="field span-3"><label for="f-test-password">{{ _("Passwort") }}</label><input id="f-test-password" type="password" name="test_password" autocomplete="new-password"></div>
+          <div class="field span-3"><label for="f-test-user">{{ _("Username") }}</label><input id="f-test-user" type="text" name="test_user" autocomplete="off"></div>
+          <div class="field span-3"><label for="f-test-password">{{ _("Password") }}</label><input id="f-test-password" type="password" name="test_password" autocomplete="new-password"></div>
         </div>
-        <button class="btn" name="action" value="test_user" formnovalidate>{{ icon("user") }} {{ _("Login testen") }}</button>
+        <button class="btn" name="action" value="test_user" formnovalidate>{{ icon("user") }} {{ _("Test sign-in") }}</button>
       </section>
     </div>
   </div>
   <div class="actions" style="margin-top: 20px; justify-content: flex-end">
-    <button class="btn primary lg" name="action" value="save">{{ icon("check") }} {{ _("Speichern") }}</button>
+    <button class="btn primary lg" name="action" value="save">{{ icon("check") }} {{ _("Save") }}</button>
   </div>
 </form>
 {% endblock %}

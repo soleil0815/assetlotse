@@ -120,7 +120,7 @@ class CertTests(unittest.TestCase):
         with mock.patch.object(T, "_aia_issuers", return_value=[self.ca]):
             res = T.fetch_trust_anchors(None, [f"localhost:{self.server.port}"], "ldaps", 5)
         self.assertEqual(res.trust, [self.ca])
-        self.assertEqual(T.describe(res.trust[0]).kind, "Stamm-CA")
+        self.assertEqual(T.describe(res.trust[0]).kind, "Root CA")
 
     def test_fetch_root_from_ad(self):
         directory = mock.Mock(bind_dn="CN=svc")
