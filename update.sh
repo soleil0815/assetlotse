@@ -26,6 +26,7 @@
 DEFAULT_IMAGE="ghcr.io/soleil0815/assetlotse"
 SERVICE="assetlotse"
 HEALTH_TIMEOUT="${ASSETLOTSE_HEALTH_TIMEOUT:-180}"
+MOUNTINFO="${ASSETLOTSE_MOUNTINFO:-/proc/self/mountinfo}"   # mount points on this host (cleanup leaves them alone)
 IMAGE_TITLE="AssetLotse"
 
 if [ -t 1 ]; then B="$(printf '\033[1m')"; G="$(printf '\033[32m')"; Y="$(printf '\033[33m')"; R="$(printf '\033[31m')"; N="$(printf '\033[0m')"
@@ -100,7 +101,9 @@ compose_version() {   # version of a docker-compose.yml (files before 2.0.0 have
 image_label() {       # image_label REF LABEL
     docker image inspect -f "{{index .Config.Labels \"$2\"}}" "$1" 2>/dev/null || true
 }
-container_id() { $DC ps -q "$SERVICE" 2>/dev/null | head -n 1; }
+container_id() {      # also a stopped container ("ps -q" alone lists only running ones)
+    { $DC ps -aq "$SERVICE" 2>/dev/null || $DC ps -q "$SERVICE" 2>/dev/null; } | head -n 1
+}
 
 if docker compose version >/dev/null 2>&1; then DC="docker compose"
 elif command -v docker-compose >/dev/null 2>&1; then DC="docker-compose"
@@ -165,6 +168,32 @@ protected_paths() {   # one resolved path per line
         r="$(real "$m")"
         [ -n "$r" ] && ! inside "$INSTALL_DIR" "$r" && printf '%s\n' "$r"
     done
+    # … and what docker-compose.yml and docker-compose.override.yml mount, even when no container exists
+    # (e.g. after "docker compose down"); "config" prints the sources as absolute paths
+    compose_sources < "$W/config" | while IFS= read -r m; do
+        r="$(real "$m")"
+        [ -n "$r" ] && ! inside "$INSTALL_DIR" "$r" && printf '%s\n' "$r"
+    done
+}
+compose_sources() {   # bind mount sources from "docker compose config" (long and short syntax)
+    sed -n -e 's/^[[:space:]]*source:[[:space:]]*//p' \
+           -e 's/^[[:space:]]*-[[:space:]]*\(["'\'']\{0,1\}\/[^:]*\):.*/\1/p' \
+        | sed -e 's/^["'\'']//' -e 's/["'\'']$//' | grep '^/' || :
+}
+mount_points() {      # one mount point per line (\040 & Co. decoded); empty if unknown
+    [ -r "$MOUNTINFO" ] || return 0
+    awk '{print $5}' "$MOUNTINFO" | sed 's/\\\([0-7][0-7][0-7]\)/\\0\1/g' | while IFS= read -r m; do
+        printf '%b\n' "$m"
+    done
+}
+has_mount() {         # has_mount RESOLVED FILE_WITH_MOUNT_POINTS → a mount point is RESOLVED or below it
+    while IFS= read -r m; do
+        [ -n "$m" ] || continue
+        if inside "$m" "$1"; then return 0; fi
+    done < "$2"
+    # without mount information (not Linux): a different file system below counts as a mount, too
+    [ ! -d "$1" ] || [ "$(find "$1" 2>/dev/null | wc -l)" = "$(find "$1" -xdev 2>/dev/null | wc -l)" ] || return 0
+    return 1
 }
 cleanup_candidates() {   # one name per line (names may contain spaces)
     for e in $PROGRAM_ENTRIES; do
@@ -190,7 +219,10 @@ run_cleanup() {
     step "Program files that are no longer needed (in ${INSTALL_DIR})"
     [ ! -e .git ] || die "This folder is a source checkout (.git) – cleanup is only for installations."
     W="$(mktemp -d)" || die "No temporary folder."
+    $DC config > "$W/config" 2>/dev/null \
+        || die "Could not read the compose configuration (${DC} config) – nothing deleted, so that nothing a container mounts is lost."
     protected_paths | sort -u > "$W/protected"
+    mount_points > "$W/mounts"
     cleanup_candidates > "$W/candidates"
     : > "$W/list"; : > "$W/skipped"
     while IFS= read -r e; do
@@ -201,6 +233,9 @@ run_cleanup() {
         fi
         if hit="$(is_protected "$r" "$W/protected")"; then
             echo "  $e  (protected: $hit)" >> "$W/skipped"; continue
+        fi
+        if has_mount "$r" "$W/mounts"; then
+            echo "  $e  (is or contains a mount point – left alone)" >> "$W/skipped"; continue
         fi
         if [ -d "$r" ] && [ -n "$(find "$r" -type l -print 2>/dev/null | head -n 1)" ]; then
             # rm would not follow a link inside, but whoever put it there may want to keep the folder
@@ -218,15 +253,17 @@ run_cleanup() {
     if [ -s "$W/images" ]; then echo "Old locally built images:"; sed 's/^/  /' "$W/images"; fi
     echo "Stays: data, backups, .env, docker-compose.yml (.alt/.override), .env.example, update.sh."
     confirm "Delete these?" || { echo "Nothing deleted."; return 0; }
+    : > "$W/failed"
     while IFS= read -r e; do
-        rm -rf -- "./$e" && echo "  removed: $e"
+        if rm -rf -- "./$e"; then echo "  removed: $e"; else echo "$e" >> "$W/failed"; fi
     done < "$W/list"
     while IFS= read -r ref; do
         docker image rm "$ref" >/dev/null 2>&1 && echo "  removed: image $ref"
     done < "$W/images"
+    if [ -s "$W/failed" ]; then warn "Not (completely) removed:"; sed 's/^/  /' "$W/failed"; return 1; fi
     ok "Cleaned up."
 }
-if [ "$MODE" = cleanup ]; then run_cleanup; exit 0; fi
+if [ "$MODE" = cleanup ]; then run_cleanup || exit 1; exit 0; fi
 
 # ---------------------------------------------------------------- Start and wait
 wait_healthy() {   # → 0 when healthy; prints the status

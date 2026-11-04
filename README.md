@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.0.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.0.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -110,8 +110,8 @@ Das Skript prüft die Prüfsumme (wenn die `.sha256` daneben liegt), lädt das I
 
 Bis 1.12 lagen auch die Programmdateien auf dem Server (Zip-Pakete, lokaler Bau). Der Umstieg einmalig, im bisherigen Ordner:
 
-1. `./update.sh --pull` – das bisherige Skript holt 2.0.0 und übergibt an das neue `update.sh`; die neue `docker-compose.yml` wird abgelegt und der Container gestartet. (Wurde bisher lokal gebaut, ist das genau der Wechsel auf das fertige Image.)
-2. `./update.sh --cleanup` – zeigt die nicht mehr gebrauchten Programmdateien (z. B. `assetlotse/`, `Dockerfile`, `requirements.txt`, alte Zips, `packages/`, Reste abgebrochener Updates, alte lokal gebaute Images), fragt nach und löscht nur diese. **Nie** angefasst werden `data`, Sicherungen, `.env`, `docker-compose.yml`, `docker-compose.override.yml`, Links und alle Ordner, die ein Container eingebunden hat – auch nicht über Links. Im Ordner bleiben danach nur noch `docker-compose.yml` (und `.alt`), `.env`, `.env.example`, `update.sh` und `data`.
+1. `./update.sh --pull` – das bisherige Skript holt die neueste Version und übergibt an das neue `update.sh`; die neue `docker-compose.yml` wird abgelegt und der Container gestartet. (Wurde bisher lokal gebaut, ist das genau der Wechsel auf das fertige Image.)
+2. `./update.sh --cleanup` – zeigt die nicht mehr gebrauchten Programmdateien (z. B. `assetlotse/`, `Dockerfile`, `requirements.txt`, alte Zips, `packages/`, Reste abgebrochener Updates, alte lokal gebaute Images), fragt nach und löscht nur diese. **Nie** angefasst werden `data`, Sicherungen, `.env`, `docker-compose.yml`, `docker-compose.override.yml`, Links, eingehängte Laufwerke (Mountpunkte) und alle Ordner, die ein Container oder die `docker-compose.yml`/`docker-compose.override.yml` einbindet – auch nicht über Links. Im Ordner bleiben danach nur noch `docker-compose.yml` (und `.alt`), `.env`, `.env.example`, `update.sh` und `data`.
 
 Wer AssetLotse über eine Container-Verwaltung aktualisiert, ersetzt dort einfach die `docker-compose.yml` durch die neue aus dem Release.
 

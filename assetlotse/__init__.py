@@ -28,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 oder später"
 # Wo der Quellcode zu finden ist (AGPL § 13). Wer AssetLotse verändert betreibt, trägt hier
@@ -292,7 +292,8 @@ def _too_new_message(db_version: str) -> str:
     name = ""
     if backup.supported():
         for item in backup.list_backups():                       # neueste zuerst
-            if item["name"].startswith(backup.PREFIX) and f"-vor-{db_version}" in item["name"]:
+            m = backup.NAME_RE.match(item["name"])
+            if m and m.group(3) == f"-vor-{db_version}":          # genau diese Version (nicht 2.0.10 für 2.0.1)
                 name = item["name"]
                 break
     restore = (f"docker compose run --rm assetlotse restore {name}" if name else

@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.0.1** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.0.2** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -110,8 +110,8 @@ The script checks the checksum (if the `.sha256` is next to it), loads the image
 
 Up to 1.12 the program files were on the server too (zip packages, local builds). The switch, once, in the existing folder:
 
-1. `./update.sh --pull` – the existing script pulls 2.0.0 and hands over to the new `update.sh`; the new `docker-compose.yml` is put in place and the container started. (If you built locally so far, this is exactly the switch to the ready-made image.)
-2. `./update.sh --cleanup` – lists the program files that are no longer needed (e.g. `assetlotse/`, `Dockerfile`, `requirements.txt`, old zips, `packages/`, leftovers of aborted updates, old locally built images), asks, and deletes only these. **Never** touched: `data`, backups, `.env`, `docker-compose.yml`, `docker-compose.override.yml`, links and every folder a container has mounted – also not through links. Afterwards the folder only holds `docker-compose.yml` (and `.alt`), `.env`, `.env.example`, `update.sh` and `data`.
+1. `./update.sh --pull` – the existing script pulls the newest version and hands over to the new `update.sh`; the new `docker-compose.yml` is put in place and the container started. (If you built locally so far, this is exactly the switch to the ready-made image.)
+2. `./update.sh --cleanup` – lists the program files that are no longer needed (e.g. `assetlotse/`, `Dockerfile`, `requirements.txt`, old zips, `packages/`, leftovers of aborted updates, old locally built images), asks, and deletes only these. **Never** touched: `data`, backups, `.env`, `docker-compose.yml`, `docker-compose.override.yml`, links, mounted drives (mount points) and every folder a container or `docker-compose.yml`/`docker-compose.override.yml` mounts – also not through links. Afterwards the folder only holds `docker-compose.yml` (and `.alt`), `.env`, `.env.example`, `update.sh` and `data`.
 
 If a container manager updates AssetLotse, just replace `docker-compose.yml` there with the new one from the release.
 

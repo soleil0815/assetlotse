@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.0.2",
+      "date": "2026-11-04",
+      "kind": "fix",
+      "audience": "admin",
+      "de": {
+        "title": "Code-Audit: Update und Aufräumen sicherer",
+        "text": "Der Hinweis auf eine veraltete docker-compose.yml nennt wieder die Versionsnummern. „./update.sh --cleanup“ lässt eingehängte Laufwerke und alle Ordner aus, die die docker-compose.yml oder docker-compose.override.yml einbindet – auch wenn gerade kein Container existiert. „./update.sh“ merkt sich auch bei gestopptem Container die bisherige Version zum Zurückgehen. Startet eine ältere Version auf einer neueren Datenbank, wird genau die passende Sicherung genannt."
+      },
+      "en": {
+        "title": "Code audit: safer update and cleanup",
+        "text": "The notice about an outdated docker-compose.yml shows the version numbers again. “./update.sh --cleanup” leaves mounted drives alone, as well as every folder that docker-compose.yml or docker-compose.override.yml mounts – even when no container exists right now. “./update.sh” also remembers the previous version for going back when the container is stopped. If an older version starts on a newer database, exactly the matching backup is named."
+      }
+    },
+    {
       "version": "2.0.1",
       "date": "2026-11-01",
       "kind": "fix",
