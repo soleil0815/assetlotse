@@ -1,16 +1,16 @@
-"""TLS für die Verzeichnisanbindung: Zertifikate direkt vom Domänencontroller holen.
+"""TLS for the directory connection: fetch certificates directly from the domain controller.
 
-Ablauf („Trust on first use“, vom Admin bestätigt):
-  1. Verbindung per LDAPS (636) oder StartTLS (389) aufbauen – noch ohne Prüfung.
-  2. Zertifikatskette des Servers auslesen.
-  3. Fehlt die Stamm-CA, wird sie ergänzt:
-       a) über die AIA-Adresse im Zertifikat (AD-Zertifikatsdienste veröffentlichen dort die CA),
-       b) aus dem Active Directory selbst (CN=Public Key Services in der Konfigurationspartition),
-          sofern ein Dienstkonto hinterlegt ist.
-  4. Der Admin sieht Aussteller, Gültigkeit und SHA-256-Fingerabdruck und bestätigt.
-  5. Gespeichert wird bevorzugt die Stamm-CA (+ Zwischen-CAs). Dann bleibt die Verbindung
-     auch nach einer Erneuerung des DC-Zertifikats gültig. Ohne Stamm-CA wird das
-     Server-Zertifikat selbst als Vertrauensanker verwendet.
+Flow ("trust on first use", confirmed by the admin):
+  1. Connect via LDAPS (636) or StartTLS (389) – without verification yet.
+  2. Read the server's certificate chain.
+  3. If the root CA is missing, add it:
+       a) via the AIA address in the certificate (AD Certificate Services publish the CA there),
+       b) from Active Directory itself (CN=Public Key Services in the configuration partition),
+          if a service account is configured.
+  4. The admin sees issuer, validity and SHA-256 fingerprint and confirms.
+  5. Preferably the root CA (+ intermediate CAs) is stored. The connection then stays
+     valid after the DC certificate is renewed. Without a root CA the server
+     certificate itself is used as the trust anchor.
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ class CertFetchError(Exception):
     pass
 
 
-# ---------------------------------------------------------------- Hilfen
+# ---------------------------------------------------------------- Helpers
 
 def is_ip(host: str) -> bool:
     try:
@@ -49,7 +49,7 @@ def is_ip(host: str) -> bool:
 
 
 def parse_server(entry: str, security: str) -> tuple[str, int, bool]:
-    """'ldaps://dc1.firma.local:636' -> (host, port, ldaps?)"""
+    """'ldaps://dc1.example.local:636' -> (host, port, ldaps?)"""
     entry = entry.strip()
     if "://" not in entry:
         entry = ("ldaps://" if security == "ldaps" else "ldap://") + entry
@@ -135,7 +135,7 @@ def describe(cert: x509.Certificate) -> CertInfo:
     )
 
 
-# ---------------------------------------------------------------- Abruf
+# ---------------------------------------------------------------- Fetching
 
 def _read_ldap_message(sock: socket.socket) -> bytes:
     head = sock.recv(2)
@@ -170,7 +170,7 @@ def _starttls(sock: socket.socket):
 
 
 def server_chain(host: str, port: int, ldaps: bool, timeout: int = 8) -> list[x509.Certificate]:
-    """Liest die vom Server gesendete Zertifikatskette (ohne sie zu prüfen)."""
+    """Read the certificate chain sent by the server (without verifying it)."""
     try:
         raw = socket.create_connection((host, port), timeout=timeout)
     except OSError as exc:
@@ -182,7 +182,7 @@ def server_chain(host: str, port: int, ldaps: bool, timeout: int = 8) -> list[x5
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
         with ctx.wrap_socket(raw, server_hostname=None if is_ip(host) else host) as tls:
-            if hasattr(tls, "get_unverified_chain"):  # Python 3.13+: komplette Kette
+            if hasattr(tls, "get_unverified_chain"):  # Python 3.13+: full chain
                 ders = [bytes(c) for c in tls.get_unverified_chain()]
             else:
                 ders = [tls.getpeercert(binary_form=True)]
@@ -224,16 +224,16 @@ def _aia_issuers(cert: x509.Certificate, timeout: int) -> list[x509.Certificate]
                 try:
                     found.append(x509.load_der_x509_certificate(data))
                 except ValueError:
-                    # PKCS#7-Bündel (.p7c)
+                    # PKCS#7 bundle (.p7c)
                     from cryptography.hazmat.primitives.serialization import pkcs7
                     found += pkcs7.load_der_pkcs7_certificates(data)
         except Exception as exc:  # noqa: BLE001
-            log.info("AIA-Abruf %s fehlgeschlagen: %s", url, exc)
+            log.info("AIA fetch %s failed: %s", url, exc)
     return found
 
 
 def _ad_ca_certs(directory) -> list[x509.Certificate]:
-    """CA-Zertifikate aus der AD-Konfigurationspartition lesen (braucht ein Dienstkonto)."""
+    """Read CA certificates from the AD configuration partition (requires a service account)."""
     from ldap3 import BASE, SUBTREE
     conn = directory.service_connection()
     try:
@@ -261,7 +261,7 @@ def _ad_ca_certs(directory) -> list[x509.Certificate]:
 
 
 def complete_chain(certs: list[x509.Certificate], pool: list[x509.Certificate]) -> list[x509.Certificate]:
-    """Ergänzt die Kette um passende Aussteller aus dem Pool, bis eine Stamm-CA erreicht ist."""
+    """Extend the chain with matching issuers from the pool until a root CA is reached."""
     chain = list(certs)
     for _ in range(6):
         last = chain[-1]
@@ -276,14 +276,14 @@ def complete_chain(certs: list[x509.Certificate], pool: list[x509.Certificate]) 
 
 @dataclass
 class FetchResult:
-    trust: list[x509.Certificate]      # was gespeichert werden soll
-    chain: list[x509.Certificate]      # komplette ermittelte Kette (zur Anzeige)
+    trust: list[x509.Certificate]      # what is to be stored
+    chain: list[x509.Certificate]      # full chain found (for display)
     notes: list[str]
     hostname_ok: dict[str, bool]
 
 
 def fetch_trust_anchors(directory, servers: list[str], security: str, timeout: int = 8) -> FetchResult:
-    """Holt die Zertifikate aller konfigurierten DCs und bestimmt die Vertrauensanker."""
+    """Fetch the certificates of all configured DCs and determine the trust anchors."""
     if security not in ("ldaps", "starttls") and not any(s.lower().startswith("ldaps://") for s in servers):
         raise CertFetchError(_("Please choose “LDAPS” or “StartTLS” as security first."))
     notes, chains, host_ok = [], [], {}
@@ -320,12 +320,12 @@ def fetch_trust_anchors(directory, servers: list[str], security: str, timeout: i
                 if all(is_self_signed(ch[-1]) for ch in full):
                     notes.append(_("Root CA added from Active Directory (Public Key Services)."))
         except Exception as exc:  # noqa: BLE001
-            log.info("CA-Abfrage im AD fehlgeschlagen: %s", exc)
+            log.info("CA lookup in AD failed: %s", exc)
 
     trust, seen = [], set()
     for ch in full:
         if is_self_signed(ch[-1]):
-            anchors = ch[1:] if len(ch) > 1 else ch  # CAs ohne Server-Zertifikat
+            anchors = ch[1:] if len(ch) > 1 else ch  # CAs without the server certificate
         else:
             anchors = ch
             notes.append(_("No root CA was found for “{subject}” – the server certificate "
@@ -346,10 +346,10 @@ def fetch_trust_anchors(directory, servers: list[str], security: str, timeout: i
     return FetchResult(trust=trust, chain=display, notes=notes, hostname_ok=host_ok)
 
 
-# ---------------------------------------------------------------- Prüfung beim Verbinden
+# ---------------------------------------------------------------- Verification on connect
 
 def make_tls(cadata: str, ca_file: str | None, verify: bool, check_host: bool):
-    """ldap3-Tls-Objekt, das gespeicherte Zertifikate als Vertrauensanker nutzt."""
+    """ldap3 Tls object that uses the stored certificates as trust anchors."""
     from ldap3 import Tls
 
     class TrustTls(Tls):
@@ -357,10 +357,10 @@ def make_tls(cadata: str, ca_file: str | None, verify: bool, check_host: bool):
             host = connection.server.host
             if verify:
                 ctx = ssl.create_default_context(cafile=ca_file or None, cadata=cadata or None)
-                # Auch ein direkt hinterlegtes Server-/Zwischenzertifikat als Anker akzeptieren
+                # also accept a directly stored server/intermediate certificate as an anchor
                 ctx.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
                 if hasattr(ssl, "VERIFY_X509_STRICT"):
-                    ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT  # ältere AD-Zertifikate sind nicht immer RFC-streng
+                    ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT  # older AD certificates are not always strictly RFC-compliant
             else:
                 ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
                 ctx.verify_mode = ssl.CERT_NONE

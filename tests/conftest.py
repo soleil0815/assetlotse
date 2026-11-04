@@ -1,13 +1,13 @@
-"""Gemeinsame Test-Einstellungen.
+"""Shared test settings.
 
-Seit 1.4.0 sehen Mitarbeiter standardmäßig keinen Bestand („catalog_visibility = own“). Die älteren Tests prüfen
-Bestand, Suche und Selbstausleihe aus Sicht von Mitarbeitern; sie laufen daher mit dem früheren Standard
-„groups“. Tests mit der Markierung `catalog_default` (tests/test_catalog_own.py) sehen den echten Standard."""
+Since 1.4.0 employees see no inventory by default ("catalog_visibility = own"). The older tests check
+inventory, search and self-checkout from the employees' point of view; they therefore run with the former default
+"groups". Tests with the marker `catalog_default` (tests/test_catalog_own.py) see the real default."""
 import pytest
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "catalog_default: mit dem echten Standard für catalog_visibility testen")
+    config.addinivalue_line("markers", "catalog_default: test with the real default for catalog_visibility")
 
 
 @pytest.fixture(autouse=True)
@@ -20,8 +20,8 @@ def _legacy_catalog_default(request, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _fast_password_hashes(monkeypatch):
-    """Im Betrieb scrypt (absichtlich langsam); in den Tests ein schnelles Verfahren – sonst kostet jedes
-    angelegte Konto und jeder Wiederherstellungscode rund 0,1 s. Geprüft wird weiterhin mit check_password_hash."""
+    """In production scrypt (deliberately slow); in the tests a fast method – otherwise every account and every
+    recovery code created costs about 0.1 s. Checking still uses check_password_hash."""
     from functools import partial
 
     from werkzeug.security import generate_password_hash

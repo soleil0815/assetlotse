@@ -1,4 +1,4 @@
-"""Ausgabe, Rückgabe, Verlängerung und Ausgabetheke."""
+"""Checkout, return, extension and the issue desk."""
 from __future__ import annotations
 
 import logging
@@ -27,22 +27,22 @@ def _back(default: str):
 
 
 def lock_asset(asset_id: int) -> None:
-    """Schreibsperre für diesen Gegenstand bis zum Ende der Transaktion holen – vor jeder Prüfung.
+    """Acquire a write lock on this item until the end of the transaction – before any check.
 
-    Die leere Änderung (Wert auf sich selbst setzen) startet bei SQLite die Schreibtransaktion
-    (RESERVED-Sperre: gleichzeitige Ausgaben warten aufeinander) und sperrt bei MySQL/PostgreSQL
-    die Zeile des Gegenstands; SELECT … FOR UPDATE sichert das dort zusätzlich ab (SQLite ignoriert es)."""
+    The no-op update (setting a value to itself) starts the write transaction on SQLite
+    (RESERVED lock: concurrent checkouts wait for each other) and locks the item's row on
+    MySQL/PostgreSQL; SELECT … FOR UPDATE adds extra safety there (SQLite ignores it)."""
     db.session.execute(update(Asset).where(Asset.id == asset_id).values(updated_at=Asset.updated_at)
                        .execution_options(synchronize_session=False))
     if db.session.get_bind().dialect.name != "sqlite":
         db.session.query(Asset.id).filter(Asset.id == asset_id).with_for_update().first()
 
 
-DEFAULT_DUE = object()   # „Standard-Leihdauer verwenden“ (None heißt: unbefristet)
+DEFAULT_DUE = object()   # "use default loan period" (None means open-ended)
 
 
 def lend_asset(asset: Asset, borrower: User, due=DEFAULT_DUE, note: str = "") -> tuple[bool, str]:
-    """Zentrale Ausgabelogik inkl. aller Prüfungen."""
+    """Central checkout logic including all checks."""
     if not borrower.active:
         return False, _("{name} is blocked.", name=borrower.name)
     if not asset.lendable:
@@ -55,10 +55,10 @@ def lend_asset(asset: Asset, borrower: User, due=DEFAULT_DUE, note: str = "") ->
     try:
         lock_asset(asset.id)
         if limit and db.session.get_bind().dialect.name != "sqlite":
-            # Höchstzahl pro Person: auch die Person sperren, sonst zählen zwei gleichzeitige Ausgaben anderer
-            # Gegenstände beide zu wenig (SQLite schreibt ohnehin nur nacheinander)
+            # per-person maximum: lock the person too, otherwise two concurrent checkouts of different
+            # items would both count too few (SQLite writes sequentially anyway)
             db.session.query(User.id).filter(User.id == borrower.id).with_for_update().first()
-        # Ab hier frisch aus der Datenbank zählen – parallele Anfragen warten bis zum Commit.
+        # from here on, count fresh from the database – concurrent requests wait until commit.
         quantity = db.session.query(Asset.quantity).filter(Asset.id == asset.id).scalar() or 0
         active = dict(db.session.query(Loan.user_id, func.count(Loan.id))
                       .filter(Loan.asset_id == asset.id, Loan.returned_at.is_(None)).group_by(Loan.user_id).all())
@@ -75,10 +75,10 @@ def lend_asset(asset: Asset, borrower: User, due=DEFAULT_DUE, note: str = "") ->
                     due_at=default_due_date() if due is DEFAULT_DUE else due, note=note[:500])
         db.session.add(loan)
         db.session.commit()
-    except IntegrityError:   # eindeutiger Index: dieselbe Person hat den Gegenstand gerade eben schon bekommen
+    except IntegrityError:   # unique index: the same person has just received this item
         db.session.rollback()
         return False, _("{name} already has this item.", name=borrower.name)
-    except OperationalError:  # z. B. Datenbank zu lange gesperrt
+    except OperationalError:  # e.g. database locked for too long
         db.session.rollback()
         return False, _("The database is busy right now. Please try again in a moment.")
     notify_loan(loan)
@@ -89,7 +89,7 @@ def lend_asset(asset: Asset, borrower: User, due=DEFAULT_DUE, note: str = "") ->
 
 
 def return_loan(loan: Loan) -> str:
-    # Nur zurückbuchen, wenn noch offen – ein Doppelklick oder zwei Fenster buchen sonst zweimal (zwei Mails)
+    # only return if still open – otherwise a double click or two windows would return twice (two emails)
     res = db.session.execute(update(Loan).where(Loan.id == loan.id, Loan.returned_at.is_(None))
                              .values(returned_at=datetime.now(), returned_by_id=current_user.id))
     db.session.commit()
@@ -105,7 +105,7 @@ def return_loan(loan: Loan) -> str:
 def borrow(asset_id):
     asset = get_by_id(Asset, asset_id) or abort(404)
     if catalog_hidden(current_user):
-        abort(404)   # ohne Bestand weder Selbstausleihe noch Hinweis, ob es die Nummer gibt
+        abort(404)   # without inventory access: no self-checkout and no hint whether the number exists
     target_id = parse_id(request.form.get("user_id"))
     due = DEFAULT_DUE
     if target_id and target_id != current_user.id:
@@ -155,7 +155,7 @@ def extend(loan_id):
     if not (manager or own):
         abort(404 if catalog_hidden(current_user) and loan.user_id != current_user.id else 403)
     if not manager and not loan.asset.lendable:
-        # Gruppe mit „Kein Verleih“: zurückgeben ja, selbst verlängern nein (Verwalter entscheiden selbst)
+        # group with "no lending": returning yes, self-extending no (managers decide themselves)
         flash(_("Items of the group “{group}” are not lent out "
                 "– please return it or contact the management.", group=loan.asset.group.name), "error")
         return _back(url_for("loans.index"))
@@ -172,7 +172,7 @@ def extend(loan_id):
             break
         old_ext = loan.extensions
         new_due = max(loan.due_at, date.today()) + timedelta(days=days)
-        # Nur übernehmen, wenn in der Zwischenzeit niemand sonst verlängert oder zurückgegeben hat
+        # apply only if nobody else has extended or returned it in the meantime
         res = db.session.execute(
             update(Loan).where(Loan.id == loan.id, Loan.returned_at.is_(None), Loan.extensions == old_ext)
             .values(extensions=Loan.extensions + 1, due_at=new_due).execution_options(synchronize_session=False))
@@ -180,7 +180,7 @@ def extend(loan_id):
         if res.rowcount == 1:
             flash(_("Extended until {date}.", date=format_day(new_due)), "success")
             break
-        db.session.refresh(loan)   # parallele Änderung – mit dem neuen Stand noch einmal prüfen
+        db.session.refresh(loan)   # concurrent change – check again with the new state
     return _back(url_for("loans.index"))
 
 
@@ -212,7 +212,7 @@ def index():
     else:
         query = query.filter(Loan.user_id == current_user.id)
         scope = "meine"
-    if view == "ueberfaellig":   # unbefristete Ausleihen (due_at leer) sind nie überfällig
+    if view == "ueberfaellig":   # open-ended loans (due_at empty) are never overdue
         query = query.filter(Loan.returned_at.is_(None), Loan.due_at < date.today()).order_by(Loan.due_at)
     elif view == "verlauf":
         query = query.filter(Loan.returned_at.isnot(None)).order_by(Loan.returned_at.desc())
@@ -236,14 +236,14 @@ def index():
                            max_ext=get_int("max_extensions", 2))
 
 
-# ---------------------------------------------------------------- Ausgabetheke
+# ---------------------------------------------------------------- Issue desk
 
 def _find_assets(code: str) -> tuple[list, bool]:
-    """Gegenstände zu einem gescannten/getippten Code. Liefert (Treffer, genau).
+    """Items for a scanned/typed code. Returns (matches, exact).
 
-    „#12“ ist immer die interne Nummer (so steht sie auf Etiketten ohne Inventarnummer) – nie eine Namenssuche.
-    Danach Inventarnummer (genau) → Seriennummer (genau) → Bezeichnung (Teilwort, nur zur Auswahl).
-    `genau` ist False bei Treffern der Namenssuche: dann wird nie automatisch aus- oder zurückgegeben."""
+    "#12" is always the internal number (as printed on labels without an inventory number) – never a name search.
+    Then inventory number (exact) → serial number (exact) → name (substring, for selection only).
+    `exact` is False for name-search matches: then nothing is issued or returned automatically."""
     code = (code or "").strip()
     if not code:
         return [], False
@@ -251,7 +251,7 @@ def _find_assets(code: str) -> tuple[list, bool]:
     if re.fullmatch(r"#\d+", code):
         ident = parse_id(code[1:])
         return (base.filter(Asset.id == ident).all() if ident else []), True
-    # Vergleich über die normalisierten Schlüssel (wie Vorschläge und Dubletten-Prüfung) – auch „Ü-12“ = „ü-12“
+    # compare via the normalized keys (like suggestions and duplicate check) – "Ü-12" = "ü-12" too
     key = number_key(code)
     for col in (Asset.inventory_key, Asset.serial_key):
         found = base.filter(col == key).limit(20).all() if key else []
@@ -261,17 +261,17 @@ def _find_assets(code: str) -> tuple[list, bool]:
 
 
 def ad_search_available() -> bool:
-    """Personensuche im Active Directory: nur mit aktivem AD und Dienstkonto."""
+    """People search in Active Directory: only with AD enabled and a service account."""
     from ..ldap_auth import ldap_enabled
     return ldap_enabled() and bool(get_setting("ldap_bind_dn"))
 
 
 def _find_people(query: str):
-    """Person für die Ausgabe finden. Liefert (gewählt, lokale Treffer, AD-Treffer, AD-Fehlermeldung).
+    """Find a person for checkout. Returns (selected, local matches, AD matches, AD error message).
 
-    Genauer Benutzername → sofort gewählt. Sonst lokale Konten (Name/Benutzername enthält den Text) und – falls
-    eingerichtet – Personen aus dem Active Directory, die sich nach den AD-Regeln anmelden dürften, aber noch
-    kein Konto in AssetLotse haben. Automatisch gewählt wird nur, wenn es insgesamt genau einen Treffer gibt."""
+    Exact username → selected immediately. Otherwise local accounts (name/username contains the text) and – if
+    configured – people from Active Directory who could sign in under the AD rules but do not have an
+    AssetLotse account yet. A person is selected automatically only if there is exactly one match overall."""
     exact = User.query.filter(func.lower(User.username) == query.lower()).first()
     if exact is not None:
         return exact, [], [], ""
@@ -282,22 +282,22 @@ def _find_people(query: str):
     ad_people, ad_error, ad_more = [], "", False
     from .. import ad_cache
     if ad_search_available() and len(query) >= 2 and ad_cache.ready():
-        # schnell: Zwischenspeicher (im Hintergrund abgeglichen); nur ohne Treffer zusätzlich live im AD
+        # fast: cache (synced in the background); only without matches also search AD live
         ad_people = ad_cache.search(query, limit=11)
         ad_more = len(ad_people) > 10
         ad_people = ad_people[:10]
     if ad_search_available() and len(query) >= 2 and not ad_people:
         from ..ldap_auth import Directory, LDAPError
-        log.info("AD-Personensuche an der Theke durch %s: %r", current_user.username, query)
+        log.info("AD people search at the desk by %s: %r", current_user.username, query)
         try:
             known = {u for (u,) in db.session.query(User.username).all()}
             ad_people, ad_more = Directory().search_users(query, exclude=known)
         except LDAPError as exc:
-            log.warning("AD-Personensuche fehlgeschlagen: %s", exc)
-            # Details (Bind-Fehler, DNs …) nur für Administratoren – Verwalter bekommen eine allgemeine Meldung
+            log.warning("AD people search failed: %s", exc)
+            # details (bind errors, DNs …) only for administrators – managers get a generic message
             ad_error = str(exc) if current_user.is_admin else _("Active Directory cannot be reached right now.")
-        except Exception:  # noqa: BLE001 – ein AD-Problem darf die Theke nicht lahmlegen
-            log.exception("AD-Personensuche fehlgeschlagen")
+        except Exception:  # noqa: BLE001 – an AD problem must not break the desk
+            log.exception("AD people search failed")
             ad_error = _("Active Directory cannot be reached right now.")
     if len(people) == 1 and not ad_people and not ad_more:
         return people[0], [], [], ad_error
@@ -313,8 +313,8 @@ def _find_people(query: str):
 @bp.route("/theke/personen")
 @manager_required
 def people_suggest():
-    """Vorschläge beim Tippen im Personenfeld der Theke: Konten in AssetLotse und – aus dem Zwischenspeicher –
-    Personen aus dem AD, die sich noch nie angemeldet haben. Live im AD wird hier nie gesucht (zu langsam)."""
+    """Type-ahead suggestions for the person field at the desk: AssetLotse accounts and – from the cache –
+    AD people who have never signed in. AD is never searched live here (too slow)."""
     from flask import jsonify
     from .. import ad_cache
     q = " ".join((request.args.get("q") or "").split())[:100]
@@ -345,14 +345,14 @@ def people_suggest():
 @bp.route("/theke/ad-konto", methods=["POST"])
 @manager_required
 def desk_ad_account():
-    """Konto einer Person aus dem Active Directory übernehmen (ohne dass sie sich je angemeldet hat).
+    """Take over a person's account from Active Directory (without them ever having signed in).
 
-    Der Server prüft die Person erneut im AD – Formularwerte werden nie übernommen: Konto muss existieren,
-    aktiv sein und nach den AD-Regeln eine Rolle bekommen."""
+    The server checks the person again in AD – form values are never trusted: the account must exist,
+    be active and receive a role under the AD rules."""
     from ..ldap_auth import Directory, LDAPAmbiguous, LDAPError
     from .main import sync_ldap_user
     username = (request.form.get("username") or "").strip()[:200]
-    preset = parse_id(request.values.get("gegenstand"))       # aus dem Bestand: Gegenstand steht schon fest
+    preset = parse_id(request.values.get("gegenstand"))       # from the inventory: the item is already chosen
     back = url_for("loans.desk", modus="ausgabe", gegenstand=preset)
     if not username or not ad_search_available():
         abort(400)
@@ -363,18 +363,18 @@ def desk_ad_account():
                 name=username), "error")
         return redirect(back)
     except LDAPError as exc:
-        log.warning("AD-Kontoübernahme %s fehlgeschlagen: %s", username, exc)
+        log.warning("AD account takeover %s failed: %s", username, exc)
         flash(_("Active Directory: {error}", error=str(exc)) if current_user.is_admin
               else _("Active Directory cannot be reached right now."), "error")
         return redirect(back)
-    except Exception as exc:  # noqa: BLE001 – z. B. Netzwerkfehler von ldap3: Hinweis statt Fehlerseite
-        log.exception("AD-Kontoübernahme %s fehlgeschlagen", username)
+    except Exception as exc:  # noqa: BLE001 – e.g. network error from ldap3: notice instead of error page
+        log.exception("AD account takeover %s failed", username)
         flash(_("Active Directory: {error}", error=str(exc)) if current_user.is_admin
               else _("Active Directory cannot be reached right now."), "error")
         return redirect(back)
     if info is None or info.role is None:
         from .. import ad_cache
-        ad_cache.forget(username)          # nicht bis zum nächsten Abgleich weiter anzeigen
+        ad_cache.forget(username)          # stop showing it until the next sync
         db.session.commit()
         flash(_("“{name}” is not (or no longer) permitted for AssetLotse in Active Directory.", name=username), "error")
         return redirect(back)
@@ -394,32 +394,32 @@ def desk_ad_account():
         return redirect(back)
     previous_role = existing.role if existing is not None else None
     try:
-        # kein Autoflush während des Abgleichs: sonst schlägt ein paralleler Doppelklick schon hier fehl
+        # no autoflush during sync: otherwise a concurrent double click would already fail here
         from .main import may_reactivate
-        reactivate = existing is not None and may_reactivate(existing)   # vor dem Abgleich prüfen
+        reactivate = existing is not None and may_reactivate(existing)   # check before syncing
         with db.session.no_autoflush:
             user = sync_ldap_user(info, existing)
-            if reactivate:                      # vom AD-Abgleich gesperrt, laut AD wieder berechtigt
+            if reactivate:                      # locked by the AD sync, permitted again according to AD
                 user.active, user.deactivated_by_sync = True, False
     except IntegrityError:
         db.session.rollback()
         return redirect(url_for("loans.desk", modus="ausgabe", benutzer=info.username, gegenstand=preset))
-    # Die Rolle aus dem AD gilt erst ab der ersten eigenen Anmeldung (dort wird sie ohnehin neu bestimmt).
-    # Bis dahin ist ein an der Theke übernommenes Konto nur Mitarbeiter – so bekommt es z. B. keine
-    # Verwalter-/Admin-Mails mit Personendaten, solange die Person AssetLotse nie benutzt hat.
+    # The AD role applies only from the person's first own sign-in (where it is determined anew anyway).
+    # Until then an account taken over at the desk is only a staff member – so it does not receive, e.g.,
+    # manager/admin emails with personal data while the person has never used AssetLotse.
     user.role = previous_role or ROLE_READER
     try:
         db.session.commit()
-    except IntegrityError:          # Doppelklick: das Konto wurde gerade eben angelegt
+    except IntegrityError:          # double click: the account was just created
         db.session.rollback()
         user = User.query.filter(func.lower(User.username) == info.username.lower()).first()
         if user is None:
             abort(409)
         return redirect(url_for("loans.desk", modus="ausgabe", benutzer=user.username, gegenstand=preset))
     from .. import ad_cache
-    ad_cache.forget(user.username)         # hat jetzt ein Konto – gehört nicht mehr in den Zwischenspeicher
+    ad_cache.forget(user.username)         # now has an account – no longer belongs in the cache
     db.session.commit()
-    log.info("AD-Konto %s an der Ausgabetheke übernommen durch %s (Rolle %s)", user.username,
+    log.info("AD account %s taken over at the issue desk by %s (role %s)", user.username,
              current_user.username, user.role)
     if existing is None:
         flash(_("{name} taken over from Active Directory.", name=user.name), "success")
@@ -430,16 +430,16 @@ STOCK_LIMIT = 30
 
 
 def _stock_args() -> dict:
-    """Parameter der Bestandssuche an der Theke (Suchtext, Kategorie, nur verfügbare)."""
-    frei = request.values.get("frei", "1")
+    """Parameters of the inventory search at the desk (search text, category, available only)."""
+    free = request.values.get("frei", "1")
     return {"suche": (request.values.get("suche") or "").strip()[:100],
             "kategorie": (request.values.get("kategorie") or "").strip()[:200],
-            "frei": "0" if frei == "0" else "1"}
+            "frei": "0" if free == "0" else "1"}
 
 
 def _stock_search(stock: dict, borrower: User | None = None):
-    """Bestand an der Theke durchsuchen – nur Gegenstände, die dieser Verwalter ausgeben darf und (falls eine
-    Person gewählt ist) die diese Person auch bekommen darf. None, solange weder Suchtext noch Kategorie da ist."""
+    """Search the inventory at the desk – only items this manager may issue and (if a person is
+    selected) that this person may receive. None while there is neither search text nor category."""
     if not stock["suche"] and not stock["kategorie"]:
         return None
     from sqlalchemy.orm import selectinload
@@ -465,7 +465,7 @@ def desk():
     borrower, people, ad_people, ad_error = None, [], [], ""
     if user_q:
         borrower, people, ad_people, ad_error = _find_people(user_q)
-    # Aus dem Bestand kommend: Gegenstand steht schon fest, es fehlt nur noch die Person
+    # coming from the inventory: the item is already chosen, only the person is missing
     preset = _preset_asset() if mode == "ausgabe" else None
 
     assets, loans = [], []
@@ -484,17 +484,17 @@ def desk():
             ok, msg = lend_asset(asset, borrower)
             flash(msg, "success" if ok else "error")
             if preset is not None and preset.id == asset.id:
-                # aus dem Bestand gekommen: zurück zum Gegenstand (bei Fehler zur Personenwahl)
+                # came from the inventory: back to the item (on error, to person selection)
                 if ok:
                     return redirect(url_for("assets.detail", asset_id=asset.id))
                 return redirect(url_for("loans.desk", modus="ausgabe", gegenstand=asset.id,
                                         benutzer=borrower.username))
-            # Bestandssuche bleibt erhalten – so kann man gleich das nächste Teil auswählen
+            # keep the inventory search – so the next piece can be picked right away
             return redirect(url_for("loans.desk", modus="ausgabe", benutzer=borrower.username,
                                     **{k: v for k, v in _stock_args().items() if v}))
 
     if request.method == "POST" and "code" in request.form:
-        # Häkchen „sofort aus-/zurückgeben“ merken – auch über Rückgabe-Knopf, Vorschläge und Ergebnisliste hinweg
+        # remember the "issue/return immediately" checkbox – also across return button, suggestions and result list
         session["desk_auto"] = "1" if request.form.get("auto") == "1" else "0"
     if code:
         assets, exact = _find_assets(code)
@@ -516,7 +516,7 @@ def desk():
     stock = _stock_args()
     stock_results = _stock_search(stock, borrower) if mode == "ausgabe" else None
     from .assets import category_names
-    # Gruppen-Verwalter sehen nur Ausleihen und Gruppen, die sie selbst verwalten
+    # group managers only see loans and groups they manage themselves
     borrower_loans = [l for l in borrower.active_loans if current_user.can_manage(l.asset)] if borrower else []
     managed = {g.id for g in current_user.manageable_groups()}
     borrower_groups = [g.name for g in borrower.groups if g.id in managed] if borrower else []
@@ -531,8 +531,8 @@ def desk():
 
 
 def _preset_asset() -> Asset | None:
-    """Gegenstand, der aus dem Bestand heraus ausgegeben werden soll (?gegenstand=<id>) – nur, wenn dieser
-    Verwalter ihn ausgeben darf; sonst wird der Parameter still übergangen."""
+    """Item to be issued from the inventory (?gegenstand=<id>) – only if this manager may issue it;
+    otherwise the parameter is silently ignored."""
     ident = parse_id(request.values.get("gegenstand"))
     asset = get_by_id(Asset, ident) if ident else None
     if asset is None or not current_user.can_manage(asset):

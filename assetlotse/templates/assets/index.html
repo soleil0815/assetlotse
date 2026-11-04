@@ -77,7 +77,7 @@
           <td>{{ asset.location or "–" }}</td>
           <td>{{ group_badge(asset.group) }}</td>
           <td>{{ avail_badge(asset) }}</td>
-          {% if current_user.is_manager %}{# Namen nur für Verwalter dieses Gegenstands (Datenschutz) #}
+          {% if current_user.is_manager %}{# Names only for managers of this item (privacy) #}
           <td class="holder">{% if current_user.can_manage(asset) %}{% set holders = asset.active_loans|map(attribute="user.name")|list %}{{ holders[:2]|join(", ") }}{% if holders|length > 2 %} {{ _("+{n} more", n=holders|length - 2) }}{% endif %}
             {%- if asset.available > 0 and asset.lendable %}{{ " " if holders }}<a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', gegenstand=asset.id) }}" title="{{ _("Issue to a person") }}">{{ icon("loan") }} {{ _("Issue") }}</a>
             {%- elif not holders %}–{% endif %}{% else %}–{% endif %}</td>{% endif %}

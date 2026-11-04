@@ -1,4 +1,4 @@
-"""Behobene Befunde aus der Sicherheitsüberprüfung: Anmeldung, Zwei-Faktor, Sperren, Netzzonen."""
+"""Fixed findings from the security review: login, two-factor, lockouts, network zones."""
 import json
 import os
 import re
@@ -66,13 +66,13 @@ class Base(unittest.TestCase):
         db.session.commit()
 
 
-# ---------------------------------------------------------------- 1: übersprungene 2FA
+# ---------------------------------------------------------------- 1: skipped 2FA
 class SkippedSessionTests(Base):
     def login_skipped(self):
         self.settings(mfa_internal="skip")
         secret = self.give_totp("kasse")
         r = self.c.post("/login", data={"username": "kasse", "password": PW}, environ_base=LAN)
-        self.assertEqual(r.headers["Location"], "/")       # ohne zweiten Faktor angemeldet
+        self.assertEqual(r.headers["Location"], "/")       # signed in without second factor
         return secret
 
     def test_skipped_session_cannot_manage_factors(self):
@@ -102,7 +102,7 @@ class SkippedSessionTests(Base):
         self.assertEqual(r.headers["Location"], "/profil/sicherheit")
         html = self.c.post("/profil/sicherheit/codes", environ_base=LAN).get_data(as_text=True)
         self.assertEqual(len(re.findall(r">([a-z2-9]{4}-[a-z2-9]{4})<", html)), 10)
-        # Nach dem zweiten Faktor gilt die Sitzung auch von außen
+        # after the second factor the session is valid from outside too
         self.assertEqual(self.c.get("/", environ_base=EXT).status_code, 200)
 
     def test_stepup_fail_cap_ends_session(self):
@@ -147,7 +147,7 @@ class SkippedSessionTests(Base):
         return self.app.session_interface.get_signing_serializer(self.app).loads(cookie.value)
 
 
-# ---------------------------------------------------------------- 2: Übernahme lokaler Konten per AD
+# ---------------------------------------------------------------- 2: takeover of local accounts via AD
 class LdapTakeoverTests(Base):
     def test_domain_prefix_does_not_take_over_local_account(self):
         self.settings(ldap_enabled="1")
@@ -172,7 +172,7 @@ class LdapTakeoverTests(Base):
         self.assertEqual(self.user("neu").auth_source, "ldap")
 
 
-# ---------------------------------------------------------------- 3: Anmeldesperren
+# ---------------------------------------------------------------- 3: login lockouts
 class LockoutTests(Base):
     def test_username_variants_share_lockout(self):
         self.settings(ldap_enabled="1")
@@ -195,7 +195,7 @@ class LockoutTests(Base):
         self.assertEqual(self.c.post("/login", data={"username": "leser", "password": PW},
                                      environ_base=EXT).status_code, 429)
         r = self.c.post("/login", data={"username": "leser", "password": PW}, environ_base=LAN)
-        self.assertEqual(r.status_code, 302)      # intern höhere Grenze
+        self.assertEqual(r.status_code, 302)      # higher limit internally
         self.c.post("/logout")
         self._fails(lockout.USER_MAX_FAILS_INTERNAL - lockout.USER_MAX_FAILS)
         self.assertEqual(self.app.test_client().post("/login", data={"username": "leser", "password": PW},
@@ -206,16 +206,16 @@ class LockoutTests(Base):
         r = self.c.post("/login", data={"username": "admin", "password": PW}, environ_base=EXT)
         self.assertIn("/login/2fa", r.headers["Location"])
         saved = self.c.get_cookie("session").value
-        for i in range(10):   # wechselnde Adressen: die Sperre je Adresse greift nicht
+        for i in range(10):   # changing addresses: the per-address lockout does not apply
             r = self.c.post("/login/2fa", data={"code": "000000"}, environ_base={"REMOTE_ADDR": f"198.51.100.{i}"})
             self.assertEqual(r.status_code, 200)
         r = self.c.post("/login/2fa", data={"code": twofa.totp_now(secret)}, environ_base={"REMOTE_ADDR": "198.51.100.99"})
         self.assertEqual(r.headers["Location"], "/login")
-        # altes Cookie zurückspielen hilft nicht – gezählt wird in der Datenbank
+        # replaying an old cookie does not help – counting happens in the database
         self.c.set_cookie("session", saved)
         r = self.c.post("/login/2fa", data={"code": twofa.totp_now(secret)}, environ_base={"REMOTE_ADDR": "198.51.100.98"})
         self.assertEqual(r.headers["Location"], "/login")
-        # Mit erneutem Passwort geht es weiter
+        # with the password again it continues
         r = self.c.post("/login", data={"username": "admin", "password": PW}, environ_base=EXT)
         self.assertIn("/login/2fa", r.headers["Location"])
         r = self.c.post("/login/2fa", data={"code": twofa.totp_now(secret)}, environ_base=EXT)
@@ -226,12 +226,12 @@ class LockoutTests(Base):
         self.c.post("/login", data={"username": "admin", "password": PW}, environ_base=EXT)
         self._fails(lockout.USER_MAX_FAILS, "admin")
         r = self.c.post("/login/2fa", data={"code": twofa.totp_now(secret)}, environ_base=EXT)
-        self.assertEqual(r.status_code, 429)       # abgewiesen …
+        self.assertEqual(r.status_code, 429)       # rejected …
         with self.c.session_transaction() as sess:
-            self.assertIn("mfa_pending", sess)     # … aber die offene Anmeldung bleibt (kein Rauswurf durch Dritte)
+            self.assertIn("mfa_pending", sess)     # … but the pending login stays (no kick-out by third parties)
 
 
-# ---------------------------------------------------------------- 4: Netzzonen
+# ---------------------------------------------------------------- 4: network zones
 class NetzoneDefaultTests(Base):
     def zone(self, addr):
         with self.app.test_request_context("/", environ_base={"REMOTE_ADDR": addr}):
@@ -242,7 +242,7 @@ class NetzoneDefaultTests(Base):
         self.assertEqual(self.zone("172.17.0.1"), "extern")
         self.assertEqual(self.zone("192.168.1.5"), "lan")
         self.assertEqual(self.zone("10.1.2.3"), "lan")
-        self.assertEqual(self.zone("127.0.0.1"), "extern")   # Loopback: Tunnel ohne Besucher-Adresse (seit 1.6.2)
+        self.assertEqual(self.zone("127.0.0.1"), "extern")   # loopback: tunnel without visitor address (since 1.6.2)
         self.settings(internal_networks="172.16.0.0/12")
         self.assertEqual(self.zone("172.17.0.1"), "lan")
 
@@ -258,7 +258,7 @@ class NetzoneDefaultTests(Base):
             self.assertEqual(netzone.classify(), "extern")
 
 
-# ---------------------------------------------------------------- 5: Wettlauf bei Einmal-Codes
+# ---------------------------------------------------------------- 5: race on one-time codes
 class RaceTests(Base):
     def setUp(self):
         d = tempfile.mkdtemp(prefix="assetlotse-race-")
@@ -307,7 +307,7 @@ class RaceTests(Base):
         secret = self.give_totp("admin")
         clients = self._pending_clients(3)
         code = twofa.totp_now(secret)
-        # Prüfung verlangsamt: alle drei Anfragen haben den Code geprüft, bevor eine ihn verbraucht
+        # check slowed down: all three requests have checked the code before one uses it up
         def slow_check(secret_, c, last_step=0, **_k):
             time.sleep(0.05)
             return int(time.time() // twofa.TOTP_PERIOD) if c == code else None
@@ -316,7 +316,7 @@ class RaceTests(Base):
         self.assertEqual(res.count("/"), 1)
 
 
-# ---------------------------------------------------------------- 6 + 12: Registrierung
+# ---------------------------------------------------------------- 6 + 12: registration
 class RegisterTests(Base):
     def test_english_registration_with_ad(self):
         self.settings(registration_mode="open", registration_verify_email="0", ldap_enabled="1",
@@ -339,7 +339,7 @@ class RegisterTests(Base):
                 r = c.post("/registrieren", data={"username": name, "display_name": "N", "email": f"{name}@ex.org",
                                                   "password": "abcdefghijk1", "password2": "abcdefghijk1"})
                 self.assertEqual(r.status_code, 302, lang)
-                self.assertEqual(self.user(name).language, lang)   # Befund 12
+                self.assertEqual(self.user(name).language, lang)   # finding 12
 
     def test_ambiguous_ad_name_is_taken(self):
         from assetlotse.views import register
@@ -358,7 +358,7 @@ class RegisterTests(Base):
             self.assertTrue(register._exists_in_directory("doppelt"))
 
 
-# ---------------------------------------------------------------- 7: Abmelde-Schleife
+# ---------------------------------------------------------------- 7: logout loop
 class RememberLoopTests(Base):
     def test_disabled_ad_user_remember_cookie_deleted(self):
         self.settings(ldap_enabled="1", ldap_bind_dn="CN=svc", ldap_server="dc", ldap_base_dn="DC=x")
@@ -385,7 +385,7 @@ class RememberLoopTests(Base):
         self.assertTrue(any(h.startswith("remember_token=;") for h in r.headers.getlist("Set-Cookie")))
 
 
-# ---------------------------------------------------------------- 8: Wiederherstellungscodes im Cookie
+# ---------------------------------------------------------------- 8: recovery codes in the cookie
 class CodesInCookieTests(Base):
     def test_codes_encrypted_in_session_and_removed(self):
         self.c.post("/login", data={"username": "leser", "password": PW})
@@ -411,7 +411,7 @@ class CodesInCookieTests(Base):
         self.assertNotIn("show_new_codes", ser.loads(self.c.get_cookie("session").value))
 
 
-# ---------------------------------------------------------------- 9: E-Mail im Profil
+# ---------------------------------------------------------------- 9: email in the profile
 class ProfileMailTests(Base):
     def test_self_registered_domain_rule(self):
         self.settings(registration_domains="schule.de")
@@ -423,26 +423,26 @@ class ProfileMailTests(Base):
         self.c.post("/login", data={"username": "leser", "password": PW})
         self.c.post("/profil", data={"action": "data", "display_name": "Leser", "email": "x@fremd.org"})
         self.assertEqual(self.user("leser").email, "leser@schule.de")
-        self.c.post("/profil", data={"action": "data", "display_name": "Leser", "email": ""})   # Pflicht bei Registrierten
+        self.c.post("/profil", data={"action": "data", "display_name": "Leser", "email": ""})   # required for registered users
         self.assertEqual(self.user("leser").email, "leser@schule.de")
         self.c.post("/profil", data={"action": "data", "display_name": "Lea Leser", "email": "neu@eltern.schule.de"})
         self.assertEqual(self.user("leser").email, "neu@eltern.schule.de")
         self.assertEqual(self.user("leser").display_name, "Lea Leser")
-        # nicht selbst registriert: keine Einschränkung
+        # not self-registered: no restriction
         c = self.app.test_client()
         c.post("/login", data={"username": "kasse", "password": PW})
         c.post("/profil", data={"action": "data", "display_name": "Kasse", "email": "k@fremd.org"})
         self.assertEqual(self.user("kasse").email, "k@fremd.org")
 
 
-# ---------------------------------------------------------------- 10: Ersteinrichtung nur einmal
+# ---------------------------------------------------------------- 10: initial setup only once
 class SetupOnceTests(Base):
     def test_setup_not_reopened_without_admin(self):
         self.c.get("/login")
-        self.assertEqual(get_setting("setup_completed"), "1")   # bestehende Installation: beim Start gesetzt
+        self.assertEqual(get_setting("setup_completed"), "1")   # existing installation: set on start
         User.query.filter_by(role="admin").delete()
         db.session.commit()
-        self.app.config["_setup_done"] = False                   # wie nach einem Neustart
+        self.app.config["_setup_done"] = False                   # as after a restart
         r = self.c.get("/")
         self.assertNotIn("/setup", r.headers.get("Location", ""))
         r = self.c.get("/setup")
@@ -460,7 +460,7 @@ class SetupOnceTests(Base):
         self.assertEqual(get_setting("setup_completed"), "1")
 
 
-# ---------------------------------------------------------------- 11: Sprache bei der Anmeldung
+# ---------------------------------------------------------------- 11: language at login
 class LoginLanguageTests(Base):
     def test_flash_after_login_in_user_language(self):
         self.settings(mfa_policy="all")

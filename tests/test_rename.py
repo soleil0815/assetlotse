@@ -1,4 +1,4 @@
-"""Start, Info-Seite und neutraler Name in der Oberfläche."""
+"""Startup, about page and neutral name in the UI."""
 import os
 import sys
 import tempfile
@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
 
 class NoProductNameTests(unittest.TestCase):
-    """Mit eigenem Namen (z. B. der Einrichtung) tragen die E-Mails diesen Namen statt „AssetLotse“."""
+    """With a custom name (e.g. the institution's), emails carry that name instead of "AssetLotse"."""
 
     def setUp(self):
         self.app = create_app({"TESTING": True, "WTF_CSRF_ENABLED": False, "SQLALCHEMY_DATABASE_URI": "sqlite://"})

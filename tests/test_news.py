@@ -1,4 +1,4 @@
-"""Neuigkeiten in der App: Sichtbarkeit je Rolle, Ungelesen-Punkt, Gelesen-Merken, Sprachen."""
+"""In-app news: visibility per role, unread dot, remembering what was read, languages."""
 import json
 from pathlib import Path
 from unittest import mock
@@ -37,8 +37,8 @@ class NewsFileTest(Base):
                 self.assertTrue(e[lang]["title"].strip() and e[lang]["text"].strip(), (e["version"], lang))
             self.assertLessEqual(news.version_tuple(e["version"]), current)
             versions.append(news.version_tuple(e["version"]))
-        self.assertEqual(versions, sorted(versions, reverse=True))      # neueste zuerst
-        self.assertEqual(max(versions), current, "Für die aktuelle Version fehlt ein Eintrag in news.json")
+        self.assertEqual(versions, sorted(versions, reverse=True))      # newest first
+        self.assertEqual(max(versions), current, "news.json is missing an entry for the current version")
 
 
 class NewsTest(Base):
@@ -67,11 +67,11 @@ class NewsTest(Base):
     def test_dot_until_read_then_gone(self):
         self.login("mia")
         html = self.c.get("/").get_data(as_text=True)
-        self.assertIn("news-dot", html)                      # Neues der laufenden Version, ältere gelten als gelesen
+        self.assertIn("news-dot", html)                      # news of the running version; older ones count as read
         self.assertIn('href="/neuigkeiten"', html)
         page = self.c.get("/neuigkeiten").get_data(as_text=True)
         self.assertIn("is-new", page)
-        self.assertEqual(page.count("is-new"), 1)            # nur der Eintrag von 2.0.0, nicht der alte
+        self.assertEqual(page.count("is-new"), 1)            # only the 2.0.0 entry, not the old one
         self.assertEqual(User.query.filter_by(username="mia").first().news_seen, "2.0.0")
         html = self.c.get("/").get_data(as_text=True)
         self.assertNotIn("news-dot", html)
@@ -90,4 +90,4 @@ class NewsTest(Base):
         self.c.post("/sprache/en")
         page = self.c.get("/neuigkeiten").get_data(as_text=True)
         self.assertIn("For everyone", page)
-        self.assertIn("Für Admins", page)                    # ohne englischen Text: deutscher
+        self.assertIn("Für Admins", page)                    # no English text: German one

@@ -1,4 +1,4 @@
-"""Nachbesserungen aus der Überprüfung: Bestand, Ausgabe, Theke, Standorte."""
+"""Fixes from the review: stock, issue, desk, locations."""
 import io
 import os
 import re
@@ -72,7 +72,7 @@ class Base(unittest.TestCase):
         self.leser = self.make("leser", "reader", [self.ga])
         self.lb = self.make("lb", "reader", [self.gb])
         self.c = self.app.test_client()
-        set_setting("self_checkout", "1")   # Tests prüfen auch die Selbstausleihe
+        set_setting("self_checkout", "1")   # tests also check self-checkout
         set_setting("loan_days", "28")
         db.session.commit()
 
@@ -114,7 +114,7 @@ class Base(unittest.TestCase):
         return l
 
 
-# ---------------------------------------------------------------- 1. Gleichzeitige Ausleihen (Datei-SQLite)
+# ---------------------------------------------------------------- 1. concurrent loans (file SQLite)
 
 class RaceTests(Base):
     def setUp(self):
@@ -123,7 +123,7 @@ class RaceTests(Base):
         super().setUp()
 
     def run_parallel(self, jobs, patch_target, patch_attr, key=None):
-        """Alle Anfragen am gleichen Punkt (vor der Prüfung) zusammentreffen lassen."""
+        """Let all requests meet at the same point (before the check)."""
         barrier = threading.Barrier(len(jobs), timeout=3)
         real = getattr(patch_target, patch_attr)
 
@@ -189,7 +189,7 @@ class ActiveLoanIndexTests(Base):
     def test_second_open_loan_rejected_by_database(self):
         b = self.asset(quantity=3)
         self.loan(b, self.leser)
-        self.loan(b, self.leser, returned=True)   # abgeschlossene zählen nicht
+        self.loan(b, self.leser, returned=True)   # finished ones do not count
         with self.assertRaises(IntegrityError):
             self.loan(b, self.leser)
         db.session.rollback()
@@ -214,7 +214,7 @@ class ActiveLoanIndexTests(Base):
         self.assertIn("hat diesen Gegenstand bereits", r.get_data(as_text=True))
 
 
-# ---------------------------------------------------------------- 4. Theke: Inventar-/Seriennummer vor interner Nummer
+# ---------------------------------------------------------------- 4. desk: inventory/serial number before internal number
 
 class DeskSearchTests(Base):
     def test_digits_match_inventory_number_not_internal_id(self):
@@ -234,7 +234,7 @@ class DeskSearchTests(Base):
             self.assertEqual(loans_view._find_assets("#99999999999999999999"), ([], True))
 
 
-# ---------------------------------------------------------------- 6. Bestand/Export ohne Abfrage je Gegenstand
+# ---------------------------------------------------------------- 6. stock/export without a query per item
 
 class PerformanceTests(Base):
     def setUp(self):
@@ -288,7 +288,7 @@ class PerformanceTests(Base):
         self.assertEqual(holder["Gerät 050"], "")
 
 
-# ---------------------------------------------------------------- 7.–10. Sichtbarkeit und Rechte
+# ---------------------------------------------------------------- 7.–10. visibility and permissions
 
 class VisibilityTests(Base):
     def test_desk_hides_other_groups_loans_and_names(self):
@@ -328,7 +328,7 @@ class VisibilityTests(Base):
         self.assertIn("bereits abgeschlossen", r.get_data(as_text=True))
 
 
-# ---------------------------------------------------------------- 11. Ungültige Eingaben → kein 500
+# ---------------------------------------------------------------- 11. invalid input → no 500
 
 class MalformedInputTests(Base):
     def test_no_server_errors(self):
@@ -364,7 +364,7 @@ class MalformedInputTests(Base):
         self.assertEqual(b.quantity, assets_view.MAX_QUANTITY)
 
 
-# ---------------------------------------------------------------- 12./13. Blättern
+# ---------------------------------------------------------------- 12./13. paging
 
 class PagingTests(Base):
     def test_catalogue_pages_keep_location(self):

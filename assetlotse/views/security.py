@@ -1,4 +1,4 @@
-"""Zwei-Faktor-Anmeldung: Anmeldeschritt 2 und Verwaltung im Profil."""
+"""Two-factor sign-in: sign-in step 2 and management in the profile."""
 from __future__ import annotations
 
 import logging
@@ -16,13 +16,13 @@ from . import form_str, safe_next
 bp = Blueprint("security", __name__)
 log = logging.getLogger(__name__)
 
-PENDING_TTL = 300  # Sekunden für den zweiten Schritt
+PENDING_TTL = 300  # seconds allowed for the second step
 
 
-# ---------------------------------------------------------------- Anmeldung
+# ---------------------------------------------------------------- Sign-in
 
 def start_login(user: User, remember: bool, next_url: str | None):
-    """Nach erfolgreicher Passwortprüfung: entweder zweiter Faktor oder direkt anmelden."""
+    """After a successful password check: either ask for the second factor or sign in directly."""
     from datetime import datetime
     from .. import netzone
     session.pop("mfa_pending", None)
@@ -33,8 +33,8 @@ def start_login(user: User, remember: bool, next_url: str | None):
         session["mfa_pending"] = {"uid": user.id, "remember": bool(remember), "next": next_url or "",
                                   "ts": time.time()}
         return redirect(url_for("security.challenge"))
-    # Zweiter Faktor nur wegen „internes Netz“ übersprungen? Dann gilt die Sitzung nur intern:
-    # kein „Angemeldet bleiben“, und von außen ist eine neue Anmeldung nötig.
+    # second factor skipped only because of "internal network"? Then the session is valid internally only:
+    # no "stay signed in", and a new sign-in is required from outside.
     skipped = internal and twofa.needed_outside(user)
     if skipped:
         remember = False
@@ -67,36 +67,36 @@ def _finish(user: User):
     user.last_login = datetime.now()
     db.session.commit()
     login_user(user, remember=p.get("remember", False))
-    session["mfa_ok"] = True   # zweiter Faktor in dieser Anmeldung bestätigt (für die Verwaltung der Faktoren)
+    session["mfa_ok"] = True   # second factor confirmed in this sign-in (needed for managing factors)
     return safe_next(p.get("next")) or url_for("main.dashboard")
 
 
-MFA_MAX_FAILS = 10   # Fehlversuche beim zweiten Faktor je Anmeldung, dann Passwort erneut nötig
+MFA_MAX_FAILS = 10   # failed second-factor attempts per sign-in, then the password is required again
 
 
 def _account_throttled(user: User) -> bool:
-    """Konto-weite Bremse (viele Fehlversuche von vielen Adressen): nur abweisen, die offene Anmeldung
-    bzw. laufende Sitzung bleibt bestehen – sonst könnte ein Angreifer sie durch Fehlversuche beenden."""
+    """Account-wide throttle (many failed attempts from many addresses): only reject; the pending sign-in
+    or running session stays – otherwise an attacker could end it with failed attempts."""
     from .. import netzone
     return lockout.user_throttled(user.username, internal=netzone.is_internal())
 
 
 def _too_many_mfa_fails(user: User) -> bool:
-    """Zu viele falsche Codes für diese (noch offene) Anmeldung oder für das Konto insgesamt?
+    """Too many wrong codes for this (still pending) sign-in or for the account overall?
 
-    Gezählt wird in der Datenbank – ein zurückgespieltes altes Sitzungs-Cookie hilft also nicht.
-    Bei Überschreitung wird die offene Anmeldung verworfen."""
+    Counted in the database – so replaying an old session cookie does not help.
+    When exceeded, the pending sign-in is discarded."""
     p = session.get("mfa_pending") or {}
     if lockout.mfa_fails_since(user.username, p.get("ts", 0)) >= MFA_MAX_FAILS:
         session.pop("mfa_pending", None)
         session.pop("webauthn_state", None)
         if current_user.is_authenticated:
-            # Nachträgliche Bestätigung (stepup) aus einer laufenden Sitzung: die Sitzung endet auch,
-            # sonst ließe sich der Zähler durch erneutes Starten immer wieder zurücksetzen.
+            # step-up confirmation from a running session: the session ends too,
+            # otherwise the counter could be reset again and again by restarting.
             from flask_login import logout_user
             session.clear()
             logout_user()
-        log.warning("Zu viele Fehlversuche beim zweiten Faktor für %s – Anmeldung verworfen", user.username)
+        log.warning("Too many failed second-factor attempts for %s – sign-in discarded", user.username)
         return True
     return False
 
@@ -133,7 +133,7 @@ def challenge():
             lockout.clear(key)
             return redirect(_finish(user))
         lockout.fail(key, user.username)
-        log.info("2FA fehlgeschlagen für %s", user.username)
+        log.info("2FA failed for %s", user.username)
         flash(_("The code is invalid."), "error")
     return render_template("security/challenge.html", user=user, mode=mode,
                            totp_broken=twofa.totp_unreadable(user),
@@ -168,7 +168,7 @@ def challenge_key_complete():
     try:
         ok = twofa.webauthn_auth_complete(user, twofa.rp_id_for(request.host), state, request.get_json(force=True))
     except Exception as exc:  # noqa: BLE001
-        log.info("WebAuthn-Anmeldung %s fehlgeschlagen: %s", user.username, exc)
+        log.info("WebAuthn sign-in %s failed: %s", user.username, exc)
         ok = False
     if not ok:
         lockout.fail(key, user.username)
@@ -177,7 +177,7 @@ def challenge_key_complete():
     return jsonify({"ok": True, "redirect": _finish(user)})
 
 
-# ---------------------------------------------------------------- Profil: Sicherheit
+# ---------------------------------------------------------------- Profile: security
 
 def _render_settings(**extra):
     rp = twofa.rp_id_for(request.host)
@@ -189,11 +189,11 @@ def _render_settings(**extra):
 
 
 def _may_manage() -> bool:
-    """Faktoren hinzufügen, ersetzen, entfernen oder neue Codes erzeugen darf nur, wer in dieser Anmeldung
-    einen zweiten Faktor bestätigt hat – oder wer noch gar keinen hat (Ersteinrichtung).
+    """Only someone who confirmed a second factor in this sign-in – or who has none yet (initial setup) – may
+    add, replace or remove factors or generate new codes.
 
-    Sonst könnte eine Sitzung, die im internen Netz ohne zweiten Faktor begonnen wurde, sich einen eigenen
-    Faktor anlegen und damit von außen anmelden."""
+    Otherwise a session started on the internal network without a second factor could enroll its own
+    factor and use it to sign in from outside."""
     return bool(session.get("mfa_ok")) or not current_user.has_2fa
 
 
@@ -203,9 +203,9 @@ def _stepup_msg() -> str:
 
 
 def _first_factor_added(had_2fa: bool):
-    """Erster zweiter Faktor eingerichtet: Wer sich vorher (evtl. mit erbeutetem Passwort) angemeldet hat,
-    soll nicht einfach angemeldet bleiben – alle anderen Geräte abmelden, dieses bleibt angemeldet."""
-    session.pop("mfa_skipped", None)   # Faktor gerade bestätigt: Sitzung gilt nicht mehr als „ohne 2FA“
+    """First second factor set up: whoever signed in before (possibly with a stolen password) should not
+    simply stay signed in – sign out all other devices; this one stays signed in."""
+    session.pop("mfa_skipped", None)   # factor just confirmed: the session no longer counts as "without 2FA"
     if had_2fa:
         return
     from .main import _stay_signed_in
@@ -222,8 +222,8 @@ def _refuse_manage():
 @bp.route("/profil/sicherheit/bestaetigen", methods=["POST"])
 @login_required
 def stepup():
-    """Zweiten Faktor für die laufende Sitzung nachträglich abfragen (z. B. nach Anmeldung im internen Netz
-    ohne zweiten Faktor). Nutzt den normalen Anmeldeschritt 2."""
+    """Ask for the second factor afterwards for the running session (e.g. after signing in on the internal
+    network without a second factor). Uses the normal sign-in step 2."""
     target = safe_next(request.form.get("next")) or url_for("security.settings")
     if not current_user.has_2fa or session.get("mfa_ok"):
         return redirect(target)
@@ -233,7 +233,7 @@ def stepup():
 
 
 def _last_factor(kind: str, cred_id: int | None = None) -> bool:
-    """Würde das Entfernen den letzten Faktor löschen, obwohl 2FA Pflicht ist?"""
+    """Would removing it delete the last factor although 2FA is mandatory?"""
     if not twofa.required_for(current_user):
         return False
     keys = [c for c in current_user.webauthn_credentials if c.id != cred_id]
@@ -283,7 +283,7 @@ def totp_confirm():
     db.session.commit()
     _first_factor_added(had_2fa)
     session.pop("mfa_setup", None)
-    session["mfa_ok"] = True   # den neuen Faktor hat er gerade bestätigt
+    session["mfa_ok"] = True   # the user just confirmed the new factor
     codes = twofa.new_recovery_codes(current_user) if not twofa.recovery_codes_left(current_user) else None
     flash(_("Authenticator app is set up."), "success")
     return _render_settings(new_codes=codes)
@@ -343,14 +343,14 @@ def key_complete():
         twofa.webauthn_register_complete(current_user, twofa.rp_id_for(request.host), state,
                                          payload.get("credential") or {}, str(payload.get("name") or ""))
     except Exception as exc:  # noqa: BLE001
-        log.info("WebAuthn-Registrierung fehlgeschlagen: %s", exc)
+        log.info("WebAuthn registration failed: %s", exc)
         return jsonify({"ok": False, "error": _("The key could not be registered ({error}).", error=str(exc))}), 400
     _first_factor_added(had_2fa)
     session.pop("mfa_setup", None)
-    session["mfa_ok"] = True   # der neue Schlüssel wurde gerade benutzt
+    session["mfa_ok"] = True   # the new key was just used
     first = not twofa.recovery_codes_left(current_user)
     if first:
-        # nur verschlüsselt ins (für den Browser lesbare) Sitzungs-Cookie
+        # only encrypted into the session cookie (readable by the browser)
         import json
         session["show_new_codes"] = twofa.encrypt(json.dumps(twofa.new_recovery_codes(current_user)))
     flash(_("Security key added."), "success")
@@ -370,6 +370,7 @@ def key_delete(cred_id):
     else:
         db.session.delete(cred)
         db.session.commit()
+        # "Sicherheitsschlüssel" is the stored default key name (stored format – keep)
         flash(_("“{name}” removed.", name=cred.name if cred.name and cred.name != "Sicherheitsschlüssel"
                                      else _("Security key")), "success")
     return redirect(url_for("security.settings"))
@@ -377,18 +378,18 @@ def key_delete(cred_id):
 
 @bp.before_app_request
 def enforce_setup():
-    """Wer laut Richtlinie 2FA braucht, muss sie einrichten, bevor er weiterarbeiten kann.
+    """Anyone who needs 2FA according to the policy must set it up before continuing.
 
-    Außerdem: Eine Sitzung, die im internen Netz ohne zweiten Faktor begonnen wurde, gilt nicht von außen."""
+    Also: a session started on the internal network without a second factor is not valid from outside."""
     from flask_login import logout_user
     from .. import netzone
     if not current_user.is_authenticated or request.endpoint == "static":
         return None
     internal = netzone.is_internal()
     if session.get("mfa_skipped") and not internal and twofa.needed_outside(current_user):
-        log.info("Sitzung von %s ohne zweiten Faktor (intern begonnen) von außen benutzt – neu anmelden",
+        log.info("Session of %s without second factor (started internally) used from outside – sign in again",
                  current_user.username)
-        session.clear()     # zuerst – logout_user() merkt sich darin, dass das Merk-Cookie gelöscht wird
+        session.clear()     # first – logout_user() records in it that the remember cookie must be deleted
         logout_user()
         if request.path.startswith("/api/"):
             return jsonify({"ok": False, "error": _("Please sign in again.")}), 401
@@ -408,7 +409,7 @@ def enforce_setup():
 @bp.app_context_processor
 def inject_codes():
     from flask import has_request_context
-    if not has_request_context():  # z. B. Mail-Vorlagen im Hintergrund
+    if not has_request_context():  # e.g. email templates rendered in the background
         return {}
     enc = session.pop("show_new_codes", None) if request.args.get("neu") else None
     codes = None

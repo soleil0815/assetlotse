@@ -1,9 +1,9 @@
-"""Hilfe – zeigt jedem nur, was für seine Rolle gilt, und springt zur passenden Stelle.
+"""Help – shows everyone only what applies to their role and jumps to the matching section.
 
-Jedes Thema hat eine Mindestrolle und die Seiten (Endpunkte), zu denen es gehört. Der „?“-Knopf
-oben rechts führt so direkt zur Hilfe der aktuellen Seite. Die Texte liegen je Sprache in
-templates/help/<sprache>/<thema>.html und dürfen die aktuellen Einstellungen verwenden
-(z. B. Leihdauer, Selbstausleihe), damit die Hilfe zum tatsächlichen Betrieb passt.
+Each topic has a minimum role and the pages (endpoints) it belongs to, so the "?" button
+at the top right leads straight to the help for the current page. The texts live per language in
+templates/help/<language>/<topic>.html and may use the current settings
+(e.g. loan period, self-checkout) so the help matches how the system is actually run.
 """
 from __future__ import annotations
 
@@ -40,18 +40,18 @@ GROUPS = {
 }
 
 TOPICS: tuple[Topic, ...] = (
-    # --- alle
+    # --- everyone
     Topic("start", ROLE_READER, "Erste Schritte", "Getting started", ("main.dashboard", "main.about")),
     Topic("catalog", ROLE_READER, "Gegenstände finden", "Finding items", ("assets.index", "assets.detail")),
     Topic("borrow", ROLE_READER, "Ausgabe und Rückgabe", "Issuing and returning", ("loans.borrow", "loans.give_back")),
     Topic("my-loans", ROLE_READER, "Meine Gegenstände und Verlängern", "My items and extending",
-          ("loans.index", "loans.extend", "assets.detail")),   # assets.detail nur, wenn „catalog“ ausgeblendet ist
+          ("loans.index", "loans.extend", "assets.detail")),   # assets.detail only when "catalog" is hidden
     Topic("profile", ROLE_READER, "Profil, Sprache und Benachrichtigungen", "Profile, language and notifications",
           ("main.profile",)),
     Topic("security", ROLE_READER, "Sicherheit und Zwei-Faktor-Anmeldung", "Security and two-factor sign-in",
           ("security.settings", "security.challenge")),
     Topic("login", ROLE_READER, "Probleme bei der Anmeldung", "Sign-in problems", ("main.login",)),
-    # --- Verwalter
+    # --- managers
     Topic("desk", ROLE_MANAGER, "Ausgabetheke", "Issue desk", ("loans.desk",)),
     Topic("all-loans", ROLE_MANAGER, "Alle Ausleihen, Mahnungen", "All loans and reminders", ("loans.remind",)),
     Topic("add-item", ROLE_MANAGER, "Gegenstände anlegen und bearbeiten", "Adding and editing items",
@@ -98,16 +98,16 @@ def topic_for(endpoint: str | None, user) -> str | None:
 
 
 def help_url() -> str:
-    """Link für den „?“-Knopf: Hilfe zur aktuellen Seite (oder Übersicht)."""
+    """Link for the "?" button: help for the current page (or the overview)."""
     topic = topic_for(request.endpoint, current_user) if current_user.is_authenticated else None
     if (topic == "my-loans" and request.endpoint == "loans.index" and current_user.is_manager
             and request.args.get("nur") != "meine"):
-        topic = "all-loans"   # Verwalter sehen hier „Alle Ausleihen“
+        topic = "all-loans"   # managers see "All loans" here
     return url_for("help.index", thema=topic) if topic else url_for("help.index")
 
 
 def facts() -> dict:
-    """Aktuelle Einstellungen, damit die Hilfe den echten Betrieb beschreibt."""
+    """Current settings, so the help describes how the system is actually run."""
     from .. import ad_cache, backup, twofa
     from ..i18n import LANGUAGES
     from ..models import User
@@ -126,7 +126,7 @@ def facts() -> dict:
         "mfa_internal": twofa.internal_mode(),   # same | optional | skip
         "ldap_on": get_bool("ldap_enabled"),
         "loan_mail": get_bool("mail_on_loan"),
-        "https": request.is_secure,   # Sicherheitsschlüssel (WebAuthn) brauchen HTTPS
+        "https": request.is_secure,   # security keys (WebAuthn) require HTTPS
         "registration_mode": get_setting("registration_mode"),
         "retention_months": get_int("retention_months", 12),
         "catalog_all": get_setting("catalog_visibility") == "all",
@@ -173,7 +173,7 @@ def index():
             groups.append((GROUPS[role][1 if lang == "en" else 0], items))
     manual = MANUALS.get(lang, MANUALS["de"])
     if not (_docs_dir() / manual).exists():
-        manual = MANUALS["de"]          # fehlt die Sprachfassung, das deutsche Handbuch
+        manual = MANUALS["de"]          # if the language version is missing, use the German manual
     has_manual = (_docs_dir() / manual).exists()
     return render_template("help/index.html", groups=groups, lang=lang, focus=focus, f=facts(),
                            has_manual=has_manual, manual=manual)

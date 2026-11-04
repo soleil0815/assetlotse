@@ -1,4 +1,4 @@
-"""Sicherheits- und Logikprüfungen aus der Überprüfung (Version 2.8.0)."""
+"""Security and logic checks from the review (version 2.8.0)."""
 import io
 import os
 import re
@@ -30,8 +30,8 @@ class Base(unittest.TestCase):
         self.ctx = self.app.app_context()
         self.ctx.push()
         db.create_all()
-        # Der Test hält einen App-Kontext offen; Flask nutzt ihn für jede Anfrage mit – samt „g“.
-        # Damit kein Benutzer von einer Anfrage zur nächsten (oder zwischen Clients) hängen bleibt:
+        # The test keeps an app context open; Flask reuses it for every request – including “g”.
+        # So that no user sticks from one request to the next (or between clients):
         from flask import g
 
         def _fresh_user():
@@ -189,7 +189,7 @@ class UploadAndExportTests(Base):
         self.assertEqual(r.mimetype, "image/jpeg")
         self.assertEqual(self.c.get("/bilder/../secret_key").status_code, 404)
         self.c.post("/logout")
-        self.assertEqual(self.c.get(f"/bilder/{b.image_file}").status_code, 302)   # nur angemeldet
+        self.assertEqual(self.c.get(f"/bilder/{b.image_file}").status_code, 302)   # signed in only
 
     def test_csv_formula_escaped(self):
         db.session.add(Asset(name="=HYPERLINK(\"http://x\")", manufacturer="+49 123", quantity=1))
@@ -285,7 +285,7 @@ class LdapRecheckTests(Base):
             s["_fresh"] = True
 
     def directory(self, **kw):
-        """Verzeichnis ersetzen; liefert den Mock von check_account."""
+        """Replace the directory; returns the mock of check_account."""
         patcher = mock.patch("assetlotse.ldap_auth.Directory")
         cls = patcher.start()
         self.addCleanup(patcher.stop)

@@ -1,5 +1,5 @@
-"""Code-Audit 1.9.2: AD-Fehler, Löschen mit Ausleihen, doppelte Rückgabe, Theke, DNS-Zwischenspeicher, Mail-Nachholen,
-Sicherungsmeldungen, Konflikte beim Speichern, Gruppen löschen."""
+"""Code audit 1.9.2: AD errors, deleting with loans, double return, desk, DNS cache, catching up on mails,
+backup messages, conflicts on saving, deleting groups."""
 import types
 from unittest import mock
 
@@ -25,11 +25,11 @@ class LdapTransientErrorTests(Base):
         with self.assertRaises(LDAPError) as cm:
             Directory.find_user(d, self.conn(51), "anna")
         self.assertNotIsInstance(cm.exception, LDAPUserNotFound)
-        with self.assertRaises(LDAPUserNotFound):              # wirklich nicht gefunden: weiterhin „unbekannt“
+        with self.assertRaises(LDAPUserNotFound):              # really not found: still “unknown”
             Directory.find_user(d, self.conn(0), "anna")
-        with self.assertRaises(LDAPError):                     # Gruppen: vorübergehend → Abbruch statt „keine“
+        with self.assertRaises(LDAPError):                     # groups: transient → abort instead of “none”
             Directory._search_dns(d, self.conn(52), "DC=x", "(x=1)")
-        self.assertEqual(Directory._search_dns(d, self.conn(53), "DC=x", "(x=1)"), [])   # nicht unterstützt
+        self.assertEqual(Directory._search_dns(d, self.conn(53), "DC=x", "(x=1)"), [])   # not supported
 
 
 class DataIntegrityTests(Base):
@@ -66,8 +66,8 @@ class DataIntegrityTests(Base):
         self.assertEqual(db.session.get(Loan, loan.id).returned_at, stamp)
 
     def test_losing_the_last_group_never_makes_a_global_manager(self):
-        """Ohne ausdrücklichen Haken „gesamter Bestand“ verwaltet ein Verwalter ohne Gruppe nur Allgemeines –
-        egal ob die Gruppe gelöscht, im Formular entfernt oder vom AD-Abgleich genommen wird."""
+        """Without the explicit “entire stock” checkbox, a manager without a group only manages general items –
+        whether the group is deleted, removed in the form or taken away by the AD sync."""
         other = self.laptop(secret=None, group_id=self.it.id)
         self.login("admin")
         self.c.post(f"/admin/gruppen/{self.hr.id}/loeschen")
@@ -85,23 +85,23 @@ class DataIntegrityTests(Base):
         db.session.add(lone)
         db.session.commit()
         self.assertFalse(lone.is_global_manager)
-        self.assertEqual(migrate_manages_all(), 1)       # beim Update: wer bisher alles verwaltet hat, behält es
+        self.assertEqual(migrate_manages_all(), 1)       # on update: whoever managed everything so far keeps it
         db.session.expire_all()
         self.assertTrue(User.query.filter_by(username="lone").one().is_global_manager)
-        self.assertFalse(User.query.filter_by(username="vera").one().manages_all)   # hat Gruppen: unverändert
+        self.assertFalse(User.query.filter_by(username="vera").one().manages_all)   # has groups: unchanged
         del user_groups
 
     def test_unique_conflict_gives_message_not_500(self):
         from sqlalchemy.exc import IntegrityError
 
-        @self.app.route("/_konflikt", methods=["POST"])
-        def _konflikt():
+        @self.app.route("/_conflict", methods=["POST"])
+        def _conflict():
             raise IntegrityError("INSERT", {}, Exception("UNIQUE constraint failed"))
         self.login("admin")
-        r = self.c.post("/_konflikt", headers={"Referer": "http://localhost/standorte"})
+        r = self.c.post("/_conflict", headers={"Referer": "http://localhost/standorte"})
         self.assertEqual(r.status_code, 302)
         self.assertTrue(r.headers["Location"].endswith("/standorte"))
-        r = self.c.post("/_konflikt", headers={"Referer": "https://evil.example/x"})
+        r = self.c.post("/_conflict", headers={"Referer": "https://evil.example/x"})
         self.assertEqual(r.headers["Location"], "/")
 
 
@@ -118,7 +118,7 @@ class DeskTests(Base):
     def test_auto_checkbox_is_remembered(self):
         self.login("admin")
         self.assertIn('name="auto" value="1" checked', self.c.get("/theke?modus=rueckgabe").get_data(as_text=True))
-        self.c.post("/theke", data={"modus": "rueckgabe", "code": "nichts"})          # Häkchen abgewählt
+        self.c.post("/theke", data={"modus": "rueckgabe", "code": "nichts"})          # checkbox cleared
         html = self.c.get("/theke?modus=rueckgabe").get_data(as_text=True)
         self.assertNotIn('name="auto" value="1" checked', html)
         self.c.post("/theke", data={"modus": "rueckgabe", "code": "nichts", "auto": "1"})
@@ -155,12 +155,12 @@ class MailRetryTests(Base):
                 set_setting("mail_retry_after", "")
                 db.session.commit()
                 self.assertIsNotNone(mailer.run_scheduled(now))
-                self.assertEqual(get_setting("mail_last_run"), "")          # Tag wieder frei
+                self.assertEqual(get_setting("mail_last_run"), "")          # day free again
                 self.assertEqual(get_setting("mail_retries"), f"2026-10-24:{i}")
             set_setting("mail_retry_after", "")
             db.session.commit()
             mailer.run_scheduled(now)
-            self.assertEqual(get_setting("mail_last_run"), "2026-10-24")    # nach 3 Versuchen ist Schluss
+            self.assertEqual(get_setting("mail_last_run"), "2026-10-24")    # after 3 attempts it stops
 
     def test_one_broken_person_does_not_stop_the_rest(self):
         from datetime import date, timedelta
@@ -188,7 +188,7 @@ class MailRetryTests(Base):
             stats = mailer.run_notifications(date.today())
         self.assertEqual(len(calls), 2)
         self.assertEqual((stats["sent"], stats["errors"]), (1, 1))
-        self.assertEqual(conn.call_count, 2)                                  # einmal neu verbunden
+        self.assertEqual(conn.call_count, 2)                                  # reconnected once
 
 
 class BackupMessageTests(Base):

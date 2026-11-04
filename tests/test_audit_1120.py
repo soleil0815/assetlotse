@@ -1,6 +1,6 @@
-"""Code-Audit 1.12.0: Verwalter nie nebenbei für alles zuständig, Ersteinrichtung nur direkt, E-Mail-Änderung
-gehärtet, Theke/Verlängerung/Verfügbar bei „Kein Verleih“, Aufbewahrung nur nach erfolgreicher Sicherung,
-Übersicht robust, Mail-Fußzeile, update.sh und Build-Kette."""
+"""Code audit 1.12.0: managers never responsible for everything as a side effect, initial setup only directly,
+email change hardened, desk/extension/available with “no lending”, retention only after a successful backup,
+robust dashboard, mail footer, update.sh and build chain."""
 import os
 import re
 import subprocess
@@ -21,7 +21,7 @@ import ci    # noqa: E402
 import lock  # noqa: E402
 
 
-# ====================================================================== Rechte
+# ====================================================================== permissions
 class ManagerScopeTests(Base):
     def test_ad_sync_taking_the_last_group_does_not_make_a_global_manager(self):
         from assetlotse.views.main import sync_ldap_user
@@ -30,7 +30,7 @@ class ManagerScopeTests(Base):
         db.session.commit()
         hr_item = self.laptop(secret=None, group_id=self.hr.id)
         info = types.SimpleNamespace(username="vera", display_name="Vera", email="", dn="CN=vera", guid="",
-                                     role="manager", groups=[])          # aus der AD-Gruppe IT entfernt
+                                     role="manager", groups=[])          # removed from the AD group IT
         sync_ldap_user(info, self.vera, group_sync=True)
         db.session.commit()
         self.assertEqual(self.vera.groups, [])
@@ -47,7 +47,7 @@ class ManagerScopeTests(Base):
         self.c.post(f"/admin/benutzer/{self.vera.id}", data={
             "username": "vera", "display_name": "Vera", "role": "reader", "active": "1", "manages_all": "1"})
         db.session.expire_all()
-        self.assertFalse(db.session.get(User, self.vera.id).manages_all)     # nur für Verwalter
+        self.assertFalse(db.session.get(User, self.vera.id).manages_all)     # managers only
 
 
 class SetupOnlyDirectTests(BaseCase):
@@ -55,13 +55,13 @@ class SetupOnlyDirectTests(BaseCase):
         r = self.c.get("/setup", headers={"X-Forwarded-For": "192.168.1.5"},
                        environ_base={"REMOTE_ADDR": "172.17.0.1"})
         self.assertEqual(r.status_code, 403)
-        r = self.c.get("/setup", environ_base={"REMOTE_ADDR": "192.168.1.5"})     # direkt aus dem LAN
+        r = self.c.get("/setup", environ_base={"REMOTE_ADDR": "192.168.1.5"})     # directly from the LAN
         self.assertEqual(r.status_code, 200)
-        r = self.c.get("/setup", environ_base={"REMOTE_ADDR": "203.0.113.9"})     # direkt aus dem Internet
+        r = self.c.get("/setup", environ_base={"REMOTE_ADDR": "203.0.113.9"})     # directly from the internet
         self.assertEqual(r.status_code, 403)
 
 
-# ====================================================================== E-Mail-Änderung
+# ====================================================================== email change
 class MailChangeHardeningTests(Base):
     def setUp(self):
         super().setUp()
@@ -89,13 +89,13 @@ class MailChangeHardeningTests(Base):
         html = self.change("b@schule.de")
         self.assertIn("Wartet auf Bestätigung", html)
         first = self.link()
-        self.change("c@schule.de")                       # neue Vormerkung: der erste Link gilt nicht mehr
+        self.change("c@schule.de")                       # new pending change: the first link is no longer valid
         self.assertEqual(self.c.get(first).status_code, 404)
         self.c.get(self.link())
         db.session.expire_all()
         u = db.session.get(User, self.mia.id)
         self.assertEqual((u.email, u.pending_email), ("c@schule.de", ""))
-        self.assertEqual(self.c.get(self.link()).status_code, 404)      # nur einmal
+        self.assertEqual(self.c.get(self.link()).status_code, 404)      # only once
 
     def test_rate_limit_and_no_free_text_in_the_mail(self):
         self.mia.display_name = "Klick hier: http://evil.example"
@@ -120,7 +120,7 @@ class MailChangeHardeningTests(Base):
     def test_unique_for_every_local_account(self):
         self.vera.email = "vera@schule.de"
         db.session.commit()
-        self.login("hans")                               # lokales Konto, nicht selbst registriert
+        self.login("hans")                               # local account, not self-registered
         html = self.c.post("/profil", data={"action": "data", "display_name": "Hans", "email": "Vera@Schule.de"},
                            follow_redirects=True).get_data(as_text=True)
         self.assertIn("bereits von einem anderen Konto", html)
@@ -138,7 +138,7 @@ class MailChangeHardeningTests(Base):
             self.assertIn("abschalten", html)
 
 
-# ====================================================================== Theke, Verlängerung, Verfügbar
+# ====================================================================== desk, extension, available
 class LendingEdgeTests(Base):
     def setUp(self):
         super().setUp()
@@ -187,7 +187,7 @@ class LendingEdgeTests(Base):
         self.assertIn("nicht erreichbar", r.get_data(as_text=True))
 
 
-# ====================================================================== Hintergrund
+# ====================================================================== background
 class BackgroundTests(Base):
     def test_retention_waits_for_a_successful_backup(self):
         from assetlotse import retention
@@ -196,7 +196,7 @@ class BackgroundTests(Base):
         set_setting("backup_last_ok", "2026-10-27T02:00:00")
         db.session.commit()
         with mock.patch("assetlotse.backup.supported", return_value=True):
-            self.assertIsNone(retention.run_daily(datetime(2026, 10, 28, 9, 0)))      # heute noch keine Sicherung
+            self.assertIsNone(retention.run_daily(datetime(2026, 10, 28, 9, 0)))      # no backup yet today
             self.assertEqual(get_setting("retention_last_run"), "")
             set_setting("backup_last_ok", "2026-10-28T02:00:05")
             db.session.commit()
@@ -225,12 +225,12 @@ class BackgroundTests(Base):
         self.assertEqual(len(calls), 2)
 
 
-# ====================================================================== Build-Kette und update.sh
+# ====================================================================== build chain and update.sh
 class BuildChainTests(Base):
     def test_pip_is_a_calendar_version(self):
         self.assertIsNone(lock.upper_bound("26.2.2", "pip"))
         self.assertTrue(lock.within_limits("26.2.2", "27.0", "pip"))
-        self.assertEqual(lock.upper_bound("26.2.2"), "27")                   # andere Pakete: Hauptversion
+        self.assertEqual(lock.upper_bound("26.2.2"), "27")                   # other packages: major version
 
     def test_never_older_than_the_published_build(self):
         state = lock.read_state(ROOT)
@@ -270,7 +270,7 @@ class BuildChainTests(Base):
         self.assertIn("! command -v apt-get", df)
 
 
-# ====================================================================== Nachträge aus dem zweiten Review
+# ====================================================================== additions from the second review
 class ReviewFollowUpTests(Base):
     def test_ad_demotion_clears_the_whole_inventory_flag(self):
         from assetlotse.views.main import sync_ldap_user
@@ -280,7 +280,7 @@ class ReviewFollowUpTests(Base):
                                      role="reader", groups=[])
         sync_ldap_user(info, self.vera, group_sync=False)
         self.assertFalse(self.vera.manages_all)
-        info.role = "manager"                                    # später wieder Verwalter: nicht automatisch alles
+        info.role = "manager"                                    # manager again later: not automatically everything
         sync_ldap_user(info, self.vera, group_sync=False)
         self.assertFalse(self.vera.is_global_manager)
 

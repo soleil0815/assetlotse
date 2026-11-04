@@ -549,7 +549,7 @@ jobs:
             [ "$(git_auth ls-remote origin refs/heads/main | cut -f1)" = "${GITHUB_SHA}" ] \
               || { echo "::error title=Security update::main changed while this run was going – nothing published; the next run (Monday or by hand) repeats it"; exit 1; }
             [ "$pushed" = true ] || push_image
-            git commit -q -am "Sicherheitsupdate ${NAME}: aktualisierte Pakete (gleiches Programm wie ${VERSION})"
+            git commit -q -am "Security update ${NAME}: updated packages (same program as ${VERSION})"
             git tag "v${NAME}"
             git_auth push --atomic origin HEAD:refs/heads/main "refs/tags/v${NAME}"
           fi
@@ -583,7 +583,7 @@ jobs:
           latest=false
           [[ ",${TAGS}," != *":latest,"* ]] || latest=true          # marked "Latest" only for the highest version
           title="AssetLotse ${NAME}"
-          [ "$KIND" != security ] || title="${title} (Sicherheitsupdate)"
+          [ "$KIND" != security ] || title="${title} (security update)"
           gh release create "v${NAME}" --verify-tag --title "$title" --notes-file "${RUNNER_TEMP}/notes.md" \
             --latest="$latest" "${files[@]}"
           echo "::notice title=Release::${title}"
@@ -649,7 +649,7 @@ jobs:
           done
           highest="$(python3 -c 'import sys; sys.path.insert(0, "scripts"); import ci; print(ci.highest_release(sys.stdin.read().split()))' <<< "$(git tag -l)")"
           latest=false; [ "$highest" != "$VERSION" ] || latest=true
-          title="AssetLotse ${NAME}"; [ "$NAME" = "$VERSION" ] || title="${title} (Sicherheitsupdate)"
+          title="AssetLotse ${NAME}"; [ "$NAME" = "$VERSION" ] || title="${title} (security update)"
           gh release create "v${NAME}" --verify-tag --title "$title" --notes-file "${RUNNER_TEMP}/notes.md" \
             --latest="$latest" "${files[@]}"
           echo "::notice title=Repair::release page ${title} created"
@@ -725,7 +725,7 @@ jobs:
           python3 scripts/ci.py check-changes          # only lock files – checked before anything is written
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -q -am "Versionen neu festgelegt (scripts/lock.py)"
+          git commit -q -am "Versions re-locked (scripts/lock.py)"
           auth="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           # to the branch the run was started on (main, or the branch of a pull request)
           git -c http.https://github.com/.extraheader="$auth" push origin "HEAD:${GITHUB_REF}"

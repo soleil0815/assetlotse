@@ -277,7 +277,7 @@ def _collect_js_messages():
 
 
 def _reset_locale_on_login(sender, user=None, **_kw):
-    """Nach login_user: Sprache neu bestimmen (die des Benutzers), nicht die vorher zwischengespeicherte."""
+    """After login_user: determine the language again (the user's), not the previously cached one."""
     from flask import g, has_app_context
     if has_app_context():
         g.pop("_assetlotse_locale", None)

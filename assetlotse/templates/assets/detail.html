@@ -64,7 +64,7 @@
         {% if self_return or manage %}
         <form method="post" action="{{ url_for('loans.give_back', loan_id=own_loan.id) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          {# Nach der Rückgabe ist die Detailseite für Mitarbeiter ohne Bestand nicht mehr sichtbar #}
+          {# After the return the detail page is no longer visible to employees without inventory access #}
           <input type="hidden" name="next" value="{{ url_for('loans.index') if catalog_hidden() else url_for('assets.detail', asset_id=asset.id) }}">
           <button class="btn">{{ icon("return") }} {{ _p("verb", "Return") }}</button></form>
         {% endif %}

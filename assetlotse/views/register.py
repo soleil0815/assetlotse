@@ -1,14 +1,14 @@
-"""Selbstregistrierung neuer Mitarbeiter.
+"""Self-registration of new staff members.
 
-Modi (Administration → Einstellungen):
-  off       – keine Registrierung (Standard)
-  approval  – Konto wird angelegt, ein Admin muss es freigeben
-  open      – Konto ist sofort aktiv
-Zusätzlich optional: E-Mail-Bestätigung (wenn E-Mail-Versand aktiv), erlaubte E-Mail-Domains,
-Standardgruppe, Link zu Datenschutzhinweisen, Benachrichtigung der Admins.
+Modes (Administration → Settings):
+  off       – no registration (default)
+  approval  – account is created, an admin must approve it
+  open      – account is active immediately
+Optional extras: email confirmation (if email delivery is active), allowed email domains,
+default group, link to the privacy policy, notification of the admins.
 
-Schutz bei Betrieb im Internet: Honeypot-Feld, Mindest-Ausfüllzeit, Begrenzung pro IP,
-reservierte Namen, keine Namen, die es im Active Directory gibt.
+Protection when exposed to the internet: honeypot field, minimum fill-in time, per-IP limit,
+reserved names, no names that exist in Active Directory.
 """
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ RESERVED = {"admin", "administrator", "root", "system", "assetlotse", "support",
 VERIFY_MAX_AGE = 48 * 3600
 MIN_FILL_SECONDS = 3
 REG_PER_HOUR = 5
-ATTEMPTS_PER_HOUR = 30      # jedes Absenden zählt – bremst das Abfragen vorhandener Namen/Adressen
+ATTEMPTS_PER_HOUR = 30      # every submission counts – slows down probing for existing names/addresses
 
 
 def mode() -> str:
@@ -57,8 +57,8 @@ def _serializer():
 
 
 def _base_url() -> str | None:
-    """Adresse für Links in E-Mails. Nur die eingestellte Adresse – die Host-Angabe einer anonymen Anfrage
-    ist frei wählbar (Links auf fremde Seiten). Ausnahme: ein angemeldeter Admin löst die Mail selbst aus."""
+    """Base address for links in emails. Only the configured address – the Host header of an anonymous request
+    can be chosen freely (links to foreign sites). Exception: a signed-in admin triggers the email themselves."""
     url = (get_setting("app_base_url") or "").rstrip("/")
     if url:
         return url
@@ -77,7 +77,7 @@ def _allowed_domain(email: str) -> bool:
 
 
 def _exists_in_directory(username: str) -> bool | None:
-    """True/False, oder None wenn das AD nicht geprüft werden konnte."""
+    """True/False, or None if AD could not be checked."""
     from ..ldap_auth import Directory, LDAPAmbiguous, LDAPUserNotFound, ldap_enabled
     if not ldap_enabled():
         return False
@@ -96,11 +96,11 @@ def _exists_in_directory(username: str) -> bool | None:
         finally:
             conn.unbind()
     except Exception as exc:  # noqa: BLE001
-        log.warning("Registrierung: AD-Prüfung für %s nicht möglich: %s", username, exc)
+        log.warning("Registration: AD check for %s not possible: %s", username, exc)
         return None
 
 
-_KEY = "~reg~|"   # Zähler in der Tabelle login_attempts – für alle Server-Prozesse gemeinsam
+_KEY = "~reg~|"   # counter in the login_attempts table – shared by all server processes
 
 
 def _rate_limited(key: str, limit: int = REG_PER_HOUR) -> bool:
@@ -137,8 +137,8 @@ def _send(template: str, to: str, **ctx):
 def send_verification(user: User) -> bool:
     base = _base_url()
     if not base:
-        log.warning("Bestätigungs-E-Mail nicht gesendet: keine Adresse für Links in E-Mails eingestellt "
-                    "(Administration → E-Mail)")
+        log.warning("Confirmation email not sent: no address for links in emails configured "
+                    "(Administration → Email)")
         return False
     token = _serializer().dumps({"uid": user.id, "email": user.email})
     link = f"{base}{url_for('register.verify', token=token)}"
@@ -153,8 +153,8 @@ EMAIL_CHANGES_PER_HOUR = 3
 
 
 def send_email_change(user: User, new_email: str) -> str:
-    """Neue Adresse eines selbst registrierten Kontos erst nach Bestätigung übernehmen (wie bei der Registrierung).
-    Merkt sie als „wartet auf Bestätigung“ vor. Ergebnis: "sent", "limit", "no_base" oder "failed"."""
+    """Apply a self-registered account's new address only after confirmation (as during registration).
+    Stores it as "awaiting confirmation". Result: "sent", "limit", "no_base" or "failed"."""
     key = f"emailchange|{user.id}"
     if _rate_limited(key, EMAIL_CHANGES_PER_HOUR):
         return "limit"
@@ -165,7 +165,7 @@ def send_email_change(user: User, new_email: str) -> str:
     _count(key)
     user.pending_email = new_email
     db.session.commit()
-    # Das Token gilt nur für genau diese vorgemerkte Adresse: Eine spätere Änderung macht ältere Links ungültig.
+    # the token is valid only for exactly this pending address: a later change invalidates older links.
     token = _change_serializer().dumps({"uid": user.id, "email": new_email})
     link = f"{base}{url_for('register.confirm_email_change', token=token)}"
     subject, text, html = render_mail("email_change", user=user, link=link)
@@ -174,7 +174,7 @@ def send_email_change(user: User, new_email: str) -> str:
 
 
 def email_taken(email: str, user: User) -> bool:
-    """Gehört die Adresse schon einem anderen Konto? (Bei der Registrierung ist jede Adresse nur einmal erlaubt.)"""
+    """Does the address already belong to another account? (Each address is allowed only once for registration.)"""
     return User.query.filter(func.lower(User.email) == email.lower(), User.id != user.id).first() is not None
 
 
@@ -196,7 +196,7 @@ def send_approved(user: User):
         _send("approved", user.email, user=user, link=f"{base}{url_for('main.login')}" if base else "")
 
 
-# ---------------------------------------------------------------- Seiten
+# ---------------------------------------------------------------- Pages
 
 @bp.route("/registrieren", methods=["GET", "POST"])
 def register():
@@ -209,12 +209,12 @@ def register():
     if request.method == "POST":
         ip = request.remote_addr or "?"
         values = {k: form_str(k, 200) for k in ("username", "display_name", "email")}
-        # Bots: verstecktes Feld ausgefüllt oder Formular in Sekundenbruchteilen abgeschickt
+        # bots: hidden field filled in or form submitted within a fraction of a second
         started = session.pop("reg_started", 0)
         if form_str("homepage_url", 200) or (started and time.time() - started < MIN_FILL_SECONDS):
-            log.info("Registrierung von %s als Bot verworfen", ip)
+            log.info("Registration from %s discarded as bot", ip)
             return render_template("register_done.html", state="check_mail" if needs_verification() else "approval")
-        if not started:  # Sitzung abgelaufen o. Ä. – Formular einfach erneut anzeigen
+        if not started:  # session expired or similar – just show the form again
             session["reg_started"] = time.time() - MIN_FILL_SECONDS
             flash(_("Please submit the form again."), "info")
             return render_template("register.html", v=values, privacy=privacy), 400
@@ -227,8 +227,8 @@ def register():
         password = request.form.get("password") or ""
         error = None
         if needs_verification() and not _base_url():
-            log.warning("Registrierung abgelehnt: E-Mail-Bestätigung ist an, aber keine Adresse für Links in "
-                        "E-Mails eingestellt (Administration → E-Mail)")
+            log.warning("Registration rejected: email confirmation is on, but no address for links in "
+                        "emails is configured (Administration → Email)")
             flash(_("Registration is not possible right now. Please try again later."), "error")
             return render_template("register.html", v=values, privacy=privacy), 503
         if not USERNAME_RE.match(username):
@@ -252,8 +252,8 @@ def register():
         elif User.query.filter(func.lower(User.username) == username.lower()).first():
             error = _("This username is already taken.")
         elif User.query.filter(func.lower(User.email) == email).first():
-            # Bewusst offen gemeldet: Verbergen ließe sich das ohnehin nicht (der Benutzername wäre sonst frei
-            # bzw. belegt). Gebremst wird das Abfragen über die Grenze je Anschluss.
+            # deliberately reported openly: it could not be hidden anyway (the username would otherwise show
+            # as free or taken). Probing is throttled by the per-connection limit.
             error = _("An account with this email address already exists.")
         else:
             in_ad = _exists_in_directory(username)
@@ -263,7 +263,7 @@ def register():
                 error = _("This username is already taken.")
         if error:
             flash(error, "error")
-            session["reg_started"] = time.time() - MIN_FILL_SECONDS  # erneutes Absenden sofort erlaubt
+            session["reg_started"] = time.time() - MIN_FILL_SECONDS  # resubmitting is allowed immediately
             return render_template("register.html", v=values, privacy=privacy), 400
 
         _count(ip)
@@ -271,7 +271,7 @@ def register():
         from ..i18n import get_locale
         user = User(username=username, display_name=name, email=email, role=ROLE_READER, auth_source="local",
                     self_registered=True, email_verified=not verify, pending_approval=mode() == "approval",
-                    active=False, language=get_locale())   # Mails in der Sprache der Registrierung
+                    active=False, language=get_locale())   # emails in the language used for registration
         user.set_password(password)
         gid = get_setting("registration_group_id")
         if gid.isdigit():
@@ -281,7 +281,7 @@ def register():
         maybe_activate(user)
         db.session.add(user)
         db.session.commit()
-        log.info("Neue Registrierung: %s (%s) – Freigabe nötig: %s, Bestätigung nötig: %s",
+        log.info("New registration: %s (%s) – approval required: %s, confirmation required: %s",
                  username, email, user.pending_approval, verify)
         if verify:
             if not send_verification(user):
@@ -315,7 +315,7 @@ def verify(token):
         maybe_activate(user)
         db.session.commit()
         notify_admins(user)
-        log.info("E-Mail bestätigt: %s", user.username)
+        log.info("Email confirmed: %s", user.username)
     return render_template("register_done.html", state="verified", approval=user.pending_approval)
 
 
@@ -330,7 +330,7 @@ def confirm_email_change(token):
         abort(404)
     user = db.session.get(User, data.get("uid"))
     new = (data.get("email") or "").strip()
-    # nur die zuletzt vorgemerkte Adresse, nur für weiterhin lokale, selbst registrierte Konten
+    # only the most recently pending address, only for accounts that are still local and self-registered
     if (user is None or not new or (user.pending_email or "").lower() != new.lower()
             or user.auth_source != "local" or not user.self_registered):
         abort(404)
@@ -345,7 +345,7 @@ def confirm_email_change(token):
         return redirect(url_for("main.profile"))
     user.email = new
     db.session.commit()
-    log.info("E-Mail-Adresse geändert und bestätigt: %s", user.username)
+    log.info("Email address changed and confirmed: %s", user.username)
     flash(_("Your new email address is confirmed."), "success")
     return redirect(url_for("main.profile"))
 

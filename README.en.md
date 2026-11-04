@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.0.2** – see [CHANGELOG.md](CHANGELOG.md) for changes (German). · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.1.0** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -271,7 +271,7 @@ Under *Inventory*, managers can download the inventory of their groups as **CSV*
 
 **PDF manual:** `docs/Manual-AssetLotse.pdf` (English, with screenshots of the English interface) and `docs/Handbuch-AssetLotse.pdf` (German) – for staff, managers and administrators, including troubleshooting and emergency commands. The in-app help links the manual in the language of the interface at the top (*Manual (PDF)*).
 
-**Maintaining translations:** The German text is also the key (`_("…")` in templates and Python, `T("…")` in `app.js`); the English texts live in `assetlotse/translations/en.json`. The test `tests/test_i18n.py` reports every text without a translation and German leftovers on English pages. Help texts are stored per language in `assetlotse/templates/help/de|en/`.
+**Maintaining translations:** The English text is also the key (`_("…")` in templates and Python, `T("…")` in `app.js`; the same English word with different German meanings: `_p("context", "…")`); the German texts live in `assetlotse/translations/de.json`. The test `tests/test_i18n.py` reports every text without a translation and German leftovers on English pages. Code, comments, log messages, the CHANGELOG and commit messages are in English. Help texts are stored per language in `assetlotse/templates/help/de|en/`.
 
 ## Locations
 
@@ -583,7 +583,7 @@ assetlotse/
   lockout.py       Sign-in lock after failed attempts
   labels.py        Label PDF (62 × 29 mm) with Code 128 barcode, no extra library
   i18n.py          German/English, language selection, date formats
-  translations/    English texts (en.json)
+  translations/    German texts (de.json)
   views/           Pages: main (incl. About/License, language switch), assets (inventory, photos, export, labels),
                    loans (issuing, returns, issue desk), locations, admin, security, register, help
   templates/       Jinja templates (incl. e-mail templates and help texts help/de, help/en)

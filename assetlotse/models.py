@@ -1,4 +1,4 @@
-"""Datenmodell von AssetLotse."""
+"""AssetLotse data model."""
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
@@ -14,16 +14,16 @@ db = SQLAlchemy()
 
 @event.listens_for(Engine, "connect")
 def _sqlite_pragmas(dbapi_connection, _record):
-    """Fremdschlüssel und WAL für SQLite aktivieren."""
+    """Enable foreign keys and WAL for SQLite."""
     if dbapi_connection.__class__.__module__.startswith("sqlite3"):
         cur = dbapi_connection.cursor()
         cur.execute("PRAGMA foreign_keys=ON")
         cur.execute("PRAGMA journal_mode=WAL")
-        cur.execute("PRAGMA secure_delete=ON")   # Gelöschtes (z. B. alte Schlüssel) mit Nullen überschreiben
+        cur.execute("PRAGMA secure_delete=ON")   # overwrite deleted data (e.g. old keys) with zeros
         cur.close()
 
 
-MIN_PASSWORD_LENGTH = 10   # für alle neuen Passwörter (Einrichtung, Profil, Verwaltung, Registrierung)
+MIN_PASSWORD_LENGTH = 10   # for all new passwords (setup, profile, administration, registration)
 
 ROLE_READER = "reader"
 ROLE_MANAGER = "manager"
@@ -48,11 +48,11 @@ class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     description = db.Column(db.String(500), default="")
-    # Optional: DN einer AD-Gruppe – Mitglieder werden beim Login automatisch zugeordnet
+    # Optional: DN of an AD group – members are assigned automatically at sign-in
     ldap_dn = db.Column(db.String(500), default="")
     color = db.Column(db.String(16), default="#0b7285")
-    # Kein Verleih: Gegenstände dieser Gruppe werden nie ausgegeben (z. B. fest verbaute oder nur intern
-    # genutzte Geräte) – weder an der Theke noch aus dem Bestand noch per Selbstausleihe.
+    # No lending: items of this group are never issued (e.g. permanently installed or internal-only
+    # devices) – neither at the desk nor from the inventory nor via self-checkout.
     no_lending = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
@@ -72,35 +72,35 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(256))
     auth_source = db.Column(db.String(10), default="local")  # local | ldap
     ldap_dn = db.Column(db.String(500), default="")
-    ldap_guid = db.Column(db.String(64), default="", index=True)   # feste AD-Kennung (Umbenennungen erkennen)
-    # Vom AD-Abgleich deaktiviert (im AD gesperrt/gelöscht/nicht mehr berechtigt) – wird automatisch wieder aktiv,
-    # sobald die Person im AD wieder berechtigt ist. Von Hand gesperrte Konten bleiben gesperrt.
+    ldap_guid = db.Column(db.String(64), default="", index=True)   # fixed AD identifier (to detect renames)
+    # Deactivated by the AD sync (disabled/deleted/no longer authorized in AD) – becomes active again
+    # automatically as soon as the person is authorized in AD again. Manually disabled accounts stay disabled.
     deactivated_by_sync = db.Column(db.Boolean, default=False, nullable=False)
     role = db.Column(db.String(20), default=ROLE_READER, nullable=False)
-    # Verwalter des gesamten Bestands (alle Gruppen) – nur ausdrücklich gesetzt, nie nebenbei: Früher galt
-    # „Verwalter ohne Gruppe“ als Verwalter von allem; dann reichte es, jemandem die letzte Gruppe zu nehmen
-    # (z. B. über den AD-Abgleich), und er verwaltete plötzlich alle Gruppen.
+    # Manager of the entire inventory (all groups) – only ever set explicitly, never as a side effect: formerly
+    # a "manager without a group" counted as manager of everything; then it was enough to take away someone's
+    # last group (e.g. via the AD sync) and they suddenly managed all groups.
     manages_all = db.Column(db.Boolean, default=False, nullable=False)
     active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     last_login = db.Column(db.DateTime)
     email_notifications = db.Column(db.Boolean, default=True, nullable=False)
-    # Selbstregistrierung
+    # Self-registration
     self_registered = db.Column(db.Boolean, default=False, nullable=False)
     email_verified = db.Column(db.Boolean, default=True, nullable=False)
     pending_approval = db.Column(db.Boolean, default=False, nullable=False)
-    # Zwei-Faktor-Anmeldung
-    totp_secret = db.Column(db.Text, default="")          # verschlüsselt (Fernet, Schlüssel aus SECRET_KEY)
+    # Two-factor sign-in
+    totp_secret = db.Column(db.Text, default="")          # encrypted (Fernet, key derived from SECRET_KEY)
     totp_enabled = db.Column(db.Boolean, default=False, nullable=False)
-    totp_last_step = db.Column(db.Integer, default=0, nullable=False)  # gegen Wiederverwendung eines Codes
-    recovery_codes = db.Column(db.Text, default="")       # JSON-Liste gehashter Einmal-Codes
-    # Wird erhöht, um alle bestehenden Sitzungen und „Angemeldet bleiben“-Cookies ungültig zu machen
+    totp_last_step = db.Column(db.Integer, default=0, nullable=False)  # against reuse of a code
+    recovery_codes = db.Column(db.Text, default="")       # JSON list of hashed one-time codes
+    # Incremented to invalidate all existing sessions and "Stay signed in" cookies
     auth_epoch = db.Column(db.Integer, default=0, nullable=False)
-    # Sprache der Oberfläche und der E-Mails ("" = Browser bzw. Standardsprache)
+    # Language of the UI and of emails ("" = browser or default language)
     language = db.Column(db.String(5), default="", nullable=False)
-    # Neuigkeiten: bis zu dieser Programmversion gelesen ("" = noch nie geöffnet)
+    # News: read up to this program version ("" = never opened)
     news_seen = db.Column(db.String(20), default="", nullable=False)
-    # Neue E-Mail-Adresse, die noch per Link bestätigt werden muss (selbst registrierte Konten)
+    # New email address that still has to be confirmed via link (self-registered accounts)
     pending_email = db.Column(db.String(200), default="", nullable=False)
 
     groups = db.relationship("Group", secondary=user_groups, back_populates="users")
@@ -112,23 +112,23 @@ class User(UserMixin, db.Model):
         return bool(self.active)
 
     def get_id(self) -> str:
-        # Die Kennung enthält die „Sitzungs-Generation“: erhöht man sie, sind alle alten Sitzungen
-        # und Erinnerungs-Cookies dieses Kontos sofort ungültig.
+        # The ID contains the "session generation": incrementing it immediately invalidates all old
+        # sessions and remember cookies of this account.
         return f"{self.id}:{self.auth_epoch or 0}"
 
     def end_all_sessions(self):
         self.auth_epoch = (self.auth_epoch or 0) + 1
 
-    # --- Passwörter ---
+    # --- Passwords ---
     def set_password(self, password: str):
         self.password_hash = generate_password_hash(password)
-        if self.id is not None:   # bestehendes Konto: andere Geräte abmelden
+        if self.id is not None:   # existing account: sign out other devices
             self.end_all_sessions()
 
     def check_password(self, password: str) -> bool:
         return bool(self.password_hash) and check_password_hash(self.password_hash, password)
 
-    # --- Rollen ---
+    # --- Roles ---
     @property
     def is_admin(self) -> bool:
         return self.role == ROLE_ADMIN
@@ -156,8 +156,8 @@ class User(UserMixin, db.Model):
 
     @property
     def is_global_manager(self) -> bool:
-        """Admins und ausdrücklich so eingestellte Verwalter („gesamter Bestand“) verwalten alles. Ein Verwalter
-        ohne Gruppe und ohne diesen Haken verwaltet nur allgemeine Gegenstände."""
+        """Admins and managers explicitly set to "entire inventory" manage everything. A manager without a
+        group and without this checkbox only manages general items."""
         return self.is_admin or (self.role == ROLE_MANAGER and bool(self.manages_all))
 
     def can_see(self, asset: "Asset", catalog_all: bool = False) -> bool:
@@ -166,7 +166,7 @@ class User(UserMixin, db.Model):
         return asset.group_id in self.group_ids
 
     def can_borrow(self, asset: "Asset") -> bool:
-        """Mitarbeiter bekommen nur Gegenstände ihrer Gruppen (oder allgemeine Gegenstände)."""
+        """Staff members only get items of their groups (or general items)."""
         if asset.group_id is None or self.is_global_manager:
             return True
         return asset.group_id in self.group_ids
@@ -179,22 +179,22 @@ class User(UserMixin, db.Model):
         return asset.group_id in self.group_ids
 
     def can_view_secret(self, asset: "Asset") -> bool:
-        """Vertrauliche Angaben (z. B. BitLocker-Schlüssel) sehen und ändern dürfen nur Administratoren und
-        Verwalter, die ausdrücklich Mitglied der Gruppe des Gegenstands sind. Bewusst strenger als can_manage:
-        „Allgemein“ oder „Verwalter ohne Gruppe“ öffnen keine Geheimnisse – sonst bekäme z. B. ein Verwalter,
-        der seine letzte Gruppe verliert, plötzlich Zugriff auf alle Schlüssel."""
+        """Only administrators and managers who are explicitly members of the item's group may view and change
+        confidential data (e.g. BitLocker keys). Deliberately stricter than can_manage: "General" or "manager
+        without a group" do not unlock secrets – otherwise, e.g., a manager who loses their last group would
+        suddenly get access to all keys."""
         if self.is_admin:
             return True
         return self.role == ROLE_MANAGER and asset.group_id is not None and asset.group_id in self.group_ids
 
     def can_view_own_secret(self, asset: "Asset") -> bool:
-        """Die Person, der der Gegenstand gerade ausgegeben ist, darf seine vertraulichen Angaben selbst ansehen –
-        nur wenn das beim Gegenstand freigegeben ist und nur, solange die Ausgabe läuft (mit der Rückgabe ist es
-        vorbei). Die Route verlangt zusätzlich das eigene Passwort und protokolliert jeden Abruf."""
+        """The person the item is currently issued to may view its confidential data themselves – only if this
+        is enabled for the item and only while the loan is running (it ends with the return). The route also
+        requires the person's own password and logs every access."""
         if not (self.active and asset.secret_holder_view and asset.has_secret and (asset.quantity or 0) == 1):
             return False
-        # Die Ausgabe muss von jemandem stammen, der die Angaben selbst sehen darf. Sonst könnte sich z. B. ein
-        # Verwalter ohne dieses Recht (oder jeder per „Selbst ausleihen“) das Gerät ausgeben und den Schlüssel lesen.
+        # The loan must have been issued by someone who may see the data themselves. Otherwise, e.g., a manager
+        # without this right (or anyone via "Self-checkout") could issue the device to themselves and read the key.
         return any(l.user_id == self.id and l.issued_by is not None and l.issued_by.active
                    and l.issued_by.can_view_secret(asset) for l in asset.active_loans)
 
@@ -213,40 +213,40 @@ class User(UserMixin, db.Model):
 
 
 class Asset(db.Model):
-    """Ein Gegenstand (Laptop, USB-Stick, Beamer …) bzw. eine Sammelposition (z. B. 20 HDMI-Kabel)."""
+    """An item (laptop, USB stick, projector …) or a bulk item (e.g. 20 HDMI cables)."""
     __tablename__ = "assets"
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(300), nullable=False)               # Bezeichnung
-    category = db.Column(db.String(200), default="", index=True)   # frei wählbar, z. B. „Laptop“
+    name = db.Column(db.String(300), nullable=False)               # name
+    category = db.Column(db.String(200), default="", index=True)   # free text, e.g. "Laptop"
     manufacturer = db.Column(db.String(200), default="")
     model = db.Column(db.String(200), default="")
     serial_number = db.Column(db.String(200), default="", index=True)
-    inventory_no = db.Column(db.String(100), default="", index=True)  # Inventarnummer / Etikett
-    # Vergleichsschlüssel für die Eindeutigkeit (ohne Leerzeichen, Groß-/Kleinschreibung vereinheitlicht – auch
-    # Umlaute); leer = NULL, damit beliebig viele Gegenstände ohne Nummer erlaubt sind. Wird automatisch gesetzt.
+    inventory_no = db.Column(db.String(100), default="", index=True)  # inventory number / label
+    # Comparison key for uniqueness (without spaces, case-folded – umlauts too); empty = NULL so that any
+    # number of items without a number is allowed. Set automatically.
     inventory_key = db.Column(db.String(200), nullable=True)
     serial_key = db.Column(db.String(200), nullable=True)
     description = db.Column(db.Text, default="")
-    location = db.Column(db.String(200), default="")  # Standort (Raum, Schrank …)
+    location = db.Column(db.String(200), default="")  # location (room, cabinet …)
     image_file = db.Column(db.String(200), default="")
     quantity = db.Column(db.Integer, default=1, nullable=False)
-    # Vertrauliche Angaben (z. B. BitLocker-Wiederherstellungsschlüssel, PIN) – nur verschlüsselt gespeichert,
-    # sichtbar nur für Verwalter dieses Gegenstands; jedes Anzeigen wird protokolliert.
+    # Confidential data (e.g. BitLocker recovery key, PIN) – stored encrypted only, visible only to managers
+    # of this item; every view is logged.
     secret = db.Column(db.Text, default="")
     secret_updated_at = db.Column(db.DateTime)
-    # Freigabe: Wer den Gegenstand gerade hat, darf die vertraulichen Angaben selbst ansehen (Passwort + Protokoll)
+    # Sharing: whoever currently has the item may view the confidential data themselves (password + log)
     secret_holder_view = db.Column(db.Boolean, default=False, nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey("groups.id", ondelete="SET NULL"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
-    # Anzahl früherer Ausleihen, deren Einzeldaten nach Ablauf der Aufbewahrungsfrist gelöscht wurden
+    # Number of earlier loans whose details were deleted after the retention period expired
     archived_loans = db.Column(db.Integer, default=0, nullable=False)
 
     group = db.relationship("Group", back_populates="assets")
     loans = db.relationship("Loan", back_populates="asset", cascade="all, delete-orphan",
                             order_by="Loan.loaned_at.desc()")
-    # Protokoll bleibt beim Löschen des Gegenstands erhalten (asset_id wird leer, Bezeichnung ist mitgespeichert)
+    # The log is kept when the item is deleted (asset_id becomes empty, the name is stored alongside)
     secret_log = db.relationship("SecretAccess", back_populates="asset", passive_deletes=True,
                                  order_by="SecretAccess.at.desc()")
 
@@ -260,7 +260,7 @@ class Asset(db.Model):
 
     @property
     def lendable(self) -> bool:
-        """False für Gegenstände einer Gruppe mit „Kein Verleih“."""
+        """False for items of a group with "No lending"."""
         return not (self.group is not None and self.group.no_lending)
 
     @property
@@ -290,15 +290,15 @@ class Asset(db.Model):
             return ""
         try:
             return _secret_box("asset-secret:").decrypt(self.secret[len(_ENC):].encode()).decode()
-        except Exception:  # noqa: BLE001 – z. B. anderer Schlüssel nach Wiederherstellung
+        except Exception:  # noqa: BLE001 – e.g. different key after a restore
             return ""
 
 
 class SecretAccess(db.Model):
-    """Protokoll: wer hat die vertraulichen Angaben eines Gegenstands angesehen, geändert oder gelöscht.
+    """Log: who viewed, changed or deleted an item's confidential data.
 
-    Name des Gegenstands und der Person werden als Text mitgespeichert, damit das Protokoll auch nach dem
-    Löschen des Gegenstands oder Kontos aussagekräftig bleibt (gelöscht wird es nur über die Aufbewahrungsfrist)."""
+    The names of the item and of the person are stored as text as well, so that the log stays meaningful even
+    after the item or account is deleted (it is only deleted via the retention period)."""
     __tablename__ = "secret_access"
     id = db.Column(db.Integer, primary_key=True)
     asset_id = db.Column(db.Integer, db.ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -306,7 +306,7 @@ class SecretAccess(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
     user_label = db.Column(db.String(300), default="")
     at = db.Column(db.DateTime, default=datetime.now, nullable=False)
-    # view | change | delete | remove | holder (von der ausleihenden Person angezeigt) | share_on | share_off
+    # view | change | delete | remove | holder (viewed by the borrower) | share_on | share_off
     action = db.Column(db.String(10), default="view", nullable=False)
 
     @classmethod
@@ -329,13 +329,13 @@ class Loan(db.Model):
     issued_by_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
     returned_by_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
     loaned_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
-    due_at = db.Column(db.Date, nullable=True)   # leer = unbefristet (z. B. dauerhaft ausgegebener Laptop)
+    due_at = db.Column(db.Date, nullable=True)   # empty = open-ended (e.g. a permanently issued laptop)
     returned_at = db.Column(db.DateTime)
     extensions = db.Column(db.Integer, default=0, nullable=False)
     note = db.Column(db.String(500), default="")
 
-    # Höchstens eine offene Ausleihe je Gegenstand und Person (Schutz vor gleichzeitigen Anfragen).
-    # Teil-Indizes gibt es nur in SQLite und PostgreSQL; MySQL/MariaDB verlässt sich auf die Zeilensperre.
+    # At most one open loan per item and person (protection against concurrent requests).
+    # Partial indexes exist only in SQLite and PostgreSQL; MySQL/MariaDB relies on the row lock.
     __table_args__ = (
         db.Index("uq_loans_active_asset_user", "asset_id", "user_id", unique=True,
                  sqlite_where=db.text("returned_at IS NULL"),
@@ -361,12 +361,13 @@ class Loan(db.Model):
 
 
 class WebAuthnCredential(db.Model):
-    """Sicherheitsschlüssel (YubiKey & Co.) bzw. Passkey eines Benutzers."""
+    """A user's security key (YubiKey & co.) or passkey."""
     __tablename__ = "webauthn_credentials"
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    # stored default name – compared in views/security.py and twofa.py, keep
     name = db.Column(db.String(100), default="Sicherheitsschlüssel")
-    rp_id = db.Column(db.String(253), nullable=False)          # Domain, für die der Schlüssel gilt
+    rp_id = db.Column(db.String(253), nullable=False)          # domain the key is valid for
     credential_id = db.Column(db.String(1400), nullable=False, index=True)  # websafe-base64
     credential_data = db.Column(db.Text, nullable=False)       # AttestedCredentialData (base64)
     sign_count = db.Column(db.Integer, default=0, nullable=False)
@@ -377,8 +378,7 @@ class WebAuthnCredential(db.Model):
 
 
 class MailLog(db.Model):
-    """Protokoll aller versendeten (oder fehlgeschlagenen) E-Mails – dient auch dazu,
-    Erinnerungen nicht doppelt zu verschicken."""
+    """Log of all sent (or failed) emails – also used to avoid sending reminders twice."""
     __tablename__ = "mail_log"
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, index=True)
@@ -392,7 +392,7 @@ class MailLog(db.Model):
 
 
 class Location(db.Model):
-    """Festgelegter Standort (Regal, Raum …) – zur Auswahl beim Erfassen, gegen Tippfehler."""
+    """Predefined location (shelf, room …) – to choose from when entering items, against typos."""
     __tablename__ = "locations"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False, unique=True)
@@ -401,24 +401,24 @@ class Location(db.Model):
 
 
 class DirectoryPerson(db.Model):
-    """Zwischenspeicher: Personen aus dem Active Directory, die sich anmelden DÜRFTEN (nach den AD-Regeln), für die
-    schnelle Suche an der Ausgabetheke. Wird im Hintergrund komplett abgeglichen – wer im AD deaktiviert, abgelaufen,
-    gelöscht oder nicht mehr berechtigt ist, fliegt beim nächsten Abgleich raus. Gespeichert wird nur das Nötigste;
-    beim Übernehmen eines Kontos wird die Person ohnehin noch einmal direkt im AD geprüft."""
+    """Cache: people from Active Directory who WOULD be allowed to sign in (by the AD rules), for quick search
+    at the issue desk. Fully synced in the background – anyone disabled, expired, deleted or no longer authorized
+    in AD is removed at the next sync. Only the bare minimum is stored; when an account is taken over, the person
+    is checked directly in AD again anyway."""
     __tablename__ = "directory_people"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(200), nullable=False)
-    username_key = db.Column(db.String(200), nullable=False, unique=True)   # klein geschrieben
+    username_key = db.Column(db.String(200), nullable=False, unique=True)   # lower-case
     display_name = db.Column(db.String(300), default="")
     email = db.Column(db.String(300), default="")
     synced_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
 
 
 class LoginAttempt(db.Model):
-    """Fehlgeschlagener Anmeldeversuch (für die zeitweise Sperre, siehe lockout.py)."""
+    """Failed sign-in attempt (for the temporary lockout, see lockout.py)."""
     __tablename__ = "login_attempts"
     id = db.Column(db.Integer, primary_key=True)
-    key = db.Column(db.String(300), nullable=False, index=True)       # z. B. "anna|203.0.113.5" oder "2fa|anna|…"
+    key = db.Column(db.String(300), nullable=False, index=True)       # e.g. "anna|203.0.113.5" or "2fa|anna|…"
     username = db.Column(db.String(200), nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False, index=True)
 
@@ -431,15 +431,15 @@ class Setting(db.Model):
 
 DEFAULT_SETTINGS = {
     "org_name": "AssetLotse",
-    "default_language": "de",   # Sprache für Besucher ohne eigene Wahl und für E-Mails
-    "loan_days": "0",              # 0 = unbefristet (Standard bei Arbeitsgeräten)
+    "default_language": "de",   # language for visitors without their own choice and for emails
+    "loan_days": "0",              # 0 = open-ended (default for work equipment)
     "extension_days": "14",
     "max_extensions": "2",
     "max_loans": "0",
-    "self_checkout": "0",          # Mitarbeiter dürfen sich selbst etwas ausleihen
+    "self_checkout": "0",          # staff members may check out items themselves
     "self_return": "0",
     "self_extend": "1",
-    # own = Mitarbeiter sehen nur ihre eigenen Gegenstände (kein Bestand) | groups | all
+    # own = staff members only see their own items (no inventory) | groups | all
     "catalog_visibility": "own",
     # Active Directory / LDAP
     "ldap_enabled": "0",
@@ -447,7 +447,7 @@ DEFAULT_SETTINGS = {
     "ldap_security": "none",  # none | starttls | ldaps
     "ldap_verify_cert": "1",
     "ldap_ca_file": "",
-    "ldap_tls_certs": "",       # vom DC abgerufene und bestätigte Zertifikate (PEM)
+    "ldap_tls_certs": "",       # certificates fetched from the DC and confirmed (PEM)
     "ldap_check_hostname": "1",
     "ldap_bind_dn": "",
     "ldap_bind_password": "",
@@ -460,11 +460,11 @@ DEFAULT_SETTINGS = {
     "ldap_admin_rules": "",
     "ldap_nested_groups": "1",
     "ldap_group_sync": "1",
-    # Zwischenspeicher der AD-Personen für die Suche an der Ausgabetheke (Abgleich im Hintergrund)
+    # Cache of AD people for the search at the issue desk (synced in the background)
     "ldap_cache_enabled": "1",
     "ldap_cache_hours": "1",
     "ldap_timeout": "8",
-    # E-Mail (SMTP)
+    # Email (SMTP)
     "mail_enabled": "0",
     "smtp_host": "",
     "smtp_port": "587",
@@ -485,19 +485,19 @@ DEFAULT_SETTINGS = {
     "mail_overdue_max": "3",
     "mail_digest": "0",
     "mail_hour": "7",
-    "backup_enabled": "1",     # tägliche Datensicherung (nur SQLite)
-    "backup_keep": "10",       # Anzahl aufbewahrter Sicherungen
-    "backup_hour": "2",        # ab dieser Uhrzeit
-    "retention_months": "12",  # abgeschlossene Ausleihen und Mail-Protokoll nach X Monaten löschen; 0 = nie
-    "mfa_internal": "same",    # Zwei-Faktor im internen Netz: same | optional | skip
-    "internal_networks": "",   # leer = private Netze (10/8, 172.16/12, 192.168/16, fc00::/7)
-    "own_public_hosts": "",    # eigener Anschluss: feste IP oder DynDNS-Name, gilt ebenfalls als intern
+    "backup_enabled": "1",     # daily backup (SQLite only)
+    "backup_keep": "10",       # number of backups kept
+    "backup_hour": "2",        # from this hour on
+    "retention_months": "12",  # delete completed loans and the mail log after X months; 0 = never
+    "mfa_internal": "same",    # two-factor in the internal network: same | optional | skip
+    "internal_networks": "",   # empty = private networks (10/8, 172.16/12, 192.168/16, fc00::/7)
+    "own_public_hosts": "",    # own internet connection: static IP or DynDNS name, also counts as internal
     "mail_footer": "",
     "mail_last_run": "",
     "mail_last_result": "",
-    # Zwei-Faktor-Anmeldung: optional | admins | managers | all
+    # Two-factor sign-in: optional | admins | managers | all
     "mfa_policy": "optional",
-    # Selbstregistrierung: off | approval | open
+    # Self-registration: off | approval | open
     "registration_mode": "off",
     "registration_verify_email": "1",
     "registration_domains": "",
@@ -505,7 +505,7 @@ DEFAULT_SETTINGS = {
     "imprint_url": "",
     "privacy_url": "",
     "registration_notify_admins": "1",
-    # Erscheinungsbild
+    # Appearance
     "brand_logo": "",
     "brand_favicon": "",
     "brand_bg": "",
@@ -521,7 +521,7 @@ DEFAULT_SETTINGS = {
 }
 
 
-# Zugangsdaten, die nur verschlüsselt in der Datenbank (und damit in Sicherungen) stehen
+# Credentials that are stored only encrypted in the database (and thus in backups)
 SECRET_SETTINGS = {"ldap_bind_password", "smtp_password"}
 _ENC = "enc:"
 
@@ -537,17 +537,17 @@ def _secret_box(purpose: str = "settings-secret:"):
 
 def _decrypt_setting(key: str, value: str) -> str:
     if not value.startswith(_ENC):
-        return value          # Altbestand – wird beim Start verschlüsselt
+        return value          # legacy value – encrypted at start-up
     try:
         return _secret_box().decrypt(value[len(_ENC):].encode()).decode()
-    except Exception:  # noqa: BLE001 – z. B. anderer Sitzungsschlüssel
+    except Exception:  # noqa: BLE001 – e.g. a different session key
         import logging
-        logging.getLogger(__name__).warning("Gespeichertes Geheimnis %s nicht lesbar – bitte neu eingeben", key)
+        logging.getLogger(__name__).warning("Stored secret %s cannot be read – please enter it again", key)
         return ""
 
 
 def encrypt_stored_secrets() -> int:
-    """Noch im Klartext gespeicherte Zugangsdaten verschlüsseln (einmalig nach dem Update)."""
+    """Encrypt credentials still stored in plain text (once after the update)."""
     n = 0
     for key in SECRET_SETTINGS:
         row = db.session.get(Setting, key)
@@ -595,23 +595,23 @@ def set_setting(key: str, value) -> None:
 
 
 def default_due_date() -> date | None:
-    """Standard-Rückgabedatum; None, wenn die Leihdauer auf 0 (= unbefristet) steht."""
+    """Default due date; None if the loan period is set to 0 (= open-ended)."""
     days = get_int("loan_days", 0)
     return date.today() + timedelta(days=days) if days > 0 else None
 
 
 def catalog_hidden(user) -> bool:
-    """Sieht diese Person den Bestand gar nicht (nur „Meine Gegenstände“)? Gilt nur für Mitarbeiter;
-    unbekannte Werte zählen sicherheitshalber als „nur eigene“."""
+    """Does this person not see the inventory at all (only "My items")? Applies to staff members only;
+    unknown values count as "own only" to be safe."""
     if user is None or not getattr(user, "is_authenticated", False) or user.is_manager:
         return False
     return get_setting("catalog_visibility") not in ("groups", "all")
 
 
 def visible_assets_query(user: User):
-    """Query der Gegenstände, die ein Benutzer im Bestand sehen darf."""
+    """Query of the items a user may see in the inventory."""
     q = Asset.query
-    if catalog_hidden(user):   # nur, was ihr gerade ausgegeben ist
+    if catalog_hidden(user):   # only what is currently issued to them
         mine = db.session.query(Loan.asset_id).filter(Loan.user_id == user.id, Loan.returned_at.is_(None))
         return q.filter(Asset.id.in_(mine))
     if user.is_global_manager or get_setting("catalog_visibility") == "all":
@@ -629,7 +629,7 @@ def manageable_assets_query(user: User):
 
 
 def lendable_clause():
-    """SQL-Bedingung: Gegenstand darf verliehen werden (keine Gruppe oder Gruppe ohne „Kein Verleih“)."""
+    """SQL condition: the item may be lent (no group, or a group without "No lending")."""
     return Asset.group_id.is_(None) | ~Asset.group.has(Group.no_lending.is_(True))
 
 
@@ -640,7 +640,7 @@ def count_active_loans(user_id: int) -> int:
 
 
 def _add_column_ddl(table, col, dialect) -> list[str]:
-    """SQL zum Nachrüsten einer Spalte (Bezeichner korrekt gequotet, z. B. `groups`/"key")."""
+    """SQL to add a column later (identifiers quoted correctly, e.g. `groups`/"key")."""
     from sqlalchemy import literal
 
     prep = dialect.identifier_preparer
@@ -652,7 +652,7 @@ def _add_column_ddl(table, col, dialect) -> list[str]:
         return [ddl]
     lit = literal(default, col.type).compile(dialect=dialect, compile_kwargs={"literal_binds": True})
     if dialect.name in ("mysql", "mariadb") and any(t in coltype.upper() for t in ("TEXT", "BLOB", "JSON")):
-        # MySQL erlaubt für TEXT/BLOB keinen DEFAULT-Wert: Spalte ohne anlegen, Bestand danach füllen
+        # MySQL allows no DEFAULT value for TEXT/BLOB: create the column without one, then fill existing rows
         return [ddl, f"UPDATE {tname} SET {cname} = {lit}"]
     ddl += f" DEFAULT {lit}"
     if not col.nullable:
@@ -665,7 +665,7 @@ ACTIVE_LOAN_INDEX = ("CREATE UNIQUE INDEX IF NOT EXISTS uq_loans_active_asset_us
 
 
 def number_key(value) -> str | None:
-    """Vergleichsschlüssel einer Inventar-/Seriennummer: „ it-ü1 “ und „IT-Ü1“ ergeben denselben Schlüssel."""
+    """Comparison key of an inventory/serial number: " it-ü1 " and "IT-Ü1" give the same key."""
     value = (value or "").strip()
     return value.casefold()[:200] if value else None
 
@@ -678,7 +678,7 @@ def _set_number_keys(_mapper, _conn, target):
 
 
 def fill_number_keys() -> int:
-    """Schlüssel für Gegenstände aus älteren Versionen nachtragen (einmalig beim Start)."""
+    """Fill in the keys for items from older versions (once at start-up)."""
     rows = (db.session.query(Asset.id, Asset.inventory_no, Asset.serial_number)
             .filter(((Asset.inventory_key.is_(None)) & (Asset.inventory_no != ""))
                     | ((Asset.serial_key.is_(None)) & (Asset.serial_number != ""))).all())
@@ -695,43 +695,43 @@ NUMBER_INDEXES = (db.Index("uq_assets_inventory_key", Asset.inventory_key, uniqu
 
 
 def ensure_indexes() -> bool:
-    """Indizes nachziehen, die db.create_all() bei bestehenden Tabellen nicht anlegt.
+    """Create indexes that db.create_all() does not create for existing tables.
 
-    Liefert False, wenn der Index wegen vorhandener doppelter offener Ausleihen nicht angelegt werden
-    konnte – dann bleibt es bei einer Warnung im Protokoll, der Start läuft weiter."""
+    Returns False if the index could not be created because of existing duplicate open loans – then
+    there is just a warning in the log and start-up continues."""
     import logging
 
     from sqlalchemy import inspect, text
 
     if not inspect(db.engine).has_table("assets"):
         return True
-    # Inventar- und Seriennummern eindeutig (NULL = keine Nummer, beliebig oft erlaubt; geht auf allen Datenbanken).
-    # Die App prüft das selbst; der Index fängt gleichzeitiges Speichern ab. Gibt es im Altbestand Doppelte,
-    # bleibt es bei der Prüfung in der App.
+    # Inventory and serial numbers unique (NULL = no number, allowed any number of times; works on all databases).
+    # The app checks this itself; the index catches concurrent saves. If existing data has duplicates, the
+    # check in the app remains the only one.
     fill_number_keys()
     for index in NUMBER_INDEXES:
         try:
             index.create(db.engine, checkfirst=True)
         except Exception as exc:  # noqa: BLE001
             logging.getLogger(__name__).warning(
-                "Eindeutiger Index %s nicht angelegt (doppelte Nummern im Bestand? Unter Bestand suchen und "
-                "korrigieren): %s", index.name, exc)
+                "Unique index %s not created (duplicate numbers in the inventory? Search the inventory and "
+                "correct them): %s", index.name, exc)
     if db.engine.dialect.name not in ("sqlite", "postgresql") or not inspect(db.engine).has_table("loans"):
         return True
     ok = True
     try:
         with db.engine.begin() as conn:
             conn.execute(text(ACTIVE_LOAN_INDEX))
-    except Exception as exc:  # noqa: BLE001 – z. B. IntegrityError bei Altdaten
+    except Exception as exc:  # noqa: BLE001 – e.g. IntegrityError with legacy data
         logging.getLogger(__name__).warning(
-            "Eindeutiger Index für offene Ausleihen nicht angelegt (doppelte offene Ausleihen vorhanden?): %s", exc)
+            "Unique index for open loans not created (duplicate open loans present?): %s", exc)
         ok = False
     return ok
 
 
 def migrate_manages_all() -> int:
-    """Einmalig beim Nachrüsten der Spalte users.manages_all: Wer bisher als Verwalter ohne Gruppe den gesamten
-    Bestand verwaltet hat, behält das – ausdrücklich gesetzt. Ab dann zählt nur noch der Haken."""
+    """Once, when the column users.manages_all is added: whoever managed the entire inventory as a manager
+    without a group keeps doing so – now set explicitly. From then on only the checkbox counts."""
     from sqlalchemy import exists, select, true, update
     no_group = ~exists(select(user_groups.c.user_id).where(user_groups.c.user_id == User.id))
     res = db.session.execute(update(User).where(User.role == ROLE_MANAGER, no_group).values(manages_all=true())
@@ -741,12 +741,11 @@ def migrate_manages_all() -> int:
 
 
 def ensure_columns() -> list[str]:
-    """Einfache Schema-Aktualisierung: fehlende Spalten bestehender Tabellen ergänzen.
+    """Simple schema update: add missing columns to existing tables.
 
-    db.create_all() legt nur neue Tabellen an. Kommen in einer neuen Version Spalten hinzu,
-    werden sie hier per ALTER TABLE nachgezogen (SQLite, MySQL/MariaDB, PostgreSQL).
-    Jede Spalte in eigener Transaktion; hat ein anderer Prozess sie gerade angelegt
-    („duplicate column“), wird das übersprungen."""
+    db.create_all() only creates new tables. If a new version adds columns, they are added here
+    via ALTER TABLE (SQLite, MySQL/MariaDB, PostgreSQL). Each column in its own transaction; if
+    another process has just created it ("duplicate column"), it is skipped."""
     import logging
     from sqlalchemy import inspect, text
     from sqlalchemy.exc import DBAPIError
@@ -768,7 +767,7 @@ def ensure_columns() -> list[str]:
             except DBAPIError as exc:
                 msg = str(exc.orig if exc.orig is not None else exc).lower()
                 if "duplicate column" in msg or ("column" in msg and "already exists" in msg):
-                    logging.getLogger(__name__).debug("Spalte %s.%s existiert bereits", table.name, col.name)
+                    logging.getLogger(__name__).debug("Column %s.%s already exists", table.name, col.name)
                     continue
                 raise
             added.append(f"{table.name}.{col.name}")

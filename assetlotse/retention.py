@@ -1,12 +1,12 @@
-"""Aufbewahrungsfristen (DSGVO: Speicherbegrenzung, Art. 5 Abs. 1 e).
+"""Retention periods (GDPR: storage limitation, Art. 5(1)(e)).
 
-Abgeschlossene Ausleihen werden nach der eingestellten Frist (Standard 12 Monate nach der Rückgabe)
-gelöscht. Pro Gegenstand bleibt nur die Anzahl erhalten (Asset.archived_loans), damit die Statistik stimmt.
-Einträge im Mail-Protokoll werden nach derselben Frist gelöscht – außer solche zu laufenden Ausleihen,
-denn daran erkennt AssetLotse, wie oft schon gemahnt wurde. Auch das Protokoll der vertraulichen Angaben
-(wer hat wann angezeigt/geändert) wird nach dieser Frist gelöscht.
+Completed loans are deleted after the configured period (default 12 months after the return). Per item
+only the count is kept (Asset.archived_loans) so the statistics stay correct. Mail log entries are deleted
+after the same period – except those for running loans, because AssetLotse uses them to tell how many
+overdue notices have been sent. The log of confidential data (who viewed/changed what and when) is also
+deleted after this period.
 
-Laufende und überfällige Ausleihen werden nie gelöscht.
+Running and overdue loans are never deleted.
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def cutoff_date(now: datetime | None = None, months: int | None = None) -> datet
 
 
 def archive_loans(loan_ids: list[int]) -> int:
-    """Ausleihen löschen und pro Gegenstand mitzählen. Erwartet nur abgeschlossene Ausleihen."""
+    """Delete loans and count them per item. Expects completed loans only."""
     total = 0
     for i in range(0, len(loan_ids), BATCH):
         ids = loan_ids[i:i + BATCH]
@@ -50,14 +50,14 @@ def archive_loans(loan_ids: list[int]) -> int:
 
 
 class OpenLoansError(Exception):
-    """Der Person ist noch etwas ausgegeben – dann wird nicht gelöscht."""
+    """Something is still issued to the person – then nothing is deleted."""
 
 
 def delete_user(user) -> None:
-    """Benutzer samt abgeschlossenen Ausleihen löschen (pro Gegenstand nur gezählt, Statistik bleibt).
+    """Delete a user together with their completed loans (only counted per item, statistics stay).
 
-    Läuft noch eine Ausleihe (auch eine, die gerade erst an der Theke angelegt wurde), wird nichts gelöscht:
-    OpenLoansError. Committet wird nicht."""
+    If a loan is still running (even one just created at the desk), nothing is deleted: OpenLoansError.
+    Does not commit."""
     db.session.flush()
     if db.session.query(Loan.id).filter(Loan.user_id == user.id, Loan.returned_at.is_(None)).first():
         raise OpenLoansError(user.username)
@@ -65,7 +65,7 @@ def delete_user(user) -> None:
     archive_loans(ids)
     db.session.query(Loan).filter(Loan.user_id == user.id, Loan.returned_at.isnot(None)).delete(
         synchronize_session=False)
-    # schon geladene Ausleihen aus der Sitzung nehmen – sonst will das ORM sie beim Löschen noch ändern
+    # remove already loaded loans from the session – otherwise the ORM still wants to change them on delete
     for obj in [o for o in db.session.identity_map.values() if isinstance(o, Loan) and o.id in set(ids)]:
         db.session.expunge(obj)
     db.session.expire(user, ["loans"])
@@ -73,7 +73,7 @@ def delete_user(user) -> None:
 
 
 def run_retention(now: datetime | None = None) -> dict:
-    """Fristen anwenden. Liefert {'loans': n, 'mails': m} bzw. {'off': True}."""
+    """Apply the retention period. Returns {'loans': n, 'mails': m, 'secret_log': s} or {'off': True, …}."""
     cutoff = cutoff_date(now)
     if cutoff is None:
         return {"off": True, "loans": 0, "mails": 0, "secret_log": 0}
@@ -85,36 +85,37 @@ def run_retention(now: datetime | None = None) -> dict:
              .filter(MailLog.created_at < cutoff,
                      (MailLog.loan_id.is_(None)) | (MailLog.loan_id.notin_(active)))
              .delete(synchronize_session=False))
-    # Protokoll der vertraulichen Angaben (wer hat wann angesehen) – gleiche Frist
+    # Log of confidential data (who viewed it when) – same period
     secrets = (db.session.query(SecretAccess).filter(SecretAccess.at < cutoff)
                .delete(synchronize_session=False))
     db.session.commit()
     if loans or mails or secrets:
-        log.info("Aufbewahrungsfrist: %d alte Ausleihe(n), %d Einträge im E-Mail-Protokoll und %d im Protokoll "
-                 "der vertraulichen Angaben gelöscht", loans, mails, secrets)
+        log.info("Retention period: deleted %d old loan(s), %d email log entries and %d confidential-data "
+                 "log entries", loans, mails, secrets)
     return {"loans": loans, "mails": mails, "secret_log": secrets}
 
 
 def format_result(res: dict) -> str:
     if res.get("off"):
-        return "Aufbewahrungsfrist ist ausgeschaltet."
+        return "Retention period is turned off."   # translation key – shown via _() in views/admin.py
+    # stored format (retention_last_result) – parsed by views/admin.py _retention_message, keep
     return (f"Gelöscht: {res['loans']} alte Ausleihe(n), {res['mails']} Einträge im E-Mail-Protokoll, "
             f"{res.get('secret_log', 0)} im Zugriffsprotokoll")
 
 
 def run_daily(now: datetime | None = None) -> dict | None:
-    """Einmal pro Tag (auch bei mehreren Server-Prozessen nur einmal)."""
+    """Once a day (only once even with several server processes)."""
     from .backup import supported as backup_supported
     from .mailer import _claim_today
     from .models import get_bool, get_int
     now = now or datetime.now()
     if get_bool("backup_enabled") and backup_supported():
         if now.hour < get_int("backup_hour", 2):
-            return None        # erst nach der täglichen Sicherung löschen
+            return None        # delete only after the daily backup
         from .models import get_setting
         ok, failed = get_setting("backup_last_ok") or "", get_setting("backup_last_error") or ""
         if not ok.startswith(now.date().isoformat()) or failed > ok:
-            return None        # heute keine erfolgreiche Sicherung oder die letzte ist gescheitert – lieber nichts löschen
+            return None        # no successful backup today or the last one failed – better delete nothing
     if not _claim_today(now.date().isoformat(), key="retention_last_run"):
         return None
     res = run_retention(now)

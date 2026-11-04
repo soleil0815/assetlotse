@@ -1,7 +1,7 @@
-"""Standorte festlegen – Verwalter und Administratoren.
+"""Define locations – managers and administrators.
 
-Ist mindestens ein Standort festgelegt, wird er beim Erfassen aus einer Liste gewählt statt getippt.
-Gegenstände speichern den Standort weiterhin als Text; Umbenennen ändert ihn bei allen betroffenen Gegenständen mit.
+Once at least one location is defined, it is picked from a list when adding items instead of being typed.
+Items still store the location as text; renaming updates it on all affected items.
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ MAX_LEN = 200
 
 
 def _natural(name: str):
-    """„Regal 2“ vor „Regal 10“."""
+    """Natural sort: "Regal 2" before "Regal 10"."""
     return [int(t) if t.isascii() and t.isdecimal() else t.lower() for t in re.split(r"([0-9]+)", name or "")]
 
 
@@ -37,7 +37,7 @@ def active() -> bool:
 
 
 def canonical(value: str) -> str | None:
-    """Passenden festgelegten Standort liefern (Groß-/Kleinschreibung egal), sonst None."""
+    """Return the matching defined location (case-insensitive), otherwise None."""
     value = (value or "").strip()
     if not value:
         return ""
@@ -46,10 +46,10 @@ def canonical(value: str) -> str | None:
 
 
 def check(value: str, previous: str = "") -> tuple[str, str | None]:
-    """Standort für einen Gegenstand prüfen. Liefert (Wert, Fehlermeldung oder None).
+    """Check the location for an item. Returns (value, error message or None).
 
-    Ohne festgelegte Standorte ist jeder Text erlaubt. Mit Liste nur deren Einträge – ein bereits
-    gespeicherter, (noch) nicht gelisteter Wert darf unverändert bleiben."""
+    Without defined locations any text is allowed. With a list, only its entries – an already
+    stored value that is not (yet) listed may stay unchanged."""
     value = (value or "").strip()[:MAX_LEN]
     if not active():
         return value, None
@@ -62,15 +62,15 @@ def check(value: str, previous: str = "") -> tuple[str, str | None]:
 
 
 def _usage() -> dict[str, int]:
-    """Verwendete Standorte samt Anzahl – nur im Bestand, den der Benutzer verwalten darf (Gruppen-Verwalter
-    sehen keine frei eingetragenen Orte anderer Gruppen)."""
+    """Locations in use with their counts – only in the inventory the user may manage (group managers
+    do not see free-text locations of other groups)."""
     rows = (manageable_assets_query(current_user).with_entities(Asset.location, func.count(Asset.id))
             .filter(Asset.location.isnot(None), Asset.location != "").group_by(Asset.location).all())
     return {loc: n for loc, n in rows}
 
 
 def _can_change_all(location: str) -> bool:
-    """Darf der Benutzer alle Gegenstände mit diesem Standort ändern? (Gruppen-Verwalter nur eigene)"""
+    """May the user change all items with this location? (group managers only their own)"""
     total = Asset.query.filter(Asset.location == location).count()
     mine = manageable_assets_query(current_user).filter(Asset.location == location).count()
     return total == mine
@@ -97,7 +97,7 @@ def index():
     for value, n in sorted(usage.items(), key=lambda x: _natural(x[0])):
         if value in exact:
             continue
-        # Vorschlag: gleiche Schreibweise bis auf Groß/Klein/Leerzeichen, sonst ähnlichster Name (Tippfehler)
+        # suggestion: same spelling except case/whitespace, otherwise the closest name (typo)
         hit = by_norm.get(_norm(value))
         if hit is None:
             close = difflib.get_close_matches(_norm(value), list(by_norm), n=1, cutoff=0.75)
@@ -181,10 +181,10 @@ def delete(loc_id):
 @bp.route("/standorte/bestand", methods=["POST"])
 @manager_required
 def adopt():
-    """Im Bestand vorhandenen, nicht festgelegten Wert übernehmen oder durch einen Standort ersetzen."""
-    old = (request.form.get("value") or "")[:MAX_LEN]   # bewusst nicht kürzen: auch „Regal 1 “ mit Leerzeichen ist ein Tippfehler
+    """Adopt a value found in the inventory but not defined, or replace it with a location."""
+    old = (request.form.get("value") or "")[:MAX_LEN]   # deliberately not stripped: "Regal 1 " with a trailing space is a typo too
     target = request.form.get("target", "")
-    # nur im eigenen Bestand zählen – sonst ließen sich Orte anderer Gruppen erraten
+    # count only in one's own inventory – otherwise locations of other groups could be guessed
     count = manageable_assets_query(current_user).filter(Asset.location == old).count() if old else 0
     if not old or not count:
         flash(_("This entry no longer occurs in the inventory."), "info")

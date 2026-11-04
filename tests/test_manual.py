@@ -1,4 +1,4 @@
-"""Das PDF-Handbuch liegt im Programmordner und wird in der Hilfe verlinkt."""
+"""The PDF manual ships in the program folder and is linked from the help page."""
 from pathlib import Path
 
 from test_assetlotse import Base

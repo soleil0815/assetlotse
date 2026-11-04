@@ -1,4 +1,4 @@
-"""Tests für ASSETLOTSE – ausführen mit:  python -m unittest discover -s tests -v"""
+"""Tests for ASSETLOTSE – run with:  python -m unittest discover -s tests -v"""
 import os
 import sys
 import tempfile
@@ -32,7 +32,7 @@ class BaseCase(unittest.TestCase):
         db.session.remove()
         self.ctx.pop()
 
-    # Hilfen
+    # helpers
     def make_user(self, name, role="reader", pw="geheim123", groups=()):
         u = User(username=name, display_name=name.title(), role=role, auth_source="local")
         u.set_password(pw)
@@ -55,14 +55,14 @@ class SetupAndAuthTests(BaseCase):
         self.assertEqual(r.status_code, 200)
         self.assertIn("IT-Ausgabe", r.get_data(as_text=True))
         self.assertTrue(User.query.filter_by(username="admin", role="admin").first())
-        # Setup danach nicht mehr erreichbar
+        # setup no longer reachable afterwards
         self.assertIn("/login", self.c.get("/setup").headers["Location"])
 
     def test_login_logout_and_wrong_password(self):
         self.make_user("admin", "admin")
         r = self.c.post("/login", data={"username": "admin", "password": "falsch"})
         self.assertEqual(r.status_code, 401)
-        r = self.login("ADMIN")  # Groß-/Kleinschreibung egal
+        r = self.login("ADMIN")  # case does not matter
         self.assertIn("Übersicht", r.get_data(as_text=True))
         self.c.post("/logout")
         self.assertIn("/login", self.c.get("/").headers["Location"])
@@ -91,7 +91,7 @@ class PermissionTests(BaseCase):
         self.admin = self.make_user("admin", "admin")
         self.lib7 = self.make_user("lehrer7", "manager", groups=[self.g7])
         self.libglobal = self.make_user("verwalter", "manager")
-        self.libglobal.manages_all = True          # ausdrücklich: verwaltet den gesamten Bestand
+        self.libglobal.manages_all = True          # explicitly: manages the entire stock
         db.session.commit()
         self.r7 = self.make_user("schueler7", groups=[self.g7])
         self.r8 = self.make_user("schueler8", groups=[self.g8])
@@ -100,7 +100,7 @@ class PermissionTests(BaseCase):
         self.b8 = Asset(name="Laptop 8b", group_id=self.g8.id, quantity=1)
         self.ball = Asset(name="Allgemeines Headset", quantity=2)
         db.session.add_all([self.b7, self.b8, self.ball])
-        # Diese Tests prüfen auch die Selbstausleihe und befristete Ausleihen
+        # These tests also check self-checkout and loans with a due date
         set_setting("self_checkout", "1")
         set_setting("loan_days", "28")
         db.session.commit()
@@ -118,7 +118,7 @@ class PermissionTests(BaseCase):
         db.session.commit()
         self.login("schueler7")
         self.assertIn("Laptop 8b", self.c.get("/gegenstaende").get_data(as_text=True))
-        # Ausleihen trotzdem verboten
+        # borrowing still forbidden
         self.c.post(f"/gegenstaende/{self.b8.id}/ausgeben")
         self.assertEqual(Loan.query.count(), 0)
 
@@ -126,11 +126,11 @@ class PermissionTests(BaseCase):
         self.login("schueler7")
         self.c.post(f"/gegenstaende/{self.b7.id}/ausgeben")
         self.assertEqual(Loan.query.filter_by(user_id=self.r7.id).count(), 1)
-        self.c.post(f"/gegenstaende/{self.b8.id}/ausgeben")  # fremde Gruppe
+        self.c.post(f"/gegenstaende/{self.b8.id}/ausgeben")  # other group
         self.assertEqual(Loan.query.filter_by(asset_id=self.b8.id).count(), 0)
         self.c.post(f"/gegenstaende/{self.ball.id}/ausgeben")
         self.assertEqual(Loan.query.filter_by(user_id=self.r7.id).count(), 2)
-        # zweimal dasselbe Gerät geht nicht
+        # the same device twice is not possible
         self.c.post(f"/gegenstaende/{self.ball.id}/ausgeben")
         self.assertEqual(Loan.query.filter_by(user_id=self.r7.id).count(), 2)
 
@@ -146,7 +146,7 @@ class PermissionTests(BaseCase):
         self.assertEqual(self.c.get("/gegenstaende/neu").status_code, 403)
         self.assertEqual(self.c.get("/admin/benutzer").status_code, 403)
         self.assertEqual(self.c.post(f"/gegenstaende/{self.b7.id}/loeschen").status_code, 403)
-        # Für andere ausleihen ist verboten
+        # borrowing for others is forbidden
         self.assertEqual(self.c.post(f"/gegenstaende/{self.b7.id}/ausgeben", data={"user_id": self.r8.id}).status_code, 403)
 
     def test_group_manager_scope(self):
@@ -154,10 +154,10 @@ class PermissionTests(BaseCase):
         self.assertEqual(self.c.get(f"/gegenstaende/{self.b7.id}/bearbeiten").status_code, 200)
         self.assertEqual(self.c.get(f"/gegenstaende/{self.b8.id}/bearbeiten").status_code, 403)
         self.assertEqual(self.c.get("/admin/benutzer").status_code, 403)
-        # darf keine Geräte in fremde Gruppen verschieben
+        # may not move devices into other groups
         r = self.c.post(f"/gegenstaende/{self.b7.id}/bearbeiten", data={"name": "X", "group_id": self.g8.id, "quantity": 1})
         self.assertEqual(r.status_code, 403)
-        # Verleihen an Mitglied der eigenen Gruppe
+        # lending to a member of the own group
         self.c.post(f"/gegenstaende/{self.b7.id}/ausgeben", data={"user_id": self.r7.id})
         self.assertEqual(Loan.query.filter_by(user_id=self.r7.id).count(), 1)
 
@@ -278,7 +278,7 @@ class LdapTests(BaseCase):
         self.assertEqual(ldap_auth.resolve_role(dn, groups, cfg)[0], "admin")
         self.assertEqual(ldap_auth.resolve_role(dn, [], cfg)[0], "reader")
         self.assertIsNone(ldap_auth.resolve_role("CN=X,OU=Gaeste,DC=schule,DC=local", [], cfg)[0])
-        # Teilstring einer OU darf nicht greifen
+        # a substring of an OU must not match
         self.assertFalse(ldap_auth.rule_matches("OU=Schueler,DC=schule,DC=local",
                                                 "CN=Y,OU=AltSchueler,DC=schule,DC=local", set()))
 
@@ -291,7 +291,7 @@ class LdapTests(BaseCase):
         self.assertEqual(ldap_auth.resolve_role(dn, groups, cfg), ("manager", "it-verwalter"))
         self.assertEqual(ldap_auth.resolve_role(dn, groups[1:], cfg)[0], "reader")
         self.assertIsNone(ldap_auth.resolve_role(dn, [], cfg)[0])
-        # Teilname greift nicht
+        # a partial name does not match
         self.assertFalse(ldap_auth.rule_matches("Bibliothek", dn, {ldap_auth.normalize_dn(groups[0])}))
 
     def test_group_sync_by_name(self):
@@ -332,7 +332,7 @@ class LdapTests(BaseCase):
         u = User.query.filter_by(username="mmuster").one()
         self.assertEqual(u.auth_source, "ldap")
         self.assertEqual([x.name for x in u.groups], ["Klasse 7a"])
-        # manuell zugeordnete Gruppe bleibt, AD-Gruppe wird bei Austritt entfernt
+        # manually assigned group stays, AD group is removed on leaving
         u.groups.append(manual)
         db.session.commit()
         info.groups, info.role = [], "manager"
@@ -396,7 +396,7 @@ class LdapTests(BaseCase):
         from assetlotse.models import get_setting
         self.assertEqual(get_setting("ldap_login_rules"), "OU=A,DC=x\nOU=B,DC=x")
         self.assertEqual(get_setting("ldap_bind_password"), "pw1")
-        # leeres Passwortfeld behält das gespeicherte
+        # empty password field keeps the stored one
         self.c.post("/admin/verzeichnisdienst", data={"action": "save", "ldap_server": "ldap://dc1", "ldap_base_dn": "DC=x"})
         self.assertEqual(get_setting("ldap_bind_password"), "pw1")
         self.assertNotIn("pw1", self.c.get("/admin/verzeichnisdienst").get_data(as_text=True))
@@ -447,7 +447,7 @@ class AdminTests(BaseCase):
         self.assertEqual(get_setting("org_name"), "IT-Ausgabe")
         self.assertEqual(get_setting("loan_days"), "21")
         self.assertEqual(get_setting("self_checkout"), "0")
-        # 0 = unbefristet ist erlaubt
+        # 0 = open-ended is allowed
         self.c.post("/admin/einstellungen", data={"loan_days": "0"})
         self.assertEqual(get_setting("loan_days"), "0")
 
