@@ -78,13 +78,15 @@ class TwoFaFlowTests(unittest.TestCase):
         self.assertIn("/login", self.c.get("/").headers["Location"])  # not logged in yet
         r = self.c.post("/login/2fa", data={"code": "000000"})
         self.assertIn("ungültig", r.get_data(as_text=True))
-        r = self.c.post("/login/2fa", data={"code": twofa.totp_now(secret)})
+        code = twofa.totp_now(secret)
+        r = self.c.post("/login/2fa", data={"code": code})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(self.c.get("/").status_code, 200)
-        # same code a second time: rejected
+        # the SAME code a second time: rejected (not a fresh totp_now() – after a 30-second step that would be a
+        # new, valid code, and the test failed now and then)
         self.c.post("/logout")
         self.login()
-        r = self.c.post("/login/2fa", data={"code": twofa.totp_now(secret)})
+        r = self.c.post("/login/2fa", data={"code": code})
         self.assertIn("ungültig", r.get_data(as_text=True))
 
     def test_recovery_code_once(self):
