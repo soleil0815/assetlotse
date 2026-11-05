@@ -36,8 +36,7 @@ RUN dpkg --purge --force-remove-essential --force-remove-protected --force-depen
 #   Python packages only need the library libssl3t64, which stays. The configuration /etc/ssl/openssl.cnf and the
 #   links in /usr/lib/ssl (where Python looks for the CA certificates of ca-certificates) belong to the openssl
 #   package and are put back unchanged.
-# - libsystemd0 and libudev1 (systemd, absent in the container) – only if no remaining package needs them; the
-#   build log says what was kept.
+# (libsystemd0 and libudev1 stay: coreutils, PAM and util-linux depend on them.)
 RUN set -eu \
  && cp -p /etc/ssl/openssl.cnf /tmp/openssl.cnf \
  && dpkg --purge --force-depends openssl openssl-provider-legacy \
@@ -45,12 +44,6 @@ RUN set -eu \
  && mkdir -p /usr/lib/ssl \
  && ln -sfn /etc/ssl/certs /usr/lib/ssl/certs \
  && ln -sfn /etc/ssl/openssl.cnf /usr/lib/ssl/openssl.cnf \
- && for p in libsystemd0 libudev1; do \
-      if ! dpkg-query -W -f '${Status}' "$p" 2>/dev/null | grep -q 'ok installed'; then continue; fi; \
-      if dpkg --purge "$p" >/tmp/purge.log 2>&1; then echo "Removed: $p"; \
-      else echo "Kept: $p ($(grep -i 'depends on' /tmp/purge.log | sed 's/^ *//' | tr '\n' ' '))"; fi; \
-    done \
- && rm -f /tmp/purge.log \
  && ! command -v openssl >/dev/null \
  && ! dpkg-query -W -f '${Status}\n' openssl openssl-provider-legacy 2>/dev/null | grep -q 'ok installed' \
  && python -c "import os, ssl; p = ssl.get_default_verify_paths(); \

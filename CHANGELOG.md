@@ -6,9 +6,8 @@ The current version is shown at the bottom left of the sidebar after signing in.
 
 **Changed**
 - **Smaller image, fewer scanner warnings:** after the package check, the build also removes the `openssl`
-  command-line tool and `openssl-provider-legacy` (old algorithms such as MD4), and `libsystemd0`/`libudev1` when
-  no remaining package needs them (the build log says what was kept). AssetLotse never used them; Python and its
-  packages only need the library `libssl3t64`, which stays. The OpenSSL configuration and the CA certificate links
+  command-line tool and `openssl-provider-legacy` (old algorithms such as MD4). AssetLotse never used them; Python
+  and its packages only need the library `libssl3t64`, which stays. The OpenSSL configuration and the CA certificate links
   Python uses stay unchanged, and the build checks that TLS still finds the CA certificates. Nothing to change on
   the server.
 

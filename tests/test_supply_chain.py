@@ -274,7 +274,7 @@ class DockerfileTests(unittest.TestCase):
 
     def test_unused_debian_packages_removed_after_the_check(self):
         # 2.1.1: openssl (tool) and openssl-provider-legacy go, libssl3t64 stays; the CA links Python uses are
-        # put back and checked in the build; libsystemd0/libudev1 only without force
+        # put back and checked in the build
         df = self.df
         slim = df[df.index("dpkg --purge --force-depends openssl openssl-provider-legacy"):df.index("WORKDIR /app")]
         self.assertLess(df.index("sh /tmp/build/os-install.sh"), df.index(slim))   # after the lock comparison
@@ -285,10 +285,7 @@ class DockerfileTests(unittest.TestCase):
         self.assertIn("ssl.create_default_context()", slim)
         self.assertIn("! command -v openssl", slim)
         self.assertIn("command -v setpriv", slim)                                 # the entrypoint needs it
-        loop = slim[slim.index("for p in libsystemd0 libudev1"):slim.index("done")]
-        self.assertIn('dpkg --purge "$p"', loop)
-        self.assertNotIn("--force", loop)                                          # never forced
-        self.assertIn("Kept: $p", loop)
+        self.assertNotIn("libsystemd0", slim)                                      # coreutils/PAM need it
 
     def test_test_tools_exact(self):
         for line in (ROOT / "tests" / "requirements-test.txt").read_text().splitlines():
