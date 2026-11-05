@@ -34,6 +34,8 @@ LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13). Anyone running a modified AssetLotse enters the
 # address of their own modified source code here or in ASSETLOTSE_SOURCE_URL.
 DEFAULT_SOURCE_URL = ""
+# shown to administrators only, in the sidebar ("Buy me a coffee")
+SUPPORT_URL = "https://buymeacoffee.com/soleil0815"
 AUTHOR_URL = "https://helfi.space"
 
 
@@ -527,6 +529,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "ROLES": ROLES,
             "today": date.today(),
             "version": __version__,
+            "support_url": SUPPORT_URL,
             "app_name": APP_NAME,
             "license_name": LICENSE_NAME,
             "author_url": AUTHOR_URL,
