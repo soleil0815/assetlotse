@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.1.1",
+      "date": "2026-11-05",
+      "kind": "security",
+      "audience": "admin",
+      "de": {
+        "title": "Schlankeres Image",
+        "text": "Das Image enthält weniger Pakete, die AssetLotse nie benutzt hat (u. a. das Werkzeug „openssl“). Dadurch meldet die Schwachstellenprüfung seltener Funde. Am Server ist nichts zu ändern."
+      },
+      "en": {
+        "title": "Leaner image",
+        "text": "The image contains fewer packages that AssetLotse never used (among them the “openssl” tool). The vulnerability scan therefore reports findings less often. Nothing to change on the server."
+      }
+    },
+    {
       "version": "2.1.0",
       "date": "2026-11-04",
       "kind": "feature",

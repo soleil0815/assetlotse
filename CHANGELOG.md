@@ -2,6 +2,15 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.1.1 – 2026-11-05
+
+**Changed**
+- **Smaller image, fewer scanner warnings:** after the package check, the build also removes the `openssl`
+  command-line tool and `openssl-provider-legacy` (old algorithms such as MD4). AssetLotse never used them; Python
+  and its packages only need the library `libssl3t64`, which stays. The OpenSSL configuration and the CA certificate links
+  Python uses stay unchanged, and the build checks that TLS still finds the CA certificates. Nothing to change on
+  the server.
+
 ## 2.1.0 – 2026-11-04
 
 The repository is now in English: code, comments, log messages, command-line output, CHANGELOG and commit
