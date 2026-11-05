@@ -31,9 +31,9 @@ from .i18n import gettext as _
 __version__ = "2.1.0"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
-# Where to find the source code (AGPL section 13). Anyone running a modified AssetLotse enters the
-# address of their own modified source code here or in ASSETLOTSE_SOURCE_URL.
-DEFAULT_SOURCE_URL = ""
+# Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
+# enters the address of their own modified source code here or in ASSETLOTSE_SOURCE_URL.
+DEFAULT_SOURCE_URL = "https://github.com/soleil0815/assetlotse"
 # shown to administrators only, in the sidebar ("Buy me a coffee")
 SUPPORT_URL = "https://buymeacoffee.com/soleil0815"
 AUTHOR_URL = "https://helfi.space"
@@ -533,7 +533,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "app_name": APP_NAME,
             "license_name": LICENSE_NAME,
             "author_url": AUTHOR_URL,
-            "source_url": os.environ.get("ASSETLOTSE_SOURCE_URL", DEFAULT_SOURCE_URL),
+            "source_url": (os.environ.get("ASSETLOTSE_SOURCE_URL") or "").strip() or DEFAULT_SOURCE_URL,
             "imprint_url": get_setting("imprint_url"),
             "retention_months": get_int_setting("retention_months"),
             "privacy_url": get_setting("privacy_url"),
