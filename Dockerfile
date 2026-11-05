@@ -5,7 +5,7 @@ ARG PYTHON_IMAGE=python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef4
 FROM ${PYTHON_IMAGE}
 
 LABEL org.opencontainers.image.title="AssetLotse" \
-      org.opencontainers.image.version="2.1.0" \
+      org.opencontainers.image.version="2.1.1" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -31,6 +31,32 @@ RUN dpkg --purge --force-remove-essential --force-remove-protected --force-depen
       apt $(dpkg-query -W -f '${Package}\n' 'libapt-pkg*' 2>/dev/null) \
  && rm -rf /var/lib/apt /var/cache/apt /etc/apt \
  && ! command -v apt-get >/dev/null
+# Further packages AssetLotse does not use, so the vulnerability scan has less to report:
+# - openssl (the command-line tool) and openssl-provider-legacy (old algorithms such as MD4). Python and the
+#   Python packages only need the library libssl3t64, which stays. The configuration /etc/ssl/openssl.cnf and the
+#   links in /usr/lib/ssl (where Python looks for the CA certificates of ca-certificates) belong to the openssl
+#   package and are put back unchanged.
+# - libsystemd0 and libudev1 (systemd, absent in the container) – only if no remaining package needs them; the
+#   build log says what was kept.
+RUN set -eu \
+ && cp -p /etc/ssl/openssl.cnf /tmp/openssl.cnf \
+ && dpkg --purge --force-depends openssl openssl-provider-legacy \
+ && mv /tmp/openssl.cnf /etc/ssl/openssl.cnf \
+ && mkdir -p /usr/lib/ssl \
+ && ln -sfn /etc/ssl/certs /usr/lib/ssl/certs \
+ && ln -sfn /etc/ssl/openssl.cnf /usr/lib/ssl/openssl.cnf \
+ && for p in libsystemd0 libudev1; do \
+      if ! dpkg-query -W -f '${Status}' "$p" 2>/dev/null | grep -q 'ok installed'; then continue; fi; \
+      if dpkg --purge "$p" >/tmp/purge.log 2>&1; then echo "Removed: $p"; \
+      else echo "Kept: $p ($(grep -i 'depends on' /tmp/purge.log | sed 's/^ *//' | tr '\n' ' '))"; fi; \
+    done \
+ && rm -f /tmp/purge.log \
+ && ! command -v openssl >/dev/null \
+ && ! dpkg-query -W -f '${Status}\n' openssl openssl-provider-legacy 2>/dev/null | grep -q 'ok installed' \
+ && python -c "import os, ssl; p = ssl.get_default_verify_paths(); \
+assert p.capath and any(n.endswith('.0') for n in os.listdir(p.capath)), p; \
+ssl.create_default_context()" \
+ && command -v setpriv >/dev/null
 
 WORKDIR /app
 COPY requirements.txt requirements.in ./
