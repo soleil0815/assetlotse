@@ -45,8 +45,7 @@ AssetLotse läuft als Docker-Container. Das Programm steckt komplett im fertigen
 
 1. Einen Ordner anlegen, z. B. `/opt/assetlotse` (auf einer Synology z. B. `/volume1/docker/assetlotse`).
 2. Aus dem neuesten [Release](https://github.com/soleil0815/assetlotse/releases/latest) **`docker-compose.yml`** und **`env.example`** dort ablegen, `env.example` als **`.env`** speichern und nach Bedarf anpassen (Port, Zeitzone, …). Ohne Einträge gelten die Vorgaben.
-3. Ist das Image privat: einmalig `docker login ghcr.io` (Benutzer: GitHub-Name, Passwort: ein Token mit dem Recht `read:packages`).
-4. Starten:
+3. Starten – eine Anmeldung bei GitHub ist nicht nötig, das Image ist öffentlich:
    ```bash
    docker compose up -d
    ```
@@ -468,6 +467,8 @@ In die Datenschutzerklärung (bzw. das Verzeichnis der Verarbeitungstätigkeiten
 
 ## Sicherheit
 
+Sicherheitslücken bitte nicht als Issue, sondern **vertraulich** melden – siehe [SECURITY.md](SECURITY.md).
+
 - **Passwörter** lokaler Konten: mindestens 10 Zeichen. Nach mehreren Fehlversuchen wird die Anmeldung kurz gesperrt; von außen zusätzlich je Benutzername, falls jemand viele Adressen durchprobiert.
 - **Abmelden auf allen Geräten:** *Profil → Sicherheit → Angemeldete Geräte*. Das passiert auch automatisch, wenn das Passwort geändert oder die Zwei-Faktor-Anmeldung von einem Admin zurückgesetzt wird – das aktuelle Gerät bleibt angemeldet.
 - **AD-Konten** laufender Sitzungen werden alle 4 Stunden nachgeprüft (mit dem Dienstkonto): Wer im AD deaktiviert, gelöscht oder aus der berechtigten Gruppe genommen wurde, wird abgemeldet; Rolle und Gruppen werden angeglichen. Ist das AD nicht erreichbar, bleibt die Sitzung bestehen. Ohne Dienstkonto (direkter Bind) ist diese Prüfung nicht möglich.
@@ -523,7 +524,7 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
 | `ASSETLOTSE_BACKUP_DIR` | Ordner für die automatischen Sicherungen im Container (Standard: `backups` im Datenverzeichnis). Muss in `docker-compose.override.yml` als Volume eingebunden sein – sonst warnt der Container beim Start |
 | `ASSETLOTSE_SCHEDULER` | `0` = keine zeitgesteuerten Läufe (Erinnerungen, Sicherung, Aufbewahrung) in diesem Prozess, z. B. wenn mehrere App-Server laufen und nur einer sie ausführen soll. Standard `1` |
-| `ASSETLOTSE_SOURCE_URL` | Link zum Quellcode auf der Seite *Über dieses Programm* (z. B. dein GitHub-Repository) – siehe [Lizenz](#lizenz) |
+| `ASSETLOTSE_SOURCE_URL` | Link zum Quellcode auf der Seite *Über dieses Programm* (Standard: dieses Repository; bei einer veränderten Fassung deren Quellcode) – siehe [Lizenz](#lizenz) |
 
 Alles Weitere (Standard-Leihdauer, Verlängerungen, Selbstausleihe, Sichtbarkeit des Bestands, AD, E-Mail, Erscheinungsbild, Registrierung, 2FA-Regeln) stellst du in der Oberfläche ein.
 
@@ -602,7 +603,7 @@ AssetLotse ist freie Software unter der **GNU Affero General Public License, Ver
 
 Kurz gesagt: Jeder darf AssetLotse nutzen, weitergeben und verändern, auch kommerziell. Wer eine **veränderte Fassung** weitergibt **oder im Netz für andere betreibt**, muss den Quellcode dieser Fassung unter derselben Lizenz zugänglich machen. AssetLotse wird ohne jede Gewährleistung bereitgestellt.
 
-Version, Lizenz, Entwickler ([helfi.space](https://helfi.space)) und Quellcode-Link stehen nach der Anmeldung auf der Seite *Über dieses Programm* (Klick auf die Versionsnummer unten in der Seitenleiste). Den Link legst du mit `ASSETLOTSE_SOURCE_URL` in der `.env` fest. „AssetLotse“ ist zugleich der Standardname in der Oberfläche; unter *Administration → Einstellungen* (Name) bzw. *Erscheinungsbild* könnt ihr ihn z. B. durch den Namen eures Instituts ersetzen.
+Version, Lizenz, Entwickler ([helfi.space](https://helfi.space)) und Quellcode-Link stehen nach der Anmeldung auf der Seite *Über dieses Programm* (Klick auf die Versionsnummer unten in der Seitenleiste). Der Link führt standardmäßig zu diesem Repository; wer eine **veränderte** Fassung betreibt, trägt mit `ASSETLOTSE_SOURCE_URL` in der `.env` die Adresse seines eigenen Quellcodes ein. „AssetLotse“ ist zugleich der Standardname in der Oberfläche; unter *Administration → Einstellungen* (Name) bzw. *Erscheinungsbild* könnt ihr ihn z. B. durch den Namen eures Instituts ersetzen.
 
 Verwendete Bibliotheken (eigene Lizenzen, werden bei der Installation geladen): Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF, SQLAlchemy, PyMySQL, ldap3, cryptography, fido2, segno, Pillow, requests, gunicorn/waitress.
 

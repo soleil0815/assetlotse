@@ -368,7 +368,7 @@ case "$MODE" in
     *)
         TAG="${WANT:-latest}"
         step "Pulling ${IMAGE}:${TAG}"
-        docker pull "${IMAGE}:${TAG}" || die "Pull failed – nothing changed. Is the version right? For a private image log in once:  docker login ghcr.io"
+        docker pull "${IMAGE}:${TAG}" || die "Pull failed – nothing changed. Is the version right and the server online? (Images of a private fork need  docker login ghcr.io  once.)"
         ;;
 esac
 REF="${IMAGE}:${TAG}"

@@ -45,8 +45,7 @@ AssetLotse runs as a Docker container. The whole program is inside the ready-mad
 
 1. Create a folder, e.g. `/opt/assetlotse` (on a Synology e.g. `/volume1/docker/assetlotse`).
 2. Put **`docker-compose.yml`** and **`env.example`** from the newest [release](https://github.com/soleil0815/assetlotse/releases/latest) there, save `env.example` as **`.env`** and adjust it as needed (port, time zone, …). Without entries the defaults apply.
-3. If the image is private: once `docker login ghcr.io` (user: GitHub name, password: a token with the permission `read:packages`).
-4. Start:
+3. Start – no GitHub login needed, the image is public:
    ```bash
    docker compose up -d
    ```
@@ -468,6 +467,8 @@ The privacy policy (or your record of processing activities) should list what As
 
 ## Security
 
+Please report security problems **privately**, not as an issue – see [SECURITY.md](SECURITY.md).
+
 - **Passwords** for local accounts: at least 10 characters. Repeated failures briefly lock the login; from outside also per user name, in case someone tries many addresses.
 - **Sign out everywhere:** *Profile → Security → Signed-in devices*. This also happens automatically when the password is changed or an admin resets two-factor authentication – the current device stays signed in.
 - **AD accounts** with an open session are re-checked every 4 hours (using the service account): anyone disabled, deleted or removed from the permitted group in AD is signed out; role and groups are updated. If AD is unreachable the session stays. Without a service account (direct bind) this check is not possible.
@@ -523,7 +524,7 @@ Privacy: backups contain all data, including data already deleted by the retenti
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (default), `DEBUG` for LDAP troubleshooting |
 | `ASSETLOTSE_BACKUP_DIR` | Folder for automatic backups inside the container (default: `backups` in the data directory). Must be mounted as a volume in `docker-compose.override.yml` – otherwise the container warns at start-up |
 | `ASSETLOTSE_SCHEDULER` | `0` = no scheduled jobs (reminders, backup, retention) in this process, e.g. when several app servers run and only one should do them. Default `1` |
-| `ASSETLOTSE_SOURCE_URL` | Link to the source code on the *About this program* page, e.g. your GitHub repository – see [License](#license) |
+| `ASSETLOTSE_SOURCE_URL` | Link to the source code on the *About this program* page (default: this repository; for a modified version, its source code) – see [License](#license) |
 
 Everything else (default loan period, extensions, self-service checkout, inventory visibility, AD, e-mail, branding, registration, 2FA policy) is configured in the web interface.
 
@@ -602,7 +603,7 @@ AssetLotse is free software under the **GNU Affero General Public License, versi
 
 In short: anyone may use, share and modify AssetLotse, commercially too. Anyone who distributes a **modified version** **or runs it on a network for others** must make the source code of that version available under the same license. AssetLotse comes with no warranty.
 
-After signing in, version, license, developer ([helfi.space](https://helfi.space)) and source link are shown on the *About this program* page – click the version number at the bottom of the sidebar. Set the link with `ASSETLOTSE_SOURCE_URL` in `.env`. “AssetLotse” is also the default name in the interface; you can replace it, e.g. with your institute's name, under *Administration → Settings* (Name) or *Branding*.
+After signing in, version, license, developer ([helfi.space](https://helfi.space)) and source link are shown on the *About this program* page – click the version number at the bottom of the sidebar. By default the link points to this repository; anyone running a **modified** version sets the address of their own source code with `ASSETLOTSE_SOURCE_URL` in `.env`. “AssetLotse” is also the default name in the interface; you can replace it, e.g. with your institute's name, under *Administration → Settings* (Name) or *Branding*.
 
 Libraries used (under their own licenses, installed at setup time): Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF, SQLAlchemy, PyMySQL, ldap3, cryptography, fido2, segno, Pillow, requests, gunicorn/waitress.
 

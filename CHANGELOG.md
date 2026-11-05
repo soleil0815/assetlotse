@@ -8,10 +8,16 @@ The repository is now in English: code, comments, log messages, command-line out
 messages. The interface stays bilingual (German and English, default German), as do README, help and news.
 
 **Added**
+- **Source code link by default:** *About this program* links to https://github.com/soleil0815/assetlotse unless
+  `ASSETLOTSE_SOURCE_URL` names another address (for a modified version – AGPL). Before, the link was empty unless
+  set.
+- **SECURITY.md:** how to report security problems privately.
 - **"Buy me a coffee"** link in the sidebar, for administrators only – opens buymeacoffee.com/soleil0815 in a new
   tab. Managers and staff never see it.
 
 **Changed**
+- **Public repository and image:** installing no longer needs `docker login ghcr.io`. Checks of pushes and pull
+  requests (also from forks) no longer sign in to the registry at all – no token reaches the registry in those runs.
 - **Translations:** English is now the source language – the texts in the code are English, the German ones are in
   `assetlotse/translations/de.json` (replaces `en.json`). The interface looks the same in both languages.
 - **Log and command-line output in English**, e.g. `docker compose run --rm assetlotse backups` / `restore NAME`

@@ -174,7 +174,9 @@ jobs:
           merge-multiple: true
           path: ${{ runner.temp }}/lock
 
-      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      # checks (pushes, pull requests – also from forks) need nothing from the registry: no token in that run
+      - if: needs.mode.outputs.kind != 'check'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -183,6 +185,7 @@ jobs:
       # what is published already – the only step with a token; fails closed (an error never means "missing")
       - name: Registry state
         id: reg
+        if: needs.mode.outputs.kind != 'check'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
