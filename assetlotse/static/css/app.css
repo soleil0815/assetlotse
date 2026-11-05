@@ -110,6 +110,15 @@ code, .mono { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-si
 .side-legal a { color: var(--side-muted); }
 .side-legal a:hover { color: var(--side-ink, #fff); }
 .side-legal + .side-version { margin-top: 0; }
+/* "Buy me a coffee" (administrators only): the service's own yellow, as a small pill above the version */
+.side-coffee { margin: auto 12px 0; align-self: flex-start; display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 13px 5px 10px; border-radius: 999px; background: #ffdd00; color: #0d0c22; border: 2px solid #0d0c22;
+  font-size: 12.5px; font-weight: 600; text-decoration: none; line-height: 1.2; }
+.side-coffee .i { width: 16px; height: 16px; }
+.side-coffee:hover { background: #ffe94d; }
+.side-coffee:focus-visible { outline: 2px solid #ffdd00; outline-offset: 2px; }
+.side-legal + .side-coffee { margin-top: 10px; }
+.side-coffee + .side-version { margin-top: 6px; }
 .side-foot { padding: 14px 10px 0; border-top: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 10px; }
 .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none; }
 .sidebar .avatar { background: var(--side-2); color: var(--side-ink); }

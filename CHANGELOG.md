@@ -7,6 +7,10 @@ The current version is shown at the bottom left of the sidebar after signing in.
 The repository is now in English: code, comments, log messages, command-line output, CHANGELOG and commit
 messages. The interface stays bilingual (German and English, default German), as do README, help and news.
 
+**Added**
+- **"Buy me a coffee"** link in the sidebar, for administrators only – opens buymeacoffee.com/soleil0815 in a new
+  tab. Managers and staff never see it.
+
 **Changed**
 - **Translations:** English is now the source language – the texts in the code are English, the German ones are in
   `assetlotse/translations/de.json` (replaces `en.json`). The interface looks the same in both languages.
