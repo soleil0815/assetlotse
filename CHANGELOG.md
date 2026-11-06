@@ -2,6 +2,17 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.3.0 – 2026-11-06
+
+**Changed**
+- **German interface uses the formal address ("Sie")** throughout: all German texts of the interface, the e-mails
+  (greeting "Guten Tag …"), the help pages, the news entries and the German README. The English texts are
+  unchanged.
+
+**Added**
+- Test that keeps it that way: informal pronouns (du/dich/dein…, ihr/euch/euer) in German translations, help
+  pages, news or the German README fail the build.
+
 ## 2.2.1 – 2026-11-06
 
 **Changed**

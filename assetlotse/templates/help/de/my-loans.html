@@ -1,17 +1,17 @@
-<p>Unter <span class="ui">Meine Gegenstände</span> siehst du alles, was dir gerade ausgegeben ist, mit Ausgabedatum und – falls vereinbart – Rückgabedatum. Die Reiter <span class="ui">Überfällig</span> und <span class="ui">Verlauf</span> zeigen nur Überfälliges bzw. bereits Zurückgegebenes. Bei einem Rückgabedatum verrät die Farbe den Stand: grün = noch Zeit, gelb = bald fällig, rot = überfällig. <b>Unbefristet</b> ausgegebene Gegenstände sind nie überfällig.</p>
-<p><b>Schlüssel vergessen?</b> Hat die Verwaltung es bei einem Gerät freigegeben (z. B. einer verschlüsselten Festplatte), steht auf seiner Detailseite unter <span class="ui">Vertrauliche Angaben</span> ein Passwortfeld. Nach Eingabe deines Passworts siehst du z. B. den BitLocker-Wiederherstellungsschlüssel – nur solange dir das Gerät ausgegeben ist. Jedes Anzeigen wird protokolliert.</p>
+<p>Unter <span class="ui">Meine Gegenstände</span> sehen Sie alles, was Ihnen gerade ausgegeben ist, mit Ausgabedatum und – falls vereinbart – Rückgabedatum. Die Reiter <span class="ui">Überfällig</span> und <span class="ui">Verlauf</span> zeigen nur Überfälliges bzw. bereits Zurückgegebenes. Bei einem Rückgabedatum verrät die Farbe den Stand: grün = noch Zeit, gelb = bald fällig, rot = überfällig. <b>Unbefristet</b> ausgegebene Gegenstände sind nie überfällig.</p>
+<p><b>Schlüssel vergessen?</b> Hat die Verwaltung es bei einem Gerät freigegeben (z. B. einer verschlüsselten Festplatte), steht auf seiner Detailseite unter <span class="ui">Vertrauliche Angaben</span> ein Passwortfeld. Nach Eingabe Ihres Passworts sehen Sie z. B. den BitLocker-Wiederherstellungsschlüssel – nur solange Ihnen das Gerät ausgegeben ist. Jedes Anzeigen wird protokolliert.</p>
 {% if f.self_extend %}
 <p><b>Verlängern:</b> Hat ein Gegenstand ein Rückgabedatum, schiebt <span class="ui">Verlängern</span> es um {{ f.extension_days }} {{ "Tag" if f.extension_days == 1 else "Tage" }} hinaus – höchstens {{ f.max_extensions }}-mal pro Ausgabe. Gezählt wird ab dem späteren Datum: heute oder bisheriges Rückgabedatum. Ist die Höchstzahl erreicht, verschwindet der Knopf; dann kann nur noch die Verwaltung verlängern. Unbefristete Ausgaben brauchen keine Verlängerung.</p>
 {% else %}
-<p><b>Verlängern</b> kann hier nur die Verwaltung. Brauchst du einen Gegenstand länger, sag rechtzeitig vor dem Rückgabedatum Bescheid. Unbefristete Ausgaben brauchen keine Verlängerung.</p>
+<p><b>Verlängern</b> kann hier nur die Verwaltung. Brauchen Sie einen Gegenstand länger, sagen Sie rechtzeitig vor dem Rückgabedatum Bescheid. Unbefristete Ausgaben brauchen keine Verlängerung.</p>
 {% endif %}
-<p><b>Zurückgeben:</b> {% if f.self_return %}Mit <span class="ui">Rückgabe</span> trägst du die Rückgabe selbst ein – bring ihn danach samt Zubehör an seinen Standort.{% else %}Bring den Gegenstand zur Verwaltung bzw. Ausgabetheke; einen Rückgabe-Knopf gibt es für dich nicht.{% endif %}</p>
+<p><b>Zurückgeben:</b> {% if f.self_return %}Mit <span class="ui">Rückgabe</span> tragen Sie die Rückgabe selbst ein – bringen Sie ihn danach samt Zubehör an seinen Standort.{% else %}Bringen Sie den Gegenstand zur Verwaltung bzw. Ausgabetheke; einen Rückgabe-Knopf gibt es für Sie nicht.{% endif %}</p>
 {% if f.mail_on and (f.reminder_on or f.overdue_on) %}
 <p><b>E-Mails</b> (nur bei Gegenständen mit Rückgabedatum):
-{% if f.reminder_on %}Kurz vorher (bis zu {{ f.reminder_days }} Tag{{ "e" if f.reminder_days != 1 }}) bekommst du eine Erinnerung.{% endif %}
+{% if f.reminder_on %}Kurz vorher (bis zu {{ f.reminder_days }} Tag{{ "e" if f.reminder_days != 1 }}) bekommen Sie eine Erinnerung.{% endif %}
 {% if f.overdue_on %}Ist ein Gegenstand überfällig, folgt eine Mahnung.{% endif %}
-Mehrere Gegenstände stehen in einer Mail. Abschalten kannst du das unter <span class="ui">Mein Profil</span>.</p>
+Mehrere Gegenstände stehen in einer Mail. Abschalten können Sie das unter <span class="ui">Mein Profil</span>.</p>
 {% endif %}
 {% if current_user.is_manager %}
-<p><b>Für Verwalter:</b> <span class="ui">Meine Gegenstände</span> zeigt nur deine eigenen. Was an alle Mitarbeiter ausgegeben ist, findest du unter <span class="ui">Verwaltung → Alle Ausleihen</span>.</p>
+<p><b>Für Verwalter:</b> <span class="ui">Meine Gegenstände</span> zeigt nur Ihre eigenen. Was an alle Mitarbeiter ausgegeben ist, finden Sie unter <span class="ui">Verwaltung → Alle Ausleihen</span>.</p>
 {% endif %}

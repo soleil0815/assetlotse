@@ -1,8 +1,8 @@
-<p>Im <span class="ui">Bestand</span> lädt der Knopf <span class="ui">CSV</span> oben rechts den Bestand als Tabelle herunter (<code>assetlotse-bestand.csv</code>) – etwa für die Inventur. Exportiert werden {% if current_user.is_global_manager %}alle Gegenstände{% else %}die Gegenstände deiner Gruppen und die allgemeinen Gegenstände{% endif %}, sortiert nach Bezeichnung – Such- und Filtereinstellungen spielen keine Rolle.</p>
+<p>Im <span class="ui">Bestand</span> lädt der Knopf <span class="ui">CSV</span> oben rechts den Bestand als Tabelle herunter (<code>assetlotse-bestand.csv</code>) – etwa für die Inventur. Exportiert werden {% if current_user.is_global_manager %}alle Gegenstände{% else %}die Gegenstände Ihrer Gruppen und die allgemeinen Gegenstände{% endif %}, sortiert nach Bezeichnung – Such- und Filtereinstellungen spielen keine Rolle.</p>
 <p><b>Spalten:</b> ID, Bezeichnung, Kategorie, Hersteller, Modell, Seriennummer, Inventarnummer, Standort, Gruppe (oder „Allgemein“), Anzahl, Verfügbar, Ausgegeben an.</p>
 <ul>
   <li>Die Datei ist <b>Excel-kompatibel</b>: Semikolon als Trennzeichen und UTF-8 mit Kennung, damit Umlaute stimmen. Doppelklick genügt.</li>
-  <li><b>Schutz vor Formeln:</b> Zellen, die mit <code>=</code>, <code>+</code>, <code>-</code> oder <code>@</code> beginnen, bekommen ein vorangestelltes Hochkomma. So führt Excel nichts als Formel aus; das Hochkomma siehst du ggf. in der Zelle.</li>
-  <li><b>Personenbezogene Daten:</b> Die Spalte „Ausgegeben an“ nennt, wer den Gegenstand gerade hat. Geh mit der Datei entsprechend sorgsam um. <b>Vertrauliche Angaben</b> (z. B. BitLocker-Schlüssel) sind nie enthalten.</li>
+  <li><b>Schutz vor Formeln:</b> Zellen, die mit <code>=</code>, <code>+</code>, <code>-</code> oder <code>@</code> beginnen, bekommen ein vorangestelltes Hochkomma. So führt Excel nichts als Formel aus; das Hochkomma sehen Sie ggf. in der Zelle.</li>
+  <li><b>Personenbezogene Daten:</b> Die Spalte „Ausgegeben an“ nennt, wer den Gegenstand gerade hat. Gehen Sie mit der Datei entsprechend sorgsam um. <b>Vertrauliche Angaben</b> (z. B. BitLocker-Schlüssel) sind nie enthalten.</li>
 </ul>
-<p>Die ID ist die interne Nummer, die du an der <span class="ui">Ausgabetheke</span> als <code>#ID</code> eingeben kannst.</p>
+<p>Die ID ist die interne Nummer, die Sie an der <span class="ui">Ausgabetheke</span> als <code>#ID</code> eingeben können.</p>

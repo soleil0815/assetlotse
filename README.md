@@ -8,7 +8,7 @@ Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Lap
 - **Vertrauliche Angaben** je Gegenstand (z. B. BitLocker-Wiederherstellungsschlüssel, PIN, Kennwort) – verschlüsselt gespeichert, nur für Administratoren und Verwalter der jeweiligen Gruppe sichtbar (auf Wunsch auch für die Person, die das Gerät gerade hat – nach erneuter Passworteingabe), jeder Abruf wird protokolliert, nie im Export.
 - **Ausgabe** – an eine Person, mit Rückgabedatum oder **unbefristet** (Standard). Rückgabe, Verlängerung, Überfälligkeiten, Höchstzahl an Ausleihen.
 - **Ausgabetheke** – Person wählen, Etikett scannen, fertig. USB-/Bluetooth-Barcodescanner funktionieren ohne Einrichtung.
-- **Schnell erfassen** – „Ähnlichen anlegen“ und „Speichern & nächsten“ für viele gleichartige Geräte; jede Inventar- und Seriennummer gibt es nur einmal; beim Tippen siehst du, ob sie frei ist, und die nächste freie Nummer.
+- **Schnell erfassen** – „Ähnlichen anlegen“ und „Speichern & nächsten“ für viele gleichartige Geräte; jede Inventar- und Seriennummer gibt es nur einmal; beim Tippen sehen Sie, ob sie frei ist, und die nächste freie Nummer.
 - **Standorte** – feste Liste der Räume und Schränke; beim Erfassen wird ausgewählt statt getippt.
 - **Gruppen** – z. B. Abteilungen; Gegenstände einer Gruppe bekommen nur deren Mitglieder (plus „allgemeine“ Gegenstände).
 - **Rollen** – Mitarbeiter, Verwalter, Administrator. Lokales Admin-Konto funktioniert immer.
@@ -39,7 +39,7 @@ Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Lap
 
 ## Installation und Update
 
-AssetLotse läuft als Docker-Container. Das Programm steckt komplett im fertigen Image; auf dem Server liegen nur **`docker-compose.yml`**, **`.env`** (deine Einstellungen) und der Ordner **`data`** (Datenbank, Fotos, Schlüssel, Sicherungen). Nichts wird auf dem Server gebaut oder entpackt. Voraussetzung: Docker mit Compose (Plugin `docker compose` oder das ältere `docker-compose`).
+AssetLotse läuft als Docker-Container. Das Programm steckt komplett im fertigen Image; auf dem Server liegen nur **`docker-compose.yml`**, **`.env`** (Ihre Einstellungen) und der Ordner **`data`** (Datenbank, Fotos, Schlüssel, Sicherungen). Nichts wird auf dem Server gebaut oder entpackt. Voraussetzung: Docker mit Compose (Plugin `docker compose` oder das ältere `docker-compose`).
 
 ### Installation
 
@@ -50,7 +50,7 @@ AssetLotse läuft als Docker-Container. Das Programm steckt komplett im fertigen
    docker compose up -d
    ```
 
-Dann `http://SERVER:9343` öffnen (z. B. `http://assetlotse.firma.local:9343`). Beim ersten Aufruf legst du das lokale Administratorkonto an – das geht nur direkt aus dem internen Netz (sonst auf dem Server mit `create-admin`, siehe [Wartung](#wartung)).
+Dann `http://SERVER:9343` öffnen (z. B. `http://assetlotse.firma.local:9343`). Beim ersten Aufruf legen Sie das lokale Administratorkonto an – das geht nur direkt aus dem internen Netz (sonst auf dem Server mit `create-admin`, siehe [Wartung](#wartung)).
 
 Der Container setzt beim Start selbst die Rechte an `./data` und läuft danach als Benutzer `PUID:PGID` (Standard `1000:1000`) – nicht als root (`PUID`/`PGID` `0` werden abgelehnt). `./data` ist nur für diesen Benutzer lesbar, neue Dateien darin ebenso. Liest auf dem Server ein anderer Benutzer die Sicherungen (z. B. ein eigenes Kopierskript), lass es als root oder als `PUID` laufen.
 
@@ -263,7 +263,7 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 **Hilfe im Programm** (*Hilfe* in der Seitenleiste oder **?** oben rechts):
 - Jeder sieht nur die Themen seiner Rolle – Mitarbeiter 7 („Für alle“), Verwalter zusätzlich 6 („Verwaltung“), Administratoren alle 24 (zusätzlich 11 unter „Administration“).
 - Das **?** springt direkt zum Abschnitt der aktuellen Seite (z. B. von der Ausgabetheke zur Hilfe für die Theke).
-- Die Texte richten sich nach euren Einstellungen: Leihdauer, Verlängerungen, Selbstausleihe, E-Mail-Erinnerungen, Registrierung, Zwei-Faktor-Pflicht, AD-Konto oder lokales Konto …
+- Die Texte richten sich nach Ihren Einstellungen: Leihdauer, Verlängerungen, Selbstausleihe, E-Mail-Erinnerungen, Registrierung, Zwei-Faktor-Pflicht, AD-Konto oder lokales Konto …
 - Suchfeld über alle Themen.
 
 **Neuigkeiten:** Gibt es nach einem Update etwas Neues, erscheint unten links neben der Versionsnummer ein kleiner Punkt. Er führt zu *Neuigkeiten*: kurze Hinweise zu neuen Funktionen, Sicherheitsupdates und Korrekturen – jede Person sieht nur, was ihre Rolle betrifft (Mitarbeiter, Verwalter, Administratoren). Nach dem Lesen verschwindet der Punkt bis zum nächsten Update. Die Einträge stehen in `assetlotse/news.json` (Deutsch und Englisch) und kommen mit jeder Version mit.
@@ -274,7 +274,7 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 
 ## Standorte
 
-*Verwaltung → Standorte* (Verwalter und Administratoren). Hier legt ihr Räume, Schränke oder Regale einmal fest – auch mehrere auf einmal, einer pro Zeile. Sobald es mindestens einen gibt, wird der Standort beim **Anlegen und Bearbeiten aus einer Liste gewählt** statt getippt. Groß-/Kleinschreibung und doppelte Leerzeichen werden dabei angeglichen.
+*Verwaltung → Standorte* (Verwalter und Administratoren). Hier legen Sie Räume, Schränke oder Regale einmal fest – auch mehrere auf einmal, einer pro Zeile. Sobald es mindestens einen gibt, wird der Standort beim **Anlegen und Bearbeiten aus einer Liste gewählt** statt getippt. Groß-/Kleinschreibung und doppelte Leerzeichen werden dabei angeglichen.
 
 - **Umbenennen** ändert den Standort bei allen betroffenen Gegenständen mit. **Löschen** geht erst, wenn dort kein Gegenstand mehr steht.
 - **Früher frei getippte Standorte** erscheinen unter *Im Bestand, aber nicht festgelegt*. Ihr könnt sie als Standort übernehmen oder durch einen festgelegten ersetzen – die Gegenstände werden mit umgestellt. Bei anderer Schreibweise („raum 2.14“) oder einem Tippfehler („Rau 2.14“) ist der passende Standort schon vorausgewählt.
@@ -290,7 +290,7 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 | **Verwalter** | Gegenstände anlegen/bearbeiten/löschen, ausgeben, zurücknehmen, Ausgabetheke, vertrauliche Angaben, Export – für die Gegenstände **seiner Gruppen** und allgemeine Gegenstände. Den **gesamten** Bestand verwaltet ein Verwalter nur mit dem Haken *Verwaltet den gesamten Bestand* im Benutzerkonto – nie nebenbei, z. B. weil ihm das AD alle Gruppen nimmt (beim Update auf 1.12.0 bekamen bisherige Verwalter ohne Gruppe den Haken automatisch). |
 | **Administrator** | Alles, dazu Benutzer, Gruppen, Einstellungen und Active Directory |
 
-**Gruppen** sind z. B. Abteilungen oder Arbeitsgruppen. Jeder Gegenstand gehört entweder zu einer Gruppe oder ist **allgemein**. Allgemeine Gegenstände kann jeder bekommen, Gruppengegenstände nur Mitglieder der Gruppe. Unter *Einstellungen → Sichtbarkeit des Bestands* legst du fest, ob Mitarbeiter nur ihre eigenen Gegenstände sehen (Standard), die Gegenstände ihrer Gruppen und allgemeine oder den ganzen Bestand (die Ausgabe bleibt trotzdem beschränkt).
+**Gruppen** sind z. B. Abteilungen oder Arbeitsgruppen. Jeder Gegenstand gehört entweder zu einer Gruppe oder ist **allgemein**. Allgemeine Gegenstände kann jeder bekommen, Gruppengegenstände nur Mitglieder der Gruppe. Unter *Einstellungen → Sichtbarkeit des Bestands* legen Sie fest, ob Mitarbeiter nur ihre eigenen Gegenstände sehen (Standard), die Gegenstände ihrer Gruppen und allgemeine oder den ganzen Bestand (die Ausgabe bleibt trotzdem beschränkt).
 
 ---
 
@@ -318,13 +318,13 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 
 **Gruppenauflösung:** direkte Mitgliedschaften, die **primäre Gruppe** (z. B. *Domänen-Benutzer*, die das AD nicht in `memberOf` aufführt) und **verschachtelte Gruppen** – über `LDAP_MATCHING_RULE_IN_CHAIN` und `tokenGroups`, sodass es auch funktioniert, wenn eines von beiden nicht verfügbar ist.
 
-**Verschlüsselung:** Windows-DCs (LDAP-Signing) und Samba (`ldap server require strong auth = yes`, Standard) lehnen einfache Anmeldungen über unverschlüsseltes LDAP häufig ab. Nutze daher **LDAPS** (Port 636) oder **StartTLS**.
+**Verschlüsselung:** Windows-DCs (LDAP-Signing) und Samba (`ldap server require strong auth = yes`, Standard) lehnen einfache Anmeldungen über unverschlüsseltes LDAP häufig ab. Nutzen Sie daher **LDAPS** (Port 636) oder **StartTLS**.
 
 **Zertifikat automatisch holen:** Unter *TLS-Zertifikat* auf **„Zertifikat vom DC abrufen“** klicken. AssetLotse liest die Zertifikate aller eingetragenen DCs aus und ergänzt die Stamm-CA automatisch – über die AIA-Adresse im Zertifikat (AD-Zertifikatsdienste) oder aus dem AD selbst (*Public Key Services*, mit Dienstkonto). Angezeigt werden Inhaber, Aussteller, Gültigkeit und SHA-256-Fingerabdruck; mit **„Vertrauen & speichern“** wird es übernommen. Gespeichert wird bevorzugt die Stamm-CA, damit die Verbindung auch nach einer Erneuerung des DC-Zertifikats weiter funktioniert. Wird keine Stamm-CA gefunden (z. B. bei Samba mit selbst erzeugtem Zertifikat), wird das Server-Zertifikat selbst vertraut – nach einer Erneuerung dann einfach erneut abrufen.
 
-Den Fingerabdruck kannst du zur Sicherheit auf dem DC vergleichen, z. B. Windows: `certutil -store My`, Samba: `openssl x509 -in /var/lib/samba/private/tls/cert.pem -noout -fingerprint -sha256`.
+Den Fingerabdruck können Sie zur Sicherheit auf dem DC vergleichen, z. B. Windows: `certutil -store My`, Samba: `openssl x509 -in /var/lib/samba/private/tls/cert.pem -noout -fingerprint -sha256`.
 
-Als Server am besten den **DNS-Namen** des DCs eintragen (so wie er im Zertifikat steht). Sprichst du den DC per IP-Adresse an, schalte „Hostname prüfen“ ab.
+Als Server am besten den **DNS-Namen** des DCs eintragen (so wie er im Zertifikat steht). Sprechen Sie den DC per IP-Adresse an, schalten Sie „Hostname prüfen“ ab.
 
 Dienstkonto in Samba anlegen:
 
@@ -385,7 +385,7 @@ Jeder Benutzer richtet sie unter **Profil → Sicherheit** (oder im Benutzermen�
 - **Sicherheitsschlüssel (WebAuthn/FIDO2):** YubiKey einstecken, berühren – fertig. Auch Fingerabdruck/Face-ID des Geräts (Passkey) funktioniert. Erfordert **HTTPS** und ist an die Adresse gebunden, unter der der Schlüssel registriert wurde (z. B. `assets.institut.de`). Mehrere Schlüssel pro Konto sind möglich – am besten einen Ersatzschlüssel registrieren.
 - **Wiederherstellungscodes:** Beim Einrichten werden 10 Einmal-Codes angezeigt (nur einmal!). Damit kommt man ohne Handy/Schlüssel noch herein.
 
-Unter **Administration → Einstellungen** legst du fest, für wen 2FA bei **Zugriff von außen Pflicht** ist (niemand – Standard, Administratoren, Verwalter + Admins, alle). Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt und können erst danach weiterarbeiten. Wer vertrauliche Angaben (BitLocker-Schlüssel) hinterlegt, sollte 2FA mindestens für Verwalter + Admins verlangen.
+Unter **Administration → Einstellungen** legen Sie fest, für wen 2FA bei **Zugriff von außen Pflicht** ist (niemand – Standard, Administratoren, Verwalter + Admins, alle). Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt und können erst danach weiterarbeiten. Wer vertrauliche Angaben (BitLocker-Schlüssel) hinterlegt, sollte 2FA mindestens für Verwalter + Admins verlangen.
 
 **Internes Netz anders behandeln** (*Im internen Netz*):
 
@@ -395,13 +395,13 @@ Unter **Administration → Einstellungen** legst du fest, für wen 2FA bei **Zug
 | keine Pflicht | niemand muss 2FA einrichten; wer sie eingerichtet hat, wird trotzdem gefragt |
 | keine Zwei-Faktor-Abfrage | im LAN reicht das Passwort |
 
-- **Was „intern“ ist**, legst du unter *Internes Netz* fest (ein Netz pro Zeile, z. B. `192.168.10.0/24`). Leer bedeutet `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` – **ohne** Loopback (darüber kommen Tunnel und Weiterleitungen ohne Besucher-Adresse; bei Bedarf `127.0.0.0/8` eintragen) und **ohne** `172.16.0.0/12`, weil Docker seine Netze dort anlegt (sonst sähe z. B. jeder über das Docker-Gateway ankommende Zugriff intern aus). Nutzt euer LAN 172.16–31.x, tragt es ausdrücklich ein. Am besten ohnehin auf euer tatsächliches LAN eingrenzen.
+- **Was „intern“ ist**, legen Sie unter *Internes Netz* fest (ein Netz pro Zeile, z. B. `192.168.10.0/24`). Leer bedeutet `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` – **ohne** Loopback (darüber kommen Tunnel und Weiterleitungen ohne Besucher-Adresse; bei Bedarf `127.0.0.0/8` eintragen) und **ohne** `172.16.0.0/12`, weil Docker seine Netze dort anlegt (sonst sähe z. B. jeder über das Docker-Gateway ankommende Zugriff intern aus). Nutzt Ihr LAN 172.16–31.x, tragen Sie es ausdrücklich ein. Am besten ohnehin auf Ihr tatsächliches LAN eingrenzen.
 - Hinter dem Reverse-Proxy zählt die **echte Adresse des Besuchers**. Der Proxy muss dafür `X-Forwarded-For` mitschicken (Nginx Proxy Manager, Caddy und Traefik tun das von sich aus). Fehlt die Angabe, gilt der Zugriff aus Sicherheitsgründen als **extern**. Gefälschte Angaben aus dem Internet werden ignoriert.
 - **Wichtig – Port 9343 nur für den Proxy:** Standardmäßig gelten alle privaten Netze als vertrauenswürdige Proxys (`ASSETLOTSE_TRUSTED_PROXIES=private`). Jeder Rechner im LAN, der AssetLotse **direkt** auf Port 9343 erreicht, kann daher eine gefälschte `X-Forwarded-For`-Angabe mitschicken (z. B. um als „intern“ zu gelten oder die Anmeldesperre je Adresse zu umgehen). Veröffentlicht den Port daher nur für den Proxy – in der `.env` z. B. `ASSETLOTSE_BIND=127.0.0.1` oder gar keinen Port und ein gemeinsames Docker-Netz mit dem Proxy – **oder** setzt `ASSETLOTSE_TRUSTED_PROXIES` auf die Adresse des Proxys (z. B. `172.18.0.5` bzw. das Docker-Netz des Proxys). Das gilt auch für Zugriffe aus dem Internet: Erreicht jemand Port 9343 z. B. über **IPv6** und Docker leitet das intern weiter, kommt die Anfrage scheinbar vom Docker-Gateway (172.x.0.1) – und dem wird mit der Standardeinstellung vertraut.
-- Die Einstellungsseite zeigt, wie deine aktuelle Verbindung eingestuft wird. Zum Prüfen einmal vom Handy über mobile Daten aufrufen – dort muss „extern“ stehen.
+- Die Einstellungsseite zeigt, wie Ihre aktuelle Verbindung eingestuft wird. Zum Prüfen einmal vom Handy über mobile Daten aufrufen – dort muss „extern“ stehen.
 - Eine im LAN **ohne** zweiten Faktor begonnene Sitzung gilt nur intern: Wer damit von außen zugreift (Laptop zu Hause), muss sich neu anmelden. „Angemeldet bleiben“ wirkt in diesem Fall nicht.
 - Interne Geräte mit eigener öffentlicher IPv6-Adresse gelten als extern, solange ihr Präfix nicht eingetragen ist.
-- **Interne Rechner über die öffentliche Domain:** Rufen sie die Internet-Adresse auf, gibt der Router (z. B. FritzBox) sie oft mit eurer eigenen öffentlichen IP aus – dann sähen sie extern aus. Trage dafür unter *Eigener Internetanschluss* eure feste IP oder euren **DynDNS-Namen** ein; der Name wird alle 5 Minuten neu aufgelöst, eine wechselnde IP wird also mitverfolgt. **Achtung:** Auch das Gäste-WLAN und alle anderen Geräte hinter dem Router kommen mit dieser Adresse an und gelten dann als intern. Die sauberere Alternative ist ein interner DNS-Eintrag (Split-DNS), der die Domain im LAN auf die interne Adresse des Servers zeigen lässt.
+- **Interne Rechner über die öffentliche Domain:** Rufen sie die Internet-Adresse auf, gibt der Router (z. B. FritzBox) sie oft mit Ihrer eigenen öffentlichen IP aus – dann sähen sie extern aus. Tragen Sie dafür unter *Eigener Internetanschluss* Ihre feste IP oder Ihren **DynDNS-Namen** ein; der Name wird alle 5 Minuten neu aufgelöst, eine wechselnde IP wird also mitverfolgt. **Achtung:** Auch das Gäste-WLAN und alle anderen Geräte hinter dem Router kommen mit dieser Adresse an und gelten dann als intern. Die sauberere Alternative ist ein interner DNS-Eintrag (Split-DNS), der die Domain im LAN auf die interne Adresse des Servers zeigen lässt.
 
 **Probleme bei der Anmeldung – ohne Kommandozeile:** Unter *Benutzer* → Konto öffnen → *Anmeldung und Sicherheit*:
 - **Zwei-Faktor-Anmeldung zurücksetzen** – entfernt App und Sicherheitsschlüssel, die Anmeldung geht dann wieder mit dem Passwort (ist 2FA Pflicht, wird die Neueinrichtung verlangt).
@@ -452,16 +452,16 @@ Bei Freigabe ins Internet (z. B. mit Nginx Proxy Manager) *Force SSL* und *HSTS*
 
 ## Datenschutz und Betrieb im Internet
 
-AssetLotse ist darauf ausgelegt, dass die Browser der Nutzer **nur mit eurem eigenen Server** sprechen:
+AssetLotse ist darauf ausgelegt, dass die Browser der Nutzer **nur mit Ihrem eigenen Server** sprechen:
 
 - **Schriften** (Inter) liegen im Programm – keine Verbindung zu Google Fonts.
-- **Keine externen Dienste:** Es werden keine Daten von fremden Servern abgerufen und keine Skripte nachgeladen. Der Server selbst baut ausgehende Verbindungen nur zu euren eigenen Diensten auf (AD/LDAP, Mailserver) und – beim Abruf des DC-Zertifikats – ggf. zur AIA-Adresse eurer Zertifizierungsstelle.
+- **Keine externen Dienste:** Es werden keine Daten von fremden Servern abgerufen und keine Skripte nachgeladen. Der Server selbst baut ausgehende Verbindungen nur zu Ihren eigenen Diensten auf (AD/LDAP, Mailserver) und – beim Abruf des DC-Zertifikats – ggf. zur AIA-Adresse Ihrer Zertifizierungsstelle.
 - **Fotos** der Gegenstände sind nur nach der Anmeldung abrufbar.
 - **Cookies:** nur technisch notwendige (Anmeldung, Formularschutz) – kein Cookie-Banner nötig. Kein Tracking, keine Werbung.
 
-**Impressum und Datenschutzerklärung** trägst du unter *Administration → Einstellungen → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
+**Impressum und Datenschutzerklärung** tragen Sie unter *Administration → Einstellungen → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
 
-In die Datenschutzerklärung (bzw. das Verzeichnis der Verarbeitungstätigkeiten) gehört, was AssetLotse speichert: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausgaben mit Datum (wer hat was bekommen, wer hat ausgegeben/zurückgenommen), Protokoll der versendeten E-Mails, das Zugriffsprotokoll der vertraulichen Angaben (welcher Verwalter wann angezeigt/geändert hat), bei Zwei-Faktor-Anmeldung die registrierten Schlüssel. Wird der Server von jemand anderem als der Einrichtung selbst betrieben, braucht ihr einen Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO). Ein Personal- oder Betriebsrat sollte bei der Einführung einbezogen werden, wenn Ausgaben einzelnen Personen zugeordnet werden.
+In die Datenschutzerklärung (bzw. das Verzeichnis der Verarbeitungstätigkeiten) gehört, was AssetLotse speichert: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausgaben mit Datum (wer hat was bekommen, wer hat ausgegeben/zurückgenommen), Protokoll der versendeten E-Mails, das Zugriffsprotokoll der vertraulichen Angaben (welcher Verwalter wann angezeigt/geändert hat), bei Zwei-Faktor-Anmeldung die registrierten Schlüssel. Wird der Server von jemand anderem als der Einrichtung selbst betrieben, brauchen Sie einen Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO). Ein Personal- oder Betriebsrat sollte bei der Einführung einbezogen werden, wenn Ausgaben einzelnen Personen zugeordnet werden.
 
 **Aufbewahrungsfristen** (*Einstellungen → Aufbewahrung*, Standard **12 Monate**): Abgeschlossene Ausgaben werden die eingestellte Zeit nach der Rückgabe automatisch gelöscht, ebenso Einträge im E-Mail-Protokoll. Pro Gegenstand bleibt nur die Anzahl der Ausgaben erhalten, damit die Statistik stimmt. Laufende (auch unbefristete) und überfällige Ausgaben sowie die Mahn-Einträge dazu werden nie gelöscht. Der Lauf erfolgt einmal täglich automatisch; „Jetzt bereinigen“ oder `flask --app wsgi apply-retention` startet ihn sofort. Wird ein Benutzer gelöscht, verschwinden seine Ausgaben sofort (die Anzahl pro Gegenstand bleibt). Nicht bestätigte Selbstregistrierungen werden nach 7 Tagen gelöscht. Auch das **Zugriffsprotokoll der vertraulichen Angaben** wird nach dieser Frist gelöscht (bei „nie löschen“ bleibt es, bis der Gegenstand gelöscht wird). Die Fristen gehören ebenfalls in die Datenschutzerklärung.
 
@@ -488,7 +488,7 @@ Sicherheitslücken bitte nicht als Issue, sondern **vertraulich** melden – sie
 | *Für alle (Stunden)* | Standard **12**; Startwert aus `ASSETLOTSE_SESSION_HOURS`, `0` = aus. Erlaubt 0,25 (15 Minuten) bis 720 |
 | *Für Administratoren* | optional kürzer, z. B. `1` – leer = wie für alle |
 | *Von außen* | optional kürzer für Zugriffe aus dem Internet – leer = wie intern |
-| Hinweis 2 Minuten vorher | „Du wirst in 2 Minuten abgemeldet – weiterarbeiten?“ (Standard an). Ein Klick auf *Weiterarbeiten* verlängert die Anmeldung, auch wenn man gerade nur tippt |
+| Hinweis 2 Minuten vorher | „Sie werden in 2 Minuten abgemeldet – weiterarbeiten?“ (Standard an). Ein Klick auf *Weiterarbeiten* verlängert die Anmeldung, auch wenn man gerade nur tippt |
 | Beim Schließen des Browsers abmelden | „Angemeldet bleiben“ wird nicht mehr angeboten; schon vorhandene „Angemeldet bleiben“-Anmeldungen enden beim nächsten Neustart des Browsers |
 
 - Es gilt die **kürzeste zutreffende Frist** (Admin von außen: die kürzere von beiden).
@@ -543,7 +543,7 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `ASSETLOTSE_SCHEDULER` | `0` = keine zeitgesteuerten Läufe (Erinnerungen, Sicherung, Aufbewahrung) in diesem Prozess, z. B. wenn mehrere App-Server laufen und nur einer sie ausführen soll. Standard `1` |
 | `ASSETLOTSE_SOURCE_URL` | Link zum Quellcode auf der Seite *Über dieses Programm* (Standard: dieses Repository; bei einer veränderten Fassung deren Quellcode) – siehe [Lizenz](#lizenz) |
 
-Alles Weitere (Standard-Leihdauer, Verlängerungen, Selbstausleihe, Sichtbarkeit des Bestands, AD, E-Mail, Erscheinungsbild, Registrierung, 2FA-Regeln) stellst du in der Oberfläche ein.
+Alles Weitere (Standard-Leihdauer, Verlängerungen, Selbstausleihe, Sichtbarkeit des Bestands, AD, E-Mail, Erscheinungsbild, Registrierung, 2FA-Regeln) stellen Sie in der Oberfläche ein.
 
 **Zur Datenbankwahl:** SQLite reicht für den Gerätebestand eines Instituts mit tausenden Gegenständen und vielen gleichzeitigen Nutzern problemlos – und ein Backup ist einfach eine Dateikopie. MariaDB/MySQL oder PostgreSQL lohnen sich, wenn ihr ohnehin einen Datenbankserver mit Backup-Routine betreibt oder mehrere App-Server parallel laufen sollen.
 
@@ -565,9 +565,9 @@ $E backup                     # Datenbank jetzt sichern
 
 Sicherungen anzeigen und zurückspielen (Container vorher anhalten): siehe [Datensicherung](#datensicherung).
 
-Die Ersteinrichtung im Browser (`/setup`) ist nur einmal und nur aus dem internen Netz (oder über `localhost`) möglich – sonst könnte bei einer frisch installierten, offen erreichbaren Instanz jeder Fremde zuerst Admin werden. Gibt es später kein Administratorkonto mehr (z. B. versehentlich gelöscht), legst du eines mit `create-admin` auf dem Server an – im Web geht das aus Sicherheitsgründen nicht mehr.
+Die Ersteinrichtung im Browser (`/setup`) ist nur einmal und nur aus dem internen Netz (oder über `localhost`) möglich – sonst könnte bei einer frisch installierten, offen erreichbaren Instanz jeder Fremde zuerst Admin werden. Gibt es später kein Administratorkonto mehr (z. B. versehentlich gelöscht), legen Sie eines mit `create-admin` auf dem Server an – im Web geht das aus Sicherheitsgründen nicht mehr.
 
-Das Datenbankschema wird beim Start automatisch angepasst (fehlende Spalten werden ergänzt) – nach der Sicherung `…-vor-<Version>.db`. Updates behalten also eure Daten.
+Das Datenbankschema wird beim Start automatisch angepasst (fehlende Spalten werden ergänzt) – nach der Sicherung `…-vor-<Version>.db`. Updates behalten also Ihre Daten.
 
 ## Tests
 
@@ -620,7 +620,7 @@ AssetLotse ist freie Software unter der **GNU Affero General Public License, Ver
 
 Kurz gesagt: Jeder darf AssetLotse nutzen, weitergeben und verändern, auch kommerziell. Wer eine **veränderte Fassung** weitergibt **oder im Netz für andere betreibt**, muss den Quellcode dieser Fassung unter derselben Lizenz zugänglich machen. AssetLotse wird ohne jede Gewährleistung bereitgestellt.
 
-Version, Lizenz, Entwickler ([helfi.space](https://helfi.space)) und Quellcode-Link stehen nach der Anmeldung auf der Seite *Über dieses Programm* (Klick auf die Versionsnummer unten in der Seitenleiste). Der Link führt standardmäßig zu diesem Repository; wer eine **veränderte** Fassung betreibt, trägt mit `ASSETLOTSE_SOURCE_URL` in der `.env` die Adresse seines eigenen Quellcodes ein. „AssetLotse“ ist zugleich der Standardname in der Oberfläche; unter *Administration → Einstellungen* (Name) bzw. *Erscheinungsbild* könnt ihr ihn z. B. durch den Namen eures Instituts ersetzen.
+Version, Lizenz, Entwickler ([helfi.space](https://helfi.space)) und Quellcode-Link stehen nach der Anmeldung auf der Seite *Über dieses Programm* (Klick auf die Versionsnummer unten in der Seitenleiste). Der Link führt standardmäßig zu diesem Repository; wer eine **veränderte** Fassung betreibt, trägt mit `ASSETLOTSE_SOURCE_URL` in der `.env` die Adresse seines eigenen Quellcodes ein. „AssetLotse“ ist zugleich der Standardname in der Oberfläche; unter *Administration → Einstellungen* (Name) bzw. *Erscheinungsbild* können Sie ihn z. B. durch den Namen Ihres Instituts ersetzen.
 
 Verwendete Bibliotheken (eigene Lizenzen, werden bei der Installation geladen): Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF, SQLAlchemy, PyMySQL, ldap3, cryptography, fido2, segno, Pillow, requests, gunicorn/waitress.
 

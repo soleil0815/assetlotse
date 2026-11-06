@@ -123,7 +123,7 @@ class OwnItemsOnlyTests(Base):
         self.login("mia")
         html = self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True)
         self.assertNotIn("Stück verfügbar", html)
-        self.assertIn("Dieser Gegenstand ist dir ausgegeben", html)
+        self.assertIn("Dieser Gegenstand ist Ihnen ausgegeben", html)
 
     def test_existing_and_missing_ids_look_the_same(self):
         a = self.laptop(secret=None)
