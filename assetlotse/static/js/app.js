@@ -323,6 +323,56 @@
     try { await navigator.clipboard.writeText(text); btn.textContent = T("✓ Copied"); } catch (e) { window.prompt(T("Codes:"), text); }
   }));
 
+  /* ------------------------------------------------------------ Automatic sign-out after inactivity
+     The server signs out after the limit; the page shows a notice shortly before and then leaves, so that
+     nothing (e.g. a recovery key) stays on the screen. Other tabs can extend the session – before the notice
+     and before leaving, the page asks the server how much time is really left. */
+  const idleBox = $("[data-idle]");
+  if (idleBox) {
+    const warn = parseInt(idleBox.dataset.idleWarn, 10) || 0;
+    let deadline = Date.now() + (parseInt(idleBox.dataset.idleRemaining, 10) || 0) * 1000;
+    let asking = false;
+    const text = $("[data-idle-text]", idleBox);
+    // straight to the sign-in page (GET – never re-sends a form); afterwards back to this page
+    const leave = () => {
+      const url = new URL(idleBox.dataset.idleLogin, window.location.href);
+      url.searchParams.set("next", window.location.pathname + window.location.search);
+      window.location.assign(url);
+    };
+    const answer = (res) => res.json().catch(() => ({})).then((data) => {
+      if (res.status === 401 || data.signed_out) { leave(); return; }
+      if (typeof data.remaining === "number") deadline = Date.now() + data.remaining * 1000;
+    });
+    const ask = (url, opts) => {
+      if (asking) return Promise.resolve();
+      asking = true;
+      return fetch(url, { credentials: "same-origin", headers: { Accept: "application/json", "X-CSRFToken": CSRF }, ...opts })
+        .then(answer).catch(() => { /* offline – try again at the next tick */ }).finally(() => { asking = false; });
+    };
+    const tick = () => {
+      const left = Math.round((deadline - Date.now()) / 1000);
+      if (left <= 0) { ask(idleBox.dataset.idleStatus).then(() => { if (deadline <= Date.now()) leave(); }); return; }
+      if (warn && left <= warn) {
+        if (idleBox.hidden) {
+          // another tab may have been used in the meantime
+          ask(idleBox.dataset.idleStatus).then(() => {
+            if (Math.round((deadline - Date.now()) / 1000) <= warn) idleBox.hidden = false;
+          });
+        }
+        const min = Math.ceil(left / 60);
+        text.textContent = min > 1 ? T("You will be signed out in {n} minutes – continue working?", { n: min })
+          : T("You will be signed out in one minute – continue working?");
+      } else if (!idleBox.hidden) {
+        idleBox.hidden = true;
+      }
+    };
+    $("[data-idle-continue]", idleBox).addEventListener("click", () => {
+      ask(idleBox.dataset.idleKeepalive, { method: "POST" }).then(() => { idleBox.hidden = true; tick(); });
+    });
+    tick();
+    setInterval(tick, 5000);     // checks the clock – also correct after the computer was asleep
+  }
+
   async function api(url, opts = {}) {
     const res = await fetch(url, {
       credentials: "same-origin",

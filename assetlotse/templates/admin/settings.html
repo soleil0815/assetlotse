@@ -123,6 +123,27 @@
       <p class="muted" style="font-size: 12.5px">{{ _('Problems with the second factor? Under <a href="{url}">Users</a> → open the account → “Reset two-factor authentication” or “Lift sign-in lock”.', url=url_for('admin.users')) }}</p>
     </section>
 
+    <section class="card card-pad" id="abmeldung">
+      <h2 style="margin-bottom: 6px">{{ icon("clock") }} {{ _("Automatic sign-out") }}</h2>
+      <p class="muted" style="font-size: 13.5px">{{ _("Anyone who does nothing in AssetLotse for this long is signed out – e.g. when a browser stays open at the issue desk. Every page opened and every saved form counts as activity. The shortest limit that applies wins.") }}</p>
+      <div class="form-grid">
+        <div class="field span-6"><label for="f-session-idle-hours">{{ _("For everyone (hours)") }}</label>
+          <input id="f-session-idle-hours" type="text" inputmode="decimal" name="session_idle_hours" value="{{ idle_hours }}" required>
+          <div class="hint">{{ _("Default {n}. 0 = no automatic sign-out.", n=idle_default) }}</div></div>
+        <div class="field span-3"><label for="f-session-idle-hours-admin">{{ _("For administrators (hours)") }}</label>
+          <input id="f-session-idle-hours-admin" type="text" inputmode="decimal" name="session_idle_hours_admin" value="{{ s('session_idle_hours_admin') }}" placeholder="{{ _('same') }}">
+          <div class="hint">{{ _("Optional, e.g. 1 – empty = same as for everyone.") }}</div></div>
+        <div class="field span-3"><label for="f-session-idle-hours-external">{{ _("From outside (hours)") }}</label>
+          <input id="f-session-idle-hours-external" type="text" inputmode="decimal" name="session_idle_hours_external" value="{{ s('session_idle_hours_external') }}" placeholder="{{ _('same') }}">
+          <div class="hint">{{ _("Optional, for access from the internet – empty = same as internally.") }}</div></div>
+      </div>
+      <label class="check"><input type="checkbox" name="session_warn" value="1" {{ 'checked' if s('session_warn') == '1' }}>
+        {{ _("Show a notice 2 minutes before (“You will be signed out in 2 minutes – continue working?”)") }}</label>
+      <label class="check"><input type="checkbox" name="session_end_on_close" value="1" {{ 'checked' if s('session_end_on_close') == '1' }}>
+        {{ _("Sign out when the browser is closed – “Stay signed in” is then no longer offered") }}</label>
+      <p class="muted" style="font-size: 12.5px">{{ _("Allowed: 0.25 (15 minutes) to 720 hours. When the time is up, the open page also switches to the sign-in page, so that nothing confidential stays on the screen.") }}</p>
+    </section>
+
   </div>
   <div class="actions" style="margin-top: 20px; justify-content: flex-end">
     <button class="btn primary lg">{{ icon("check") }} {{ _("Save") }}</button>

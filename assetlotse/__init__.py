@@ -28,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.1.1"
+__version__ = "2.2.0"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
@@ -351,7 +351,8 @@ def create_app(test_config: dict | None = None) -> Flask:
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         REMEMBER_COOKIE_DURATION=timedelta(days=14),
-        PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+        # only sessions with "Stay signed in" are permanent (see idle.py); the inactivity limit ends them earlier
+        PERMANENT_SESSION_LIFETIME=timedelta(days=14),
         WTF_CSRF_TIME_LIMIT=None,
     )
     if test_config:
@@ -386,6 +387,10 @@ def create_app(test_config: dict | None = None) -> Flask:
         if str(user.auth_epoch or 0) != (epoch or "0"):
             return None
         return user
+
+    # Automatic sign-out after inactivity – before the blueprints, so it runs before their per-request checks
+    from .idle import install as install_idle
+    install_idle(app)
 
     from .views.admin import bp as admin_bp
     from .views.assets import bp as assets_bp

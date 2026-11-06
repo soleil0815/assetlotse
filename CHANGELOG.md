@@ -2,6 +2,25 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.2.0 – 2026-11-06
+
+**Added**
+- **Automatic sign-out after inactivity** (*Administration → Settings → Automatic sign-out*): a limit for
+  everyone (default 12 hours, start value `ASSETLOTSE_SESSION_HOURS` in `.env`, 0 = off) and optionally shorter
+  limits for administrators and for access from outside – the shortest that applies wins. Every page opened and
+  every saved form counts as activity. When the time is up, the open page also switches to the sign-in page, so
+  nothing confidential stays on the screen.
+- **Notice 2 minutes before** ("You will be signed out in 2 minutes – continue working?", on by default) –
+  *Continue working* extends the session, so nobody is thrown out while typing. Activity in another tab counts.
+- **Sign out when the browser is closed** (optional): "Stay signed in" is then no longer offered, and existing
+  remembered sign-ins end at the next browser restart.
+
+**Changed**
+- **"Stay signed in"** now keeps the session across browser restarts (at most 14 days) but no longer beyond the
+  inactivity limit. Before, it kept people signed in for 14 days regardless of activity.
+- The configured 12-hour session lifetime had no effect (sessions were never marked permanent); it is replaced by
+  the inactivity limit above.
+
 ## 2.1.1 – 2026-11-05
 
 **Changed**

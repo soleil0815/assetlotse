@@ -131,6 +131,16 @@
     <button class="icon-btn" type="button" data-dismiss aria-label="{{ _('Close') }}">{{ icon("x") }}</button>
   </div>
   {% endfor %}
+  {% if idle_page and idle_page.idle %}{% set idle = idle_page.idle %}
+  <div class="flash warning" role="alertdialog" aria-live="assertive" hidden data-idle
+       data-idle-remaining="{{ idle.remaining }}" data-idle-warn="{{ idle.warn }}"
+       data-idle-status="{{ idle.status_url }}" data-idle-keepalive="{{ idle.keepalive_url }}"
+       data-idle-login="{{ idle.login_url }}">
+    {{ icon("clock") }}
+    <span data-idle-text></span>
+    <button class="btn sm primary" type="button" data-idle-continue>{{ _("Continue working") }}</button>
+  </div>
+  {% endif %}
 </div>
 
 {% set jsx = js_strings() %}{% if jsx %}<script type="application/json" id="i18n-strings">{{ jsx|tojson }}</script>{% endif %}

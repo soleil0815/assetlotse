@@ -2,6 +2,34 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.2.0",
+      "date": "2026-11-06",
+      "kind": "security",
+      "audience": "all",
+      "de": {
+        "title": "Automatische Abmeldung",
+        "text": "Wer längere Zeit nichts in AssetLotse tut, wird automatisch abgemeldet – standardmäßig nach 12 Stunden. Kurz vorher erscheint ein Hinweis: Mit „Weiterarbeiten“ bleibst du angemeldet. „Angemeldet bleiben“ gilt jetzt ebenfalls nur bis zu dieser Frist."
+      },
+      "en": {
+        "title": "Automatic sign-out",
+        "text": "Anyone who does nothing in AssetLotse for a while is signed out automatically – after 12 hours by default. Shortly before, a notice appears: “Continue working” keeps you signed in. “Stay signed in” now also only lasts until this limit."
+      }
+    },
+    {
+      "version": "2.2.0",
+      "date": "2026-11-06",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Frist für die automatische Abmeldung einstellen",
+        "text": "Unter Administration → Einstellungen → Automatische Abmeldung legst du die Frist für alle fest und auf Wunsch kürzere Fristen für Administratoren und für Zugriffe von außen. Dort lässt sich auch der Hinweis vorher abschalten und „Beim Schließen des Browsers abmelden“ einschalten."
+      },
+      "en": {
+        "title": "Set the limit for the automatic sign-out",
+        "text": "Under Administration → Settings → Automatic sign-out you set the limit for everyone and, if you like, shorter limits for administrators and for access from outside. There you can also switch off the notice beforehand and switch on “Sign out when the browser is closed”."
+      }
+    },
+    {
       "version": "2.1.1",
       "date": "2026-11-05",
       "kind": "security",
