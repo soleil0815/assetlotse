@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.2.1",
+      "date": "2026-11-06",
+      "kind": "fix",
+      "audience": "admin",
+      "de": {
+        "title": "Robusterer Bau des Images",
+        "text": "Antwortet der Debian-Paketserver kurz nicht, versucht der Bau neuer Versionen es jetzt mehrmals und nennt sonst den wahren Grund. Am Programm und am Server ändert sich nichts."
+      },
+      "en": {
+        "title": "More robust image build",
+        "text": "If the Debian package server does not answer for a moment, building new versions now tries several times and otherwise names the real cause. Nothing changes in the program or on the server."
+      }
+    },
+    {
       "version": "2.2.0",
       "date": "2026-11-06",
       "kind": "security",
