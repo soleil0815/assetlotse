@@ -30,8 +30,20 @@ grep -q "^URIs: https://snapshot.debian.org/archive/debian/${ts}\$" "$src" \
 printf 'Acquire::Check-Valid-Until "false";\nAcquire::Retries "5";\nAcquire::http::Timeout "60";\n' \
   > /etc/apt/apt.conf.d/99assetlotse-snapshot
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -q
-apt-get -y -q -o Dpkg::Options::=--force-confold full-upgrade
+# snapshot.debian.org is sometimes slow or answers 504 for a while. "apt-get update" alone would only warn and
+# carry on without the missing package list – the build then failed later with a misleading "packages differ".
+# So: every missing list is an error (--error-on=any), and the whole step is tried up to 4 times.
+attempt=1
+until apt-get update -q --error-on=any && apt-get -y -q -o Dpkg::Options::=--force-confold full-upgrade; do
+  if [ "$attempt" -ge 4 ]; then
+    echo "apt-snapshot.sh: snapshot.debian.org did not deliver the packages after $attempt attempts." >&2
+    exit 3
+  fi
+  pause=$((attempt * 30))
+  echo "apt-snapshot.sh: snapshot.debian.org not reachable or incomplete (attempt $attempt of 4) – trying again in ${pause} s." >&2
+  sleep "$pause"
+  attempt=$((attempt + 1))
+done
 apt-get clean
 rm -rf /var/lib/apt/lists/* /etc/apt/apt.conf.d/99assetlotse-snapshot
 mv /tmp/debian.sources.orig "$src"

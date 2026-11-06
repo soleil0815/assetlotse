@@ -263,6 +263,57 @@ class DockerfileTests(unittest.TestCase):
         self.assertNotIn("list not compared", inst)                          # never skipped
         self.assertIn("mr/timestamp", (ROOT / "scripts" / "lock.py").read_text())   # only completed imports
 
+    def run_snapshot(self, fails: int):
+        """build/apt-snapshot.sh in a sandbox: fake apt-get (fails the first <fails> times like a 504 of
+        snapshot.debian.org) and a sleep that does not wait."""
+        import subprocess
+        import tempfile
+        root = Path(tempfile.mkdtemp())
+        (root / "etc/apt/sources.list.d").mkdir(parents=True)
+        (root / "etc/apt/apt.conf.d").mkdir(parents=True)
+        (root / "var/lists").mkdir(parents=True)
+        (root / "etc/apt/sources.list.d/debian.sources").write_text(
+            "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: trixie\n\n"
+            "Types: deb\nURIs: http://deb.debian.org/debian-security\nSuites: trixie-security\n")
+        bin_ = root / "bin"
+        bin_.mkdir()
+        (bin_ / "apt-get").write_text(
+            '#!/bin/sh\necho "apt-get $*" >> "$SANDBOX/calls"\n'
+            'case "$*" in *update*)\n'
+            '  n=$(cat "$SANDBOX/n" 2>/dev/null || echo 0); n=$((n + 1)); echo "$n" > "$SANDBOX/n"\n'
+            '  [ "$n" -gt "$FAILS" ] || { echo "E: Failed to fetch … 504 Gateway Timeout" >&2; exit 100; } ;;\n'
+            'esac\nexit 0\n')
+        (bin_ / "sleep").write_text('#!/bin/sh\necho "sleep $1" >> "$SANDBOX/calls"\n')
+        for f in bin_.iterdir():
+            f.chmod(0o755)
+        script = (ROOT / "build" / "apt-snapshot.sh").read_text()
+        script = (script.replace("/etc/apt", f"{root}/etc/apt").replace("/tmp/debian.sources.orig", f"{root}/orig")
+                  .replace("/var/lib/apt/lists", f"{root}/var/lists"))
+        (root / "snap.sh").write_text(script)
+        env = {"PATH": f"{bin_}:/usr/bin:/bin", "SANDBOX": str(root), "FAILS": str(fails)}
+        r = subprocess.run(["sh", str(root / "snap.sh"), "20261102T082611Z", "20261101T204331Z"],
+                           capture_output=True, text=True, env=env)
+        return r, (root / "calls").read_text()
+
+    def test_snapshot_outage_is_retried_and_named(self):
+        # 2.2.1: a 504 of snapshot.debian.org only gave a warning and later "packages differ"
+        snap = (ROOT / "build" / "apt-snapshot.sh").read_text()
+        self.assertIn("apt-get update -q --error-on=any", snap)              # a missing list is an error
+        r, calls = self.run_snapshot(fails=2)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(calls.count("update"), 3)
+        self.assertIn("sleep 30", calls)
+        self.assertIn("sleep 60", calls)
+        self.assertIn("attempt 2 of 4", r.stderr)
+        self.assertIn("full-upgrade", calls)
+        r, calls = self.run_snapshot(fails=9)
+        self.assertEqual(r.returncode, 3)
+        self.assertEqual(calls.count("update"), 4)
+        self.assertNotIn("full-upgrade", calls)
+        self.assertIn("did not deliver the packages after 4 attempts", r.stderr)
+        inst = (ROOT / "build" / "os-install.sh").read_text()
+        self.assertIn("could not be loaded from snapshot.debian.org", inst)   # and the build stops there
+
     def test_python_packages_exact_and_no_package_manager_left(self):
         self.assertIn("pip install --no-deps --only-binary=:all: -r requirements.txt", self.df)
         self.assertIn("pip check", self.df)

@@ -2,6 +2,15 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.2.1 – 2026-11-06
+
+**Changed**
+- **Image build survives short outages of snapshot.debian.org:** a missing package list is now an error
+  (`apt-get update --error-on=any`), and the update/upgrade step is tried up to 4 times with growing pauses
+  (30, 60, 90 s). Before, a 504 from snapshot.debian.org only gave a warning, and the build stopped later with the
+  misleading message that the Debian packages differ from the lock file. If all attempts fail, the build now says
+  that snapshot.debian.org did not deliver the packages. Nothing changes in the image itself.
+
 ## 2.2.0 – 2026-11-06
 
 **Added**
