@@ -287,7 +287,7 @@ class OpenEndedLoanTests(Base):
         self.assertIn("Meine Gegenstände", html)
         self.assertIn("Laptop Dell", html)
         self.assertIn("mit Netzteil", html)
-        self.assertIn("Dir ist 1 Gegenstand ausgegeben.", self.c.get("/").get_data(as_text=True))
+        self.assertIn("Ihnen ist 1 Gegenstand ausgegeben.", self.c.get("/").get_data(as_text=True))
 
 
 class FormTests(Base):

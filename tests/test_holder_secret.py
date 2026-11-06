@@ -22,7 +22,7 @@ class HolderSecretTests(Base):
         self.give(a, self.mia)
         self.login("mia")
         html = self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True)
-        self.assertIn("Dein Passwort", html)
+        self.assertIn("Ihr Passwort", html)
         self.assertNotIn(KEY, html)
         r = self.c.post(self.url(a), data={"password": PW})
         self.assertEqual(r.status_code, 200)
@@ -57,7 +57,7 @@ class HolderSecretTests(Base):
         a = self.laptop()                       # sharing off (default)
         self.give(a, self.mia)
         self.login("mia")
-        self.assertNotIn("Dein Passwort", self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True))
+        self.assertNotIn("Ihr Passwort", self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True))
         self.assertEqual(self.c.post(self.url(a), data={"password": PW}).status_code, 403)
 
     def test_gone_after_return(self):
@@ -74,7 +74,7 @@ class HolderSecretTests(Base):
         other = self.make("otto", "reader", [self.it])
         self.login("otto")
         html = self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True)
-        self.assertNotIn("Dein Passwort", html)
+        self.assertNotIn("Ihr Passwort", html)
         self.assertNotIn(KEY, html)
         self.assertEqual(self.c.post(self.url(a), data={"password": PW}).status_code, 403)
         self.login("hans")    # manager of another group

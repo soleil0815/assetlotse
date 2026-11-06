@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.3.0",
+      "date": "2026-11-06",
+      "kind": "feature",
+      "audience": "all",
+      "de": {
+        "title": "Förmliche Anrede",
+        "text": "AssetLotse spricht Sie jetzt durchgehend mit „Sie“ an – in der Oberfläche, in E-Mails und in der Hilfe."
+      },
+      "en": {
+        "title": "Formal address in German",
+        "text": "The German interface now addresses people formally (“Sie”) throughout – in the interface, in e-mails and in the help. The English texts are unchanged."
+      }
+    },
+    {
       "version": "2.2.1",
       "date": "2026-11-06",
       "kind": "fix",
@@ -22,7 +36,7 @@
       "audience": "all",
       "de": {
         "title": "Automatische Abmeldung",
-        "text": "Wer längere Zeit nichts in AssetLotse tut, wird automatisch abgemeldet – standardmäßig nach 12 Stunden. Kurz vorher erscheint ein Hinweis: Mit „Weiterarbeiten“ bleibst du angemeldet. „Angemeldet bleiben“ gilt jetzt ebenfalls nur bis zu dieser Frist."
+        "text": "Wer längere Zeit nichts in AssetLotse tut, wird automatisch abgemeldet – standardmäßig nach 12 Stunden. Kurz vorher erscheint ein Hinweis: Mit „Weiterarbeiten“ bleiben Sie angemeldet. „Angemeldet bleiben“ gilt jetzt ebenfalls nur bis zu dieser Frist."
       },
       "en": {
         "title": "Automatic sign-out",
@@ -36,7 +50,7 @@
       "audience": "admin",
       "de": {
         "title": "Frist für die automatische Abmeldung einstellen",
-        "text": "Unter Administration → Einstellungen → Automatische Abmeldung legst du die Frist für alle fest und auf Wunsch kürzere Fristen für Administratoren und für Zugriffe von außen. Dort lässt sich auch der Hinweis vorher abschalten und „Beim Schließen des Browsers abmelden“ einschalten."
+        "text": "Unter Administration → Einstellungen → Automatische Abmeldung legen Sie die Frist für alle fest und auf Wunsch kürzere Fristen für Administratoren und für Zugriffe von außen. Dort lässt sich auch der Hinweis vorher abschalten und „Beim Schließen des Browsers abmelden“ einschalten."
       },
       "en": {
         "title": "Set the limit for the automatic sign-out",
@@ -260,7 +274,7 @@
       "audience": "admin",
       "de": {
         "title": "Images werden auf Schwachstellen geprüft",
-        "text": "Jede neue Version wird vor dem Veröffentlichen mit Trivy auf bekannte Schwachstellen geprüft. Hat ein Baustein eine schwere Lücke, für die es schon eine Korrektur gibt, wird die Version nicht ausgeliefert – dein Server behält die geprüfte. Zusätzlich wird die aktuelle Version jede Woche neu geprüft."
+        "text": "Jede neue Version wird vor dem Veröffentlichen mit Trivy auf bekannte Schwachstellen geprüft. Hat ein Baustein eine schwere Lücke, für die es schon eine Korrektur gibt, wird die Version nicht ausgeliefert – Ihr Server behält die geprüfte. Zusätzlich wird die aktuelle Version jede Woche neu geprüft."
       },
       "en": {
         "title": "Images are checked for vulnerabilities",
@@ -288,7 +302,7 @@
       "audience": "all",
       "de": {
         "title": "Kleine Korrekturen",
-        "text": "Doppelte Rückgaben werden nur einmal gebucht, die Theke findet Nummern mit Umlauten, auf dem Handy scrollt nichts mehr zur Seite, und Fehlermeldungen bleiben stehen, bis du sie liest."
+        "text": "Doppelte Rückgaben werden nur einmal gebucht, die Theke findet Nummern mit Umlauten, auf dem Handy scrollt nichts mehr zur Seite, und Fehlermeldungen bleiben stehen, bis Sie sie lesen."
       },
       "en": {
         "title": "Small fixes",
