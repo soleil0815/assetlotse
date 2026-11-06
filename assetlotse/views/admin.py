@@ -522,6 +522,7 @@ def settings():
                 flash(_("Own connection: invalid entries {entries} – not changed.", entries=", ".join(bad[:5])), "error")
             else:
                 set_setting("own_public_hosts", "\n".join(entries))
+        _save_idle_settings()
         vis = request.form.get("catalog_visibility")
         set_setting("catalog_visibility", vis if vis in ("own", "groups", "all") else "own")
         if get_setting("catalog_visibility") == "own" and get_bool("self_checkout"):
@@ -532,10 +533,34 @@ def settings():
         return redirect(url_for("admin.settings"))
     from ..mailer import mail_active
     from .. import netzone
+    from .. import idle
     return render_template("admin/settings.html", s=get_setting,
+                           idle_hours=get_setting("session_idle_hours", idle.env_default()),
+                           idle_default=idle.env_default(),
                            retention_result=_stamped(get_setting("retention_last_result"), _retention_message),
                            connection=netzone.describe(), default_networks=netzone.DEFAULT_INTERNAL,
                            groups=Group.query.order_by(Group.name).all(), mail_on=mail_active())
+
+
+def _save_idle_settings():
+    """Automatic sign-out: invalid entries are reported and leave the old value."""
+    from .. import idle
+    if "session_idle_hours" not in request.form:
+        return
+    fields = (("session_idle_hours", _("For everyone"), True),
+              ("session_idle_hours_admin", _("For administrators"), False),
+              ("session_idle_hours_external", _("From outside"), False))
+    for key, label, allow_off in fields:
+        value = idle.parse_hours(request.form.get(key, "")[:20], allow_off=allow_off)
+        if value is None or (allow_off and value == ""):
+            flash(_("Automatic sign-out – {field}: please enter hours between 0.25 and 720, or 0 = off – not changed.",
+                    field=label) if allow_off else
+                  _("Automatic sign-out – {field}: please enter hours between 0.25 and 720, or leave it empty – not changed.",
+                    field=label), "error")
+            continue
+        set_setting(key, value)
+    set_setting("session_warn", form_bool("session_warn"))
+    set_setting("session_end_on_close", form_bool("session_end_on_close"))
 
 
 # ---------------------------------------------------------------- Active Directory / LDAP

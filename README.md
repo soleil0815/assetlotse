@@ -479,6 +479,22 @@ Sicherheitslücken bitte nicht als Issue, sondern **vertraulich** melden – sie
 - **Erster zweiter Faktor:** Wer die Zwei-Faktor-Anmeldung einrichtet, meldet damit alle anderen Geräte ab. Das Ändern des Passworts ist gegen Raten gebremst.
 - **Hochgeladene Fotos** werden verkleinert und neu als JPEG gespeichert – Metadaten und versteckte Inhalte in Bilddateien bleiben nicht erhalten. Der **CSV-Export** markiert Zellen, die mit `=`, `+`, `-` oder `@` beginnen, damit Excel sie nicht als Formel ausführt.
 
+### Automatische Abmeldung
+
+*Einstellungen → Automatische Abmeldung* – wer so lange nichts in AssetLotse tut, wird abgemeldet (z. B. ein offener Browser am Ausgabeplatz). Jede aufgerufene Seite und jedes gespeicherte Formular zählt als Aktivität.
+
+| Einstellung | Wirkung |
+|---|---|
+| *Für alle (Stunden)* | Standard **12**; Startwert aus `ASSETLOTSE_SESSION_HOURS`, `0` = aus. Erlaubt 0,25 (15 Minuten) bis 720 |
+| *Für Administratoren* | optional kürzer, z. B. `1` – leer = wie für alle |
+| *Von außen* | optional kürzer für Zugriffe aus dem Internet – leer = wie intern |
+| Hinweis 2 Minuten vorher | „Du wirst in 2 Minuten abgemeldet – weiterarbeiten?“ (Standard an). Ein Klick auf *Weiterarbeiten* verlängert die Anmeldung, auch wenn man gerade nur tippt |
+| Beim Schließen des Browsers abmelden | „Angemeldet bleiben“ wird nicht mehr angeboten; schon vorhandene „Angemeldet bleiben“-Anmeldungen enden beim nächsten Neustart des Browsers |
+
+- Es gilt die **kürzeste zutreffende Frist** (Admin von außen: die kürzere von beiden).
+- Die Frist gilt **auch mit „Angemeldet bleiben“** – das hält die Anmeldung nur über einen Neustart des Browsers hinweg (höchstens 14 Tage), nicht über die Frist hinaus.
+- Ist die Zeit um, wechselt auch die **geöffnete Seite** zur Anmeldung, damit z. B. ein angezeigter BitLocker-Schlüssel nicht auf dem Bildschirm stehen bleibt. Arbeitet jemand in einem anderen Tab weiter, zählt das mit.
+
 ## Datensicherung
 
 *Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 Sicherungen** (einstellbar 1–100), ältere werden automatisch gelöscht. Zusätzlich sichert jede neue Version beim ersten Start (`…-vor-<Version>.db`); die drei neuesten dieser Sicherungen bleiben immer erhalten – sie braucht, wer auf eine ältere Version zurückgeht.
@@ -522,6 +538,7 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `ASSETLOTSE_TRUSTED_PROXIES` | Von wem Proxy-Header akzeptiert werden: `private` (Standard), `none` oder Liste wie `172.18.0.0/16,192.168.0.11` |
 | `ASSETLOTSE_SECURE_COOKIES` | `auto` (Standard: bei HTTPS), `1` (immer), `0` (nie) |
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
+| `ASSETLOTSE_SESSION_HOURS` | Startwert der [automatischen Abmeldung](#automatische-abmeldung) in Stunden ohne Aktivität (Standard `12`, `0` = aus). Danach gilt, was unter *Einstellungen* gespeichert ist |
 | `ASSETLOTSE_BACKUP_DIR` | Ordner für die automatischen Sicherungen im Container (Standard: `backups` im Datenverzeichnis). Muss in `docker-compose.override.yml` als Volume eingebunden sein – sonst warnt der Container beim Start |
 | `ASSETLOTSE_SCHEDULER` | `0` = keine zeitgesteuerten Läufe (Erinnerungen, Sicherung, Aufbewahrung) in diesem Prozess, z. B. wenn mehrere App-Server laufen und nur einer sie ausführen soll. Standard `1` |
 | `ASSETLOTSE_SOURCE_URL` | Link zum Quellcode auf der Seite *Über dieses Programm* (Standard: dieses Repository; bei einer veränderten Fassung deren Quellcode) – siehe [Lizenz](#lizenz) |

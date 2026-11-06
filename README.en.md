@@ -479,6 +479,22 @@ Please report security problems **privately**, not as an issue – see [SECURITY
 - **First second factor:** setting up two-factor sign-in signs out all other devices. Changing the password is throttled against guessing.
 - **Uploaded photos** are resized and re-saved as JPEG – metadata and hidden content in image files are not kept. The **CSV export** marks cells starting with `=`, `+`, `-` or `@` so Excel does not run them as formulas.
 
+### Automatic sign-out
+
+*Settings → Automatic sign-out* – anyone who does nothing in AssetLotse for this long is signed out (e.g. a browser left open at the issue desk). Every page opened and every saved form counts as activity.
+
+| Setting | Effect |
+|---|---|
+| *For everyone (hours)* | default **12**; start value from `ASSETLOTSE_SESSION_HOURS`, `0` = off. Allowed 0.25 (15 minutes) to 720 |
+| *For administrators* | optionally shorter, e.g. `1` – empty = same as for everyone |
+| *From outside* | optionally shorter for access from the internet – empty = same as internally |
+| Notice 2 minutes before | “You will be signed out in 2 minutes – continue working?” (on by default). Clicking *Continue working* extends the session, even if you are only typing |
+| Sign out when the browser is closed | “Stay signed in” is no longer offered; existing “Stay signed in” sessions end at the next browser restart |
+
+- The **shortest limit that applies** wins (an administrator from outside: the shorter of the two).
+- The limit **also applies with “Stay signed in”** – that only keeps the session across a browser restart (at most 14 days), not beyond the limit.
+- When the time is up, the **open page** also switches to the sign-in page, so that e.g. a BitLocker key on screen does not stay visible. Working in another tab counts too.
+
 ## Backups
 
 *Administration → Backups.* The database is **backed up automatically every day** (default from 2 a.m.) – while running, without downtime. Every backup is checked for corruption after writing. The **newest 10 backups** are kept (configurable 1–100); older ones are deleted automatically. In addition, every new version backs up on its first start (`…-vor-<version>.db`); the three newest of these are always kept – you need them to go back to an older version.
@@ -522,6 +538,7 @@ Privacy: backups contain all data, including data already deleted by the retenti
 | `ASSETLOTSE_TRUSTED_PROXIES` | Who may send proxy headers: `private` (default), `none` or a list such as `172.18.0.0/16,192.168.0.11` |
 | `ASSETLOTSE_SECURE_COOKIES` | `auto` (default: over HTTPS), `1` (always), `0` (never) |
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (default), `DEBUG` for LDAP troubleshooting |
+| `ASSETLOTSE_SESSION_HOURS` | Start value of the [automatic sign-out](#automatic-sign-out) in hours without activity (default `12`, `0` = off). After that, what is saved under *Settings* applies |
 | `ASSETLOTSE_BACKUP_DIR` | Folder for automatic backups inside the container (default: `backups` in the data directory). Must be mounted as a volume in `docker-compose.override.yml` – otherwise the container warns at start-up |
 | `ASSETLOTSE_SCHEDULER` | `0` = no scheduled jobs (reminders, backup, retention) in this process, e.g. when several app servers run and only one should do them. Default `1` |
 | `ASSETLOTSE_SOURCE_URL` | Link to the source code on the *About this program* page (default: this repository; for a modified version, its source code) – see [License](#license) |

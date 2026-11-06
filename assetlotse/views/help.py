@@ -108,7 +108,7 @@ def help_url() -> str:
 
 def facts() -> dict:
     """Current settings, so the help describes how the system is actually run."""
-    from .. import ad_cache, backup, twofa
+    from .. import ad_cache, backup, idle, netzone, twofa
     from ..i18n import LANGUAGES
     from ..models import User
     return {
@@ -155,6 +155,9 @@ def facts() -> dict:
         "default_language": get_setting("default_language") or "de",
         "imprint_set": bool(get_setting("imprint_url")),
         "privacy_set": bool(get_setting("privacy_url")),
+        # automatic sign-out for the reader of the help (0 = none) and whether "Stay signed in" is offered
+        "idle_minutes": idle.limit_seconds(current_user, netzone.is_internal()) // 60,
+        "stay_offered": not idle.end_on_close(),
     }
 
 

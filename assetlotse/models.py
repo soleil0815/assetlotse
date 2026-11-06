@@ -441,6 +441,11 @@ DEFAULT_SETTINGS = {
     "self_extend": "1",
     # own = staff members only see their own items (no inventory) | groups | all
     "catalog_visibility": "own",
+    # Automatic sign-out (idle.py); session_idle_hours: start value ASSETLOTSE_SESSION_HOURS, otherwise 12
+    "session_idle_hours_admin": "",
+    "session_idle_hours_external": "",
+    "session_warn": "1",
+    "session_end_on_close": "0",
     # Active Directory / LDAP
     "ldap_enabled": "0",
     "ldap_server": "",
