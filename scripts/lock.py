@@ -321,14 +321,46 @@ def blocks(output: str) -> dict:
     return res
 
 
-def latest_snapshots() -> tuple[str, str]:
-    """The newest COMPLETED imports of snapshot.debian.org (archive "debian" and "debian-security").
-    Taking "now" instead would race with an import that is still running."""
+SNAPSHOT_URL = "https://snapshot.debian.org/archive"
+SNAPSHOT_ARCHES = ("amd64", "arm64")
+SNAPSHOT_CANDIDATES = 12      # how many of the newest imports are tried before falling back
+
+
+def _url_exists(url: str) -> bool:
+    """True if snapshot.debian.org delivers the file (HEAD), False for anything else."""
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), timeout=60) as r:
+            return 200 <= r.status < 300
+    except Exception:
+        return False
+
+
+def snapshot_complete(archive: str, ts: str, suites: tuple[str, ...],
+                      exists: Callable[[str], bool] = _url_exists) -> bool:
+    """Whether every package list the build needs is really there. snapshot.debian.org lists an import (and
+    serves its Release file) before all of its package lists can be fetched – apt then gets 404."""
+    return all(exists(f"{SNAPSHOT_URL}/{archive}/{ts}/dists/{suite}/main/binary-{arch}/Packages.xz")
+               for suite in suites for arch in SNAPSHOT_ARCHES)
+
+
+def latest_snapshots(codename: str = "trixie", exists: Callable[[str], bool] = _url_exists) -> tuple[str, str]:
+    """The newest COMPLETE imports of snapshot.debian.org (archive "debian" and "debian-security"): listed as
+    completed AND all package lists of both architectures downloadable. Taking "now" instead would race with
+    an import that is still running."""
+    archives = {"debian": (codename, f"{codename}-updates"), "debian-security": (f"{codename}-security",)}
     try:
         with urllib.request.urlopen("https://snapshot.debian.org/mr/timestamp/", timeout=120) as r:
             result = json.load(r)["result"]
-        return max(t for t in result["debian"] if SNAP_RE.match(t)), \
-            max(t for t in result["debian-security"] if SNAP_RE.match(t))
+        picked = []
+        for archive, suites in archives.items():
+            newest = sorted((t for t in result[archive] if SNAP_RE.match(t)), reverse=True)[:SNAPSHOT_CANDIDATES]
+            ts = next((t for t in newest if snapshot_complete(archive, t, suites, exists)), None)
+            if ts is None:
+                raise RuntimeError(f"none of the {len(newest)} newest {archive} imports is complete yet")
+            if ts != newest[0]:
+                print(f"snapshot.debian.org: {archive} {newest[0]} not complete yet – using {ts}", file=sys.stderr)
+            picked.append(ts)
+        return picked[0], picked[1]
     except Exception as e:                                   # fallback: a day back is always complete
         ts = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)).strftime("%Y%m%dT%H%M%SZ")
         print(f"snapshot.debian.org/mr/timestamp not usable ({e}) – using {ts}", file=sys.stderr)
@@ -361,13 +393,13 @@ def diff_versions(kind: str, old: dict[str, str], new: dict[str, str]) -> list[d
 
 def targets(root: Path = ROOT) -> dict:
     """What all architectures are resolved against: the base image (newest patch, digest of the multi-arch
-    index) and the newest completed snapshots of the Debian archive."""
+    index) and the newest complete snapshots of the Debian archive."""
     state = read_state(root)
     major, minor, codename = state["major"], state["minor"], state["codename"]
     patch = pick_base_tag(hub_tags(major, minor), major, minor, codename, state["patch"])
     tag = f"python:{major}.{minor}.{patch}-slim-{codename}"
     digest = digest_of(tag)
-    snapshot, security = latest_snapshots()
+    snapshot, security = latest_snapshots(codename)
     return {"patch": patch, "digest": digest, "image": f"{tag}@sha256:{digest}", "snapshot": snapshot,
             "security": security}
 
