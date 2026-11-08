@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.4.1",
+      "date": "2026-11-08",
+      "kind": "fix",
+      "audience": "admin",
+      "de": {
+        "title": "Sicherheitsupdates zuverlässiger",
+        "text": "Neue Paketversionen werden nur noch aus einem vollständig bereitgestellten Debian-Stand übernommen. Hat Debian gerade erst etwas veröffentlicht, scheitert das automatische Sicherheitsupdate dadurch nicht mehr. Am Programm und am Server ändert sich nichts."
+      },
+      "en": {
+        "title": "More reliable security updates",
+        "text": "New package versions are only taken from a Debian state that is completely available. If Debian has only just published something, the automatic security update no longer fails because of it. Nothing changes in the program or on the server."
+      }
+    },
+    {
       "version": "2.4.0",
       "date": "2026-11-08",
       "kind": "security",

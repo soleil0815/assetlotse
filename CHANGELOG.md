@@ -2,6 +2,15 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.4.1 – 2026-11-08
+
+**Changed**
+- **Only complete Debian snapshots are used for new package versions:** snapshot.debian.org lists a new import
+  (and serves its Release file) before all of its package lists can be fetched. On 8 Nov 2026 a relock started
+  right after a security import therefore failed with 404. `scripts/lock.py` now checks, newest first, that the
+  package lists of every suite the build uses (`trixie`, `trixie-updates`, `trixie-security`) exist for amd64 and
+  arm64, and takes the newest complete import. Nothing changes in the image itself.
+
 ## 2.4.0 – 2026-11-08
 
 **Added**
