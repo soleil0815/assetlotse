@@ -12,6 +12,12 @@ The current version is shown at the bottom left of the sidebar after signing in.
   `X-Forwarded-Proto` and IP-address host names are left alone. `ASSETLOTSE_FORCE_HTTPS=0` switches both off.
 - `Cross-Origin-Opener-Policy: same-origin` on all responses.
 
+**Security**
+- `zlib1g`: Debian fixed CVE-2026-27171, CVE-2026-76844 and CVE-2026-85091 on 8 Nov 2026 (DSA-6613-1), but
+  snapshot.debian.org could not deliver the fixed package list yet. 2.4.0 therefore still has the same zlib as
+  2.3.0; the scan exception for these three expires on 10 Nov 2026, and the weekly security update brings the
+  fixed package as soon as it can be fetched.
+
 ## 2.3.0 – 2026-11-06
 
 **Changed**
