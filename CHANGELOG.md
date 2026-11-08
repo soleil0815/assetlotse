@@ -2,6 +2,19 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.4.2 – 2026-11-08
+
+**Changed**
+- **HTTPS behind the reverse proxy follows the same rules as Catalytix and Helfi.Space:**
+  - HTTP is only redirected to HTTPS once the address has been reached over HTTPS through the proxy (remembered in
+    `https-hosts.txt` in the data folder). A proxy without any HTTPS is no longer redirected into nothing.
+  - HSTS is only sent where AssetLotse had to redirect itself. Behind a proxy that redirects and sends HSTS on its
+    own (Nginx Proxy Manager with “Force SSL” and “HSTS Enabled”) there is no second HSTS header any more – it
+    overrode the proxy's setting (browsers use the first one) and is reported as an error by hstspreload.org.
+  - Reading requests are redirected with 301, everything else with 308 (forms keep their data).
+  - `ASSETLOTSE_FORCE_HTTPS=1` is new: redirect right away and always send HSTS.
+  - `X-Forwarded-Port` without `X-Forwarded-Proto` now also counts with 443 as HTTPS (before: only 80 as HTTP).
+
 ## 2.4.1 – 2026-11-08
 
 **Changed**

@@ -12,8 +12,8 @@ from flask import Flask, jsonify, make_response, request  # noqa: E402
 from assetlotse.proxy import install, parse_networks  # noqa: E402
 
 
-def make_app(env):
-    app = Flask(__name__)
+def make_app(env, instance=None):
+    app = Flask(__name__, instance_path=instance or tempfile.mkdtemp(prefix="assetlotse-proxy-"))
 
     @app.route("/")
     def index():
@@ -92,71 +92,136 @@ class ProxyTests(unittest.TestCase):
             db.session.remove()
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class ForceHttpsTests(unittest.TestCase):
-    """2.4.0: HTTPS is enforced for the proxy's host name (Observatory: redirection and HSTS)."""
+    """2.4.2: HTTPS behind the proxy – same rules as Catalytix and Helfi.Space (automatic by default)."""
+    PROXY = {"REMOTE_ADDR": "172.17.0.1"}         # Docker bridge: the reverse proxy on the NAS
+    HTTP = {"X-Forwarded-Proto": "http", "Host": "asset.firma.local"}
+    HTTPS = {"X-Forwarded-Proto": "https", "Host": "asset.firma.local"}
 
-    PROXY = {"REMOTE_ADDR": "192.168.2.10"}
+    def setUp(self):
+        self.instance = tempfile.mkdtemp(prefix="assetlotse-proxy-")
 
-    def get(self, env=None, headers=None, path="/", **kw):
-        return make_app(env or {}).get(path, headers=headers or {}, environ_base={**self.PROXY, **kw})
+    def client(self, force=None):
+        env = {} if force is None else {"ASSETLOTSE_FORCE_HTTPS": force}
+        return make_app(env, self.instance)
 
-    def test_plain_http_through_proxy_is_redirected(self):
-        r = self.get(headers={"X-Forwarded-Proto": "http", "Host": "asset.aap-dresden.de"},
-                     path="/gegenstaende?q=Laptop%20Dell")
-        self.assertEqual(r.status_code, 308)
-        self.assertEqual(r.headers["Location"], "https://asset.aap-dresden.de/gegenstaende?q=Laptop%20Dell")
-        self.assertNotIn("Set-Cookie", r.headers)                             # nothing of the app is served
-        r = self.get(headers={"X-Forwarded-Proto": "http", "Host": "asset.aap-dresden.de:80"})
-        self.assertEqual(r.headers["Location"], "https://asset.aap-dresden.de/")   # port 80 dropped
-        r = self.get(headers={"X-Forwarded-Port": "80", "Host": "asset.aap-dresden.de"})   # only the port
-        self.assertEqual((r.status_code, r.headers["Location"]), (308, "https://asset.aap-dresden.de/"))
-        r = self.get(headers={"X-Forwarded-Proto": "https", "X-Forwarded-Port": "80", "Host": "asset.aap-dresden.de"})
-        self.assertEqual(r.status_code, 200)                                  # the protocol header wins
-
-    def test_https_through_proxy_gets_hsts(self):
-        r = self.get(headers={"X-Forwarded-Proto": "https", "Host": "asset.aap-dresden.de"})
-        self.assertEqual(r.status_code, 200)
+    def test_auto_switches_after_https_was_seen(self):
+        # Synology: the proxy forwards HTTP as well – the program redirects and from then on sends HSTS
+        c = self.client()
+        self.assertEqual(c.get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 200)  # no HTTPS yet
+        r = c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        self.assertNotIn("Strict-Transport-Security", r.headers)      # not redirected itself yet
+        r = c.get("/gegenstaende?q=a b", headers=self.HTTP, environ_base=self.PROXY)
+        self.assertEqual(r.status_code, 301)
+        self.assertEqual(r.headers["Location"], "https://asset.firma.local/gegenstaende?q=a%20b")
+        r = c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
         self.assertEqual(r.headers["Strict-Transport-Security"], "max-age=31536000")
-        self.assertIn("Secure", r.headers["Set-Cookie"])
 
-    def test_left_alone(self):
-        cases = [
-            ({}, {"Host": "192.168.2.221:9343"}),                                  # direct http://IP:9343
-            ({}, {"Host": "asset.aap-dresden.de"}),                                # proxy without X-Forwarded-Proto
-            ({}, {"X-Forwarded-Port": "443", "Host": "asset.aap-dresden.de"}),
-            ({}, {"X-Forwarded-Proto": "http", "Host": "192.168.2.221:9343"}),     # IP address: no https there
-            ({}, {"X-Forwarded-Proto": "http", "Host": "[fd00::5]:9343"}),
-            ({}, {"X-Forwarded-Proto": "http", "Host": "localhost"}),
-            ({}, {"X-Forwarded-Proto": "http", "Host": "evil.example/x"}),         # not a host name
-            ({"ASSETLOTSE_FORCE_HTTPS": "0"}, {"X-Forwarded-Proto": "http", "Host": "asset.aap-dresden.de"}),
-        ]
-        for env, headers in cases:
-            r = self.get(env, headers)
-            self.assertEqual(r.status_code, 200, (env, headers))
-            self.assertNotIn("Strict-Transport-Security", r.headers, (env, headers))
+    def test_proxy_that_redirects_itself_keeps_its_hsts(self):
+        # Nginx Proxy Manager with "Force SSL" (+ "HSTS Enabled"): only HTTPS ever arrives – no second HSTS header
+        c = self.client()
+        for _ in range(3):
+            r = c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+            self.assertEqual(r.status_code, 200)
+            self.assertNotIn("Strict-Transport-Security", r.headers)
 
-    def test_no_hsts_when_switched_off(self):
-        r = self.get({"ASSETLOTSE_FORCE_HTTPS": "0"}, {"X-Forwarded-Proto": "https", "Host": "a.example.de"})
-        self.assertNotIn("Strict-Transport-Security", r.headers)
+    def test_redirect_mark_is_remembered(self):
+        c = self.client()
+        c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        c.get("/", headers=self.HTTP, environ_base=self.PROXY)
+        import pathlib
+        self.assertEqual((pathlib.Path(self.instance) / "https-hosts.txt").read_text(), "asset.firma.local redirected\n")
+        r = self.client().get("/", headers=self.HTTPS, environ_base=self.PROXY)              # after a restart
+        self.assertIn("Strict-Transport-Security", r.headers)
 
-    def test_public_client_cannot_trigger_a_redirect(self):
-        # a forged X-Forwarded-Proto from the internet is ignored like every other forwarded header
-        r = make_app({}).get("/", headers={"X-Forwarded-Proto": "http", "Host": "asset.aap-dresden.de"},
-                             environ_base={"REMOTE_ADDR": "198.51.100.9"})
+    def test_file_with_known_host_works(self):
+        import pathlib
+        (pathlib.Path(self.instance) / "https-hosts.txt").write_text("asset.firma.local\n")
+        c = self.client()
+        self.assertEqual(c.get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 301)
+        self.assertIn("Strict-Transport-Security", c.get("/", headers=self.HTTPS, environ_base=self.PROXY).headers)
+
+    def test_auto_is_remembered_after_restart(self):
+        self.client().get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        r = self.client().get("/", headers=self.HTTP, environ_base=self.PROXY)          # new app, same data folder
+        self.assertEqual(r.status_code, 301)
+
+    def test_auto_per_host(self):
+        c = self.client()
+        c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        r = c.get("/", headers={"X-Forwarded-Proto": "http", "Host": "andere.firma.local"}, environ_base=self.PROXY)
         self.assertEqual(r.status_code, 200)
+
+    def test_form_post_keeps_method(self):
+        r = self.client("1").post("/login", data={"a": "b"},
+                                  headers={"X-Forwarded-Proto": "http", "Host": "asset.firma.local:80"},
+                                  environ_base=self.PROXY)
+        self.assertEqual(r.status_code, 308)
+        self.assertEqual(r.headers["Location"], "https://asset.firma.local/login")
+
+    def test_always_and_never(self):
+        self.assertEqual(self.client("1").get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 301)
+        c = self.client("0")
+        r = c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        self.assertNotIn("Strict-Transport-Security", r.headers)
+        self.assertEqual(c.get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 200)
+
+    def test_hsts_for_this_host_only(self):
+        r = self.client("1").get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        self.assertNotIn("includeSubDomains", r.headers["Strict-Transport-Security"])
+
+    def test_direct_requests_are_left_alone(self):
+        # Docker health check and http://IP:9343 on the LAN: no proxy header – no redirect, no HSTS
+        for env in ({"REMOTE_ADDR": "127.0.0.1"}, {"REMOTE_ADDR": "10.0.10.25"}):
+            r = self.client("1").get("/", environ_base=env)
+            self.assertEqual(r.status_code, 200)
+            self.assertNotIn("Strict-Transport-Security", r.headers)
+
+    def test_untrusted_sender_cannot_trigger_a_redirect(self):
+        c = self.client("1")
+        r = c.get("/", headers={"X-Forwarded-Proto": "http", "Host": "evil.example"},
+                  environ_base={"REMOTE_ADDR": "198.51.100.9"})
+        self.assertEqual(r.status_code, 200)
+
+    def test_bad_host_is_neither_used_nor_learned(self):
+        c = self.client()
+        c.get("/", headers={"X-Forwarded-Proto": "https", "Host": "a b<script>"}, environ_base=self.PROXY)
+        r = c.get("/", headers={"X-Forwarded-Proto": "http", "Host": "a b<script>"}, environ_base=self.PROXY)
+        self.assertEqual(r.status_code, 200)
+        import pathlib
+        f = pathlib.Path(self.instance) / "https-hosts.txt"
+        self.assertFalse(f.exists() and "script" in f.read_text())
+
+    def test_port_only_proxy(self):
+        # proxies that only send X-Forwarded-Port: 80 = HTTP, 443 = HTTPS; the protocol header wins
+        c = self.client()
+        c.get("/", headers={"X-Forwarded-Port": "443", "Host": "asset.firma.local"}, environ_base=self.PROXY)
+        r = c.get("/", headers={"X-Forwarded-Port": "80", "Host": "asset.firma.local"}, environ_base=self.PROXY)
+        self.assertEqual((r.status_code, r.headers["Location"]), (301, "https://asset.firma.local/"))
+        r = c.get("/", headers={"X-Forwarded-Proto": "https", "X-Forwarded-Port": "80", "Host": "asset.firma.local"},
+                  environ_base=self.PROXY)
+        self.assertEqual(r.status_code, 200)
+
+    def test_ip_addresses_and_ports(self):
+        c = self.client("1")
+        for host in ("192.168.2.221:9343", "[fd00::5]:9343", "localhost", "evil.example/x"):
+            r = c.get("/", headers={"X-Forwarded-Proto": "http", "Host": host}, environ_base=self.PROXY)
+            self.assertEqual(r.status_code, 200, host)
+        r = c.get("/", headers={"X-Forwarded-Proto": "http", "Host": "asset.firma.local:8080"}, environ_base=self.PROXY)
+        self.assertEqual(r.headers["Location"], "https://asset.firma.local/")
 
     def test_full_app_headers(self):
         from assetlotse import create_app
         app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite://"})
         c = app.test_client()
-        r = c.get("/login", headers={"X-Forwarded-Proto": "https", "Host": "asset.aap-dresden.de"},
-                  environ_base=self.PROXY)
-        self.assertEqual(r.headers["Strict-Transport-Security"], "max-age=31536000")
+        r = c.get("/login", headers=self.HTTPS, environ_base=self.PROXY)
         self.assertEqual(r.headers["Cross-Origin-Opener-Policy"], "same-origin")
-        r = c.get("/login", headers={"X-Forwarded-Proto": "http", "Host": "asset.aap-dresden.de"},
-                  environ_base=self.PROXY)
-        self.assertEqual((r.status_code, r.headers["Location"]), (308, "https://asset.aap-dresden.de/login"))
+        r = c.get("/login", headers=self.HTTP, environ_base=self.PROXY)
+        self.assertEqual((r.status_code, r.headers["Location"]), (301, "https://asset.firma.local/login"))
+        r = c.get("/login", headers=self.HTTPS, environ_base=self.PROXY)
+        self.assertEqual(r.headers["Strict-Transport-Security"], "max-age=31536000")
+
+
+if __name__ == "__main__":
+    unittest.main()
