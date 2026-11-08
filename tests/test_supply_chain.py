@@ -135,7 +135,7 @@ class RefreshTests(unittest.TestCase):
             self.addCleanup(setattr, lock, name, getattr(lock, name))
         lock.hub_tags = lambda major, minor: [f"{major}.{minor}.{self.patch}-slim-trixie"]
         lock.digest_of = lambda ref: DIGEST_B                      # the registry always has a new digest
-        lock.latest_snapshots = lambda: ("20261026T021503Z", "20261026T031000Z")   # completed imports
+        lock.latest_snapshots = lambda *a, **k: ("20261026T021503Z", "20261026T031000Z")   # complete imports
         self.per_arch = {}                                      # differences of one architecture
         lock.resolve = lambda image, snap, sec, state, root, arch=None: (
             self.calls.append((image, snap, sec, arch))
@@ -238,6 +238,52 @@ class RefreshTests(unittest.TestCase):
 
 
 # ====================================================================== Dockerfile and build scripts
+class SnapshotChoiceTests(unittest.TestCase):
+    """2.4.1: only snapshots whose package lists can really be fetched (a fresh import is listed and has a
+    Release file before its Packages files exist – apt then got 404 and the relock failed)."""
+
+    LISTED = {"debian": ["20261108T203330Z", "20261108T143000Z", "20261108T083000Z"],
+              "debian-security": ["20261108T202647Z", "20261108T142900Z", "kaputt"]}
+
+    def run_with(self, missing):
+        import io
+        from unittest import mock
+        asked = []
+
+        def exists(url):
+            asked.append(url)
+            return not any(m in url for m in missing)
+
+        body = io.BytesIO(json.dumps({"result": self.LISTED}).encode())
+        with mock.patch.object(lock.urllib.request, "urlopen", return_value=mock.MagicMock(
+                __enter__=lambda s: body, __exit__=lambda *a: False)):
+            return lock.latest_snapshots("trixie", exists), asked
+
+    def test_newest_when_complete(self):
+        (snap, sec), asked = self.run_with(missing=())
+        self.assertEqual((snap, sec), ("20261108T203330Z", "20261108T202647Z"))
+        # every suite and both architectures are checked
+        self.assertIn("https://snapshot.debian.org/archive/debian/20261108T203330Z/dists/trixie-updates/main/"
+                      "binary-arm64/Packages.xz", asked)
+        self.assertIn("https://snapshot.debian.org/archive/debian-security/20261108T202647Z/dists/"
+                      "trixie-security/main/binary-amd64/Packages.xz", asked)
+
+    def test_incomplete_import_is_skipped(self):
+        # the case of 8 Nov 2026: security import listed, its amd64 package list 404
+        (snap, sec), _ = self.run_with(missing=("debian-security/20261108T202647Z/dists/trixie-security/main/"
+                                                "binary-amd64",))
+        self.assertEqual((snap, sec), ("20261108T203330Z", "20261108T142900Z"))
+
+    def test_nothing_complete_falls_back_a_day(self):
+        (snap, sec), _ = self.run_with(missing=("debian-security/",))
+        self.assertTrue(lock.SNAP_RE.match(snap) and snap == sec)
+        self.assertNotIn(snap, self.LISTED["debian"] + self.LISTED["debian-security"])   # a day back
+
+    def test_targets_passes_the_codename(self):
+        src = (ROOT / "scripts" / "lock.py").read_text()
+        self.assertIn("latest_snapshots(codename)", src)
+
+
 class DockerfileTests(unittest.TestCase):
     df = (ROOT / "Dockerfile").read_text()
 
