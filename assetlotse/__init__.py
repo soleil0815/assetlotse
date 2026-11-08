@@ -28,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.3.0"
+__version__ = "2.4.0"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
@@ -583,6 +583,8 @@ def create_app(test_config: dict | None = None) -> Flask:
         resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         resp.headers.setdefault("Referrer-Policy", "same-origin")
         resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        # pages opened from AssetLotse in another tab cannot reach back into it (window.opener), and vice versa
+        resp.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
         # Strict Content Security Policy: no inline or third-party JavaScript, no external sources.
         # (For SVG logos the route sets an even stricter policy of its own.)
         resp.headers.setdefault("Content-Security-Policy", CSP)

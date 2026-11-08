@@ -448,7 +448,9 @@ assets.institut.local {
 
 Mehr ist nicht nötig: AssetLotse erkennt den Reverse-Proxy automatisch. Die Weiterleitungs-Header (echte Besucher-IP, HTTPS) werden nur akzeptiert, wenn die Verbindung aus einem privaten Netz kommt – also vom Proxy, nicht direkt aus dem Internet. Cookies bekommen bei HTTPS automatisch das Secure-Flag; über `http://IP:9343` im LAN funktioniert die Anmeldung weiterhin. Für Sicherheitsschlüssel (WebAuthn) ist HTTPS Pflicht.
 
-Bei Freigabe ins Internet (z. B. mit Nginx Proxy Manager) *Force SSL* und *HSTS* aktivieren und Port 9343 am Router nicht freigeben – von außen soll nur der Proxy erreichbar sein. Die Anmeldeseite verrät bewusst nichts über die Umgebung (keine Versionsnummer, kein AD-Hinweis, gleiche Fehlermeldung für unbekannte Benutzer, falsche Passwörter und gesperrte Konten).
+**HTTPS erzwingen macht AssetLotse selbst** (seit 2.4.0): Kommt ein Aufruf über den Proxy per `http://` an (der Proxy meldet das mit `X-Forwarded-Proto: http` oder `X-Forwarded-Port: 80`), leitet AssetLotse dauerhaft auf `https://<derselbe Name>/…` um; jede HTTPS-Antwort trägt `Strict-Transport-Security` (HSTS, ein Jahr, nur dieser Hostname). Eine HTTP-Regel im Proxy (z. B. bei der Synology „http://asset… → http://IP:9343“) ist damit unschädlich – sie führt nur noch zur Umleitung. Der direkte Zugriff `http://IP:9343` im LAN bleibt wie er ist. Abschalten mit `ASSETLOTSE_FORCE_HTTPS=0` (z. B. wenn der Proxy absichtlich nur HTTP anbietet).
+
+Bei Freigabe ins Internet Port 9343 am Router nicht freigeben – von außen soll nur der Proxy erreichbar sein. Die Anmeldeseite verrät bewusst nichts über die Umgebung (keine Versionsnummer, kein AD-Hinweis, gleiche Fehlermeldung für unbekannte Benutzer, falsche Passwörter und gesperrte Konten).
 
 ## Datenschutz und Betrieb im Internet
 
@@ -537,6 +539,7 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `PUID` / `PGID` | Benutzer/Gruppe für `./data` (Standard `1000`) |
 | `ASSETLOTSE_TRUSTED_PROXIES` | Von wem Proxy-Header akzeptiert werden: `private` (Standard), `none` oder Liste wie `172.18.0.0/16,192.168.0.11` |
 | `ASSETLOTSE_SECURE_COOKIES` | `auto` (Standard: bei HTTPS), `1` (immer), `0` (nie) |
+| `ASSETLOTSE_FORCE_HTTPS` | `auto` (Standard): über den Proxy per HTTP → Umleitung auf HTTPS, bei HTTPS HSTS-Header; `0` = beides aus |
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
 | `ASSETLOTSE_SESSION_HOURS` | Startwert der [automatischen Abmeldung](#automatische-abmeldung) in Stunden ohne Aktivität (Standard `12`, `0` = aus). Danach gilt, was unter *Einstellungen* gespeichert ist |
 | `ASSETLOTSE_BACKUP_DIR` | Ordner für die automatischen Sicherungen im Container (Standard: `backups` im Datenverzeichnis). Muss in `docker-compose.override.yml` als Volume eingebunden sein – sonst warnt der Container beim Start |

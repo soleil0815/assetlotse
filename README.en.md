@@ -448,7 +448,9 @@ assets.institute.local {
 
 Nothing else is required: AssetLotse detects the reverse proxy automatically. Forwarding headers (real visitor IP, HTTPS) are only accepted from private networks – i.e. from the proxy, never directly from the internet. Cookies automatically get the Secure flag over HTTPS; sign-in via `http://IP:9343` on the LAN keeps working. Security keys (WebAuthn) require HTTPS.
 
-When publishing to the internet (e.g. with Nginx Proxy Manager), enable *Force SSL* and *HSTS* and do not forward port 9343 on your router – only the proxy should be reachable from outside. The login page deliberately reveals nothing about the setup (no version number, no AD hint, identical error messages for unknown users, wrong passwords and locked accounts).
+**AssetLotse enforces HTTPS itself** (since 2.4.0): if a request reaches the proxy via `http://` (the proxy reports this with `X-Forwarded-Proto: http` or `X-Forwarded-Port: 80`), AssetLotse redirects permanently to `https://<same name>/…`; every HTTPS response carries `Strict-Transport-Security` (HSTS, one year, this host name only). An HTTP rule in the proxy (e.g. on a Synology “http://asset… → http://IP:9343”) is therefore harmless – it only leads to the redirect. Direct access via `http://IP:9343` on the LAN stays as it is. Switch off with `ASSETLOTSE_FORCE_HTTPS=0` (e.g. if the proxy deliberately only offers HTTP).
+
+When publishing to the internet, do not forward port 9343 on your router – only the proxy should be reachable from outside. The login page deliberately reveals nothing about the setup (no version number, no AD hint, identical error messages for unknown users, wrong passwords and locked accounts).
 
 ## Privacy and running on the internet
 
@@ -537,6 +539,7 @@ Privacy: backups contain all data, including data already deleted by the retenti
 | `PUID` / `PGID` | User/group owning `./data` (default `1000`) |
 | `ASSETLOTSE_TRUSTED_PROXIES` | Who may send proxy headers: `private` (default), `none` or a list such as `172.18.0.0/16,192.168.0.11` |
 | `ASSETLOTSE_SECURE_COOKIES` | `auto` (default: over HTTPS), `1` (always), `0` (never) |
+| `ASSETLOTSE_FORCE_HTTPS` | `auto` (default): via the proxy over HTTP → redirect to HTTPS, HSTS header over HTTPS; `0` = neither |
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (default), `DEBUG` for LDAP troubleshooting |
 | `ASSETLOTSE_SESSION_HOURS` | Start value of the [automatic sign-out](#automatic-sign-out) in hours without activity (default `12`, `0` = off). After that, what is saved under *Settings* applies |
 | `ASSETLOTSE_BACKUP_DIR` | Folder for automatic backups inside the container (default: `backups` in the data directory). Must be mounted as a volume in `docker-compose.override.yml` – otherwise the container warns at start-up |
