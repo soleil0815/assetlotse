@@ -2,6 +2,22 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.4.0 – 2026-11-08
+
+**Added**
+- **HTTPS is enforced for the proxy's host name:** a request that reaches the reverse proxy over plain HTTP
+  (`X-Forwarded-Proto: http`, or only `X-Forwarded-Port: 80`, from a trusted proxy) is redirected permanently (308) to `https://<host>/…`, and
+  every HTTPS response carries `Strict-Transport-Security: max-age=31536000` (this host name only). An HTTP rule in
+  the proxy no longer serves the app unencrypted. Direct access via `http://IP:9343`, requests without
+  `X-Forwarded-Proto` and IP-address host names are left alone. `ASSETLOTSE_FORCE_HTTPS=0` switches both off.
+- `Cross-Origin-Opener-Policy: same-origin` on all responses.
+
+**Security**
+- `zlib1g`: Debian fixed CVE-2026-27171, CVE-2026-76844 and CVE-2026-85091 on 8 Nov 2026 (DSA-6613-1), but
+  snapshot.debian.org could not deliver the fixed package list yet. 2.4.0 therefore still has the same zlib as
+  2.3.0; the scan exception for these three expires on 10 Nov 2026, and the weekly security update brings the
+  fixed package as soon as it can be fetched.
+
 ## 2.3.0 – 2026-11-06
 
 **Changed**

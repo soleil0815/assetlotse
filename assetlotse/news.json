@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.4.0",
+      "date": "2026-11-08",
+      "kind": "security",
+      "audience": "admin",
+      "de": {
+        "title": "HTTPS wird erzwungen",
+        "text": "Kommt jemand über den Reverse-Proxy per http:// auf AssetLotse, wird er jetzt automatisch auf https:// umgeleitet, und der Browser merkt sich ein Jahr lang, nur noch HTTPS zu nutzen (HSTS). Der direkte Zugriff über http://IP:9343 im LAN bleibt unverändert."
+      },
+      "en": {
+        "title": "HTTPS is enforced",
+        "text": "Anyone who reaches AssetLotse via the reverse proxy over http:// is now redirected to https:// automatically, and the browser remembers for a year to use HTTPS only (HSTS). Direct access via http://IP:9343 on the LAN is unchanged."
+      }
+    },
+    {
       "version": "2.3.0",
       "date": "2026-11-06",
       "kind": "feature",
