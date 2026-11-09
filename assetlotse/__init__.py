@@ -28,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.5.0"
+__version__ = "2.5.1"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
@@ -637,7 +637,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     @click.argument("username")
     @click.password_option()
     def reset_password(username, password):
-        """Reset the password of a local account (e.g. admin)."""
+        """Reset the password of a local account (e.g. admin); also re-enables it and lifts a sign-in lockout."""
         user = User.query.filter_by(username=username).first()
         if not user:
             raise click.ClickException(f"User {username} not found.")
@@ -647,6 +647,8 @@ def create_app(test_config: dict | None = None) -> Flask:
         user.auth_source = "local"
         user.active = True
         db.session.commit()
+        from .lockout import unlock_user
+        unlock_user(username)            # a lockout from the failed attempts would otherwise last 5 more minutes
         click.echo(f"Password set for {username}.")
 
     @app.cli.command("reset-2fa")
@@ -659,6 +661,41 @@ def create_app(test_config: dict | None = None) -> Flask:
             raise click.ClickException(f"User {username} not found.")
         reset_2fa(user)
         click.echo(f"Two-factor sign-in reset for {username}.")
+
+    @app.cli.command("make-admin")
+    @click.argument("username")
+    def make_admin(username):
+        """Give an existing account the administrator role back (and re-enable it)."""
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            raise click.ClickException(f"User {username} not found.")
+        user.role = ROLE_ADMIN
+        user.active = True
+        user.pending_approval = False
+        db.session.commit()
+        click.echo(f"{username} is administrator again.")
+        if user.auth_source == "ldap":
+            click.echo("Note: this is an Active Directory account – at its next sign-in the role is taken from the "
+                       "AD rules again. If they do not make it an administrator, sign in with a local account "
+                       "(reset-password / create-admin) and fix the rules.")
+
+    @app.cli.command("unlock")
+    @click.argument("username")
+    def unlock_cmd(username):
+        """Lift the sign-in lockout after too many failed attempts (otherwise it ends after 5 minutes)."""
+        from .lockout import unlock_user
+        n = unlock_user(username)
+        click.echo(f"Lockout lifted for {username} ({n} failed attempt{'s' if n != 1 else ''} removed).")
+
+    @app.cli.command("list-admins")
+    def list_admins():
+        """List all administrator accounts (to see which ones you can still sign in with)."""
+        admins = User.query.filter_by(role=ROLE_ADMIN).order_by(User.username).all()
+        if not admins:
+            click.echo("No administrator account – create one with: create-admin NAME")
+        for u in admins:
+            state = "active" if u.active else "DISABLED"
+            click.echo(f"  {u.username:<24} {u.auth_source:<6} {state}")
 
     @app.cli.command("send-reminders")
     def send_reminders():
