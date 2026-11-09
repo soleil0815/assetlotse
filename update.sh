@@ -6,7 +6,7 @@
 #   docker compose pull && docker compose up -d
 # does the same. AssetLotse backs up its database itself before a new version changes it.
 #
-#   ./update.sh                    newest version (follows "latest" – incl. the weekly security updates)
+#   ./update.sh                    newest version (follows "latest" – incl. the monthly security updates on patch day)
 #   ./update.sh --version 2.0.0    a fixed version (written to .env; also to go back)
 #   ./update.sh --offline FILE     without internet: image file from the release (assetlotse-2.0.0-amd64.tar.gz)
 #   ./update.sh --rollback         start the image that ran before the last update again

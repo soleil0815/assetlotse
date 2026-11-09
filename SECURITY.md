@@ -22,12 +22,13 @@ private until servers can update, and the CHANGELOG then credits you if you like
 ## Supported versions
 
 Only the newest version receives fixes – the image tag `latest` (and the newest `<major>.<minor>`, e.g. `2.1`).
-Security updates of the packages inside the image appear automatically every week as `<version>-s<n>`; servers that
-follow `latest` get them by themselves.
+Security updates of the packages inside the image appear automatically once a month on patch day (the second
+Tuesday) as `<version>-s<n>`; servers that follow `latest` get them by themselves. An urgent fix can be published
+in between by hand.
 
 ## Out of scope
 
-- Vulnerabilities in the base image or in Python packages that a weekly security update already fixes – the
+- Vulnerabilities in the base image or in Python packages that a monthly security update already fixes – the
   published image is scanned with Trivy every day.
 - Problems that need administrator rights on the server or in AssetLotse, or a modified installation.
 - Missing hardening of your own environment (reverse proxy, TLS, firewall) – see the README, *Reverse proxy and

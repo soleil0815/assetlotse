@@ -10,7 +10,7 @@
 
 services:
   assetlotse:
-    # latest = always the newest version (incl. the weekly security updates).
+    # latest = always the newest version (incl. the monthly security updates on patch day).
     # A fixed version instead: ASSETLOTSE_TAG=2.0.0 in .env
     image: ${ASSETLOTSE_IMAGE:-ghcr.io/soleil0815/assetlotse}:${ASSETLOTSE_TAG:-latest}
     container_name: assetlotse
