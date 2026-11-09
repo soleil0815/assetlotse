@@ -150,6 +150,8 @@ Nobody raises the base silently (e.g. Python 3.14, Debian 14 or a new major vers
 
 **Daily scan.** Every day (05:43 UTC) the published `latest` (amd64 and arm64) is scanned again – for vulnerabilities that only become known after the release.
 
+**ZAP scan in the code audit.** Once a month, one week before patch day (Tuesday 01:29 UTC; by hand at any time: *Actions → ZAP scan → Run workflow*), GitHub starts the program in a throwaway container with test data and lets [ZAP](https://www.zaproxy.org/) crawl and attack it without logging in (passive and active scan, never against real servers). The code audit the day after checks every finding against the code and fixes confirmed vulnerabilities before patch day. The scan does not run on normal pull requests.
+
 **Base warning.** Every Monday the workflow asks [endoflife.date](https://endoflife.date) how long Debian and the Python line still get security updates: from 12 months before a note (yellow), from 6 months a red run.
 
 **Security of the workflow.** All actions are pinned to commit checksums; every job has only the permissions it needs (write access only for the steps that publish); tests and Trivy never run in a job with write access; git credentials are not stored; publishing only from the branch `main`, never two runs at the same time; a published version is never overwritten, `latest` only points to the highest version.
