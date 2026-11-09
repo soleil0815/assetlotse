@@ -150,6 +150,8 @@ Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion e
 
 **Täglicher Scan.** Jeden Tag (05:43 UTC) wird das veröffentlichte `latest` (amd64 und arm64) erneut geprüft – für Schwachstellen, die erst nach dem Release bekannt werden.
 
+**ZAP-Scan im Code-Audit.** Einmal im Monat, eine Woche vor dem Patchday (Dienstag 01:29 UTC; von Hand jederzeit: *Actions → ZAP scan → Run workflow*), startet GitHub das Programm in einem Wegwerf-Container mit Testdaten und lässt [ZAP](https://www.zaproxy.org/) es ohne Anmeldung durchsuchen und angreifen (passiver und aktiver Scan, nie gegen echte Server). Der Code-Audit am Tag danach prüft jeden Fund am Code und behebt bestätigte Schwachstellen vor dem Patchday. Bei normalen Pull Requests läuft der Scan nicht.
+
 **Unterbau-Warnung.** Jeden Montag fragt der Workflow bei [endoflife.date](https://endoflife.date), wie lange Debian und die Python-Reihe noch Sicherheitsupdates bekommen: ab 12 Monaten vorher ein Hinweis (gelb), ab 6 Monaten ein roter Lauf.
 
 **Sicherheit des Workflows.** Alle Actions sind auf Commit-Prüfsummen festgelegt; jeder Job hat nur die Rechte, die er braucht (Schreibrechte nur die Schritte, die veröffentlichen); Tests und Trivy laufen nie in einem Job mit Schreibrechten; Git-Anmeldedaten werden nicht gespeichert; veröffentlicht wird nur vom Zweig `main`, nie zwei Läufe gleichzeitig; eine veröffentlichte Version wird nie überschrieben, `latest` zeigt nur auf die höchste Version.
