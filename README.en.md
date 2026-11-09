@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.1.0** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.4.2** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -448,7 +448,7 @@ assets.institute.local {
 
 Nothing else is required: AssetLotse detects the reverse proxy automatically. Forwarding headers (real visitor IP, HTTPS) are only accepted from private networks – i.e. from the proxy, never directly from the internet. Cookies automatically get the Secure flag over HTTPS; sign-in via `http://IP:9343` on the LAN keeps working. Security keys (WebAuthn) require HTTPS.
 
-**AssetLotse enforces HTTPS itself** (since 2.4.0): if a request reaches the proxy via `http://` (the proxy reports this with `X-Forwarded-Proto: http` or `X-Forwarded-Port: 80`), AssetLotse redirects permanently to `https://<same name>/…`; every HTTPS response carries `Strict-Transport-Security` (HSTS, one year, this host name only). An HTTP rule in the proxy (e.g. on a Synology “http://asset… → http://IP:9343”) is therefore harmless – it only leads to the redirect. Direct access via `http://IP:9343` on the LAN stays as it is. Switch off with `ASSETLOTSE_FORCE_HTTPS=0` (e.g. if the proxy deliberately only offers HTTP).
+**AssetLotse enforces HTTPS itself** (since 2.4.0, same rules as Catalytix and Helfi.Space since 2.4.2): as soon as an address has been opened once over HTTPS through the proxy, AssetLotse permanently redirects HTTP for that address to `https://<same name>/…` (301, forms 308 – they keep their data). It remembers the address in the data folder (`https-hosts.txt`); a proxy without any HTTPS is therefore never redirected into nothing. AssetLotse sends HSTS (one year, this host name only) only where it had to redirect itself – a proxy that redirects on its own (NPM with “Force SSL”) keeps its own HSTS header, no second one is added. AssetLotse recognises the way in from `X-Forwarded-Proto`, or else `X-Forwarded-Port` (80 = HTTP, 443 = HTTPS). On a Synology, create both rules: `http://asset…` and `https://asset…`, each to `http://IP:9343`. Direct access via `http://IP:9343` on the LAN and requests to an IP address are never redirected. `ASSETLOTSE_FORCE_HTTPS=1` applies right away (and always sends HSTS), `0` turns it off.
 
 When publishing to the internet, do not forward port 9343 on your router – only the proxy should be reachable from outside. The login page deliberately reveals nothing about the setup (no version number, no AD hint, identical error messages for unknown users, wrong passwords and locked accounts).
 
@@ -539,7 +539,7 @@ Privacy: backups contain all data, including data already deleted by the retenti
 | `PUID` / `PGID` | User/group owning `./data` (default `1000`) |
 | `ASSETLOTSE_TRUSTED_PROXIES` | Who may send proxy headers: `private` (default), `none` or a list such as `172.18.0.0/16,192.168.0.11` |
 | `ASSETLOTSE_SECURE_COOKIES` | `auto` (default: over HTTPS), `1` (always), `0` (never) |
-| `ASSETLOTSE_FORCE_HTTPS` | `auto` (default): via the proxy over HTTP → redirect to HTTPS, HSTS header over HTTPS; `0` = neither |
+| `ASSETLOTSE_FORCE_HTTPS` | `auto` (default: switch once HTTPS through the proxy was seen), `1` (always), `0` (never) – redirect HTTP through the reverse proxy to HTTPS and send HSTS |
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (default), `DEBUG` for LDAP troubleshooting |
 | `ASSETLOTSE_SESSION_HOURS` | Start value of the [automatic sign-out](#automatic-sign-out) in hours without activity (default `12`, `0` = off). After that, what is saved under *Settings* applies |
 | `ASSETLOTSE_BACKUP_DIR` | Folder for automatic backups inside the container (default: `backups` in the data directory). Must be mounted as a volume in `docker-compose.override.yml` – otherwise the container warns at start-up |

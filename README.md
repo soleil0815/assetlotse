@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.1.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.4.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -448,7 +448,7 @@ assets.institut.local {
 
 Mehr ist nicht nötig: AssetLotse erkennt den Reverse-Proxy automatisch. Die Weiterleitungs-Header (echte Besucher-IP, HTTPS) werden nur akzeptiert, wenn die Verbindung aus einem privaten Netz kommt – also vom Proxy, nicht direkt aus dem Internet. Cookies bekommen bei HTTPS automatisch das Secure-Flag; über `http://IP:9343` im LAN funktioniert die Anmeldung weiterhin. Für Sicherheitsschlüssel (WebAuthn) ist HTTPS Pflicht.
 
-**HTTPS erzwingen macht AssetLotse selbst** (seit 2.4.0): Kommt ein Aufruf über den Proxy per `http://` an (der Proxy meldet das mit `X-Forwarded-Proto: http` oder `X-Forwarded-Port: 80`), leitet AssetLotse dauerhaft auf `https://<derselbe Name>/…` um; jede HTTPS-Antwort trägt `Strict-Transport-Security` (HSTS, ein Jahr, nur dieser Hostname). Eine HTTP-Regel im Proxy (z. B. bei der Synology „http://asset… → http://IP:9343“) ist damit unschädlich – sie führt nur noch zur Umleitung. Der direkte Zugriff `http://IP:9343` im LAN bleibt wie er ist. Abschalten mit `ASSETLOTSE_FORCE_HTTPS=0` (z. B. wenn der Proxy absichtlich nur HTTP anbietet).
+**HTTPS erzwingen macht AssetLotse selbst** (seit 2.4.0, Regeln wie in Catalytix und Helfi.Space seit 2.4.2): Sobald eine Adresse einmal per HTTPS über den Proxy aufgerufen wurde, leitet AssetLotse für diese Adresse HTTP dauerhaft auf `https://<derselbe Name>/…` um (301, Formulare 308 – sie behalten ihre Daten). Die Adresse merkt es sich im Datenordner (`https-hosts.txt`); ein Proxy ganz ohne HTTPS wird dadurch nie ins Leere umgeleitet. HSTS (ein Jahr, nur dieser Hostname) sendet AssetLotse nur, wenn es selbst umleiten musste – ein Proxy, der selbst umleitet (NPM mit „Force SSL“), behält seinen eigenen HSTS-Header, es entsteht kein zweiter. Den Weg erkennt AssetLotse an `X-Forwarded-Proto`, ersatzweise an `X-Forwarded-Port` (80 = HTTP, 443 = HTTPS). Bei der Synology beide Regeln anlegen: `http://asset…` und `https://asset…` jeweils auf `http://IP:9343`. Der direkte Zugriff `http://IP:9343` im LAN und Aufrufe über eine IP-Adresse werden nie umgeleitet. `ASSETLOTSE_FORCE_HTTPS=1` gilt sofort (und sendet immer HSTS), `0` schaltet es ab.
 
 Bei Freigabe ins Internet Port 9343 am Router nicht freigeben – von außen soll nur der Proxy erreichbar sein. Die Anmeldeseite verrät bewusst nichts über die Umgebung (keine Versionsnummer, kein AD-Hinweis, gleiche Fehlermeldung für unbekannte Benutzer, falsche Passwörter und gesperrte Konten).
 
@@ -539,7 +539,7 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `PUID` / `PGID` | Benutzer/Gruppe für `./data` (Standard `1000`) |
 | `ASSETLOTSE_TRUSTED_PROXIES` | Von wem Proxy-Header akzeptiert werden: `private` (Standard), `none` oder Liste wie `172.18.0.0/16,192.168.0.11` |
 | `ASSETLOTSE_SECURE_COOKIES` | `auto` (Standard: bei HTTPS), `1` (immer), `0` (nie) |
-| `ASSETLOTSE_FORCE_HTTPS` | `auto` (Standard): über den Proxy per HTTP → Umleitung auf HTTPS, bei HTTPS HSTS-Header; `0` = beides aus |
+| `ASSETLOTSE_FORCE_HTTPS` | `auto` (Standard: umschalten, sobald HTTPS über den Proxy gesehen wurde), `1` (immer), `0` (nie) – HTTP über den Reverse-Proxy auf HTTPS umleiten und HSTS senden |
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
 | `ASSETLOTSE_SESSION_HOURS` | Startwert der [automatischen Abmeldung](#automatische-abmeldung) in Stunden ohne Aktivität (Standard `12`, `0` = aus). Danach gilt, was unter *Einstellungen* gespeichert ist |
 | `ASSETLOTSE_BACKUP_DIR` | Ordner für die automatischen Sicherungen im Container (Standard: `backups` im Datenverzeichnis). Muss in `docker-compose.override.yml` als Volume eingebunden sein – sonst warnt der Container beim Start |

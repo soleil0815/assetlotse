@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.4.2",
+      "date": "2026-11-08",
+      "kind": "fix",
+      "audience": "admin",
+      "de": {
+        "title": "HTTPS passt sich dem Reverse-Proxy an",
+        "text": "Die Umleitung auf HTTPS funktioniert jetzt genauso wie in Catalytix und Helfi.Space: AssetLotse leitet erst um, wenn die Adresse einmal per HTTPS erreicht wurde, und sendet HSTS nur, wenn der Proxy das nicht selbst übernimmt (z. B. Synology). Mit Nginx Proxy Manager („Force SSL“) entsteht kein doppelter HSTS-Header mehr."
+      },
+      "en": {
+        "title": "HTTPS adapts to the reverse proxy",
+        "text": "The redirect to HTTPS now works exactly as in Catalytix and Helfi.Space: AssetLotse only redirects once the address has been reached over HTTPS, and sends HSTS only if the proxy does not do so itself (e.g. Synology). With Nginx Proxy Manager (“Force SSL”) there is no duplicate HSTS header any more."
+      }
+    },
+    {
       "version": "2.4.1",
       "date": "2026-11-08",
       "kind": "fix",
