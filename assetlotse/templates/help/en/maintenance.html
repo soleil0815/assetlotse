@@ -14,11 +14,15 @@ docker compose up -d</code></pre>
 <p><b>When a run on GitHub is red</b> (GitHub sends an e-mail): nothing was published, the servers keep their version. The cause is shown briefly on the run. Usually: <i>Tests failed</i> – a new package does not fit, the fix comes as a new version; <i>Trivy … finding(s)</i> – the fix lies outside the limits (raise it deliberately) or the finding is provably harmless (entry with reason and expiry date in <code>.trivyignore</code>); <i>Base ends soon</i> – plan the switch to the next base; network errors – run it again. The full overview is in the README, section "Security and freshness of the image".</p>
 <p><b>Emergency commands</b> – each prefixed with <code>docker compose exec assetlotse docker-entrypoint.sh</code> (going through the entrypoint runs them without root rights like the app, so e.g. backups are not owned by root):</p>
 <ul>
-  <li><code>flask --app wsgi reset-password admin</code> – new password for a local account (also re-enables it)</li>
+  <li><code>flask --app wsgi reset-password admin</code> – new password for a local account (also re-enables it and lifts the sign-in lockout)</li>
   <li><code>flask --app wsgi reset-2fa admin</code> – reset the second factor</li>
+  <li><code>flask --app wsgi make-admin NAME</code> – give an account the admin role back (and re-enable it)</li>
+  <li><code>flask --app wsgi unlock NAME</code> – lift the lockout after failed attempts right away</li>
+  <li><code>flask --app wsgi list-admins</code> – list all admin accounts</li>
   <li><code>flask --app wsgi create-admin emergency</code> – additional local admin account</li>
   <li><code>flask --app wsgi backup</code> – back up now</li>
   <li><code>flask --app wsgi send-reminders</code> – send reminders now</li>
   <li><code>flask --app wsgi apply-retention</code> – apply the retention period now</li>
 </ul>
+<p><b>Locked out as administrator?</b> Through the server you always get back in: forgotten password → <code>reset-password</code>; phone or key lost → a recovery code, otherwise <code>reset-2fa</code>; "too many failed attempts" → wait 5 minutes or <code>unlock</code>; admin role gone → <code>make-admin</code> (for an AD account the AD rules decide again at the next sign-in – then use a local account); no admin left → <code>list-admins</code>, <code>create-admin</code>; AD not working → sign in with the <b>local</b> admin account. In the console of Dockhand leave out <code>docker compose exec assetlotse</code>. Precaution: a second local emergency admin account and the 2FA recovery codes in your password manager.</p>
 <p>Most of this is also available in the interface: reset 2FA and lift sign-in locks in the user's account, <span class="ui">Back up now</span>, <span class="ui">Send now</span>, <span class="ui">Clean up now</span>. The version is shown at the bottom of the sidebar; clicking it shows the licence and source code.</p>

@@ -2,6 +2,16 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.5.1 – 2026-11-09
+
+**Added**
+- Emergency commands for a locked-out administrator: `make-admin NAME` gives an account the administrator role
+  back and re-enables it (for an AD account it notes that the AD rules decide again at the next sign-in),
+  `unlock NAME` lifts the sign-in lockout after failed attempts right away, `list-admins` lists all administrator
+  accounts. `reset-password` now also lifts the lockout.
+- README (de/en) section "Locked out as administrator – what now?" and the same overview in the help page
+  *Maintenance*.
+
 ## 2.5.0 – 2026-11-09
 
 **Security**

@@ -562,8 +562,11 @@ Commands in the running container – always through the entrypoint, so they run
 
 ```bash
 E="docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi"
-$E reset-password admin       # reset admin password
+$E reset-password admin       # reset password (re-enables the account, lifts the sign-in lockout)
 $E reset-2fa admin            # reset second factor (phone/key lost)
+$E make-admin michael         # give an account the admin role back (and re-enable it)
+$E unlock admin               # lift the lockout after failed attempts right away
+$E list-admins                # list all admin accounts
 $E apply-retention            # apply retention period now (delete old loans)
 $E send-reminders             # send reminders now
 $E create-admin emergency     # additional local admin account
@@ -571,6 +574,24 @@ $E backup                     # back up the database now
 ```
 
 Listing and restoring backups (stop the container first): see [Backups](#backups).
+
+In the console of Dockhand (or another container manager) leave out `docker compose exec assetlotse` – enter `docker-entrypoint.sh flask --app wsgi …` directly there.
+
+### Locked out as administrator – what now?
+
+You can only lock yourself out in the web interface; through the server you always get back in (`$E` as above):
+
+| What happened? | Solution |
+|---|---|
+| Password forgotten | `$E reset-password admin` – asks twice for the new password (at least 10 characters), re-enables the account and lifts the sign-in lockout |
+| Phone or security key lost | first use a recovery code, otherwise `$E reset-2fa admin` |
+| "Too many failed attempts" | 8 failed attempts lock name and address for 5 minutes – wait or `$E unlock admin` |
+| Admin role removed by mistake or account disabled | `$E make-admin NAME`. For an AD account the AD rules set the role again at the next sign-in – then sign in with a local account and fix the rules |
+| No admin account left / not sure which exist | `$E list-admins`, then if needed `$E create-admin emergency` |
+| Active Directory misconfigured or unreachable | sign in with the **local** admin account – that always works without AD; there you can also switch AD off |
+| Database damaged or wrong change | restore a backup, see [Backups](#backups) |
+
+**Precautions:** create a second local emergency admin account with a long password in your password manager, keep the 2FA recovery codes and back up the `./data` folder – database and `secret_key` belong together.
 
 The initial setup in the browser (`/setup`) works only once and only from the internal network (or via `localhost`) – otherwise any stranger could become admin of a freshly installed, openly reachable instance. If there is no administrator account later on (e.g. deleted by mistake), create one with `create-admin` on the server – for security reasons this is no longer possible via the web.
 

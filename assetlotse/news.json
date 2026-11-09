@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.5.1",
+      "date": "2026-11-09",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Notfallbefehle, falls Sie sich aussperren",
+        "text": "Neue Befehle auf dem Server: make-admin gibt einem Konto die Admin-Rolle zurück, unlock hebt die Anmeldesperre sofort auf, list-admins zeigt alle Admin-Konten. Was in welchem Fall hilft, steht in der Hilfe unter „Wartung“."
+      },
+      "en": {
+        "title": "Emergency commands if you lock yourself out",
+        "text": "New commands on the server: make-admin gives an account the admin role back, unlock lifts the sign-in lockout right away, list-admins shows all admin accounts. What helps in which case is in the help under “Maintenance”."
+      }
+    },
+    {
       "version": "2.5.0",
       "date": "2026-11-09",
       "kind": "security",

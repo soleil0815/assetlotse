@@ -14,11 +14,15 @@ docker compose up -d</code></pre>
 <p><b>Wenn ein Lauf auf GitHub rot ist</b> (GitHub schickt eine E-Mail): Es wurde nichts veröffentlicht, die Server behalten ihre Version. Die Ursache steht kurz am Lauf. Meist: <i>Tests failed</i> – ein neues Paket passt nicht, Anpassung als neue Version; <i>Trivy … finding(s)</i> – die Korrektur liegt außerhalb der Grenzen (bewusst anheben) oder der Befund ist nachweislich harmlos (Eintrag mit Begründung und Ablaufdatum in <code>.trivyignore</code>); <i>Base ends soon</i> – Wechsel auf den nächsten Unterbau planen; Netzwerkfehler – Lauf erneut starten. Die vollständige Übersicht steht in der README, Abschnitt „Sicherheit und Aktualität des Images“.</p>
 <p><b>Befehle für den Notfall</b> – jeweils mit <code>docker compose exec assetlotse docker-entrypoint.sh</code> davor (über den Entrypoint laufen sie wie die App ohne Root-Rechte, z. B. gehören Sicherungen dann nicht root):</p>
 <ul>
-  <li><code>flask --app wsgi reset-password admin</code> – neues Passwort für ein lokales Konto (aktiviert es auch wieder)</li>
+  <li><code>flask --app wsgi reset-password admin</code> – neues Passwort für ein lokales Konto (aktiviert es auch wieder und hebt die Anmeldesperre auf)</li>
   <li><code>flask --app wsgi reset-2fa admin</code> – zweiten Faktor zurücksetzen</li>
+  <li><code>flask --app wsgi make-admin NAME</code> – einem Konto die Admin-Rolle zurückgeben (und es aktivieren)</li>
+  <li><code>flask --app wsgi unlock NAME</code> – Anmeldesperre nach Fehlversuchen sofort aufheben</li>
+  <li><code>flask --app wsgi list-admins</code> – alle Admin-Konten anzeigen</li>
   <li><code>flask --app wsgi create-admin notfall</code> – zusätzliches lokales Admin-Konto</li>
   <li><code>flask --app wsgi backup</code> – jetzt sichern</li>
   <li><code>flask --app wsgi send-reminders</code> – Erinnerungen jetzt versenden</li>
   <li><code>flask --app wsgi apply-retention</code> – Aufbewahrungsfrist jetzt anwenden</li>
 </ul>
+<p><b>Als Administrator ausgesperrt?</b> Über den Server kommen Sie immer wieder hinein: Passwort vergessen → <code>reset-password</code>; Handy oder Schlüssel verloren → ein Wiederherstellungscode, sonst <code>reset-2fa</code>; „zu viele Fehlversuche“ → 5 Minuten warten oder <code>unlock</code>; Admin-Rolle weg → <code>make-admin</code> (bei einem AD-Konto entscheiden bei der nächsten Anmeldung wieder die AD-Regeln – dann mit einem lokalen Konto anmelden); kein Admin mehr → <code>list-admins</code>, <code>create-admin</code>; AD funktioniert nicht → mit dem <b>lokalen</b> Admin-Konto anmelden. In der Konsole von Dockhand entfällt <code>docker compose exec assetlotse</code>. Vorsorge: ein zweites lokales Notfall-Admin-Konto und die Wiederherstellungscodes der 2FA im Passwort-Manager.</p>
 <p>Fast alles davon geht auch in der Oberfläche: 2FA zurücksetzen und Anmeldesperre aufheben im Benutzerkonto, <span class="ui">Jetzt sichern</span>, <span class="ui">Jetzt versenden</span>, <span class="ui">Jetzt bereinigen</span>. Die Version steht unten in der Seitenleiste; ein Klick darauf zeigt Lizenz und Quellcode.</p>

@@ -562,8 +562,11 @@ Befehle im laufenden Container – immer über den Entrypoint, damit sie wie die
 
 ```bash
 E="docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi"
-$E reset-password admin       # Admin-Passwort zurücksetzen
+$E reset-password admin       # Passwort zurücksetzen (aktiviert das Konto, hebt die Anmeldesperre auf)
 $E reset-2fa admin            # zweiten Faktor zurücksetzen (Handy/Schlüssel verloren)
+$E make-admin michael         # einem Konto die Admin-Rolle zurückgeben (und es aktivieren)
+$E unlock admin               # Anmeldesperre nach Fehlversuchen sofort aufheben
+$E list-admins                # alle Admin-Konten anzeigen
 $E apply-retention            # Aufbewahrungsfrist sofort anwenden (alte Ausgaben löschen)
 $E send-reminders             # Erinnerungen sofort versenden
 $E create-admin notfall       # zusätzliches lokales Admin-Konto
@@ -571,6 +574,24 @@ $E backup                     # Datenbank jetzt sichern
 ```
 
 Sicherungen anzeigen und zurückspielen (Container vorher anhalten): siehe [Datensicherung](#datensicherung).
+
+In der Konsole von Dockhand (oder einer anderen Container-Verwaltung) entfällt `docker compose exec assetlotse` – dort direkt `docker-entrypoint.sh flask --app wsgi …` eingeben.
+
+### Als Administrator ausgesperrt – was tun?
+
+Aussperren kann man sich nur aus der Weboberfläche; über den Server kommen Sie immer wieder hinein (`$E` wie oben):
+
+| Was ist passiert? | Lösung |
+|---|---|
+| Passwort vergessen | `$E reset-password admin` – fragt zweimal nach dem neuen Passwort (mindestens 10 Zeichen), aktiviert das Konto und hebt die Anmeldesperre auf |
+| Handy oder Sicherheitsschlüssel verloren | zuerst einen Wiederherstellungscode verwenden, sonst `$E reset-2fa admin` |
+| „Zu viele Fehlversuche“ | 8 Fehlversuche sperren Name und Adresse für 5 Minuten – abwarten oder `$E unlock admin` |
+| Admin-Rolle versehentlich entzogen oder Konto gesperrt | `$E make-admin NAME`. Bei einem AD-Konto setzen die AD-Regeln die Rolle bei der nächsten Anmeldung neu – dann mit einem lokalen Konto anmelden und die Regeln korrigieren |
+| Kein Admin-Konto mehr / unklar, welches es gibt | `$E list-admins`, dann ggf. `$E create-admin notfall` |
+| Active Directory falsch eingestellt oder nicht erreichbar | mit dem **lokalen** Admin-Konto anmelden – das geht immer ohne AD; dort lässt sich das AD auch abschalten |
+| Datenbank beschädigt oder falsche Änderung | Sicherung zurückspielen, siehe [Datensicherung](#datensicherung) |
+
+**Vorsorge:** ein zweites lokales Notfall-Admin-Konto mit langem Passwort im Passwort-Manager anlegen, die Wiederherstellungscodes der 2FA aufbewahren und den Ordner `./data` sichern – Datenbank und `secret_key` gehören zusammen.
 
 Die Ersteinrichtung im Browser (`/setup`) ist nur einmal und nur aus dem internen Netz (oder über `localhost`) möglich – sonst könnte bei einer frisch installierten, offen erreichbaren Instanz jeder Fremde zuerst Admin werden. Gibt es später kein Administratorkonto mehr (z. B. versehentlich gelöscht), legen Sie eines mit `create-admin` auf dem Server an – im Web geht das aus Sicherheitsgründen nicht mehr.
 
