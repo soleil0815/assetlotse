@@ -4,6 +4,8 @@
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
+> **Built for my own use – use at your own responsibility.** I built AssetLotse primarily for myself, because I wanted exactly this kind of program for my own environment. I run it in production myself, so I usually notice bugs quickly and fix them promptly. If you would like to use AssetLotse too: you are welcome to – at your own responsibility. There is no warranty and no liability (sections 15 and 16 of the [license](LICENSE)). Try it in a test environment first and keep backups. Bug reports and suggestions for improvement are welcome – preferably as an [issue](https://github.com/soleil0815/assetlotse/issues); please report security vulnerabilities privately, as described in [SECURITY.md](SECURITY.md). I cannot promise support or response times.
+
 - **Inventory** – items with name, **category** (a manager creates one simply by typing it; existing categories are suggested), manufacturer, model, **serial number**, **inventory number**, description/accessories, location, group, **quantity** and **photo**.
 - **Confidential details** per item (e.g. BitLocker recovery key, PIN, password) – stored encrypted, visible only to administrators and managers of the item's group (optionally also to the current borrower after re-entering their password), every reveal is logged, never exported.
 - **Issuing** – to a person, with a return date or **open-ended** (the default). Returns, extensions, overdue tracking, loan limits.
