@@ -28,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.4.2"
+__version__ = "2.5.0"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
@@ -43,7 +43,7 @@ import hashlib as _hashlib
 
 _ASSET_REV = _hashlib.sha1(f"assetlotse-{__version__}".encode()).hexdigest()[:8]
 
-CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; "
        "font-src 'self'; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; "
        "form-action 'self'; frame-ancestors 'self'")
 
@@ -460,7 +460,8 @@ def create_app(test_config: dict | None = None) -> Flask:
     # ------------------------------------------------------------ Initial setup
     @app.before_request
     def require_setup():
-        if request.endpoint in ("main.setup", "main.set_language", "static", "main.branding_file") or request.endpoint is None:
+        if request.endpoint in ("main.setup", "main.set_language", "static", "main.branding_file", "main.site_css") \
+                or request.endpoint is None:
             return None
         if not app.config.get("_setup_done"):
             if User.query.filter_by(role=ROLE_ADMIN).first() is None:
@@ -484,7 +485,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     def recheck_ldap_session():
         """Anyone disabled or deleted in AD, or removed from the authorized group, must not keep working
         with an old session (or "Stay signed in")."""
-        if request.endpoint in (None, "static", "main.branding_file") or not current_user.is_authenticated:
+        if request.endpoint in (None, "static", "main.branding_file", "main.site_css") or not current_user.is_authenticated:
             return None
         if current_user.auth_source != "ldap":
             return None

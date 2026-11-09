@@ -273,10 +273,6 @@ class Asset(db.Model):
         return " ".join(p for p in (self.manufacturer, self.model) if p)
 
     @property
-    def hue(self) -> int:
-        return sum(ord(c) for c in (self.category or self.name or "x")) % 360
-
-    @property
     def has_secret(self) -> bool:
         return bool(self.secret)
 

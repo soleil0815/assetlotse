@@ -42,23 +42,23 @@
               <a href="{{ url_for('assets.detail', asset_id=o.asset.id) }}" target="_blank" rel="noopener">{{ _("View “{name}”", name=o.asset.name) }}</a>{% endif %}</div>
           <div class="field span-6"><label for="f-description">{{ _("Description / accessories") }}</label><textarea id="f-description" name="description" placeholder="{{ _("e.g. with power supply and bag; condition; warranty until …") }}">{{ asset.description or '' }}</textarea></div>
         </div>
-        <div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">
+        <div class="hint u-fs-12_5 u-c-muted u-mt-6">
           {{ _('Tip: a USB/Bluetooth barcode scanner works directly in the number fields – it “types” the number and presses <span class="kbd">Enter</span>.') }}</div>
       </section>
 
       <section class="card card-pad">
-        <h3 style="margin-bottom: 6px">{{ icon("key") }} {{ _("Confidential details") }}</h3>
-        <p class="muted" style="margin-bottom: 12px">{{ _("E.g. a BitLocker recovery key, PIN or password. Stored encrypted, never exported, and every reveal is logged. Only administrators and managers who are members of the selected group may see it – for “General”, administrators only.") }}</p>
+        <h3 class="u-mb-6">{{ icon("key") }} {{ _("Confidential details") }}</h3>
+        <p class="muted u-mb-12">{{ _("E.g. a BitLocker recovery key, PIN or password. Stored encrypted, never exported, and every reveal is logged. Only administrators and managers who are members of the selected group may see it – for “General”, administrators only.") }}</p>
         {% if not is_new and not current_user.can_view_secret(asset) %}
         <div class="notice warn">{{ icon("lock") }}<div>{{ _("Confidential details are only visible to administrators and to managers who are members of this item's group.") }}</div></div>
         {% else %}
         {% if asset.has_secret %}
-        <div class="notice accent" style="margin-bottom: 12px">{{ icon("lock") }}<div>{{ _("Confidential details are already stored. The field stays empty – only fill it in to replace them.") }}</div></div>
+        <div class="notice accent u-mb-12">{{ icon("lock") }}<div>{{ _("Confidential details are already stored. The field stays empty – only fill it in to replace them.") }}</div></div>
         {% endif %}
         <div class="field"><textarea name="secret" aria-label="{{ _("Confidential details") }}" rows="3" maxlength="4000" class="code-input" spellcheck="false" autocomplete="off"
              placeholder="{{ _("enter new value to replace") if asset.has_secret else _("e.g. 123456-123456-123456-123456-123456-123456-123456-123456") }}"></textarea></div>
         <input type="hidden" name="secret_holder_view_shown" value="1">
-        <label class="check" style="margin-top: 10px"><input type="checkbox" name="secret_holder_view" value="1" {{ "checked" if asset.secret_holder_view }}>
+        <label class="check u-mt-10"><input type="checkbox" name="secret_holder_view" value="1" {{ "checked" if asset.secret_holder_view }}>
           <span>{{ _("The person this item is issued to may view the details themselves") }}<br>
           <small class="muted">{{ _("Only while the item is issued to them and only after entering their password; every view is logged. Handy when someone has forgotten the BitLocker key of their drive.") }} {{ _("Applies only to single items and only to issues made by someone who may see the details themselves – not to self-checkout.") }}</small></span></label>
         {% if asset.has_secret %}<label class="check"><input type="checkbox" name="remove_secret" value="1"> {{ _("Delete confidential details") }}</label>{% endif %}
@@ -68,7 +68,7 @@
 
     <div class="stack">
       <section class="card card-pad">
-        <h3 style="margin-bottom: 14px">{{ _("Inventory") }}</h3>
+        <h3 class="u-mb-14">{{ _("Inventory") }}</h3>
         <div class="field"><label for="f-group-id">{{ _("Group") }}</label>
           <select id="f-group-id" name="group_id">
             <option value="">{{ _("General – for everyone") }}</option>
@@ -93,8 +93,8 @@
       </section>
 
       <section class="card card-pad">
-        <h3 style="margin-bottom: 14px">{{ _("Photo") }}</h3>
-        <div class="photo-grid" style="display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 14px; align-items: start">
+        <h3 class="u-mb-14">{{ _("Photo") }}</h3>
+        <div class="photo-grid u-d-grid u-gtc-90-minmax-0-1fr u-gap-14 u-ai-start">
           <div>{{ thumb(asset) }}</div>
           <div>
             <div class="field"><label for="f-image-upload">{{ _("Upload picture") }}</label><input id="f-image-upload" type="file" name="image_upload" accept="image/*"></div>
@@ -107,7 +107,7 @@
     </div>
   </div>
 
-  <div class="actions" style="margin-top: 20px; justify-content: flex-end">
+  <div class="actions u-mt-20 u-jc-end">
     <a class="btn ghost" href="{{ url_for('assets.detail', asset_id=asset.id) if not is_new else url_for('assets.index') }}">{{ _("Cancel") }}</a>
     {% if is_new %}<button class="btn" name="next_action" value="another" title="{{ _("Save and add the next item of the same kind right away") }}">{{ icon("plus") }} {{ _("Save &amp; next") }}</button>{% endif %}
     <button class="btn primary lg">{{ icon("check") }} {{ _("Save") }}</button>

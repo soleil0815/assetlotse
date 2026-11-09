@@ -26,7 +26,6 @@
  "<b>{n} new registration</b> is awaiting approval. Review now →": "<b>{n} neue Registrierung</b> wartet auf Freigabe. Jetzt prüfen →",
  "<b>{n} new registrations</b> are awaiting approval. Review now →": "<b>{n} neue Registrierungen</b> warten auf Freigabe. Jetzt prüfen →",
  "<b>{n}</b> unused code(s) left.": "Noch <b>{n}</b> unbenutzte Code(s).",
- "<span style=\"color: var(--danger)\">Locked</span> after too many failed attempts (password or code). Lifts itself after 5 minutes.": "<span style=\"color: var(--danger)\">Gesperrt</span> nach zu vielen Fehlversuchen (Passwort oder Code). Hebt sich nach 5 Minuten von selbst auf.",
  "A click adds the group above – then <b>Save</b>.": "Klick fügt die Gruppe oben ein – danach <b>Speichern</b>.",
  "A fixed list of rooms, cabinets or shelves. When adding items you then pick from the list instead of typing – no more typos.": "Feste Liste der Regale, Räume oder Schränke. Beim Erfassen wird dann ausgewählt statt getippt – keine Tippfehler mehr.",
  "A group with this name already exists.": "Eine Gruppe mit diesem Namen existiert bereits.",
@@ -1252,5 +1251,6 @@
  "You will be signed out in {n} minutes – continue working?": "Sie werden in {n} Minuten abgemeldet – weiterarbeiten?",
  "same": "wie für alle",
  "Hallo {name},": "Guten Tag {name},",
- "Hallo,": "Guten Tag,"
+ "Hallo,": "Guten Tag,",
+ "<span class=\"u-c-danger\">Locked</span> after too many failed attempts (password or code). Lifts itself after 5 minutes.": "<span class=\"u-c-danger\">Gesperrt</span> nach zu vielen Fehlversuchen (Passwort oder Code). Hebt sich nach 5 Minuten von selbst auf."
 }

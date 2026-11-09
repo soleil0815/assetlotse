@@ -473,7 +473,7 @@ class DashboardTests(Base):
         self.assertIn("Bestand nach Kategorie", html)
         self.assertIn("40 % ausgelastet", html)          # 2 of 5 pieces issued
         self.assertIn("1 in den nächsten 7 Tagen fällig", html)
-        self.assertIn('style="width: 25%"', html)         # Audio: 1 of 4
+        self.assertIn('class="pct-25"', html)             # Audio: 1 of 4 (2.5.0: class instead of style)
         self.login("mia")
         self.assertNotIn("Bestand nach Kategorie", self.c.get("/").get_data(as_text=True))
 

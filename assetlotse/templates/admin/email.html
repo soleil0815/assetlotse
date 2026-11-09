@@ -13,11 +13,11 @@
 
 <form method="post" autocomplete="off">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <button type="submit" name="action" value="save" style="position:absolute;left:-9999px" tabindex="-1" aria-hidden="true"></button>
+  <button type="submit" name="action" value="save" class="offscreen" tabindex="-1" aria-hidden="true"></button>
   <div class="grid grid-2">
     <div class="stack">
       <section class="card card-pad">
-        <h2 style="margin-bottom: 14px">{{ _("SMTP server") }}</h2>
+        <h2 class="u-mb-14">{{ _("SMTP server") }}</h2>
         <label class="check"><input type="checkbox" name="mail_enabled" value="1" {{ 'checked' if v.mail_enabled == '1' }}>
           <span><b>{{ _("Enable sending emails") }}</b></span></label>
         <div class="form-grid">
@@ -36,7 +36,7 @@
           <div class="field span-3"><label for="f-smtp-password">{{ _("Password") }}</label>
             <input id="f-smtp-password" type="password" name="smtp_password" value="" autocomplete="new-password"
                    placeholder="{{ _('•••••• saved') if has_pw else '' }}">
-            {% if has_pw %}<label class="check" style="margin-top: 6px"><input type="checkbox" name="clear_smtp_password" value="1"> {{ _("delete") }}</label>{% endif %}</div>
+            {% if has_pw %}<label class="check u-mt-6"><input type="checkbox" name="clear_smtp_password" value="1"> {{ _("delete") }}</label>{% endif %}</div>
           <div class="field span-3"><label for="f-smtp-from">{{ _("Sender address") }}</label>
             <input id="f-smtp-from" type="email" name="smtp_from" value="{{ v.smtp_from }}" placeholder="it-ausgabe@institut.de"></div>
           <div class="field span-3"><label for="f-smtp-from-name">{{ _("Sender name") }}</label>
@@ -49,8 +49,8 @@
       </section>
 
       <section class="card card-pad">
-        <h2 style="margin-bottom: 6px">{{ _("Test email") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("Uses the values in the form – even if not saved.") }}</p>
+        <h2 class="u-mb-6">{{ _("Test email") }}</h2>
+        <p class="muted u-fs-13_5">{{ _("Uses the values in the form – even if not saved.") }}</p>
         <div class="input-group">
           <input type="email" name="test_to" aria-label="{{ _("Recipient of the test email") }}" value="{{ request.form.get('test_to', current_user.email or '') }}" placeholder="empfaenger@example.org"
                  data-enter-clicks-next>
@@ -59,20 +59,20 @@
       </section>
 
       <section class="card card-pad">
-        <h2 style="margin-bottom: 6px">{{ _("Address of AssetLotse") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("For links in the e-mails (“My items”, “Extend”).") }}</p>
+        <h2 class="u-mb-6">{{ _("Address of AssetLotse") }}</h2>
+        <p class="muted u-fs-13_5">{{ _("For links in the e-mails (“My items”, “Extend”).") }}</p>
         <div class="input-group">
           <input class="mono" type="url" name="app_base_url" aria-label="{{ _("Address of AssetLotse") }}" value="{{ v.app_base_url }}" placeholder="{{ suggested_url }}">
           <button type="button" class="btn" data-fill-previous="{{ suggested_url }}">{{ _("Use current") }}</button>
         </div>
-        <div class="field" style="margin-top: 14px"><label for="f-mail-footer">{{ _("Footer / signature") }} <small>{{ _("(optional)") }}</small></label>
-          <textarea id="f-mail-footer" name="mail_footer" style="min-height: 80px" placeholder="{{ _('IT equipment desk · Room 0.12 · Mon–Fri 9 am–3 pm') }}">{{ v.mail_footer }}</textarea></div>
+        <div class="field u-mt-14"><label for="f-mail-footer">{{ _("Footer / signature") }} <small>{{ _("(optional)") }}</small></label>
+          <textarea id="f-mail-footer" name="mail_footer" class="u-minh-80" placeholder="{{ _('IT equipment desk · Room 0.12 · Mon–Fri 9 am–3 pm') }}">{{ v.mail_footer }}</textarea></div>
       </section>
     </div>
 
     <div class="stack">
       <section class="card card-pad">
-        <h2 style="margin-bottom: 14px">{{ _("Notifications") }}</h2>
+        <h2 class="u-mb-14">{{ _("Notifications") }}</h2>
         <label class="check"><input type="checkbox" name="mail_on_loan" value="1" {{ 'checked' if v.mail_on_loan == '1' }}>
           <span>{{ _("Confirmation when issued") }}<small class="muted">{{ _("With name and return date.") }}</small></span></label>
         <label class="check"><input type="checkbox" name="mail_on_return" value="1" {{ 'checked' if v.mail_on_return == '1' }}>
@@ -80,12 +80,12 @@
         <hr>
         <label class="check"><input type="checkbox" name="mail_reminder" value="1" {{ 'checked' if v.mail_reminder == '1' }}>
           <span>{{ _("Reminder before due date") }}</span></label>
-        <div class="form-grid" style="margin-left: 28px">
+        <div class="form-grid u-ml-28">
           <div class="field span-3"><label for="f-mail-reminder-days">{{ _("Days before") }}</label><input id="f-mail-reminder-days" type="number" name="mail_reminder_days" min="0" max="30" value="{{ v.mail_reminder_days }}"></div>
         </div>
         <label class="check"><input type="checkbox" name="mail_overdue" value="1" {{ 'checked' if v.mail_overdue == '1' }}>
           <span>{{ _p("long", "Overdue notice") }}</span></label>
-        <div class="form-grid" style="margin-left: 28px">
+        <div class="form-grid u-ml-28">
           <div class="field span-3"><label for="f-mail-overdue-repeat-days">{{ _("repeat every … days") }}</label><input id="f-mail-overdue-repeat-days" type="number" name="mail_overdue_repeat_days" min="1" value="{{ v.mail_overdue_repeat_days }}"></div>
           <div class="field span-3"><label for="f-mail-overdue-max">{{ _("at most … notices") }}</label><input id="f-mail-overdue-max" type="number" name="mail_overdue_max" min="0" value="{{ v.mail_overdue_max }}">
             <div class="hint">{{ _("0 = unlimited") }}</div></div>
@@ -97,11 +97,11 @@
           <div class="field span-3"><label for="f-mail-hour">{{ _("Send reminders from") }}</label>
             <select id="f-mail-hour" name="mail_hour">{% for h in range(0, 24) %}<option value="{{ h }}" {{ 'selected' if v.mail_hour|string == h|string }}>{{ _("{time}", time="%02d:00"|format(h)) }}</option>{% endfor %}</select></div>
         </div>
-        <p class="muted" style="font-size: 13px">{{ _("Once a day, several items of one person in one e-mail. Reminders are never sent twice.") }}
+        <p class="muted u-fs-13">{{ _("Once a day, several items of one person in one e-mail. Reminders are never sent twice.") }}
           {% if v.mail_last_result %}<br><b>{{ _("Last run:") }}</b> {{ v.mail_last_result }}{% endif %}</p>
         <button class="btn" name="action" value="run_now" formnovalidate
                 data-confirm-click="{{ _('Save settings and send due reminders now?') }}">{{ icon("send") }} {{ _("Send now") }}</button>
-        {% if pending %}<span class="muted" style="font-size: 13px; margin-left: 8px">{{ _n("{n} person is waiting for a reminder.", "{n} people are waiting for a reminder.", pending|length) }}</span>{% endif %}
+        {% if pending %}<span class="muted u-fs-13 u-ml-8">{{ _n("{n} person is waiting for a reminder.", "{n} people are waiting for a reminder.", pending|length) }}</span>{% endif %}
       </section>
 
       {% if without_mail %}
@@ -111,12 +111,12 @@
     </div>
   </div>
 
-  <div class="actions" style="margin-top: 20px; justify-content: flex-end">
+  <div class="actions u-mt-20 u-jc-end">
     <button class="btn primary lg" name="action" value="save">{{ icon("check") }} {{ _("Save") }}</button>
   </div>
 </form>
 
-<section class="card" style="margin-top: 26px">
+<section class="card u-mt-26">
   <div class="card-head"><h2>{{ _("Delivery log") }}</h2><span class="muted">{{ _("last {n}", n=logs|length) }}</span></div>
   <div class="table-wrap">
   <table>
@@ -128,7 +128,7 @@
     <tr>
       <td class="nowrap"><small>{{ m.created_at|de_date }}</small></td>
       <td><span class="badge">{{ kinds.get(m.kind, m.kind) }}</span></td>
-      <td class="mono" style="font-size: 13px">{{ m.to_addr }}</td>
+      <td class="mono u-fs-13">{{ m.to_addr }}</td>
       <td>{{ m.subject }}</td>
       <td>{% if m.status == 'sent' %}<span class="badge ok">{{ _("sent") }}</span>
           {% else %}<span class="badge danger" title="{{ m.error }}">{{ _("Error") }}</span><br><small class="muted">{{ m.error[:120] }}</small>{% endif %}</td>

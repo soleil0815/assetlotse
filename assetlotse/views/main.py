@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from datetime import date, timedelta
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, flash, make_response, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import case, func
 from sqlalchemy.exc import IntegrityError
@@ -435,6 +435,17 @@ def logout_everywhere():
     _stay_signed_in(current_user._get_current_object())
     flash(_("All other devices have been signed out."), "success")
     return redirect(url_for("security.settings"))
+
+
+@bp.route("/branding/site.css")
+def site_css():
+    """Generated stylesheet (brand and group colours, sign-in background) – public, the sign-in page needs it.
+    The address carries a hash of the content (?v=…), so it may be cached for a long time."""
+    from ..branding import site_css as build
+    resp = make_response(build())
+    resp.headers["Content-Type"] = "text/css; charset=utf-8"
+    resp.headers["Cache-Control"] = "public, max-age=31536000, immutable" if request.args.get("v") else "no-cache"
+    return resp
 
 
 @bp.route("/branding/<path:filename>")

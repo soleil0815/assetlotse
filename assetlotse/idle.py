@@ -34,7 +34,7 @@ MIN_HOURS, MAX_HOURS = 0.25, 720.0
 DEFAULT_HOURS = "12"
 # requests that never count as activity (the browser asks how much time is left)
 PASSIVE = {"idle.status"}
-SKIP = {None, "static", "main.branding_file"}
+SKIP = {None, "static", "main.branding_file", "main.site_css"}
 
 bp = Blueprint("idle", __name__)
 

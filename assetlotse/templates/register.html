@@ -4,10 +4,10 @@
 {% block auth %}
 <h2>{{ _("Create account") }}</h2>
 <p class="muted">{{ _("Register to keep track of your items.") }}</p>
-<form method="post" style="margin-top: 22px" autocomplete="on">
+<form method="post" class="u-mt-22" autocomplete="on">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   {# Invisible to humans – if it is filled in, it was a bot #}
-  <div style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true">
+  <div class="sr-only" aria-hidden="true">
     <label>{{ _("Website") }}<input type="text" name="homepage_url" tabindex="-1" autocomplete="off"></label></div>
   <div class="field"><label for="display_name">{{ _("First and last name") }}</label>
     <input type="text" id="display_name" name="display_name" value="{{ v.display_name or '' }}" autocomplete="name" required maxlength="200" autofocus></div>
@@ -25,7 +25,7 @@
   <label class="check"><input type="checkbox" name="privacy" value="1" required>
     <span>{{ _('I have read the <a href="{url}" target="_blank" rel="noopener">privacy policy</a>.', url=privacy) }}</span></label>
   {% endif %}
-  <button class="btn primary lg block" style="margin-top: 8px">{{ icon("user") }} {{ _("Register") }}</button>
+  <button class="btn primary lg block u-mt-8">{{ icon("user") }} {{ _("Register") }}</button>
 </form>
-<p style="margin-top: 20px; font-size: 14px">{{ _('Already have an account? <a href="{url}">Sign in</a>', url=url_for('main.login')) }}</p>
+<p class="u-mt-20 u-fs-14">{{ _('Already have an account? <a href="{url}">Sign in</a>', url=url_for('main.login')) }}</p>
 {% endblock %}

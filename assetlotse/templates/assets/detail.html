@@ -4,15 +4,15 @@
 {% block content %}
 {% set manage = current_user.can_manage(asset) %}
 {% if catalog_hidden() %}
-<a href="{{ url_for('loans.index') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("My items") }}</a>
+<a href="{{ url_for('loans.index') }}" class="btn ghost sm u-mb-14">{{ icon("arrow-left") }} {{ _("My items") }}</a>
 {% else %}
-<a href="{{ url_for('assets.index') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Inventory") }}</a>
+<a href="{{ url_for('assets.index') }}" class="btn ghost sm u-mb-14">{{ icon("arrow-left") }} {{ _("Inventory") }}</a>
 {% endif %}
 
 <div class="asset-hero">
   <div class="thumb-col">{{ thumb(asset) }}</div>
   <div>
-    <div class="actions" style="justify-content: space-between">
+    <div class="actions u-jc-between">
       <div class="actions">{{ group_badge(asset.group) }} {% if not catalog_hidden() %}{{ avail_badge(asset) }}{% endif %}</div>
       {% if manage %}
       <div class="actions">
@@ -26,7 +26,7 @@
       </div>
       {% endif %}
     </div>
-    <h1 style="margin-top: 16px">{{ asset.name }}</h1>
+    <h1 class="u-mt-16">{{ asset.name }}</h1>
     {% if asset.maker_model %}<div class="sub">{{ asset.maker_model }}</div>{% endif %}
 
     <dl class="facts">
@@ -40,9 +40,9 @@
   </div>
 </div>
 
-<div class="grid grid-2" style="margin-top: 30px">
+<div class="grid grid-2 u-mt-30">
   <section class="card card-pad">
-    <h2 style="margin-bottom: 14px">{{ _("Issuing") }}</h2>
+    <h2 class="u-mb-14">{{ _("Issuing") }}</h2>
     {% if not catalog_hidden() %}
     <div class="avail">
       <div class="num">{{ asset.available }}</div>
@@ -52,7 +52,7 @@
     {% endif %}
 
     {% if own_loan %}
-      <div class="notice accent" style="margin-bottom: 12px">{{ icon("asset") }}
+      <div class="notice accent u-mb-12">{{ icon("asset") }}
         <div>{{ _("This item is issued to you.") }} {{ due_badge(own_loan) }}</div></div>
       <div class="actions">
         {% if can_extend %}
@@ -70,27 +70,27 @@
         {% endif %}
       </div>
       {% if current_user.can_view_own_secret(asset) and not current_user.can_view_secret(asset) %}
-      <div class="own-secret" style="margin-top: 16px">
-        <h3 style="margin-bottom: 8px">{{ icon("key") }} {{ _("Confidential details") }}</h3>
+      <div class="own-secret u-mt-16">
+        <h3 class="u-mb-8">{{ icon("key") }} {{ _("Confidential details") }}</h3>
         {% if own_secret %}
         <div class="secret-box" data-secret>{{ own_secret }}</div>
         <div class="actions">
           <button type="button" class="btn sm" data-copy-secret>{{ icon("copy") }} {{ _("Copy") }}</button>
           <a class="btn sm ghost" href="{{ url_for('assets.detail', asset_id=asset.id) }}">{{ icon("x") }} {{ _("Hide") }}</a>
         </div>
-        <p class="muted" style="margin-top: 8px">{{ _("Visible only while this item is issued to you. This view has been logged.") }}</p>
+        <p class="muted u-mt-8">{{ _("Visible only while this item is issued to you. This view has been logged.") }}</p>
         {% elif current_user.has_2fa and not session.get("mfa_ok") %}
-        <p class="muted" style="margin-bottom: 10px">{{ _("You signed in without a second factor in this session. Confirm it first, then you can view the details with your password.") }}</p>
+        <p class="muted u-mb-10">{{ _("You signed in without a second factor in this session. Confirm it first, then you can view the details with your password.") }}</p>
         <form method="post" action="{{ url_for('security.stepup') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="next" value="{{ url_for('assets.detail', asset_id=asset.id) }}">
           <button class="btn">{{ icon("lock") }} {{ _("Confirm second factor") }}</button>
         </form>
         {% else %}
-        <p class="muted" style="margin-bottom: 10px">{{ _("E.g. the BitLocker recovery key. Enter your password to view it – every view is logged.") }}</p>
+        <p class="muted u-mb-10">{{ _("E.g. the BitLocker recovery key. Enter your password to view it – every view is logged.") }}</p>
         <form method="post" action="{{ url_for('assets.reveal_own_secret', asset_id=asset.id) }}" class="actions" autocomplete="off">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="password" name="password" required autocomplete="current-password" placeholder="{{ _("Your password") }}" aria-label="{{ _("Your password") }}" style="max-width: 260px">
+          <input type="password" name="password" required autocomplete="current-password" placeholder="{{ _("Your password") }}" aria-label="{{ _("Your password") }}" class="u-maxw-260">
           <button class="btn">{{ icon("eye") }} {{ _("Reveal") }}</button>
         </form>
         {% endif %}
@@ -113,7 +113,7 @@
 
     {% if manage and asset.available > 0 and asset.lendable %}
     <hr>
-    <div class="actions" style="justify-content: space-between; margin-bottom: 10px">
+    <div class="actions u-jc-between u-mb-10">
       <h3>{{ _("Issue to …") }}</h3>
       <a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', gegenstand=asset.id) }}" title="{{ _("Find a person – also in Active Directory") }}">{{ icon("search") }} {{ _("Find person") }}</a>
     </div>
@@ -137,7 +137,7 @@
   {% if manage %}
   <div class="stack">
     <section class="card card-pad">
-      <div class="card-head" style="padding: 0 0 10px; border: 0"><h2>{{ icon("key") }} {{ _("Confidential details") }}</h2></div>
+      <div class="card-head u-p-0-0-10 u-b-0"><h2>{{ icon("key") }} {{ _("Confidential details") }}</h2></div>
       {% if not current_user.can_view_secret(asset) %}
         <p class="muted">{% if asset.has_secret %}{{ _("Stored.") }} {% endif %}{{ _("Confidential details are only visible to administrators and to managers who are members of this item's group.") }}</p>
       {% elif not asset.has_secret %}
@@ -151,24 +151,24 @@
       {% else %}
         <p class="muted">{{ _("Stored on {date}. Every reveal is logged.", date=asset.secret_updated_at|de_date if asset.secret_updated_at else "–") }}{% if asset.secret_holder_view %} {{ _("The person this item is issued to may view them themselves.") }}{% endif %}</p>
         {% if current_user.has_2fa and not session.get("mfa_ok") %}
-        <p class="muted" style="margin-top: 8px">{{ _("You signed in without a second factor in this session. Confirm it first, then you can show the details.") }}</p>
-        <form method="post" action="{{ url_for('security.stepup') }}" style="margin-top: 10px">
+        <p class="muted u-mt-8">{{ _("You signed in without a second factor in this session. Confirm it first, then you can show the details.") }}</p>
+        <form method="post" action="{{ url_for('security.stepup') }}" class="u-mt-10">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="next" value="{{ url_for('assets.detail', asset_id=asset.id) }}">
           <button class="btn">{{ icon("lock") }} {{ _("Confirm second factor") }}</button>
         </form>
         {% else %}
-        <form method="post" action="{{ url_for('assets.reveal_secret', asset_id=asset.id) }}" style="margin-top: 10px">
+        <form method="post" action="{{ url_for('assets.reveal_secret', asset_id=asset.id) }}" class="u-mt-10">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn">{{ icon("eye") }} {{ _("Reveal") }}</button>
         </form>
         {% endif %}
       {% endif %}
       {% if asset.secret_log and current_user.can_view_secret(asset) %}
-      <details style="margin-top: 14px">
-        <summary class="muted" style="cursor: pointer">{{ _("Log") }}</summary>
+      <details class="u-mt-14">
+        <summary class="muted u-cursor-pointer">{{ _("Log") }}</summary>
         {% for e in asset.secret_log[:20] %}
-        <div class="list-row" style="padding: 6px 0">
+        <div class="list-row u-p-6-0">
           <div class="grow"><b>{{ e.user.name if e.user else (e.user_label or _("deleted account")) }}</b><small>{{ e.at|de_date }}</small></div>
           <span class="badge">{{ {"view": _("revealed"), "holder": _("viewed (borrower)"), "change": _("changed"), "delete": _("deleted"), "remove": _("item deleted"), "share_on": _("borrower access on"), "share_off": _("borrower access off")}.get(e.action, e.action) }}</span>
         </div>
@@ -181,7 +181,7 @@
       <div class="card-head"><h2>{{ _("History") }}</h2><span class="muted">{{ _n("{n} entry", "{n} entries", asset.loans|length + (asset.archived_loans or 0)) }}{% if asset.archived_loans %} · {{ _("{n} older ones without details", n=asset.archived_loans) }}{% endif %}</span></div>
       {% for loan in asset.loans[:30] %}
       <div class="list-row">
-        <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ loan.user.initials }}</span>
+        <span class="avatar u-w-30 u-h-30 u-fs-11">{{ loan.user.initials }}</span>
         <div class="grow"><b>{{ loan.user.name }}</b><small>{{ loan.loaned_at|de_date }}{% if loan.note %} · {{ loan.note }}{% endif %}</small></div>
         {{ due_badge(loan) }}
         {% if loan.is_active %}

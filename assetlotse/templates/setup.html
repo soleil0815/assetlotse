@@ -5,7 +5,7 @@
 <div class="eyebrow">{{ _("Initial setup") }}</div>
 <h2>{{ _("Set up AssetLotse") }}</h2>
 <p class="muted">{{ _("Create the local administrator account. It works even when Active Directory is unreachable.") }}</p>
-<form method="post" style="margin-top: 22px">
+<form method="post" class="u-mt-22">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="field"><label for="f-org-name">{{ _("Name (organisation or program)") }}</label>
     <input id="f-org-name" type="text" name="org_name" value="{{ request.form.get('org_name', '') }}" placeholder="{{ _('e.g. AssetLotse or IT equipment desk of the institute') }}"></div>

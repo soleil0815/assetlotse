@@ -7,7 +7,7 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="grid grid-2">
     <section class="card card-pad">
-      <h2 style="margin-bottom: 16px">{{ _("General") }}</h2>
+      <h2 class="u-mb-16">{{ _("General") }}</h2>
       <div class="field"><label for="f-org-name">{{ _("Name (organisation or program)") }}</label><input id="f-org-name" type="text" name="org_name" value="{{ s('org_name') }}"></div>
       <div class="field"><label for="f-default-language">{{ _("Default language") }}</label>
         <select id="f-default-language" name="default_language">
@@ -22,8 +22,8 @@
         </select>
         <small class="muted">{{ _("Default: own items only – sensible if items are only issued at the desk. Managers and administrators always see the inventory. For self-checkout, staff members must be able to see the inventory.") }}</small></div>
 
-      <h2 style="margin: 22px 0 6px">{{ icon("shield") }} {{ _("Legal") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Links appear on the sign-in page, in the sidebar and in emails. If AssetLotse is accessible on the internet, both are usually required.") }}</p>
+      <h2 class="u-m-22-0-6">{{ icon("shield") }} {{ _("Legal") }}</h2>
+      <p class="muted u-fs-13_5">{{ _("Links appear on the sign-in page, in the sidebar and in emails. If AssetLotse is accessible on the internet, both are usually required.") }}</p>
       <div class="field"><label for="f-imprint-url">{{ _("Legal notice (address)") }}</label>
         <input id="f-imprint-url" type="url" name="imprint_url" value="{{ s('imprint_url') }}" placeholder="{{ _('https://www.example.org/legal-notice') }}"></div>
       <div class="field"><label for="f-privacy-url">{{ _("Privacy policy (address)") }}</label>
@@ -32,7 +32,7 @@
     </section>
 
     <section class="card card-pad">
-      <h2 style="margin-bottom: 16px">{{ _("Issuing") }}</h2>
+      <h2 class="u-mb-16">{{ _("Issuing") }}</h2>
       <div class="form-grid">
         <div class="field span-3"><label for="f-loan-days">{{ _("Default loan period (days)") }}</label><input id="f-loan-days" type="number" name="loan_days" min="0" value="{{ s('loan_days') }}">
           <div class="hint">{{ _("0 = open-ended (no return date)") }}</div></div>
@@ -50,8 +50,8 @@
     </section>
 
     <section class="card card-pad">
-      <h2 style="margin-bottom: 6px">{{ icon("user") }} {{ _("Self-registration") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("May staff members create an account themselves? New accounts always get the role <b>Staff member</b>. With registration enabled, the sign-in page shows the link “Register now”.") }}</p>
+      <h2 class="u-mb-6">{{ icon("user") }} {{ _("Self-registration") }}</h2>
+      <p class="muted u-fs-13_5">{{ _("May staff members create an account themselves? New accounts always get the role <b>Staff member</b>. With registration enabled, the sign-in page shows the link “Register now”.") }}</p>
       <div class="field"><label for="f-registration-mode">{{ _("Registration") }}</label>
         <select id="f-registration-mode" name="registration_mode">
           <option value="off" {{ 'selected' if s('registration_mode') == 'off' }}>{{ _("off (default)") }}</option>
@@ -60,7 +60,7 @@
         </select></div>
       <label class="check"><input type="checkbox" name="registration_verify_email" value="1" {{ 'checked' if s('registration_verify_email') == '1' }}>
         <span>{{ _("Require email address confirmation") }}<small class="muted">{{ _("Via a link in an email, valid for 48 hours.") }}
-          {% if not mail_on %}<b style="color: var(--warn)">{{ _("Only takes effect once sending emails is set up.") }}</b>{% endif %}</small></span></label>
+          {% if not mail_on %}<b class="u-c-warn">{{ _("Only takes effect once sending emails is set up.") }}</b>{% endif %}</small></span></label>
       <label class="check"><input type="checkbox" name="registration_notify_admins" value="1" {{ 'checked' if s('registration_notify_admins') == '1' }}>
         <span>{{ _("Notify administrators of new registrations by email") }}</span></label>
       <div class="field"><label for="f-registration-domains">{{ _("Only allow these email domains") }} <small>{{ _("(optional)") }}</small></label>
@@ -73,26 +73,26 @@
             {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if s('registration_group_id') == g.id|string }}>{{ g.name }}</option>{% endfor %}
           </select></div>
         <div class="field span-3"><label>{{ _p("document", "Privacy policy") }}</label>
-          <div class="hint" style="margin-top: 6px">{% if s('privacy_url') %}{{ _("Shown during registration and must be accepted.") }}{% else %}{{ _("None set yet – see <i>General → Legal</i>.") }}{% endif %}</div></div>
+          <div class="hint u-mt-6">{% if s('privacy_url') %}{{ _("Shown during registration and must be accepted.") }}{% else %}{{ _("None set yet – see <i>General → Legal</i>.") }}{% endif %}</div></div>
       </div>
     </section>
 
     <section class="card card-pad" id="aufbewahrung">
-      <h2 style="margin-bottom: 6px">{{ icon("clock") }} {{ _("Retention") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Completed loans and the e-mail log are deleted automatically once the period has passed (GDPR: keep data only as long as necessary). For each item, only the number of loans is kept. Current and overdue loans are never deleted.") }}</p>
+      <h2 class="u-mb-6">{{ icon("clock") }} {{ _("Retention") }}</h2>
+      <p class="muted u-fs-13_5">{{ _("Completed loans and the e-mail log are deleted automatically once the period has passed (GDPR: keep data only as long as necessary). For each item, only the number of loans is kept. Current and overdue loans are never deleted.") }}</p>
       <div class="field"><label for="f-retention-months">{{ _("Delete completed loans after") }}</label>
         <select id="f-retention-months" name="retention_months">
           {% for m, label in [("3", _("3 months")), ("6", _("6 months")), ("12", _("12 months (recommended)")), ("24", _("2 years")), ("36", _("3 years")), ("0", _("never (not recommended)"))] %}
           <option value="{{ m }}" {{ 'selected' if s('retention_months') == m }}>{{ label }}</option>{% endfor %}
         </select>
         <div class="hint">{{ _("counted from the return · runs automatically once a day") }}</div></div>
-      {% if s('retention_last_result') %}<p class="muted" style="font-size: 13px; margin: 0 0 10px">{{ _("Last run:") }} {{ retention_result }}</p>{% endif %}
+      {% if s('retention_last_result') %}<p class="muted u-fs-13 u-m-0-0-10">{{ _("Last run:") }} {{ retention_result }}</p>{% endif %}
       <button class="btn sm" type="submit" form="retention-now">{{ icon("check") }} {{ _("Clean up now") }}</button>
     </section>
 
     <section class="card card-pad">
-      <h2 style="margin-bottom: 6px">{{ icon("shield") }} {{ _("Two-factor authentication") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Authenticator app (TOTP) or security key (YubiKey/FIDO2). Anyone can set it up voluntarily in their profile; here you decide for whom it is mandatory. Those affected are guided through setup after their next sign-in.") }}</p>
+      <h2 class="u-mb-6">{{ icon("shield") }} {{ _("Two-factor authentication") }}</h2>
+      <p class="muted u-fs-13_5">{{ _("Authenticator app (TOTP) or security key (YubiKey/FIDO2). Anyone can set it up voluntarily in their profile; here you decide for whom it is mandatory. Those affected are guided through setup after their next sign-in.") }}</p>
       <div class="field"><label for="f-mfa-policy">{{ _("Mandatory for access from outside (internet)") }}</label>
         <select id="f-mfa-policy" name="mfa_policy">
           <option value="optional" {{ 'selected' if s('mfa_policy') == 'optional' }}>{{ _("nobody (voluntary)") }}</option>
@@ -113,19 +113,19 @@
       <div class="field"><label for="f-own-public-hosts">{{ _("Own internet connection") }}</label>
         <textarea id="f-own-public-hosts" name="own_public_hosts" rows="2" class="mono" placeholder="{{ _('my-institute.dyndns.org') }}">{{ s('own_public_hosts') }}</textarea>
         <div class="hint">{% if connection.own_ips %}{{ _("Static public IP or DynDNS name, one entry per line. Requests coming from this address count as internal – needed when internal computers open the public domain and the router passes them on with its own public IP. DynDNS names are re-resolved every 5 minutes (currently: <code>{ips}</code>).", ips=connection.own_ips|join(', ')) }}{% else %}{{ _("Static public IP or DynDNS name, one entry per line. Requests coming from this address count as internal – needed when internal computers open the public domain and the router passes them on with its own public IP. DynDNS names are re-resolved every 5 minutes.") }}{% endif %}</div>
-        <div class="notice warn" style="display: block; font-size: 12.5px; margin-top: 8px">{{ _("Caution: devices on the <b>guest Wi-Fi</b> and every other device behind your router also arrive with this address and are then treated as internal. Keep the guest Wi-Fi separate or block it from AssetLotse.") }}</div></div>
-      <div class="notice {{ 'ok' if connection.internal else 'accent' }}" style="display: block; font-size: 13px; margin-bottom: 12px">
+        <div class="notice warn u-d-block u-fs-12_5 u-mt-8">{{ _("Caution: devices on the <b>guest Wi-Fi</b> and every other device behind your router also arrive with this address and are then treated as internal. Keep the guest Wi-Fi separate or block it from AssetLotse.") }}</div></div>
+      <div class="notice {{ 'ok' if connection.internal else 'accent' }} u-d-block u-fs-13 u-mb-12">
         {% if connection.internal and connection.zone == 'own' %}{{ _("Your current connection ({ip}) counts as <b>internal</b> (via your own internet connection).", ip=connection.ip) }}
         {%- elif connection.internal %}{{ _("Your current connection ({ip}) counts as <b>internal</b>.", ip=connection.ip) }}
         {%- else %}{{ _("Your current connection ({ip}) counts as <b>external</b>.", ip=connection.ip) }}{% endif %}
         {% if connection.proxy_without_ip %}<br>{{ _("The reverse proxy does not send a visitor address (<code>X-Forwarded-For</code>) – for security reasons such requests always count as external.") }}{% endif %}
         <br><small>{{ _("To check, open the page once from a phone over mobile data: it must say “external” there.") }}</small></div>
-      <p class="muted" style="font-size: 12.5px">{{ _('Problems with the second factor? Under <a href="{url}">Users</a> → open the account → “Reset two-factor authentication” or “Lift sign-in lock”.', url=url_for('admin.users')) }}</p>
+      <p class="muted u-fs-12_5">{{ _('Problems with the second factor? Under <a href="{url}">Users</a> → open the account → “Reset two-factor authentication” or “Lift sign-in lock”.', url=url_for('admin.users')) }}</p>
     </section>
 
     <section class="card card-pad" id="abmeldung">
-      <h2 style="margin-bottom: 6px">{{ icon("clock") }} {{ _("Automatic sign-out") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("Anyone who does nothing in AssetLotse for this long is signed out – e.g. when a browser stays open at the issue desk. Every page opened and every saved form counts as activity. The shortest limit that applies wins.") }}</p>
+      <h2 class="u-mb-6">{{ icon("clock") }} {{ _("Automatic sign-out") }}</h2>
+      <p class="muted u-fs-13_5">{{ _("Anyone who does nothing in AssetLotse for this long is signed out – e.g. when a browser stays open at the issue desk. Every page opened and every saved form counts as activity. The shortest limit that applies wins.") }}</p>
       <div class="form-grid">
         <div class="field span-6"><label for="f-session-idle-hours">{{ _("For everyone (hours)") }}</label>
           <input id="f-session-idle-hours" type="text" inputmode="decimal" name="session_idle_hours" value="{{ idle_hours }}" required>
@@ -141,11 +141,11 @@
         {{ _("Show a notice 2 minutes before (“You will be signed out in 2 minutes – continue working?”)") }}</label>
       <label class="check"><input type="checkbox" name="session_end_on_close" value="1" {{ 'checked' if s('session_end_on_close') == '1' }}>
         {{ _("Sign out when the browser is closed – “Stay signed in” is then no longer offered") }}</label>
-      <p class="muted" style="font-size: 12.5px">{{ _("Allowed: 0.25 (15 minutes) to 720 hours. When the time is up, the open page also switches to the sign-in page, so that nothing confidential stays on the screen.") }}</p>
+      <p class="muted u-fs-12_5">{{ _("Allowed: 0.25 (15 minutes) to 720 hours. When the time is up, the open page also switches to the sign-in page, so that nothing confidential stays on the screen.") }}</p>
     </section>
 
   </div>
-  <div class="actions" style="margin-top: 20px; justify-content: flex-end">
+  <div class="actions u-mt-20 u-jc-end">
     <button class="btn primary lg">{{ icon("check") }} {{ _("Save") }}</button>
   </div>
 </form>

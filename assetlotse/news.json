@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.5.0",
+      "date": "2026-11-09",
+      "kind": "security",
+      "audience": "admin",
+      "de": {
+        "title": "Strengere Sicherheitsrichtlinie",
+        "text": "Die Seiten kommen jetzt ganz ohne eingebettete Styles aus. Der Browser lässt deshalb nur noch Stylesheets vom eigenen Server zu – damit verschwindet auch der letzte mittlere Fund aus Sicherheitsscans wie OWASP ZAP. Optisch ändert sich nichts."
+      },
+      "en": {
+        "title": "Stricter security policy",
+        "text": "The pages now do without any embedded styles. The browser therefore only accepts stylesheets from your own server – which also removes the last medium finding of security scans such as OWASP ZAP. Nothing changes visually."
+      }
+    },
+    {
       "version": "2.4.2",
       "date": "2026-11-08",
       "kind": "fix",

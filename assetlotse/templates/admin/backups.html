@@ -18,11 +18,11 @@
 {% if not supported %}
 <div class="notice warn">{{ _("Automatic backup is only available for the built-in SQLite database. With MySQL/MariaDB or PostgreSQL, it is best to back up using the database server's own tools (e.g. <code>mysqldump</code> or <code>pg_dump</code>).") }}</div>
 {% else %}
-{% if warning %}<div class="notice danger" style="margin-bottom: 18px">{{ icon("alert") }} {{ warning }} {{ last_result }}</div>{% endif %}
+{% if warning %}<div class="notice danger u-mb-18">{{ icon("alert") }} {{ warning }} {{ last_result }}</div>{% endif %}
 
 <div class="grid grid-2">
   <section class="card card-pad">
-    <h2 style="margin-bottom: 14px">{{ _("Settings") }}</h2>
+    <h2 class="u-mb-14">{{ _("Settings") }}</h2>
     <form method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label class="check"><input type="checkbox" name="backup_enabled" value="1" {{ 'checked' if s('backup_enabled') == '1' }}>
@@ -42,17 +42,17 @@
   </section>
 
   <section class="card card-pad">
-    <h2 style="margin-bottom: 14px">{{ _("Status") }}</h2>
+    <h2 class="u-mb-14">{{ _("Status") }}</h2>
     <dl class="kv">
       <dt>{{ _("Last run") }}</dt><dd>{{ last_result or _('none yet') }}</dd>
       <dt>{{ _p("storage", "Location") }}</dt><dd><code>{{ folder }}</code>{% if not custom_dir %}<br><small class="muted">{{ _("in the data folder (<code>./data/backups</code> on the server)") }}</small>{% endif %}</dd>
       <dt>{{ _("Used") }}</dt><dd>{{ _n("{n} backup, {size} in total", "{n} backups, {size} in total", items|length, size=total|filesize) }}</dd>
     </dl>
-    <p class="muted" style="font-size: 13px; margin: 14px 0 0">{{ _("The backups are stored on the same server as AssetLotse. Only a copy in another place protects against disk failure – e.g. copy the folder to a NAS regularly or put it there directly via <code>ASSETLOTSE_BACKUP_DIR</code>.") }}</p>
+    <p class="muted u-fs-13 u-m-14-0-0">{{ _("The backups are stored on the same server as AssetLotse. Only a copy in another place protects against disk failure – e.g. copy the folder to a NAS regularly or put it there directly via <code>ASSETLOTSE_BACKUP_DIR</code>.") }}</p>
   </section>
 </div>
 
-<section class="card" style="margin-top: 22px">
+<section class="card u-mt-22">
   <div class="card-head"><h2>{{ _("Existing backups") }}</h2><span class="muted">{{ _("newest first · {n} of at most {keep}", n=items|length, keep=keep) }}</span></div>
   <div class="table-wrap">
   <table>
@@ -63,10 +63,10 @@
       <td class="nowrap">{{ b.created|de_date }}</td>
       <td><span class="badge{{ ' accent' if b.kind not in ('automatic', 'automatisch') }}">{{ _(b.kind) }}</span></td>
       <td class="nowrap">{{ b.size|filesize }}</td>
-      <td class="mono" style="font-size: 12.5px">{{ b.name }}</td>
-      <td class="nowrap" style="text-align: right">
+      <td class="mono u-fs-12_5">{{ b.name }}</td>
+      <td class="nowrap u-ta-right">
         <a class="btn sm" href="{{ url_for('admin.backup_download', name=b.name) }}" title="{{ _('Download') }}">{{ icon("download") }}</a>
-        <form method="post" action="{{ url_for('admin.backup_delete', name=b.name) }}" style="display: inline"
+        <form method="post" action="{{ url_for('admin.backup_delete', name=b.name) }}" class="u-d-inline"
               data-confirm="{{ _('Permanently delete backup {name}?', name=b.name) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn sm ghost" title="{{ _('Delete') }}">{{ icon("trash") }}</button></form>
@@ -80,10 +80,10 @@
   </div>
 </section>
 
-<section class="card card-pad" style="margin-top: 22px">
-  <h2 style="margin-bottom: 8px">{{ _("Restore") }}</h2>
-  <p class="muted" style="font-size: 13.5px; margin-bottom: 10px">{{ _("To restore, AssetLotse has to be stopped briefly. The current state is backed up automatically beforehand (“before restore”), so a mistake can be undone. On the server:") }}</p>
-  <pre class="mono" style="font-size: 12.5px; white-space: pre-wrap; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 0">docker compose stop assetlotse
+<section class="card card-pad u-mt-22">
+  <h2 class="u-mb-8">{{ _("Restore") }}</h2>
+  <p class="muted u-fs-13_5 u-mb-10">{{ _("To restore, AssetLotse has to be stopped briefly. The current state is backed up automatically beforehand (“before restore”), so a mistake can be undone. On the server:") }}</p>
+  <pre class="mono u-fs-12_5 u-ws-pre-wrap u-bg-paper u-b-1-solid-line u-br-10 u-p-12-14 u-m-0">docker compose stop assetlotse
 docker compose run --rm assetlotse flask --app wsgi restore-backup {{ items[0].name if items else _('assetlotse-YYYY-MM-DD_HHMMSS.db') }}
 docker compose start assetlotse</pre>
 </section>

@@ -69,7 +69,7 @@
       <tbody>
       {% for asset in assets %}
         <tr>
-          <td><a class="cell-asset" href="{{ url_for('assets.detail', asset_id=asset.id) }}" style="color: inherit">
+          <td><a class="cell-asset u-c-inherit" href="{{ url_for('assets.detail', asset_id=asset.id) }}">
             <span class="mini-thumb">{{ thumb(asset) }}</span>
             <span><b>{{ asset.name }}</b><small>{{ asset.maker_model }}{% if asset.serial_number %}{{ " · " if asset.maker_model }}{{ _("S/N") }} {{ asset.serial_number }}{% endif %}</small></span></a></td>
           <td class="mono nowrap">{{ asset.inventory_no or "–" }}</td>

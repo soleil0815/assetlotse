@@ -1,5 +1,6 @@
 """Tests for the appearance (logo, background, colours, texts)."""
 import io
+import re
 import os
 import sys
 import tempfile
@@ -93,7 +94,8 @@ class BrandingTests(unittest.TestCase):
         self.c.post("/logout")
         html = self.c.get("/login").get_data(as_text=True)
         self.assertIn("has-bg", html)
-        self.assertIn("--auth-dim: 0.6", html)
+        self.assertIn("has-bg", html)
+        self.assertIn("--auth-dim:0.6", self.c.get("/branding/site.css").get_data(as_text=True))
 
     def test_invalid_files_rejected(self):
         r = self.save(logo=(io.BytesIO(b"kein bild"), "x.png"))
@@ -126,7 +128,16 @@ class BrandingTests(unittest.TestCase):
         self.assertIn("--accent-ink:#14191a", css)        # light background -> dark text
         self.assertIn("--side-ink:#1d2421", css)           # light sidebar -> dark text
         self.assertIn("prefers-color-scheme: dark", css)
-        self.assertIn("--accent:#c0ffee", self.c.get("/").get_data(as_text=True))
+        # 2.5.0: no <style> in the page – the colours come from the generated /branding/site.css
+        html = self.c.get("/").get_data(as_text=True)
+        href = re.search(r'href="(/branding/site\.css\?v=[0-9a-f]+)"', html).group(1)
+        r = self.c.get(href)
+        self.assertEqual(r.headers["Content-Type"], "text/css; charset=utf-8")
+        self.assertIn("immutable", r.headers["Cache-Control"])
+        self.assertIn("--accent:#c0ffee", r.get_data(as_text=True))
+        self.assertNotIn("<style", html)
+        self.save(brand_accent="#123456")                    # new colours → new address
+        self.assertNotIn(href, self.c.get("/").get_data(as_text=True))
         self.assertEqual(branding.ink("#17322c"), "#ffffff")
 
     def test_texts_and_toggles(self):

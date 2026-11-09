@@ -3,7 +3,7 @@
 {% block title %}{{ _("Security") }}{% endblock %}
 {% block content %}
 {% set codes = new_codes or pending_codes %}
-<a href="{{ url_for('main.profile') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Profile") }}</a>
+<a href="{{ url_for('main.profile') }}" class="btn ghost sm u-mb-14">{{ icon("arrow-left") }} {{ _("Profile") }}</a>
 <div class="page-head">
   <div><div class="eyebrow">{{ _("Profile") }}</div><h1>{{ _("Secure your sign-in") }}</h1>
     <p>{{ _("Two-factor authentication: after entering your password, you confirm with an authenticator app or a security key (e.g. YubiKey).") }}</p></div>
@@ -14,24 +14,24 @@
 </div>
 
 {% if required and not current_user.has_2fa %}
-<div class="notice warn" style="margin-bottom: 18px">{{ icon("alert") }}<div>{{ _("<b>A second factor is required for your account.</b> Set up an authenticator app or a security key below – then you can carry on as usual.") }}</div></div>
+<div class="notice warn u-mb-18">{{ icon("alert") }}<div>{{ _("<b>A second factor is required for your account.</b> Set up an authenticator app or a security key below – then you can carry on as usual.") }}</div></div>
 {% endif %}
 
 {% if stepup_needed %}
-<div class="notice warn" style="margin-bottom: 18px">{{ icon("lock") }}<div>{{ _("You signed in to this session without a second factor. To change factors or recovery codes, please confirm it first.") }}
-  <form method="post" action="{{ url_for('security.stepup') }}" style="margin-top: 10px">
+<div class="notice warn u-mb-18">{{ icon("lock") }}<div>{{ _("You signed in to this session without a second factor. To change factors or recovery codes, please confirm it first.") }}
+  <form method="post" action="{{ url_for('security.stepup') }}" class="u-mt-10">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button class="btn primary sm">{{ icon("shield") }} {{ _("Confirm second factor") }}</button>
   </form></div></div>
 {% endif %}
 
 {% if codes %}
-<section class="card card-pad" style="margin-bottom: 18px; border-color: var(--brass)">
-  <h2 style="margin-bottom: 6px">{{ icon("lock") }} {{ _("Your recovery codes") }}</h2>
+<section class="card card-pad u-mb-18 u-bc-brass">
+  <h2 class="u-mb-6">{{ icon("lock") }} {{ _("Your recovery codes") }}</h2>
   <p class="muted">{{ _("If you lose your phone or key, one of these codes will still get you in. Each code works <b>once</b>.") }}
     {{ _("Keep them safe (print them or store them in a password manager) – they are shown <b>only now</b>.") }}</p>
-  <div class="mono" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 16px 0; font-size: 17px" data-codes>
-    {% for c in codes %}<div style="padding: 8px 12px; border: 1px dashed var(--line-2); border-radius: 8px; text-align: center">{{ c }}</div>{% endfor %}
+  <div class="mono u-d-grid u-gtc-fbe905 u-gap-10 u-m-16-0 u-fs-17" data-codes>
+    {% for c in codes %}<div class="u-p-8-12 u-b-1-dashed-line-2 u-br-8 u-ta-center">{{ c }}</div>{% endfor %}
   </div>
   <div class="actions">
     <button type="button" class="btn" data-copy-codes>{{ icon("download") }} {{ _("Copy") }}</button>
@@ -42,27 +42,27 @@
 
 <div class="grid grid-2">
   <section class="card card-pad">
-    <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
+    <div class="actions u-jc-between u-mb-8">
       <h2>{{ icon("clock") }} {{ _("Authenticator app") }}</h2>
       {% if current_user.totp_enabled %}<span class="badge ok">{{ _("set up") }}</span>{% endif %}
     </div>
-    <p class="muted" style="font-size: 13.5px">{{ _("E.g. Microsoft/Google Authenticator, Aegis, 2FAS, Bitwarden or Yubico Authenticator.") }}
+    <p class="muted u-fs-13_5">{{ _("E.g. Microsoft/Google Authenticator, Aegis, 2FAS, Bitwarden or Yubico Authenticator.") }}
       {{ _("Works everywhere, including on the LAN via IP address.") }}</p>
 
     {% if setup_qr %}
-    <ol style="padding-left: 18px; margin: 14px 0; line-height: 1.7">
+    <ol class="u-pl-18 u-m-14-0 u-lh-1_7">
       <li>{{ _("Open the app and scan the QR code.") }}</li>
       <li>{{ _("Enter the 6-digit code shown below.") }}</li>
     </ol>
-    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center">
-      <div style="background: #fff; padding: 8px; border-radius: 12px; border: 1px solid var(--line); line-height: 0">{{ setup_qr|safe }}</div>
-      <div style="min-width: 0">
-        <div class="muted" style="font-size: 12.5px">{{ _("Or enter the key manually:") }}</div>
-        <div class="mono" style="font-size: 15px; margin: 4px 0 10px; overflow-wrap: anywhere">{{ setup_secret }}</div>
+    <div class="u-d-flex u-gap-20 u-wrap-wrap u-ai-center">
+      <div class="u-bg-fff u-p-8 u-br-12 u-b-1-solid-line u-lh-0">{{ setup_qr|safe }}</div>
+      <div class="u-minw-0">
+        <div class="muted u-fs-12_5">{{ _("Or enter the key manually:") }}</div>
+        <div class="mono u-fs-15 u-m-4-0-10 u-ow-anywhere">{{ setup_secret }}</div>
         <a class="btn sm" href="{{ setup_uri }}">{{ _("Open on this phone") }}</a>
       </div>
     </div>
-    <form method="post" action="{{ url_for('security.totp_confirm') }}" style="margin-top: 16px" autocomplete="off">
+    <form method="post" action="{{ url_for('security.totp_confirm') }}" class="u-mt-16" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label for="f-totp-code">{{ _("Code from the app") }}</label>
       <div class="input-group">
@@ -71,13 +71,13 @@
       </div>
     </form>
     {% elif current_user.totp_enabled and totp_broken %}
-    <div class="notice warn" style="margin-top: 14px">{{ _("The link to the authenticator app is no longer valid. Please set it up again and delete the old entry in the app.") }}</div>
-    <form method="post" action="{{ url_for('security.totp_start') }}" style="margin-top: 12px">
+    <div class="notice warn u-mt-14">{{ _("The link to the authenticator app is no longer valid. Please set it up again and delete the old entry in the app.") }}</div>
+    <form method="post" action="{{ url_for('security.totp_start') }}" class="u-mt-12">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn primary">{{ icon("plus") }} {{ _("Set up app again") }}</button>
     </form>
     {% elif current_user.totp_enabled %}
-    <form method="post" action="{{ url_for('security.totp_disable') }}" style="margin-top: 14px" autocomplete="off">
+    <form method="post" action="{{ url_for('security.totp_disable') }}" class="u-mt-14" autocomplete="off">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label for="f-totp-remove">{{ _("Remove – enter a current code to confirm") }}</label>
       <div class="input-group">
@@ -86,7 +86,7 @@
       </div>
     </form>
     {% else %}
-    <form method="post" action="{{ url_for('security.totp_start') }}" style="margin-top: 14px">
+    <form method="post" action="{{ url_for('security.totp_start') }}" class="u-mt-14">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn primary">{{ icon("plus") }} {{ _("Set up app") }}</button>
     </form>
@@ -94,16 +94,16 @@
   </section>
 
   <section class="card card-pad">
-    <div class="actions" style="justify-content: space-between; margin-bottom: 8px">
+    <div class="actions u-jc-between u-mb-8">
       <h2>{{ icon("shield") }} {{ _("Security key") }}</h2>
       {% if keys %}<span class="badge ok">{{ _("{n} registered", n=keys|length) }}</span>{% endif %}
     </div>
-    <p class="muted" style="font-size: 13.5px">{{ _("YubiKey or another FIDO2 key – also the device's fingerprint/Face ID (passkey).") }}
+    <p class="muted u-fs-13_5">{{ _("YubiKey or another FIDO2 key – also the device's fingerprint/Face ID (passkey).") }}
       {{ _("Only works over HTTPS and is bound to the address <code>{rp_id}</code>.", rp_id=rp_id) }}</p>
 
     {% for k in keys %}
     {% set key_name = _("Security key") if not k.name or k.name == "Sicherheitsschlüssel" else k.name %}
-    <div class="list-row" style="padding: 10px 0">
+    <div class="list-row u-p-10-0">
       <span class="badge {{ 'accent' if k.rp_id == rp_id else '' }}">{{ icon("shield") }}</span>
       <div class="grow"><b>{{ key_name }}</b>
         <small>{{ k.rp_id }} · {{ _("added {date}", date=k.created_at|de_day) }}{% if k.last_used_at %} · {{ _("last used {date}", date=k.last_used_at|de_date) }}{% endif %}</small></div>
@@ -114,22 +114,22 @@
     </div>
     {% endfor %}
 
-    <div data-webauthn-register-box style="margin-top: 14px">
+    <div data-webauthn-register-box class="u-mt-14">
       <label for="f-key-name">{{ _("Key name") }}</label>
       <div class="input-group">
         <input type="text" id="f-key-name" maxlength="100" data-webauthn-name placeholder="{{ _('e.g. blue YubiKey') }}" value="{{ 'YubiKey' if not keys else '' }}">
         <button type="button" class="btn primary" data-webauthn-register>{{ icon("plus") }} {{ _("Add") }}</button>
       </div>
-      <p class="muted" style="font-size: 13px; margin-top: 8px" data-webauthn-status>{{ _("After clicking, insert your key and touch it.") }}</p>
+      <p class="muted u-fs-13 u-mt-8" data-webauthn-status>{{ _("After clicking, insert your key and touch it.") }}</p>
     </div>
   </section>
 </div>
 
 {% if current_user.has_2fa %}
-<section class="card card-pad" style="margin-top: 18px">
-  <div class="actions" style="justify-content: space-between">
+<section class="card card-pad u-mt-18">
+  <div class="actions u-jc-between">
     <div><h2>{{ _("Recovery codes") }}</h2>
-      <p class="muted" style="margin-top: 4px">{{ _("<b>{n}</b> unused code(s) left.", n=codes_left) }}</p></div>
+      <p class="muted u-mt-4">{{ _("<b>{n}</b> unused code(s) left.", n=codes_left) }}</p></div>
     <form method="post" action="{{ url_for('security.recovery_regenerate') }}" data-confirm="{{ _('Generate new codes? The previous ones will stop working.') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn">{{ icon("extend") }} {{ _("Generate new codes") }}</button>
@@ -138,10 +138,10 @@
 </section>
 {% endif %}
 
-<section class="card card-pad" style="margin-top: 18px">
-  <div class="actions" style="justify-content: space-between">
+<section class="card card-pad u-mt-18">
+  <div class="actions u-jc-between">
     <div><h2>{{ _("Signed-in devices") }}</h2>
-      <p class="muted" style="margin-top: 4px">{{ _("Lost your phone or stayed signed in on someone else's computer? Here you can sign out all other devices – including those with “Stay signed in”. This device stays signed in.") }}</p></div>
+      <p class="muted u-mt-4">{{ _("Lost your phone or stayed signed in on someone else's computer? Here you can sign out all other devices – including those with “Stay signed in”. This device stays signed in.") }}</p></div>
     <form method="post" action="{{ url_for('main.logout_everywhere') }}" data-confirm="{{ _('Sign out all other devices?') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn">{{ icon("logout") }} {{ _("Sign out on all other devices") }}</button>

@@ -536,3 +536,24 @@ input.is-taken { border-color: var(--danger) !important; box-shadow: 0 0 0 3px v
 input[type="file"] { max-width: 100%; min-width: 0; }
 .photo-grid > * { min-width: 0; }
 .take-over + a { font-size: 12.5px; }
+
+/* ------------------------------------------------------------------ formerly inline styles (2.5.0) */
+/* 2FA code field on the challenge page: bigger than .code-input (whose font-size is !important itself) */
+.code-input.code-input-lg { text-align: center; font-size: 22px !important; letter-spacing: .3em; }
+.dot.dot-lg { width: 12px; height: 12px; }
+/* shelf graphic of the sign-in page and its preview: size and colour of each box */
+.auth-art .spine:nth-child(1) { width: 78px; height: 64px; background: #0b7285; }
+.auth-art .spine:nth-child(2) { width: 54px; height: 104px; background: #3d4b59; }
+.auth-art .spine:nth-child(3) { width: 92px; height: 52px; background: #5f6f7f; }
+.auth-art .spine:nth-child(4) { width: 60px; height: 84px; background: #17808f; }
+.auth-art .spine:nth-child(5) { width: 70px; height: 124px; background: #2c3a47; }
+.auth-art .spine:nth-child(6) { width: 46px; height: 46px; background: #7f8d9a; transform: rotate(-7deg); transform-origin: bottom left; }
+.auth-art .spine:nth-child(7) { width: 84px; height: 76px; background: #0f5f6b; }
+.auth-art .spine:nth-child(8) { width: 58px; height: 98px; background: #46576a; }
+.lp-shelf i:nth-child(1) { width: 26px; height: 22px; background: #0b7285; }
+.lp-shelf i:nth-child(2) { width: 18px; height: 34px; background: #3d4b59; }
+.lp-shelf i:nth-child(3) { width: 30px; height: 18px; background: #5f6f7f; }
+.lp-shelf i:nth-child(4) { width: 20px; height: 28px; background: #17808f; }
+.lp-shelf i:nth-child(5) { width: 24px; height: 40px; background: #2c3a47; }
+.lp-shelf i:nth-child(6) { width: 16px; height: 16px; background: #7f8d9a; }
+.lp-shelf i:nth-child(7) { width: 28px; height: 26px; background: #0f5f6b; }

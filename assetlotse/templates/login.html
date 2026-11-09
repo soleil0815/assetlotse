@@ -2,12 +2,12 @@
 {% from "_macros.html" import icon %}
 {% block title %}{{ _("Sign in") }}{% endblock %}
 {% block auth %}
-{% if preview %}<div class="notice warn" style="margin-bottom: 18px">{{ _("Preview – this is how visitors see the sign-in page.") }}
+{% if preview %}<div class="notice warn u-mb-18">{{ _("Preview – this is how visitors see the sign-in page.") }}
   <a href="{{ url_for('admin.branding') }}">{{ _("Back") }}</a></div>{% endif %}
 {% if unverified %}
-<div class="notice warn" style="margin-bottom: 18px; display: block">
+<div class="notice warn u-mb-18 u-d-block">
   {{ _("<b>Please confirm your email address first.</b> We sent you the link when you registered.") }}
-  <form method="post" action="{{ url_for('register.resend') }}" style="margin-top: 10px">
+  <form method="post" action="{{ url_for('register.resend') }}" class="u-mt-10">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button class="btn sm">{{ icon("mail") }} {{ _("Resend link") }}</button>
   </form>
@@ -15,7 +15,7 @@
 {% endif %}
 <h2>{{ _("Welcome back") }}</h2>
 <p class="muted">{{ _("Please sign in with your user account.") }}</p>
-<form method="post" style="margin-top: 26px" {% if preview %}data-no-submit{% endif %}>
+<form method="post" class="u-mt-26" {% if preview %}data-no-submit{% endif %}>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="field">
     <label for="username">{{ _("Username") }}</label>
@@ -26,9 +26,9 @@
     <input type="password" id="password" name="password" autocomplete="current-password" required>
   </div>
   {% if stay_signed_in_offered %}<label class="check"><input type="checkbox" name="remember" value="1"> {{ _("Stay signed in") }}</label>{% endif %}
-  <button class="btn primary lg block" style="margin-top: 8px">{{ icon("lock") }} {{ _("Sign in") }}</button>
+  <button class="btn primary lg block u-mt-8">{{ icon("lock") }} {{ _("Sign in") }}</button>
 </form>
 {% if registration_open %}
-<p style="margin-top: 22px; font-size: 14px; text-align: center">{{ _('No account yet? <a href="{url}">Register now</a>', url=url_for('register.register')) }}</p>
+<p class="u-mt-22 u-fs-14 u-ta-center">{{ _('No account yet? <a href="{url}">Register now</a>', url=url_for('register.register')) }}</p>
 {% endif %}
 {% endblock %}
