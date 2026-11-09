@@ -31,13 +31,22 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 MAIN_REF = "refs/heads/main"
-WEEKLY_CRON = "17 4 * * 1"      # Mondays 04:17 UTC: security update + base (EOL) check
+WEEKLY_CRON = "17 4 * * 1"      # Mondays 04:17 UTC: base (EOL) check
+PATCHDAY_CRON = "17 4 * * 2"    # Tuesdays 04:17 UTC: security update – only on patch day (see is_patchday)
 DAILY_CRON = "43 5 * * *"       # every day 05:43 UTC: scan the published image
 RELEASE_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
 
 
 # ---------------------------------------------------------------- mode
-def mode(event: str, schedule: str = "", input_mode: str = "", ref: str = "", input_publish: str = "true") -> dict:
+def is_patchday(day: dt.date) -> bool:
+    """Patch day: the second Tuesday of the month (Microsoft's patch Tuesday, days 8-14). Security updates are
+    published only then – once a month, predictable for admins (same rule in all programs). A cron line cannot say
+    "second Tuesday" (day of month and weekday are OR-ed), so the workflow runs every Tuesday and this decides."""
+    return day.weekday() == 1 and 8 <= day.day <= 14
+
+
+def mode(event: str, schedule: str = "", input_mode: str = "", ref: str = "", input_publish: str = "true",
+         today: dt.date | None = None) -> dict:
     """lock = resolve new versions first (on an amd64 and an arm64 machine). publish = write: push images and
     the release (release, security update – only from main) or commit the new versions (relock – to the
     branch it was started on, so lock files can also be set in a pull request)."""
@@ -47,8 +56,11 @@ def mode(event: str, schedule: str = "", input_mode: str = "", ref: str = "", in
     if event in ("push", "pull_request"):
         res.update(kind="check", build=True)      # merged or proposed: build, test, scan – nothing published
     elif event == "schedule":
-        if schedule == WEEKLY_CRON:
-            res.update(kind="security", build=True, publish=on_main, eol=True, lock=True)
+        if schedule == PATCHDAY_CRON:
+            if is_patchday(today or dt.datetime.now(dt.timezone.utc).date()):
+                res.update(kind="security", build=True, publish=on_main, lock=True)
+        elif schedule == WEEKLY_CRON:
+            res.update(eol=True)
         elif schedule == DAILY_CRON:
             res.update(scan_latest=True)
         else:

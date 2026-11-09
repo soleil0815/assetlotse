@@ -394,7 +394,9 @@ class DockerfileTests(unittest.TestCase):
 class ModeTests(unittest.TestCase):
     def test_schedule_matches_workflow(self):
         crons = re.findall(r'- cron: "([^"]+)"', WF)
-        self.assertEqual(sorted(crons), sorted([ci.WEEKLY_CRON, ci.DAILY_CRON]))
+        self.assertEqual(sorted(crons), sorted([ci.PATCHDAY_CRON, ci.WEEKLY_CRON, ci.DAILY_CRON]))
+        self.assertEqual(ci.PATCHDAY_CRON.split()[2:], ["*", "*", "2"])      # every Tuesday, ci.py picks patch day
+        self.assertLess(int(ci.PATCHDAY_CRON.split()[1]), 7)                   # early in the morning
         self.assertEqual(ci.WEEKLY_CRON.split()[-1], "1")                    # Mondays
         self.assertLess(int(ci.WEEKLY_CRON.split()[1]), 7)                     # early in the morning
         self.assertEqual(ci.DAILY_CRON.split()[2:], ["*", "*", "*"])          # every day
@@ -412,8 +414,13 @@ class ModeTests(unittest.TestCase):
         m = ci.mode("workflow_dispatch", input_mode="relock", ref="refs/heads/feature")
         self.assertEqual((m["relock"], m["publish"], m["lock"]), (True, True, True))   # commits to that branch
         self.assertFalse(ci.mode("workflow_dispatch", input_mode="relock", ref="refs/heads/x", input_publish="false")["publish"])
-        m = ci.mode("schedule", ci.WEEKLY_CRON, ref=main)
-        self.assertEqual((m["kind"], m["publish"], m["eol"], m["scan_latest"], m["lock"]), ("security", True, True, False, True))
+        m = ci.mode("schedule", ci.PATCHDAY_CRON, ref=main, today=dt.date(2026, 11, 10))   # 2nd Tuesday
+        self.assertEqual((m["kind"], m["publish"], m["eol"], m["scan_latest"], m["lock"]), ("security", True, False, False, True))
+        for other in (dt.date(2026, 11, 3), dt.date(2026, 11, 17), dt.date(2026, 11, 24)):   # other Tuesdays
+            m = ci.mode("schedule", ci.PATCHDAY_CRON, ref=main, today=other)
+            self.assertEqual((m["kind"], m["build"], m["publish"], m["lock"]), ("none", False, False, False), other)
+        m = ci.mode("schedule", ci.WEEKLY_CRON, ref=main)                # Mondays: only the base check
+        self.assertEqual((m["kind"], m["build"], m["eol"], m["lock"]), ("none", False, True, False))
         m = ci.mode("schedule", ci.DAILY_CRON, ref=main)
         self.assertEqual((m["build"], m["scan_latest"], m["publish"]), (False, True, False))
         m = ci.mode("workflow_dispatch", input_mode="check", ref=main)
@@ -426,6 +433,18 @@ class ModeTests(unittest.TestCase):
         self.assertTrue(ci.mode("workflow_dispatch", input_mode="eol-check", ref=main)["eol"])
         with self.assertRaises(SystemExit):
             ci.mode("schedule", "0 0 * * *", ref=main)
+
+    def test_patchday(self):
+        # second Tuesday of the month (Microsoft's patch Tuesday)
+        days = {dt.date(2026, 11, 10), dt.date(2026, 12, 8), dt.date(2027, 1, 12), dt.date(2027, 2, 9),
+                dt.date(2027, 6, 8), dt.date(2027, 9, 14)}
+        for d in days:
+            self.assertTrue(ci.is_patchday(d), d)
+        start = dt.date(2026, 11, 1)
+        found = [start + dt.timedelta(n) for n in range(400) if ci.is_patchday(start + dt.timedelta(n))]
+        self.assertEqual(len(found), 13)                                    # exactly once a month
+        self.assertEqual(len({(d.year, d.month) for d in found}), 13)
+        self.assertTrue(days <= set(found))
 
 
 class VersionPlanTests(unittest.TestCase):

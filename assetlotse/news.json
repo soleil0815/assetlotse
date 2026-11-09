@@ -16,6 +16,20 @@
       }
     },
     {
+      "version": "2.5.0",
+      "date": "2026-11-09",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Sicherheitsupdates am Patchday",
+        "text": "Sicherheitsupdates des Images erscheinen jetzt einmal im Monat am Patchday, dem zweiten Dienstag – am selben Tag wie bei Microsoft und in allen anderen Programmen. Dringende Korrekturen können weiterhin jederzeit dazwischen kommen."
+      },
+      "en": {
+        "title": "Security updates on patch day",
+        "text": "Security updates of the image now appear once a month on patch day, the second Tuesday – the same day as Microsoft's and in all other programs. Urgent fixes can still come in between at any time."
+      }
+    },
+    {
       "version": "2.4.2",
       "date": "2026-11-08",
       "kind": "fix",

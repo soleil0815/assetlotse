@@ -8,7 +8,8 @@
 #   and a GitHub release with the text from CHANGELOG.md and the installation files (docker-compose.yml,
 #   .env.example, update.sh, image files for installing without internet). A published version is never
 #   built or pushed again.
-# Security update – Mondays 04:17 UTC (or by hand: Run workflow → security-update): scripts/lock.py sets
+# Security update – on patch day, the second Tuesday of the month, 04:17 UTC (or by hand: Run workflow →
+#   security-update; the workflow starts every Tuesday, scripts/ci.py lets only patch day through): scripts/lock.py sets
 #   the newest versions WITHIN the base (same Python line, same Debian release, every package within its
 #   major version), resolved on an amd64 AND an arm64 machine. Nothing new → nothing happens. Otherwise:
 #   build without cache, tests, Trivy, and only if all passed: publish <version>-s<n> (+ <minor>, latest),
@@ -45,7 +46,8 @@ on:
         type: boolean
         default: true
   schedule:
-    - cron: "17 4 * * 1"      # Mondays 04:17 UTC: security update + base check
+    - cron: "17 4 * * 2"      # Tuesdays 04:17 UTC: security update – only on patch day (2nd Tuesday, scripts/ci.py)
+    - cron: "17 4 * * 1"      # Mondays 04:17 UTC: base check
     - cron: "43 5 * * *"      # daily 05:43 UTC: scan the published image
 
 permissions: {}
@@ -53,7 +55,7 @@ permissions: {}
 concurrency:
   # one WRITING run at a time (release, security update, relock); everything else – checks, pull requests,
   # scans, the base check – runs on its own, so it can never push a waiting release out of the queue
-  group: ${{ (github.event.schedule == '17 4 * * 1' || inputs.mode == 'release' || inputs.mode == 'security-update' || inputs.mode == 'relock') && 'docker-release' || format('docker-other-{0}', github.run_id) }}
+  group: ${{ (github.event.schedule == '17 4 * * 2' || inputs.mode == 'release' || inputs.mode == 'security-update' || inputs.mode == 'relock') && 'docker-release' || format('docker-other-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:

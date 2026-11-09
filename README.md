@@ -60,7 +60,7 @@ Der Container setzt beim Start selbst die Rechte an `./data` und läuft danach a
 
 ### Update
 
-Die `docker-compose.yml` folgt dem Tag **`latest`** – der neuesten Version einschließlich der wöchentlichen Sicherheitsupdates. Updates gehen deshalb so, wie man es von Docker kennt:
+Die `docker-compose.yml` folgt dem Tag **`latest`** – der neuesten Version einschließlich der monatlichen Sicherheitsupdates (Patchday). Updates gehen deshalb so, wie man es von Docker kennt:
 
 - **Mit einer Container-Verwaltung** wie Dockhand, Watchtower oder Tugtainer – am besten mit einer Update-Zeit **nachts**, wenn niemand ausleiht.
 - **Von Hand:**
@@ -142,7 +142,7 @@ Ziel: Das Image bleibt von selbst sicher und aktuell, **ohne Versionssprünge**.
 
 Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion eines Pakets) hebt niemand still an – das ist immer eine bewusste neue Programmversion.
 
-**Sicherheitsupdate jede Woche** (montags 04:17 UTC, von Hand: *Run workflow → security-update*): `scripts/lock.py` holt die neuesten Versionen innerhalb der Grenzen. Gibt es nichts Neues, passiert nichts. Sonst wird **ohne Zwischenspeicher** neu gebaut, die automatischen Tests laufen **im fertigen Image**, dann prüft Trivy. Nur wenn **alles** bestanden ist, wird das Image veröffentlicht – als `<Version>-s<Zähler>` (z. B. `1.10.0-s1`, `1.10.0-s2`: gleiches Programm, nur neue Pakete), außerdem als `latest` und `<Minor>`. Die neuen festen Versionen werden mit einem Eintrag im [CHANGELOG](CHANGELOG.md) (Liste der geänderten Pakete) auf `main` eingetragen und als `v<Version>-s<Zähler>` markiert. Eine neue Programmversion beginnt wieder bei `s1`. Server, die `latest` folgen, bekommen die Sicherheitsupdates von selbst; wer eine Version festgelegt hat (`ASSETLOTSE_TAG`), behält genau dieses Image. Sicherheitsupdates erscheinen weiter **automatisch**, auch ohne „release“. Liegen auf `main` noch unveröffentlichte Programmänderungen (gemergt, aber noch nicht veröffentlicht), gibt es kein Sicherheitsupdate, bis sie als neue Version veröffentlicht sind.
+**Sicherheitsupdate am Patchday** (einmal im Monat am zweiten Dienstag – wie Microsofts Patchday –, 04:17 UTC; von Hand jederzeit: *Run workflow → security-update*): `scripts/lock.py` holt die neuesten Versionen innerhalb der Grenzen. Gibt es nichts Neues, passiert nichts. Sonst wird **ohne Zwischenspeicher** neu gebaut, die automatischen Tests laufen **im fertigen Image**, dann prüft Trivy. Nur wenn **alles** bestanden ist, wird das Image veröffentlicht – als `<Version>-s<Zähler>` (z. B. `1.10.0-s1`, `1.10.0-s2`: gleiches Programm, nur neue Pakete), außerdem als `latest` und `<Minor>`. Die neuen festen Versionen werden mit einem Eintrag im [CHANGELOG](CHANGELOG.md) (Liste der geänderten Pakete) auf `main` eingetragen und als `v<Version>-s<Zähler>` markiert. Eine neue Programmversion beginnt wieder bei `s1`. Server, die `latest` folgen, bekommen die Sicherheitsupdates von selbst; wer eine Version festgelegt hat (`ASSETLOTSE_TAG`), behält genau dieses Image. Sicherheitsupdates erscheinen weiter **automatisch**, auch ohne „release“. Liegen auf `main` noch unveröffentlichte Programmänderungen (gemergt, aber noch nicht veröffentlicht), gibt es kein Sicherheitsupdate, bis sie als neue Version veröffentlicht sind.
 
 **Schwachstellenprüfung (Trivy).** Jedes Image wird vor dem Veröffentlichen geprüft. Nur Schwachstellen der Stufe HOCH oder KRITISCH, für die es eine Korrektur gibt, stoppen das Release (dazu gefundene Geheimnisse wie Schlüssel). Trivy ist bewusst **keine** GitHub Action (trivy-action und setup-trivy wurden im März 2026 kompromittiert, CVE-2026-33634): `.github/install-trivy.sh` lädt eine feste Version und prüft ihre SHA-256-Prüfsumme, bevor sie läuft. Geprüfte, nicht ausnutzbare Befunde kommen mit Begründung (`# reason: …` in der Zeile darüber) und Ablaufdatum (`exp:JJJJ-MM-TT`) in `.trivyignore`; fehlt eines davon, bricht die Prüfung ab, nach dem Ablaufdatum wird der Befund wieder gemeldet.
 
@@ -160,7 +160,7 @@ Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion e
 
 | Was am Lauf steht | Was zu tun ist |
 |---|---|
-| *Tests failed* | Ein neues Paket passt nicht zum Programm. Die betroffene Stelle anpassen und als neue Version veröffentlichen – oder bis dahin abwarten (der Lauf wiederholt sich jeden Montag). |
+| *Tests failed* | Ein neues Paket passt nicht zum Programm. Die betroffene Stelle anpassen und als neue Version veröffentlichen – oder bis dahin abwarten (der Lauf wiederholt sich am nächsten Patchday). |
 | *Trivy … finding(s)* beim Release oder Sicherheitsupdate | Für die Lücke gibt es eine Korrektur außerhalb der Grenzen (z. B. nur in einer neuen Hauptversion): bewusst anheben und als neue Version veröffentlichen. Ist der Befund nachweislich nicht ausnutzbar: Eintrag mit Begründung und Ablaufdatum in `.trivyignore`. |
 | *Trivy … finding(s)* beim täglichen Scan | Neu bekannte Lücke im veröffentlichten Image. Meist behebt sie das nächste Sicherheitsupdate; sofort: *Run workflow → security-update*. |
 | *Base ends soon* (rot) / *within a year* (gelb) | Debian oder Python bekommen bald keine Sicherheitsupdates mehr: den Wechsel auf den nächsten Unterbau als neue Version planen. |

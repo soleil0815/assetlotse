@@ -17,6 +17,12 @@ The current version is shown at the bottom left of the sidebar after signing in.
 - New test `tests/test_csp_styles.py` fails as soon as a page template contains `style=` or `<style` again, or
   uses a utility class that is not defined.
 
+**Changed**
+- **Security updates of the image now come once a month on patch day** – the second Tuesday of the month, like
+  Microsoft's Patch Tuesday (before: every Monday), the same day in all programs. The workflow starts every Tuesday
+  04:17 UTC, `scripts/ci.py` (`is_patchday`) only lets the second one through. The base check stays on Mondays, the
+  daily scan of the published image stays daily; an urgent fix can still be started by hand at any time.
+
 **Removed**
 - The unused per-asset colour variable of the thumbnail placeholder (`--h`).
 
