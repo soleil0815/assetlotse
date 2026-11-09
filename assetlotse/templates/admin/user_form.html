@@ -3,7 +3,7 @@
 {% block title %}{{ _("New user") if is_new else user.name }}{% endblock %}
 {% block content %}
 {% set ldap_user = user.auth_source == "ldap" and not is_new %}
-<a href="{{ url_for('admin.users') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _p("plural", "Users") }}</a>
+<a href="{{ url_for('admin.users') }}" class="btn ghost sm u-mb-14">{{ icon("arrow-left") }} {{ _p("plural", "Users") }}</a>
 <div class="page-head">
   <div><div class="eyebrow">{{ _("New local user") if is_new else (_("AD user") if ldap_user else _("Local user")) }}</div>
     <h1>{{ _("Create user") if is_new else user.name }}</h1></div>
@@ -14,7 +14,7 @@
   <div class="split">
     <section class="card card-pad">
       {% if ldap_user %}
-      <div class="notice accent" style="margin-bottom: 18px">{{ icon("server") }}
+      <div class="notice accent u-mb-18">{{ icon("server") }}
         <div>{{ _('This account comes from Active Directory. Name, email and <b>role</b> are taken from AD at every sign-in (rules under <a href="{url}">Active Directory</a>). Here you can assign groups and lock the account.', url=url_for('admin.ldap')) }}
           <br><small class="mono">{{ user.ldap_dn }}</small></div></div>
       {% endif %}
@@ -42,22 +42,22 @@
     </section>
 
     <section class="card card-pad">
-      <h3 style="margin-bottom: 6px">{{ _("Groups") }}</h3>
-      <p class="muted" style="font-size: 13.5px">{{ _("Determines which items someone may receive (staff) or manage (managers). General items (without a group) are managed by every manager.") }}</p>
-      <label class="check" style="margin-bottom: 12px"><input type="checkbox" name="manages_all" value="1" {{ "checked" if user.manages_all }}>
+      <h3 class="u-mb-6">{{ _("Groups") }}</h3>
+      <p class="muted u-fs-13_5">{{ _("Determines which items someone may receive (staff) or manage (managers). General items (without a group) are managed by every manager.") }}</p>
+      <label class="check u-mb-12"><input type="checkbox" name="manages_all" value="1" {{ "checked" if user.manages_all }}>
         <span>{{ _("Manages the entire inventory (all groups)") }}<small class="muted">{{ _("Only for the role manager. Without this box a manager only manages their groups – even if all their groups are taken away (e.g. via Active Directory).") }}</small></span></label>
       <div class="chips">
         {% for g in groups %}
         <label class="chip"><input type="checkbox" name="groups" value="{{ g.id }}" {{ "checked" if g in user.groups }}>
-          <span class="dot" style="background: {{ g.color }}"></span>{{ g.name }}{% if g.ldap_dn %} <small class="muted">AD</small>{% endif %}</label>
+          <span class="dot grp-{{ g.id }}"></span>{{ g.name }}{% if g.ldap_dn %} <small class="muted">AD</small>{% endif %}</label>
         {% else %}
         <p class="muted">{{ _("No groups yet.") }} <a href="{{ url_for('admin.group_new') }}">{{ _("Create group →") }}</a></p>
         {% endfor %}
       </div>
-      {% if ldap_user %}<p class="muted" style="font-size: 12.5px; margin-top: 12px">{{ _("Groups with an AD mapping are synchronised automatically at the next sign-in.") }}</p>{% endif %}
+      {% if ldap_user %}<p class="muted u-fs-12_5 u-mt-12">{{ _("Groups with an AD mapping are synchronised automatically at the next sign-in.") }}</p>{% endif %}
     </section>
   </div>
-  <div class="actions" style="margin-top: 20px; justify-content: space-between">
+  <div class="actions u-mt-20 u-jc-between">
     <div>
       {% if not is_new and user.id != current_user.id %}
       <button class="btn danger" form="delete-form">{{ icon("trash") }} {{ _("Delete") }}</button>
@@ -70,14 +70,14 @@
   </div>
 </form>
 {% if not is_new %}
-<section class="card card-pad" style="margin-top: 18px" id="anmeldung">
-  <h2 style="margin-bottom: 4px">{{ icon("shield") }} {{ _("Sign-in and security") }}</h2>
-  <p class="muted" style="font-size: 13.5px; margin-bottom: 6px">{{ _("Help when {name} can no longer sign in – without the command line.", name=user.name) }}</p>
+<section class="card card-pad u-mt-18" id="anmeldung">
+  <h2 class="u-mb-4">{{ icon("shield") }} {{ _("Sign-in and security") }}</h2>
+  <p class="muted u-fs-13_5 u-mb-6">{{ _("Help when {name} can no longer sign in – without the command line.", name=user.name) }}</p>
 
-  <div class="list-row" style="padding: 14px 0">
+  <div class="list-row u-p-14-0">
     <div class="grow"><b>{{ _("Two-factor authentication") }}</b>
       <small>{% if user.has_2fa %}{{ _("Active:") }} {% if user.totp_enabled %}{{ _("Authenticator app") }}{% endif %}{% if user.totp_enabled and user.webauthn_credentials %} + {% endif %}{% if user.webauthn_credentials %}{% set nk = user.webauthn_credentials|length %}{{ _("{n} security key", n=nk) if nk == 1 else _p("plural", "{n} security keys", n=nk) }}{% endif %}
-        {%- if totp_broken %} · <span style="color: var(--danger)">{{ _("App needs to be set up again") }}</span>{% endif %}
+        {%- if totp_broken %} · <span class="u-c-danger">{{ _("App needs to be set up again") }}</span>{% endif %}
         {% else %}{% if required %}{{ _("Not set up – mandatory under the policy, will be required at the next sign-in from outside.") }}{% else %}{{ _("Not set up.") }}{% endif %}{% endif %}</small></div>
     {% if user.has_2fa %}
     <form method="post" action="{{ url_for('admin.user_reset_2fa', user_id=user.id) }}"
@@ -88,9 +88,9 @@
     {% endif %}
   </div>
 
-  <div class="list-row" style="padding: 14px 0">
+  <div class="list-row u-p-14-0">
     <div class="grow"><b>{{ _("Sign-in lock") }}</b>
-      <small>{% if locked %}{{ _('<span style="color: var(--danger)">Locked</span> after too many failed attempts (password or code). Lifts itself after 5 minutes.') }}
+      <small>{% if locked %}{{ _('<span class="u-c-danger">Locked</span> after too many failed attempts (password or code). Lifts itself after 5 minutes.') }}
         {% else %}{{ _("None – after 8 failed attempts, sign-in is locked for 5 minutes.") }}{% endif %}</small></div>
     {% if locked %}
     <form method="post" action="{{ url_for('admin.user_unlock', user_id=user.id) }}">
@@ -101,7 +101,7 @@
   </div>
 
   {% if not user.active and not user.pending_approval %}
-  <div class="notice warn" style="margin-top: 8px">{{ _("The account is deactivated. To unlock it, tick “Account active” above and save.") }}</div>
+  <div class="notice warn u-mt-8">{{ _("The account is deactivated. To unlock it, tick “Account active” above and save.") }}</div>
   {% endif %}
 </section>
 <form id="delete-form" method="post" action="{{ url_for('admin.user_delete', user_id=user.id) }}" data-confirm="{{ _('Permanently delete user {name}? The loan history will be removed.', name=user.username) }}">

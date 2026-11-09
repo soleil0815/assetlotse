@@ -302,4 +302,30 @@ def context() -> dict:
         "eyebrow": _default_text("login_eyebrow"),
         "text": _default_text("login_text"),
         "theme_css": theme_css(),
+        "site_css_rev": hashlib.sha256(site_css(bg, dim).encode()).hexdigest()[:12],
     }
+
+
+_SAFE_URL = re.compile(r"^/[A-Za-z0-9/._-]*$")
+
+
+def site_css(bg: str | None = None, dim: int | None = None) -> str:
+    """The generated stylesheet /branding/site.css: brand colours, group colours (.grp-<id>) and the background
+    image of the sign-in page. Instead of <style> and style="…" in the pages, so the Content Security Policy can
+    forbid inline styles. Built only from validated values (hex colours, own file names, numbers)."""
+    from .models import Group
+    if bg is None:
+        bg = get_setting("brand_bg")
+    if dim is None:
+        try:
+            dim = max(0, min(85, int(get_setting("brand_bg_dim") or 45)))
+        except ValueError:
+            dim = 45
+    parts = [theme_css()]
+    url = file_url(bg)
+    if url and _SAFE_URL.match(url):
+        parts.append(f".auth-art.has-bg,.login-preview{{--auth-bg:url('{url}');--auth-dim:{dim / 100:g}}}")
+    for gid, color in db.session.query(Group.id, Group.color).order_by(Group.id):
+        c = clean_hex(color or "") or "#0b7285"
+        parts.append(f".grp-{int(gid)}{{background:{c}}}")
+    return "\n".join(p for p in parts if p) + "\n"

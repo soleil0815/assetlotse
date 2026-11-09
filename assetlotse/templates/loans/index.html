@@ -31,11 +31,11 @@
     {% for loan in loans %}
       <tr>
         {% set linked = loan.is_active or not catalog_hidden() %}
-        <td><{{ "a" if linked else "div" }} class="cell-asset" {% if linked %}href="{{ url_for('assets.detail', asset_id=loan.asset.id) }}"{% endif %} style="color: inherit">
+        <td><{{ "a" if linked else "div" }} class="cell-asset u-c-inherit" {% if linked %}href="{{ url_for('assets.detail', asset_id=loan.asset.id) }}"{% endif %}>
           <span class="mini-thumb">{{ thumb(loan.asset) }}</span>
           <span><b>{{ loan.asset.name }}</b><small>{{ loan.asset.inventory_no }}{% if loan.note %}{{ " · " if loan.asset.inventory_no }}{{ loan.note }}{% endif %}</small></span></{{ "a" if linked else "div" }}></td>
         {% if scope == 'alle' %}
-        <td><div class="cell-user"><span class="avatar" style="width:30px;height:30px;font-size:11px">{{ loan.user.initials }}</span>
+        <td><div class="cell-user"><span class="avatar u-w-30 u-h-30 u-fs-11">{{ loan.user.initials }}</span>
           <div><b>{{ loan.user.name }}</b><br><small>{{ loan.user.username }}</small></div></div></td>
         {% endif %}
         <td class="nowrap">{{ loan.loaned_at|de_day }}{% if loan.extensions %}<br><small>{{ _("extended {n}×", n=loan.extensions) }}</small>{% endif %}</td>
@@ -44,20 +44,20 @@
           {% if loan.is_active %}
             {% set manager = current_user.can_manage(loan.asset) %}
             {% if loan.due_at and (manager or (self_extend and loan.asset.lendable and loan.user_id == current_user.id and loan.extensions < max_ext)) %}
-            <form method="post" action="{{ url_for('loans.extend', loan_id=loan.id) }}" style="display:inline">
+            <form method="post" action="{{ url_for('loans.extend', loan_id=loan.id) }}" class="u-d-inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="next" value="{{ request.full_path }}">
               <button class="btn sm" title="{{ _("Extend") }}">{{ icon("extend") }} {{ _("Extend") }}</button></form>
             {% endif %}
             {% if manager and mail_on and loan.user_id != current_user.id and loan.due_at %}
-            <form method="post" action="{{ url_for('loans.remind', loan_id=loan.id) }}" style="display:inline">
+            <form method="post" action="{{ url_for('loans.remind', loan_id=loan.id) }}" class="u-d-inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="next" value="{{ request.full_path }}">
               <button class="btn sm" title="{{ _('Email reminder to {email}', email=loan.user.email) if loan.user.email else _('No email address on file') }}"
                       {{ "disabled" if not loan.user.email }}>{{ icon("mail") }}</button></form>
             {% endif %}
             {% if manager or (self_return and loan.user_id == current_user.id) %}
-            <form method="post" action="{{ url_for('loans.give_back', loan_id=loan.id) }}" style="display:inline">
+            <form method="post" action="{{ url_for('loans.give_back', loan_id=loan.id) }}" class="u-d-inline">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="next" value="{{ request.full_path }}">
               <button class="btn sm primary" title="{{ _("Return") }}">{{ icon("return") }} {{ _("Return") }}</button></form>

@@ -4,23 +4,23 @@
 {% block auth %}
 {% if state == "check_mail" %}
 <h2>{{ _("Almost done") }}</h2>
-<p class="muted" style="margin-top: 8px">{% if email %}{{ _("We have sent an email with a confirmation link to <b>{email}</b>.", email=email) }}{% else %}{{ _("We have sent you an email with a confirmation link.") }}{% endif %}
+<p class="muted u-mt-8">{% if email %}{{ _("We have sent an email with a confirmation link to <b>{email}</b>.", email=email) }}{% else %}{{ _("We have sent you an email with a confirmation link.") }}{% endif %}
   {{ _("Please click it within 48 hours. Check your spam folder too.") }}</p>
 {% elif state == "verified" %}
 <h2>{{ _("Email confirmed") }}</h2>
 {% if approval %}
-<p class="muted" style="margin-top: 8px">{{ _("Thank you! Your account still has to be approved by the management team.") }}
+<p class="muted u-mt-8">{{ _("Thank you! Your account still has to be approved by the management team.") }}
   {{ _("You'll receive an email as soon as it's ready.") }}</p>
 {% else %}
-<p class="muted" style="margin-top: 8px">{{ _("Thank you! Your account is now active.") }}</p>
-<a class="btn primary lg block" style="margin-top: 18px" href="{{ url_for('main.login') }}">{{ icon("lock") }} {{ _("Go to sign-in") }}</a>
+<p class="muted u-mt-8">{{ _("Thank you! Your account is now active.") }}</p>
+<a class="btn primary lg block u-mt-18" href="{{ url_for('main.login') }}">{{ icon("lock") }} {{ _("Go to sign-in") }}</a>
 {% endif %}
 {% elif state == "expired" %}
 <h2>{{ _("Link expired") }}</h2>
-<p class="muted" style="margin-top: 8px">{{ _("The confirmation link is no longer valid. Sign in with your username and password – you can request a new link there.") }}</p>
+<p class="muted u-mt-8">{{ _("The confirmation link is no longer valid. Sign in with your username and password – you can request a new link there.") }}</p>
 {% else %}
 <h2>{{ _("Thank you for registering") }}</h2>
-<p class="muted" style="margin-top: 8px">{{ _("Your account still has to be approved by the management team. You will be notified as soon as that happens.") }}</p>
+<p class="muted u-mt-8">{{ _("Your account still has to be approved by the management team. You will be notified as soon as that happens.") }}</p>
 {% endif %}
-<p style="margin-top: 22px; font-size: 14px"><a href="{{ url_for('main.login') }}">{{ _("← Back to sign-in") }}</a></p>
+<p class="u-mt-22 u-fs-14"><a href="{{ url_for('main.login') }}">{{ _("← Back to sign-in") }}</a></p>
 {% endblock %}

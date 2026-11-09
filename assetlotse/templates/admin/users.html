@@ -26,7 +26,7 @@
     <thead><tr><th>{{ _("User") }}</th><th>{{ _("Role") }}</th><th>{{ _("Source") }}</th><th>{{ _("Groups") }}</th><th>{{ _("Loans") }}</th><th>{{ _("Last sign-in") }}</th><th></th></tr></thead>
     <tbody>
     {% for u in users %}
-    <tr {% if not u.active and not u.pending_approval %}style="opacity:.55"{% endif %}>
+    <tr{% if not u.active and not u.pending_approval %} class="u-op-0_55"{% endif %}>
       <td><div class="cell-user"><span class="avatar">{{ u.initials }}</span>
         <div><b>{{ u.name }}</b>{% if u.pending_approval %} <span class="badge warn">{{ _("awaiting approval") }}</span>{% endif %}
           {% if not u.email_verified %} <span class="badge">{{ _("email unconfirmed") }}</span>{% endif %}
@@ -40,11 +40,11 @@
       <td class="nowrap"><small>{{ u.last_login|de_date }}</small></td>
       <td class="actions-cell">
         {% if u.pending_approval %}
-        <form method="post" action="{{ url_for('admin.user_approve', user_id=u.id) }}" style="display:inline">
+        <form method="post" action="{{ url_for('admin.user_approve', user_id=u.id) }}" class="u-d-inline">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="next" value="{{ request.full_path }}">
           <button class="btn sm primary">{{ icon("check") }} {{ _("Approve") }}</button></form>
-        <form method="post" action="{{ url_for('admin.user_reject', user_id=u.id) }}" style="display:inline"
+        <form method="post" action="{{ url_for('admin.user_reject', user_id=u.id) }}" class="u-d-inline"
               data-confirm="{{ _('Reject and delete the registration of {name}?', name=u.name) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="btn sm danger" title="{{ _('Reject') }}">{{ icon("x") }}</button></form>

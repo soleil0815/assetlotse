@@ -2,7 +2,7 @@
 {% from "_macros.html" import icon, role_badge %}
 {% block title %}{{ _("New group") if is_new else group.name }}{% endblock %}
 {% block content %}
-<a href="{{ url_for('admin.groups') }}" class="btn ghost sm" style="margin-bottom: 14px">{{ icon("arrow-left") }} {{ _("Groups") }}</a>
+<a href="{{ url_for('admin.groups') }}" class="btn ghost sm u-mb-14">{{ icon("arrow-left") }} {{ _("Groups") }}</a>
 <div class="page-head"><div><div class="eyebrow">{{ _("Group") }}</div><h1>{{ _("Create group") if is_new else group.name }}</h1></div></div>
 <form method="post">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -21,18 +21,18 @@
       </div>
     </section>
     <section class="card card-pad">
-      <h3 style="margin-bottom: 12px">{{ _("Members") }}</h3>
-      <input type="search" aria-label="{{ _('Filter members') }}" placeholder="{{ _('Filter …') }}" data-filter-list="#members" style="margin-bottom: 12px">
-      <div id="members" style="max-height: 420px; overflow-y: auto">
+      <h3 class="u-mb-12">{{ _("Members") }}</h3>
+      <input type="search" aria-label="{{ _('Filter members') }}" placeholder="{{ _('Filter …') }}" data-filter-list="#members" class="u-mb-12">
+      <div id="members" class="u-maxh-420 u-oy-auto">
         {% for u in users %}
         <label class="check" data-filter-item><input type="checkbox" name="members" value="{{ u.id }}" {{ "checked" if u in group.users }}>
           <span>{{ u.name }} <small class="muted">{{ u.username }}{% if u.auth_source == "ldap" %} · AD{% endif %}</small></span>
-          <span style="margin-left:auto">{{ role_badge(u) }}</span></label>
+          <span class="u-ml-auto">{{ role_badge(u) }}</span></label>
         {% endfor %}
       </div>
     </section>
   </div>
-  <div class="actions" style="margin-top: 20px; justify-content: space-between">
+  <div class="actions u-mt-20 u-jc-between">
     <div>{% if not is_new %}<button class="btn danger" form="delete-form">{{ icon("trash") }} {{ _("Delete") }}</button>{% endif %}</div>
     <div class="actions"><a class="btn ghost" href="{{ url_for('admin.groups') }}">{{ _("Cancel") }}</a>
       <button class="btn primary lg">{{ icon("check") }} {{ _("Save") }}</button></div>

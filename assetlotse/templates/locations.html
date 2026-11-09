@@ -9,7 +9,7 @@
 
 <div class="grid grid-2">
   <section class="card card-pad">
-    <h2 style="margin-bottom: 12px">{{ icon("plus") }} {{ _("Add locations") }}</h2>
+    <h2 class="u-mb-12">{{ icon("plus") }} {{ _("Add locations") }}</h2>
     <form method="post" action="{{ url_for('locations.create') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="field"><label for="f-names">{{ _("Names – one per line") }}</label>
@@ -20,8 +20,8 @@
   </section>
 
   <section class="card card-pad">
-    <h2 style="margin-bottom: 8px">{{ _("How it works") }}</h2>
-    <ul class="muted" style="font-size: 13.5px; padding-left: 18px; margin: 0; line-height: 1.6">
+    <h2 class="u-mb-8">{{ _("How it works") }}</h2>
+    <ul class="muted u-fs-13_5 u-pl-18 u-m-0 u-lh-1_6">
       <li>{{ _("Once a location is defined, adding and editing items offers a selection list.") }}</li>
       <li>{{ _("Renaming changes the location for all items as well.") }}</li>
       <li>{{ _("Deleting is only possible once no item is assigned there any more.") }}</li>
@@ -30,15 +30,15 @@
   </section>
 </div>
 
-<section class="card" style="margin-top: 22px">
+<section class="card u-mt-22">
   <div class="card-head"><h2>{{ _("Defined locations") }}</h2><span class="muted">{{ locations|length }}</span></div>
   {% for loc in locations %}
-  <div class="list-row" style="flex-wrap: wrap; gap: 10px">
-    <span class="avatar" style="width:30px;height:30px">{{ icon("pin") }}</span>
-    <form method="post" action="{{ url_for('locations.rename', loc_id=loc.id) }}" class="grow" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-width: 260px">
+  <div class="list-row u-wrap-wrap u-gap-10">
+    <span class="avatar u-w-30 u-h-30">{{ icon("pin") }}</span>
+    <form method="post" action="{{ url_for('locations.rename', loc_id=loc.id) }}" class="grow u-d-flex u-gap-8 u-wrap-wrap u-ai-center u-minw-260">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="text" name="name" value="{{ loc.name }}" maxlength="200" style="flex: 1 1 180px" aria-label="{{ _("Name") }}">
-      <input type="text" name="note" value="{{ loc.note or '' }}" maxlength="300" placeholder="{{ _("Note (optional)") }}" style="flex: 1 1 160px" aria-label="{{ _("Note") }}">
+      <input type="text" name="name" value="{{ loc.name }}" maxlength="200" class="u-flex-1-1-180" aria-label="{{ _("Name") }}">
+      <input type="text" name="note" value="{{ loc.note or '' }}" maxlength="300" placeholder="{{ _("Note (optional)") }}" class="u-flex-1-1-160" aria-label="{{ _("Note") }}">
       <button class="btn sm" title="{{ _("Save") }}">{{ icon("check") }}</button>
     </form>
     {% set n = usage.get(loc.name, 0) %}
@@ -54,18 +54,18 @@
 </section>
 
 {% if unlisted %}
-<section class="card" style="margin-top: 22px">
+<section class="card u-mt-22">
   <div class="card-head"><h2>{{ _("In the inventory, but not defined") }}</h2><span class="muted">{{ unlisted|length }}</span></div>
-  <p class="muted" style="font-size: 13.5px; padding: 0 22px; margin: 4px 0 8px">{{ _("These locations were typed in freely in the past. Add them to the list or replace typos with a defined location – the items are moved along with them.") }}</p>
+  <p class="muted u-fs-13_5 u-p-0-22 u-m-4-0-8">{{ _("These locations were typed in freely in the past. Add them to the list or replace typos with a defined location – the items are moved along with them.") }}</p>
   {% for u in unlisted %}
-  <div class="list-row" style="flex-wrap: wrap; gap: 10px">
-    <div class="grow" style="min-width: 160px"><b style="white-space: pre">{{ u.value }}</b>
+  <div class="list-row u-wrap-wrap u-gap-10">
+    <div class="grow u-minw-160"><b class="u-ws-pre">{{ u.value }}</b>
       <a class="muted" href="{{ url_for('assets.index', standort=u.value) }}"><small>{{ _n("{n} item", "{n} items", u.count) }}</small></a>
       {% if u.suggest %}{% set sname = (locations|selectattr('id', 'equalto', u.suggest)|first).name %}<br><small class="muted">{{ _("Different spelling of “{name}”", name=sname) if u.variant else _("Typo? Similar to “{name}”", name=sname) }}</small>{% endif %}</div>
-    <form method="post" action="{{ url_for('locations.adopt') }}" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 100%">
+    <form method="post" action="{{ url_for('locations.adopt') }}" class="u-d-flex u-wrap-wrap u-gap-8 u-ai-center u-maxw-100p">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="value" value="{{ u.value }}">
-      <select name="target" aria-label="{{ _("Action") }}" style="width: auto; max-width: 280px">
+      <select name="target" aria-label="{{ _("Action") }}" class="u-w-auto u-maxw-280">
         <option value="__neu__" {{ 'selected' if not u.suggest }}>{{ _("add as new location") }}</option>
         {% for loc in locations %}<option value="{{ loc.id }}" {{ 'selected' if u.suggest == loc.id }}>{{ _("replace with “{name}”", name=loc.name) }}</option>{% endfor %}
       </select>

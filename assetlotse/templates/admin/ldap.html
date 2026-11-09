@@ -8,15 +8,15 @@
 </div>
 
 {% if test_error %}
-<div class="notice danger" style="margin-bottom: 18px">{{ icon("alert") }}<div><b>{{ _("Test failed:") }}</b> {{ test_error }}</div></div>
+<div class="notice danger u-mb-18">{{ icon("alert") }}<div><b>{{ _("Test failed:") }}</b> {{ test_error }}</div></div>
 {% endif %}
 {% if test_result and test_result.message %}
-<div class="notice ok" style="margin-bottom: 18px">{{ icon("check") }}<div>{{ test_result.message }}</div></div>
+<div class="notice ok u-mb-18">{{ icon("check") }}<div>{{ test_result.message }}</div></div>
 {% endif %}
 {% if test_result and test_result.user %}
 {% set u = test_result.user %}
-<section class="card card-pad" style="margin-bottom: 18px">
-  <div class="actions" style="justify-content: space-between; margin-bottom: 14px">
+<section class="card card-pad u-mb-18">
+  <div class="actions u-jc-between u-mb-14">
     <h2>{{ _("Test result: {name}", name=u.display_name) }}</h2>
     {% if u.role %}<span class="badge ok">{{ icon("check") }} {{ _("Sign-in allowed as {role}", role=ROLES[u.role]) }}</span>
     {% else %}<span class="badge danger">{{ icon("x") }} {{ _("Sign-in would be refused") }}</span>{% endif %}
@@ -28,9 +28,9 @@
     <dt>{{ _("Matching rule") }}</dt><dd class="mono">{{ u.matched_rule or _("none") }}</dd>
     <dt>{{ _("Groups ({n})", n=u.groups|length) }}</dt><dd>
       {% for dn, src in u.group_info.items() %}
-      <div style="display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px">
-        <span class="badge {{ 'accent' if src in ('direct', 'direkt') else ('brass' if src in ('primary', 'primär') else '') }}" style="min-width: 92px; justify-content: center">{{ _(src) }}</span>
-        <span><b>{{ group_cn(dn) }}</b> <small class="mono" style="font-size: 11px; overflow-wrap: anywhere">{{ dn }}</small></span>
+      <div class="u-d-flex u-gap-8 u-ai-baseline u-mb-4">
+        <span class="badge {{ 'accent' if src in ('direct', 'direkt') else ('brass' if src in ('primary', 'primär') else '') }} u-minw-92 u-jc-center">{{ _(src) }}</span>
+        <span><b>{{ group_cn(dn) }}</b> <small class="mono u-fs-11 u-ow-anywhere">{{ dn }}</small></span>
       </div>
       {% else %}–{% endfor %}
       <small class="muted">{{ _("direct = member itself · primary = primary group (e.g. Domain Users) · nested = via another group") }}</small>
@@ -42,11 +42,11 @@
 <form method="post" autocomplete="off">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   {# Default action on Enter = Save #}
-  <button type="submit" name="action" value="save" style="position:absolute;left:-9999px" tabindex="-1" aria-hidden="true"></button>
+  <button type="submit" name="action" value="save" class="offscreen" tabindex="-1" aria-hidden="true"></button>
   <div class="grid grid-2">
     <div class="stack">
     <section class="card card-pad">
-      <div class="actions" style="justify-content: space-between; margin-bottom: 16px">
+      <div class="actions u-jc-between u-mb-16">
         <h2>{{ _("Connection") }}</h2>
         <div class="seg" role="group" aria-label="{{ _('Template') }}">
           <button type="button" data-ldap-preset="ad">Windows AD</button>
@@ -73,7 +73,7 @@
         <div class="field span-6"><label for="f-ldap-bind-password">{{ _("Service account password") }}</label>
           <input id="f-ldap-bind-password" type="password" name="ldap_bind_password" value="" autocomplete="new-password"
                  placeholder="{{ _('•••••••• saved – leave empty = unchanged') if has_pw else '' }}">
-          {% if has_pw %}<label class="check" style="margin-top: 8px"><input type="checkbox" name="clear_bind_password" value="1"> {{ _("Delete saved password") }}</label>{% endif %}</div>
+          {% if has_pw %}<label class="check u-mt-8"><input type="checkbox" name="clear_bind_password" value="1"> {{ _("Delete saved password") }}</label>{% endif %}</div>
         <div class="field span-6"><label for="f-ldap-upn-suffix">{{ _("UPN suffix") }} <small>{{ _("(only without service account)") }}</small></label>
           <input id="f-ldap-upn-suffix" class="mono" type="text" name="ldap_upn_suffix" value="{{ v.ldap_upn_suffix }}" placeholder="firma.local">
           <div class="hint">{{ _("Without a service account, every user binds directly as <code>user@company.local</code> and looks themselves up.") }}</div></div>
@@ -92,20 +92,20 @@
     </section>
 
     <section class="card card-pad" id="ad-cache">
-      <h2 style="margin-bottom: 6px">{{ icon("users") }} {{ _("Background synchronisation") }}</h2>
-      <p class="muted" style="font-size: 13.5px">{{ _("AssetLotse regularly reads everyone who may sign in under the rules below:") }}</p>
-      <ul class="muted" style="font-size: 13.5px; margin: 0 0 10px 18px">
+      <h2 class="u-mb-6">{{ icon("users") }} {{ _("Background synchronisation") }}</h2>
+      <p class="muted u-fs-13_5">{{ _("AssetLotse regularly reads everyone who may sign in under the rules below:") }}</p>
+      <ul class="muted u-fs-13_5 u-m-0-0-10-18">
         <li>{{ _("People without an AssetLotse account are cached with username, name and email – the issue desk finds them instantly. “Take over” still checks directly in AD every time.") }}</li>
         <li>{{ _("Existing AD accounts are updated: name, email, groups (with “Assign groups automatically”) and renames in AD. The role only for accounts that have signed in themselves before.") }}</li>
         <li>{{ _("People disabled, expired, deleted or no longer authorised in AD are removed from the cache; their AssetLotse accounts are deactivated (loans remain) and reactivated automatically when the person returns.") }}</li>
       </ul>
       <label class="check"><input type="checkbox" name="ldap_cache_enabled" value="1" {{ 'checked' if v.ldap_cache_enabled == '1' }}>
         <span>{{ _("Synchronise with AD in the background") }}<small class="muted">{{ _("Switching off deletes the cache; the desk then searches AD directly again (slower) and accounts are only updated at sign-in.") }}</small></span></label>
-      <div class="field" style="max-width: 280px; margin-top: 10px"><label for="f-ldap-cache-hours">{{ _("Synchronisation") }}</label>
+      <div class="field u-maxw-280 u-mt-10"><label for="f-ldap-cache-hours">{{ _("Synchronisation") }}</label>
         <select id="f-ldap-cache-hours" name="ldap_cache_hours">
           {% for h in cache_hours %}<option value="{{ h }}" {{ 'selected' if v.ldap_cache_hours == h|string }}>{{ _n("every hour", "every {n} hours", h) if h < 24 else _("once a day") }}</option>{% endfor %}
         </select></div>
-      <div class="notice {{ 'warn' if cache.error else '' }}" style="margin-top: 10px">{{ icon("server") }}<div>
+      <div class="notice {{ 'warn' if cache.error else '' }} u-mt-10">{{ icon("server") }}<div>
         {% if not cache.available %}{{ _("Not active yet: enable Active Directory and enter a service account (bind DN).") }}
         {% elif not cache.enabled %}{{ _("Off – the issue desk searches AD directly.") }}
         {% elif cache.running %}{{ _("Synchronisation running …") }}
@@ -116,52 +116,52 @@
         {% if cache.warning and cache.enabled %}<br><b>{{ _("Attention:") }}</b> {{ cache.warning }}{% endif %}
       </div></div>
       {% if cache.pending and cache.enabled %}
-      <div class="notice warn" style="margin-top: 10px">{{ icon("alert") }}<div>
+      <div class="notice warn u-mt-10">{{ icon("alert") }}<div>
         <b>{{ _n("{n} AssetLotse account no longer exists in AD (deleted, disabled or no longer authorised).", "{n} AssetLotse accounts no longer exist in AD (deleted, disabled or no longer authorised).", cache.pending|length) }}</b><br>
         {{ _("Because this is the first synchronisation or an unusually large number would be affected, they were not deactivated automatically. Please check – if a setting is wrong (base DN, filter, rules), correct it first.") }}
-        <div class="mono" style="font-size: 12.5px; margin: 6px 0">{{ cache.pending[:100]|join(", ") }}{% if cache.pending|length > 100 %} …{% endif %}</div>
+        <div class="mono u-fs-12_5 u-m-6-0">{{ cache.pending[:100]|join(", ") }}{% if cache.pending|length > 100 %} …{% endif %}</div>
         <button class="btn sm danger" formaction="{{ url_for('admin.ldap_cache_confirm') }}" formmethod="post" formnovalidate>{{ icon("lock") }} {{ _("Deactivate these accounts") }}</button>
       </div></div>
       {% endif %}
       {% if cache.enabled %}
-      <button class="btn" style="margin-top: 12px" formaction="{{ url_for('admin.ldap_cache_sync') }}" formmethod="post" formnovalidate>{{ icon("extend") }} {{ _("Synchronise now") }}</button>
+      <button class="btn u-mt-12" formaction="{{ url_for('admin.ldap_cache_sync') }}" formmethod="post" formnovalidate>{{ icon("extend") }} {{ _("Synchronise now") }}</button>
       {% endif %}
     </section>
 
     <section class="card card-pad" id="tls">
-      <div class="actions" style="justify-content: space-between; margin-bottom: 6px">
+      <div class="actions u-jc-between u-mb-6">
         <h2>{{ _("TLS certificate") }}</h2>
         {% if stored_certs %}<span class="badge ok">{{ icon("lock") }} {{ _("{n} stored", n=stored_certs|length) }}</span>
         {% else %}<span class="badge">{{ _("none stored") }}</span>{% endif %}
       </div>
-      <p class="muted" style="font-size: 13.5px">{{ _("The certificate is fetched directly from the domain controller (LDAPS or StartTLS), and the root CA is added automatically – via the AIA address in the certificate or from AD itself. You check the fingerprint and confirm.") }}</p>
+      <p class="muted u-fs-13_5">{{ _("The certificate is fetched directly from the domain controller (LDAPS or StartTLS), and the root CA is added automatically – via the AIA address in the certificate or from AD itself. You check the fingerprint and confirm.") }}</p>
 
       {% if fetched %}
-      <div class="notice accent" style="margin: 14px 0; display: block">
+      <div class="notice accent u-m-14-0 u-d-block">
         <b>{{ _("Received from the server – please check:") }}</b>
         {% for c, trusted in fetched.certs %}
-        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line)">
+        <div class="u-mt-12 u-pt-10 u-bt-1-solid-line">
           <div class="actions">
             <span class="badge {{ 'brass' if c.kind in ('Root CA', 'Stamm-CA') else ('accent' if c.kind in ('Intermediate CA', 'Zwischen-CA') else '') }}">{{ _(c.kind) }}</span>
             {% if trusted %}<span class="badge ok">{{ icon("check") }} {{ _("trusted") }}</span>{% endif %}
             {% if c.expired %}<span class="badge danger">{{ _("expired") }}</span>{% endif %}
           </div>
-          <dl class="kv" style="margin-top: 8px; font-size: 13px">
+          <dl class="kv u-mt-8 u-fs-13">
             <dt>{{ _p("certificate", "Subject") }}</dt><dd class="mono">{{ c.subject }}</dd>
             <dt>{{ _("Issuer") }}</dt><dd class="mono">{{ c.issuer }}</dd>
             {% if c.names %}<dt>{{ _("Names") }}</dt><dd class="mono">{{ c.names|join(", ") }}</dd>{% endif %}
             <dt>{{ _("Valid until") }}</dt><dd>{{ c.not_after }}</dd>
-            <dt>SHA-256</dt><dd class="mono" style="font-size: 11.5px">{{ c.sha256 }}</dd>
+            <dt>SHA-256</dt><dd class="mono u-fs-11_5">{{ c.sha256 }}</dd>
           </dl>
         </div>
         {% endfor %}
-        {% for n in fetched.notes %}<p style="margin-top: 10px"><small>ℹ {{ n }}</small></p>{% endfor %}
+        {% for n in fetched.notes %}<p class="u-mt-10"><small>ℹ {{ n }}</small></p>{% endfor %}
         {% for host, ok in fetched.hosts.items() if not ok %}
-        <p style="margin-top: 10px; color: var(--warn)"><small>⚠ {{ _("“{host}” is not in the server certificate. Better enter the DC's DNS name (see “Names”) or turn off hostname verification.", host=host) }}</small></p>
+        <p class="u-mt-10 u-c-warn"><small>⚠ {{ _("“{host}” is not in the server certificate. Better enter the DC's DNS name (see “Names”) or turn off hostname verification.", host=host) }}</small></p>
         {% endfor %}
         <textarea name="pending_pem" hidden>{{ fetched.pem }}</textarea>
         <span hidden data-scroll-to="tls" data-scroll-block="start"></span>
-        <div class="actions" style="margin-top: 14px">
+        <div class="actions u-mt-14">
           <button class="btn primary" name="action" value="trust_cert" formnovalidate>{{ icon("check") }} {{ _("Trust &amp; save") }}</button>
           <a class="btn ghost" href="{{ url_for('admin.ldap') }}">{{ _("Discard") }}</a>
         </div>
@@ -169,14 +169,14 @@
       {% endif %}
 
       {% for c in stored_certs %}
-      <div class="list-row" style="padding: 10px 0">
+      <div class="list-row u-p-10-0">
         <span class="badge {{ 'brass' if c.kind in ('Root CA', 'Stamm-CA') else ('accent' if c.kind in ('Intermediate CA', 'Zwischen-CA') else '') }}">{{ _(c.kind) }}</span>
-        <div class="grow"><b class="mono" style="font-size: 12.5px">{{ c.subject }}</b>
-          <small>{{ _("valid until {date}", date=c.not_after) }}{% if c.expired %} – <span style="color: var(--danger)">{{ _("expired") }}</span>{% endif %} · SHA-256 {{ c.sha256[:23] }}…</small></div>
+        <div class="grow"><b class="mono u-fs-12_5">{{ c.subject }}</b>
+          <small>{{ _("valid until {date}", date=c.not_after) }}{% if c.expired %} – <span class="u-c-danger">{{ _("expired") }}</span>{% endif %} · SHA-256 {{ c.sha256[:23] }}…</small></div>
       </div>
       {% endfor %}
 
-      <div class="actions" style="margin-top: 12px">
+      <div class="actions u-mt-12">
         <button class="btn" name="action" value="fetch_cert" formnovalidate>{{ icon("download") }} {{ _("Fetch certificate from DC") }}</button>
         {% if stored_certs %}<button class="btn danger" name="action" value="clear_cert" formnovalidate
           data-confirm-click="{{ _('Remove saved certificates?') }}">{{ icon("trash") }} {{ _("Remove") }}</button>{% endif %}
@@ -186,9 +186,9 @@
         <span>{{ _("Verify certificate") }}<small class="muted">{{ _("Only turn off for testing.") }}</small></span></label>
       <label class="check"><input type="checkbox" name="ldap_check_hostname" value="1" {{ 'checked' if v.ldap_check_hostname == '1' }}>
         <span>{{ _("Verify hostname") }}<small class="muted">{{ _("The server name must be in the certificate. Turn off if you address the DC by IP address.") }}</small></span></label>
-      <details style="margin-top: 6px">
-        <summary class="muted" style="cursor: pointer; font-size: 13.5px">{{ _("Advanced: custom CA file") }}</summary>
-        <div class="field" style="margin-top: 10px"><label for="f-ldap-ca-file">{{ _("CA certificate (path on the server)") }}</label>
+      <details class="u-mt-6">
+        <summary class="muted u-cursor-pointer u-fs-13_5">{{ _("Advanced: custom CA file") }}</summary>
+        <div class="field u-mt-10"><label for="f-ldap-ca-file">{{ _("CA certificate (path on the server)") }}</label>
           <input id="f-ldap-ca-file" class="mono" type="text" name="ldap_ca_file" value="{{ v.ldap_ca_file }}" placeholder="/certs/firma-root-ca.pem">
           <div class="hint">{{ _("Used in addition to the fetched certificates.") }}</div></div>
       </details>
@@ -197,34 +197,34 @@
 
     <div class="stack">
       <section class="card card-pad">
-        <h2 style="margin-bottom: 6px">{{ _("Who can do what?") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("Enter the <b>AD groups</b> for each role – one per line, simply by name (e.g. <code>IT-Admins</code>). Members of nested groups count too. The highest matching role wins; anyone in none of the groups cannot sign in.") }}</p>
+        <h2 class="u-mb-6">{{ _("Who can do what?") }}</h2>
+        <p class="muted u-fs-13_5">{{ _("Enter the <b>AD groups</b> for each role – one per line, simply by name (e.g. <code>IT-Admins</code>). Members of nested groups count too. The highest matching role wins; anyone in none of the groups cannot sign in.") }}</p>
         <div class="field"><label for="f-ldap-admin-rules">{{ icon("shield") }} {{ _("Administrators") }}</label>
           <textarea id="f-ldap-admin-rules" class="rule-box" name="ldap_admin_rules" data-rule-box="admin" placeholder="{{ _('IT-Admins') }}">{{ v.ldap_admin_rules }}</textarea></div>
         <div class="field"><label for="f-ldap-manager-rules">{{ icon("assets") }} {{ _("Managers (issue items, maintain inventory)") }}</label>
           <textarea id="f-ldap-manager-rules" class="rule-box" name="ldap_manager_rules" data-rule-box="manager" placeholder="{{ _('IT-Support') }}">{{ v.ldap_manager_rules }}</textarea></div>
         <div class="field"><label for="f-ldap-login-rules">{{ icon("user") }} {{ _("Staff members (sign-in allowed)") }}</label>
           <textarea id="f-ldap-login-rules" class="rule-box" name="ldap_login_rules" data-rule-box="reader" placeholder="{{ _('Staff member') }}&#10;{{ _('Domain Users') }}">{{ v.ldap_login_rules }}</textarea></div>
-        <details class="muted" style="font-size: 13px; margin-bottom: 14px">
-          <summary style="cursor: pointer">{{ _("More options") }}</summary>
-          <p style="margin-top: 8px">{{ _("Instead of a group name you can also use the full DN of a group (<code>CN=IT-Admins,OU=Groups,DC=institute,DC=local</code>) – useful if the same name exists more than once – or an OU (<code>OU=Staff,DC=institute,DC=local</code>): then all users below it count.") }}</p>
+        <details class="muted u-fs-13 u-mb-14">
+          <summary class="u-cursor-pointer">{{ _("More options") }}</summary>
+          <p class="u-mt-8">{{ _("Instead of a group name you can also use the full DN of a group (<code>CN=IT-Admins,OU=Groups,DC=institute,DC=local</code>) – useful if the same name exists more than once – or an OU (<code>OU=Staff,DC=institute,DC=local</code>): then all users below it count.") }}</p>
         </details>
 
         <hr>
-        <h3 style="margin-bottom: 8px">{{ _("Choose groups from AD") }}</h3>
+        <h3 class="u-mb-8">{{ _("Choose groups from AD") }}</h3>
         <div class="input-group">
           <input type="search" name="group_query" aria-label="{{ _("Search AD groups") }}" value="{{ group_query }}" placeholder="{{ _('Name contains … (empty = all)') }}"
                  data-enter-clicks-next>
           <button class="btn" name="action" value="list_groups" formnovalidate>{{ icon("search") }} {{ _("Load groups") }}</button>
         </div>
         {% if ad_groups is not none %}
-        <div id="ad-groups" style="margin-top: 12px">
+        <div id="ad-groups" class="u-mt-12">
           {% if ad_groups %}
-          <input type="search" aria-label="{{ _('Filter AD groups') }}" placeholder="{{ _('Filter {n} groups …', n=ad_groups|length) }}" data-filter-list="#ad-group-list" style="margin-bottom: 8px">
-          <div id="ad-group-list" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px">
+          <input type="search" aria-label="{{ _('Filter AD groups') }}" placeholder="{{ _('Filter {n} groups …', n=ad_groups|length) }}" data-filter-list="#ad-group-list" class="u-mb-8">
+          <div id="ad-group-list" class="u-maxh-360 u-oy-auto u-b-1-solid-line u-br-10">
             {% for g in ad_groups %}
-            <div class="list-row" data-filter-item style="padding: 9px 12px">
-              <div class="grow"><b>{{ g.name }}</b><small class="mono" style="font-size: 11px">{{ g.dn }}</small>
+            <div class="list-row u-p-9-12" data-filter-item>
+              <div class="grow"><b>{{ g.name }}</b><small class="mono u-fs-11">{{ g.dn }}</small>
                 {% if g.description %}<small>{{ g.description }}</small>{% endif %}</div>
               <div class="seg">
                 <button type="button" data-add-rule="admin" data-name="{{ g.name }}" title="{{ _('As administrators') }}">{{ _("Admin") }}</button>
@@ -234,7 +234,7 @@
             </div>
             {% endfor %}
           </div>
-          <p class="muted" style="font-size: 12.5px; margin-top: 8px">{{ _("A click adds the group above – then <b>Save</b>.") }}</p>
+          <p class="muted u-fs-12_5 u-mt-8">{{ _("A click adds the group above – then <b>Save</b>.") }}</p>
           {% else %}
           <div class="notice">{{ _("No groups found.") }}</div>
           {% endif %}
@@ -244,8 +244,8 @@
       </section>
 
       <section class="card card-pad">
-        <h2 style="margin-bottom: 6px">{{ _p("verb", "Test") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("Tests use the values in the form – even if not saved.") }}</p>
+        <h2 class="u-mb-6">{{ _p("verb", "Test") }}</h2>
+        <p class="muted u-fs-13_5">{{ _("Tests use the values in the form – even if not saved.") }}</p>
         <button class="btn" name="action" value="test_bind" formnovalidate>{{ icon("server") }} {{ _("Test connection") }}</button>
         <hr>
         <div class="form-grid">
@@ -256,7 +256,7 @@
       </section>
     </div>
   </div>
-  <div class="actions" style="margin-top: 20px; justify-content: flex-end">
+  <div class="actions u-mt-20 u-jc-end">
     <button class="btn primary lg" name="action" value="save">{{ icon("check") }} {{ _("Save") }}</button>
   </div>
 </form>

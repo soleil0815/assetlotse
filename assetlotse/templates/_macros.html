@@ -51,7 +51,7 @@
 {%- endmacro %}
 
 {% macro thumb(asset, cls="") -%}
-<div class="thumb {{ cls }}" style="--h: {{ asset.hue }}">
+<div class="thumb {{ cls }}">
   <div class="ph">{{ icon("asset") }}{% if asset.category %}<span>{{ asset.category }}</span>{% endif %}</div>
   {%- if asset.image %}<img src="{{ asset.image }}" alt="" loading="lazy" data-hide-broken>{% endif -%}
 </div>
@@ -67,7 +67,7 @@
 {%- endmacro %}
 
 {% macro group_badge(group) -%}
-{%- if group -%}<span class="badge"><span class="dot" style="background: {{ group.color }}"></span>{{ group.name }}</span>
+{%- if group -%}<span class="badge"><span class="dot grp-{{ group.id }}"></span>{{ group.name }}</span>
 {%- else -%}<span class="badge">{{ _("General") }}</span>
 {%- endif -%}
 {%- endmacro %}

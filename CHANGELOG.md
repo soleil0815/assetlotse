@@ -2,6 +2,24 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.5.0 – 2026-11-09
+
+**Security**
+- **No inline styles any more – the Content Security Policy now forbids them** (`style-src 'self'`, without
+  `'unsafe-inline'`). OWASP ZAP reported this as its only medium finding. About 310 `style="…"` attributes in
+  the page templates became utility classes in the new `static/css/utilities.css` (e.g. `u-mt-8` =
+  `margin-top: 8px`), loaded before `app.css` and marked `!important` so they keep the precedence of the former
+  inline style. Values that depend on data come from the new generated stylesheet `/branding/site.css`
+  (brand colours, group colours as `.grp-<id>`, background image of the sign-in page; built only from validated
+  values, cached via a content hash) instead of a `<style>` element. The shelf graphic and the meter bars use CSS
+  classes. Pages look exactly as before (46 pages compared pixel by pixel, desktop, phone and dark mode).
+  E-mails keep their inline styles – mail programs need them.
+- New test `tests/test_csp_styles.py` fails as soon as a page template contains `style=` or `<style` again, or
+  uses a utility class that is not defined.
+
+**Removed**
+- The unused per-asset colour variable of the thumbnail placeholder (`--h`).
+
 ## 2.4.2 – 2026-11-08
 
 **Changed**

@@ -2,7 +2,7 @@
 {% from "_macros.html" import lang_switch %}
 {% block body %}
 <div class="auth">
-  <section class="auth-art{{ ' has-bg' if brand.bg_url }}"{% if brand.bg_url %} style="--auth-bg: url('{{ brand.bg_url }}'); --auth-dim: {{ brand.bg_dim / 100 }}"{% endif %}>
+  <section class="auth-art{{ ' has-bg' if brand.bg_url }}">
     <div>
       {% if brand.logo_url %}<div class="auth-logo{{ ' plate' if brand.logo_plate }}"><img src="{{ brand.logo_url }}" alt="{{ org_name }}"></div>{% endif %}
       {% if brand.eyebrow %}<div class="eyebrow auth-eyebrow">{{ brand.eyebrow }}</div>{% endif %}
@@ -12,10 +12,7 @@
     {% if brand.show_shelf %}
     <div>
       <div class="shelf" aria-hidden="true">
-        {% for w, h, c in [(78,64,'#0b7285'),(54,104,'#3d4b59'),(92,52,'#5f6f7f'),(60,84,'#17808f'),(70,124,'#2c3a47'),
-                           (46,46,'#7f8d9a'),(84,76,'#0f5f6b'),(58,98,'#46576a')] %}
-        <div class="spine box" style="width: {{ w }}px; height: {{ h }}px; background: {{ c }}; {% if loop.index == 6 %}transform: rotate(-7deg); transform-origin: bottom left;{% endif %}"></div>
-        {% endfor %}
+        {% for _ in range(8) %}<div class="spine box"></div>{% endfor %}{# sizes and colours: app.css #}
       </div>
       <div class="shelf-board"></div>
     </div>

@@ -386,11 +386,11 @@ class PagingTests(Base):
         db.session.commit()
         self.login("admin")
         html = self.c.get("/ausleihen?q=L").get_data(as_text=True)
-        self.assertEqual(html.count('class="cell-asset"'), 50)
+        self.assertEqual(html.count('class="cell-asset '), 50)
         self.assertIn("seite=3", html)
         self.assertIn("q=L", re.search(r'href="([^"]*seite=3[^"]*)"', html).group(1))
         html = self.c.get("/ausleihen?q=L&seite=3").get_data(as_text=True)
-        self.assertEqual(html.count('class="cell-asset"'), 20)
+        self.assertEqual(html.count('class="cell-asset '), 20)
 
 
 if __name__ == "__main__":

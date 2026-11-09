@@ -9,8 +9,10 @@
   {% else %}<link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">{% endif %}
   <link rel="preload" href="{{ url_for('static', filename='fonts/inter-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}?v={{ asset_rev }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}?v={{ asset_rev }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v={{ asset_rev }}">
-  {% if brand.theme_css %}<style>{{ brand.theme_css|safe }}</style>{% endif %}
+  {# brand colours, group colours, background image of the sign-in page – generated, see branding.site_css() #}
+  <link rel="stylesheet" href="{{ url_for('main.site_css', v=brand.site_css_rev) }}">
   <script src="{{ url_for('static', filename='js/theme.js') }}?v={{ asset_rev }}"></script>
 </head>
 <body>
@@ -37,7 +39,7 @@
       <a href="{{ url_for('main.profile') }}" class="{{ 'active' if ep == 'main.profile' }}">{{ icon("user") }} {{ _("My profile") }}</a>
       <a href="{{ url_for('help.index') }}" class="{{ 'active' if ep.startswith('help.') }}">{{ icon("help") }} {{ _("Help") }}</a>
       <a href="{{ url_for('security.settings') }}" class="{{ 'active' if ep.startswith('security.') }}">{{ icon("shield") }} {{ _("Security") }}
-        {% if not current_user.has_2fa %}<span class="count" style="background: var(--side-2); color: var(--side-muted); font-weight: 600">{{ _("2FA off") }}</span>{% endif %}</a>
+        {% if not current_user.has_2fa %}<span class="count u-bg-side-2 u-c-side-muted u-fw-600">{{ _("2FA off") }}</span>{% endif %}</a>
       {% if current_user.is_manager %}
       <div class="nav-label">{{ _("Management") }}</div>
       <a href="{{ url_for('loans.desk') }}" class="{{ 'active' if ep == 'loans.desk' }}">{{ icon("desk") }} {{ _("Issue desk") }}</a>
@@ -74,7 +76,7 @@
     {% endif %}
     <div class="side-foot">
       <a href="{{ url_for('main.profile') }}" class="avatar" title="{{ _('Profile') }}">{{ current_user.initials }}</a>
-      <a class="who" href="{{ url_for('main.profile') }}" title="{{ _('My profile') }}" style="text-decoration: none"><b>{{ current_user.name }}</b><span>{{ current_user.role_label }}{% if current_user.auth_source == 'ldap' %} · AD{% endif %}</span></a>
+      <a class="who u-td-none" href="{{ url_for('main.profile') }}" title="{{ _('My profile') }}"><b>{{ current_user.name }}</b><span>{{ current_user.role_label }}{% if current_user.auth_source == 'ldap' %} · AD{% endif %}</span></a>
       <button class="icon-btn" type="button" data-theme-toggle title="{{ _('Light/dark') }}">{{ icon("moon") }}</button>
       <form method="post" action="{{ url_for('main.logout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -86,7 +88,7 @@
   <div class="main">
     <header class="topbar">
       <button class="icon-btn menu-btn" type="button" data-nav-toggle aria-label="{{ _('Menu') }}" aria-controls="sidebar" aria-expanded="false">{{ icon("menu") }}</button>
-      {% if catalog_hidden() %}<div class="search" aria-hidden="true" style="visibility: hidden"></div>{% else %}
+      {% if catalog_hidden() %}<div class="search u-vis-hidden" aria-hidden="true"></div>{% else %}
       <form class="search" action="{{ url_for('assets.index') }}" role="search">
         {{ icon("search") }}
         <input type="search" name="q" placeholder="{{ _('Name, inventory or serial number …') }}" value="{{ request.args.get('q', '') if ep == 'assets.index' else '' }}" aria-label="{{ _('Search the inventory') }}"

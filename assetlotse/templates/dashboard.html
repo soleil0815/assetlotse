@@ -17,7 +17,7 @@
 </div>
 
 {% if pending_registrations %}
-<a class="notice warn" href="{{ url_for('admin.users', status='neu') }}" style="margin-bottom: 18px; color: inherit; text-decoration: none">
+<a class="notice warn u-mb-18 u-c-inherit u-td-none" href="{{ url_for('admin.users', status='neu') }}">
   {{ icon("user") }}<div>{{ _n("<b>{n} new registration</b> is awaiting approval. Review now →", "<b>{n} new registrations</b> are awaiting approval. Review now →", pending_registrations) }}</div></a>
 {% endif %}
 
@@ -53,14 +53,14 @@
       {% if categories %}
       <div class="table-wrap"><table>
         <thead><tr><th>{{ _("Category") }}</th><th class="num">{{ _("Entries") }}</th><th class="num">{{ _("Pieces") }}</th>
-          <th class="num">{{ _("Issued") }}</th><th class="num">{{ _p("status", "Available") }}</th><th style="width: 28%">{{ _("Utilisation") }}</th></tr></thead>
+          <th class="num">{{ _("Issued") }}</th><th class="num">{{ _p("status", "Available") }}</th><th class="u-w-28p">{{ _("Utilisation") }}</th></tr></thead>
         <tbody>
         {% for c in categories %}
           <tr>
             <td>{% if c.name %}<a href="{{ url_for('assets.index', kategorie=c.name) }}">{{ c.name }}</a>{% else %}<span class="muted">{{ _("no category") }}</span>{% endif %}</td>
             <td class="num">{{ c.entries }}</td><td class="num">{{ c.pieces }}</td>
             <td class="num">{{ c.issued }}</td><td class="num">{{ c.free }}</td>
-            <td><div class="meter" title="{{ c.pct }} %"><span style="width: {{ [c.pct, 100]|min }}%"></span></div></td>
+            <td><div class="meter" title="{{ c.pct }} %"><span class="pct-{{ [[c.pct|int, 100]|min, 0]|max }}"></span></div></td>
           </tr>
         {% endfor %}
         </tbody>
@@ -80,7 +80,7 @@
         <tbody>
         {% for loan in recent_loans %}
           <tr>
-            <td><a href="{{ url_for('assets.detail', asset_id=loan.asset.id) }}" style="color: inherit"><b>{{ loan.asset.name }}</b></a>
+            <td><a href="{{ url_for('assets.detail', asset_id=loan.asset.id) }}" class="u-c-inherit"><b>{{ loan.asset.name }}</b></a>
               {% if loan.asset.inventory_no %}<small class="mono"> {{ loan.asset.inventory_no }}</small>{% endif %}</td>
             <td>{{ loan.user.name }}</td>
             <td class="nowrap">{{ loan.loaned_at|de_day }}</td>
@@ -90,7 +90,7 @@
         </tbody>
       </table></div>
       {% else %}
-      <div class="empty" style="padding: 26px">{{ _("Nothing issued yet.") }}</div>
+      <div class="empty u-p-26">{{ _("Nothing issued yet.") }}</div>
       {% endif %}
     </section>
   </div>
@@ -105,7 +105,7 @@
         {{ due_badge(loan) }}
       </div>
       {% else %}
-      <div class="empty" style="padding: 22px">{{ icon("check") }}<div>{{ _("Nothing overdue.") }}</div></div>
+      <div class="empty u-p-22">{{ icon("check") }}<div>{{ _("Nothing overdue.") }}</div></div>
       {% endfor %}
     </section>
     <section class="card">
@@ -116,7 +116,7 @@
         {{ due_badge(loan) }}
       </div>
       {% else %}
-      <div class="empty" style="padding: 22px">{{ _("Nothing is due in the next 7 days.") }}</div>
+      <div class="empty u-p-22">{{ _("Nothing is due in the next 7 days.") }}</div>
       {% endfor %}
     </section>
     <section class="card">
@@ -129,7 +129,7 @@
         {{ due_badge(loan) }}
       </div>
       {% else %}
-      <div class="empty" style="padding: 22px">{{ _("Nothing is issued to you.") }}</div>
+      <div class="empty u-p-22">{{ _("Nothing is issued to you.") }}</div>
       {% endfor %}
     </section>
   </div>
@@ -146,7 +146,7 @@
       <tbody>
       {% for loan in my_loans %}
         <tr>
-          <td><a class="cell-asset" href="{{ url_for('assets.detail', asset_id=loan.asset.id) }}" style="color: inherit">
+          <td><a class="cell-asset u-c-inherit" href="{{ url_for('assets.detail', asset_id=loan.asset.id) }}">
             <span class="mini-thumb">{{ thumb(loan.asset) }}</span><span><b>{{ loan.asset.name }}</b><small>{{ loan.asset.category }}</small></span></a></td>
           <td class="mono">{{ loan.asset.inventory_no or "–" }}</td>
           <td class="nowrap">{{ _("since {date}", date=loan.loaned_at|de_day) }}</td>
@@ -171,14 +171,14 @@
       <tbody>
       {% for asset in newest %}
         <tr>
-          <td><a href="{{ url_for('assets.detail', asset_id=asset.id) }}" style="color: inherit"><b>{{ asset.name }}</b></a></td>
+          <td><a href="{{ url_for('assets.detail', asset_id=asset.id) }}" class="u-c-inherit"><b>{{ asset.name }}</b></a></td>
           <td>{{ asset.category or "–" }}</td><td>{{ asset.location or "–" }}</td><td>{{ avail_badge(asset) }}</td>
         </tr>
       {% endfor %}
       </tbody>
     </table></div>
     {% else %}
-    <div class="empty" style="padding: 26px">{{ _("No items added yet.") }}</div>
+    <div class="empty u-p-26">{{ _("No items added yet.") }}</div>
     {% endif %}
   </section>
   {% endif %}

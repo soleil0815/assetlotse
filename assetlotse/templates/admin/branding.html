@@ -10,13 +10,13 @@
 
 <form method="post" enctype="multipart/form-data" data-branding-form>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <button type="submit" name="action" value="save" style="position:absolute;left:-9999px" tabindex="-1" aria-hidden="true"></button>
+  <button type="submit" name="action" value="save" class="offscreen" tabindex="-1" aria-hidden="true"></button>
 
   <div class="grid grid-2">
     <div class="stack">
       <section class="card card-pad">
-        <h2 style="margin-bottom: 6px">{{ icon("image") }} {{ _("Logo") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("Appears in the sidebar, on the sign-in page, in emails and as the browser icon. Ideally a PNG with transparent background or an SVG, landscape or square.") }}</p>
+        <h2 class="u-mb-6">{{ icon("image") }} {{ _("Logo") }}</h2>
+        <p class="muted u-fs-13_5">{{ _("Appears in the sidebar, on the sign-in page, in emails and as the browser icon. Ideally a PNG with transparent background or an SVG, landscape or square.") }}</p>
         <div class="logo-previews">
           <div class="logo-swatch side" data-preview-side>
             <img data-preview-logo src="{{ brand.logo_url }}" alt="" {{ 'hidden' if not brand.logo_url }}>
@@ -27,7 +27,7 @@
             <span class="muted" data-preview-nologo {{ 'hidden' if brand.logo_url }}>{{ _("no logo") }}</span>
           </div>
         </div>
-        <div class="field" style="margin-top: 14px"><label for="f-logo">{{ _("Upload logo") }}</label>
+        <div class="field u-mt-14"><label for="f-logo">{{ _("Upload logo") }}</label>
           <input id="f-logo" type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.gif,.svg,image/*" data-file-preview="logo"></div>
         <label class="check"><input type="checkbox" name="brand_logo_text" value="1" {{ 'checked' if s('brand_logo_text') != '0' }}>
           <span>{{ _("Show name next to the logo") }}<small class="muted">{{ _("Turn off if your logo already contains the name. You set the name under <i>Settings</i>.") }}</small></span></label>
@@ -37,8 +37,8 @@
       </section>
 
       <section class="card card-pad">
-        <h2 style="margin-bottom: 6px">{{ icon("palette") }} {{ _("Colours") }}</h2>
-        <p class="muted" style="font-size: 13.5px">{{ _("The preview updates immediately on this page. Text colours are chosen automatically so that everything stays readable – in dark mode too.") }}</p>
+        <h2 class="u-mb-6">{{ icon("palette") }} {{ _("Colours") }}</h2>
+        <p class="muted u-fs-13_5">{{ _("The preview updates immediately on this page. Text colours are chosen automatically so that everything stays readable – in dark mode too.") }}</p>
         {% for key, label, hint in [("accent", _("Main colour"), _("Buttons, links, highlights")),
                                      ("brass", _("Accent colour"), _("Highlights, logo background, heading extras")),
                                      ("side", _("Sidebar"), _("Navigation on the left and sign-in page without image"))] %}
@@ -55,9 +55,8 @@
 
     <div class="stack">
       <section class="card card-pad">
-        <h2 style="margin-bottom: 12px">{{ icon("lock") }} {{ _("Sign-in page") }}</h2>
-        <div class="login-preview{{ ' has-bg' if brand.bg_url }}" data-login-preview
-             style="--auth-bg: url('{{ brand.bg_url }}'); --auth-dim: {{ brand.bg_dim / 100 }}">
+        <h2 class="u-mb-12">{{ icon("lock") }} {{ _("Sign-in page") }}</h2>
+        <div class="login-preview{{ ' has-bg' if brand.bg_url }}" data-login-preview>
           <div>
             <div class="auth-logo{{ ' plate' if brand.logo_plate }}" data-preview-loginlogo {{ 'hidden' if not brand.logo_url }}>
               <img data-preview-logo src="{{ brand.logo_url }}" alt=""></div>
@@ -66,18 +65,17 @@
             <div class="lp-text" data-preview-text>{{ brand.text }}</div>
           </div>
           <div class="lp-shelf" data-preview-shelf {{ 'hidden' if not brand.show_shelf }}>
-            {% for w, h, c in [(26,22,'#0b7285'),(18,34,'#3d4b59'),(30,18,'#5f6f7f'),(20,28,'#17808f'),(24,40,'#2c3a47'),(16,16,'#7f8d9a'),(28,26,'#0f5f6b')] %}
-            <i style="width: {{ w }}px; height: {{ h }}px; background: {{ c }}"></i>{% endfor %}
+            {% for _ in range(7) %}<i></i>{% endfor %}{# sizes and colours: app.css #}
           </div>
           <div class="lp-form"><span></span><span></span><b></b></div>
         </div>
 
-        <div class="field" style="margin-top: 16px"><label for="f-bg">{{ _("Background image") }}</label>
+        <div class="field u-mt-16"><label for="f-bg">{{ _("Background image") }}</label>
           <input id="f-bg" type="file" name="bg" accept=".png,.jpg,.jpeg,.webp,image/*" data-file-preview="bg">
           <div class="hint">{{ _("Landscape, at least 1600 px wide. Resized automatically; metadata (e.g. GPS) is removed.") }}</div></div>
         {% if brand.bg_url %}<label class="check"><input type="checkbox" name="remove_bg" value="1"> <span>{{ _("Remove background image") }}</span></label>{% endif %}
         <div class="field"><label for="f-brand-bg-dim">{{ _("Darken for better readability:") }} <span data-dim-label>{{ brand.bg_dim }}</span> %</label>
-          <input id="f-brand-bg-dim" type="range" name="brand_bg_dim" min="0" max="85" step="5" value="{{ brand.bg_dim }}" data-dim style="width: 100%"></div>
+          <input id="f-brand-bg-dim" type="range" name="brand_bg_dim" min="0" max="85" step="5" value="{{ brand.bg_dim }}" data-dim class="u-w-100p"></div>
         <label class="check"><input type="checkbox" name="login_show_shelf" value="1" {{ 'checked' if brand.show_shelf }} data-shelf-toggle>
           <span>{{ _("Show shelf graphic") }}</span></label>
         <div class="form-grid">
@@ -86,13 +84,13 @@
           <div class="field span-6"><label for="f-login-eyebrow">{{ _("Small heading") }}</label>
             <input id="f-login-eyebrow" type="text" name="login_eyebrow" value="{{ brand.eyebrow }}" maxlength="60" placeholder="{{ _('empty = hide') }}" data-bind="eyebrow"></div>
           <div class="field span-6"><label for="f-login-text">{{ _("Welcome text") }}</label>
-            <textarea id="f-login-text" name="login_text" maxlength="300" style="min-height: 70px" placeholder="{{ _('empty = hide') }}" data-bind="text">{{ brand.text }}</textarea></div>
+            <textarea id="f-login-text" name="login_text" maxlength="300" class="u-minh-70" placeholder="{{ _('empty = hide') }}" data-bind="text">{{ brand.text }}</textarea></div>
         </div>
       </section>
     </div>
   </div>
 
-  <div class="actions" style="margin-top: 20px; justify-content: space-between">
+  <div class="actions u-mt-20 u-jc-between">
     <button class="btn danger" name="action" value="reset" formnovalidate
             data-confirm-click="{{ _('Reset logo, background image, colours and texts to default?') }}">{{ icon("extend") }} {{ _("Reset everything") }}</button>
     <button class="btn primary lg" name="action" value="save">{{ icon("check") }} {{ _("Save") }}</button>

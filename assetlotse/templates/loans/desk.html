@@ -14,8 +14,8 @@
 
 {% if mode == "ausgabe" %}
 {% if preset %}
-<section class="card card-pad preset-asset" style="margin-bottom: 18px">
-  <div class="list-row preset-row" style="padding: 0">
+<section class="card card-pad preset-asset u-mb-18">
+  <div class="list-row preset-row u-p-0">
     <div class="mini-thumb">{{ thumb(preset) }}</div>
     <div class="grow"><div class="eyebrow">{{ _("Issue from the inventory") }}</div>
       <b>{{ preset.name }}</b><small>{{ [preset.inventory_no, preset.serial_number]|select|join(" · ") or preset.category }}</small></div>
@@ -23,7 +23,7 @@
     <a class="btn sm ghost" href="{{ url_for('assets.detail', asset_id=preset.id) }}">{{ _("Cancel") }}</a>
   </div>
   {% if borrower %}
-  <form method="post" class="actions" style="margin-top: 14px">
+  <form method="post" class="actions u-mt-14">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="modus" value="ausgabe">
     <input type="hidden" name="benutzer" value="{{ borrower.username }}">
@@ -34,9 +34,9 @@
     {% if not borrower.can_borrow(preset) %}<span class="badge warn">{{ _("not for this person") }}</span>{% elif has_it %}<span class="badge warn">{{ _("already has it") }}</span>{% elif preset.available == 0 %}<span class="badge warn">{{ _("issued") }}</span>{% endif %}
   </form>
   {% elif preset.available == 0 %}
-  <p class="muted" style="margin: 10px 0 0">{{ _("Everything is currently issued.") }}</p>
+  <p class="muted u-m-10-0-0">{{ _("Everything is currently issued.") }}</p>
   {% else %}
-  <p class="muted" style="margin: 10px 0 0">{{ _("Now choose the person below – then just confirm.") }}</p>
+  <p class="muted u-m-10-0-0">{{ _("Now choose the person below – then just confirm.") }}</p>
   {% endif %}
 </section>
 {% endif %}
@@ -53,22 +53,22 @@
                  data-suggest="{{ url_for('loans.people_suggest', gegenstand=preset.id if preset else None) }}" data-suggest-action="person">
           <button class="btn">{{ icon("user") }} {{ _("Select") }}</button>
         </div>
-        {% if ad_search %}<div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">{{ _("Also finds people from Active Directory who have never signed in – but only those who have access under the AD rules.") }}</div>{% endif %}
+        {% if ad_search %}<div class="hint u-fs-12_5 u-c-muted u-mt-6">{{ _("Also finds people from Active Directory who have never signed in – but only those who have access under the AD rules.") }}</div>{% endif %}
       </form>
       {% if not borrower and (people or ad_people or ad_error) %}
-      <div class="people-pick" style="margin-top: 14px">
+      <div class="people-pick u-mt-14">
         {% if people %}<div class="eyebrow">{{ _("Accounts in AssetLotse") }}</div>
         {% for u in people %}
-        <div class="list-row" style="padding: 8px 0">
-          <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ u.initials }}</span>
+        <div class="list-row u-p-8-0">
+          <span class="avatar u-w-30 u-h-30 u-fs-11">{{ u.initials }}</span>
           <div class="grow"><b>{{ u.name }}</b><small>{{ u.username }}{% if u.auth_source == 'ldap' %} · AD{% endif %}</small></div>
           <a class="btn sm" href="{{ url_for('loans.desk', modus='ausgabe', benutzer=u.username, gegenstand=preset.id if preset else None) }}">{{ _("Select") }}</a>
         </div>
         {% endfor %}{% endif %}
-        {% if ad_people %}<div class="eyebrow" style="margin-top: 10px">{{ _("From Active Directory (never signed in)") }}</div>
+        {% if ad_people %}<div class="eyebrow u-mt-10">{{ _("From Active Directory (never signed in)") }}</div>
         {% for p in ad_people %}
-        <div class="list-row" style="padding: 8px 0">
-          <span class="avatar" style="width:30px;height:30px;font-size:11px">{{ icon("server") }}</span>
+        <div class="list-row u-p-8-0">
+          <span class="avatar u-w-30 u-h-30 u-fs-11">{{ icon("server") }}</span>
           <div class="grow"><b>{{ p.display_name }}</b><small>{{ p.username }}{% if p.email %} · {{ p.email }}{% endif %}</small></div>
           <form method="post" action="{{ url_for('loans.desk_ad_account', gegenstand=preset.id if preset else None) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -77,20 +77,20 @@
           </form>
         </div>
         {% endfor %}{% endif %}
-        {% if ad_error %}<div class="notice warn" style="margin-top: 10px">{{ icon("alert") }}<div>{{ _("Searching Active Directory is not possible: {error}", error=ad_error) }}</div></div>{% endif %}
+        {% if ad_error %}<div class="notice warn u-mt-10">{{ icon("alert") }}<div>{{ _("Searching Active Directory is not possible: {error}", error=ad_error) }}</div></div>{% endif %}
       </div>
       {% endif %}
       {% if borrower %}
-      <div class="notice accent" style="margin-top: 14px">
+      <div class="notice accent u-mt-14">
         <span class="avatar">{{ borrower.initials }}</span>
         <div><b>{{ borrower.name }}</b> <small>({{ borrower.username }})</small><br>
           <small>{{ _("Groups: {groups}", groups=borrower_groups|join(", ") or _("none")) }} · {{ _n("{n} item issued", "{n} items issued", borrower_loans|length) }}</small></div>
-        <a class="btn sm ghost" style="margin-left:auto" href="{{ url_for('loans.desk', modus='ausgabe', gegenstand=preset.id if preset else None) }}">{{ _p("switch", "Change") }}</a>
+        <a class="btn sm ghost u-ml-auto" href="{{ url_for('loans.desk', modus='ausgabe', gegenstand=preset.id if preset else None) }}">{{ _p("switch", "Change") }}</a>
       </div>
       {% endif %}
     </section>
 
-    <section class="card card-pad" {% if not borrower %}style="opacity:.55"{% endif %}>
+    <section class="card card-pad{{ ' u-op-0_55' if not borrower }}">
       <form method="post" autocomplete="off">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="modus" value="ausgabe">
@@ -102,8 +102,8 @@
                  data-suggest-more="{{ url_for('loans.desk', modus='ausgabe', benutzer=borrower.username, fokus='suche') }}&amp;suche="{% endif %}>
           <button class="btn primary" {{ "disabled" if not borrower }}>{{ icon("check") }} {{ _("Issue") }}</button>
         </div>
-        {% if borrower %}<div class="hint" style="font-size: 12.5px; color: var(--muted); margin-top: 6px">{{ _("Matching items appear as you type – clicking one (or choosing it with ↓ and Enter) issues it straight away.") }}</div>{% endif %}
-        <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Issue immediately if there is exactly one match") }}</label>
+        {% if borrower %}<div class="hint u-fs-12_5 u-c-muted u-mt-6">{{ _("Matching items appear as you type – clicking one (or choosing it with ↓ and Enter) issues it straight away.") }}</div>{% endif %}
+        <label class="check u-mt-12"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Issue immediately if there is exactly one match") }}</label>
         {% for k in ("suche", "kategorie", "frei") %}{% if stock[k] %}<input type="hidden" name="{{ k }}" value="{{ stock[k] }}">{% endif %}{% endfor %}
       </form>
     </section>
@@ -143,16 +143,16 @@
       {{ due_badge(loan) }}
     </div>
     {% else %}
-    <div class="empty" style="padding: 26px">{{ _("Nothing issued.") if borrower else _("Choose a person first.") }}</div>
+    <div class="empty u-p-26">{{ _("Nothing issued.") if borrower else _("Choose a person first.") }}</div>
     {% endfor %}
   </section>
 </div>
 
-    <section class="card" id="bestand" style="margin-top: 18px">
+    <section class="card u-mt-18" id="bestand">
       <div class="card-head"><h3>{{ icon("search") }} {{ _p("alt", "Search the inventory") }}</h3>
         {% if stock_results is not none %}<a class="btn ghost sm" href="{{ url_for('loans.desk', modus='ausgabe', benutzer=borrower.username if borrower else None) }}#bestand">{{ _("Reset") }}</a>{% endif %}</div>
       <div class="card-body">
-        <form method="get" action="{{ url_for('loans.desk') }}#bestand" class="toolbar" style="margin-bottom: 0" autocomplete="off">
+        <form method="get" action="{{ url_for('loans.desk') }}#bestand" class="toolbar u-mb-0" autocomplete="off">
           <input type="hidden" name="modus" value="ausgabe">
           {% if borrower %}<input type="hidden" name="benutzer" value="{{ borrower.username }}">{% endif %}
           <input type="hidden" name="fokus" value="suche">
@@ -184,7 +184,7 @@
             <td>{{ avail_badge(asset) }}</td>
             <td class="actions-cell">
               {% if borrower %}
-              <form method="post" action="{{ url_for('loans.desk') }}" style="display:inline">
+              <form method="post" action="{{ url_for('loans.desk') }}" class="u-d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="modus" value="ausgabe">
                 <input type="hidden" name="benutzer" value="{{ borrower.username }}">
@@ -195,15 +195,15 @@
                 <button class="btn sm primary" {{ "disabled" if asset.available == 0 or not asset.lendable or not borrower.can_borrow(asset) }}
                         title="{{ _('No permission for this group') if not borrower.can_borrow(asset) }}">{{ icon("check") }} {{ _("Issue") }}</button>
               </form>
-              {% else %}<span class="muted" style="font-size: 12.5px">{{ _("Choose a person first.") }}</span>{% endif %}
+              {% else %}<span class="muted u-fs-12_5">{{ _("Choose a person first.") }}</span>{% endif %}
             </td>
           </tr>
         {% endfor %}
         </tbody>
       </table></div>
-      {% if stock_results|length > 30 %}<p class="muted" style="font-size: 12.5px; padding: 10px 18px; margin: 0">{{ _("There are more matches – please narrow the search.") }}</p>{% endif %}
+      {% if stock_results|length > 30 %}<p class="muted u-fs-12_5 u-p-10-18 u-m-0">{{ _("There are more matches – please narrow the search.") }}</p>{% endif %}
       {% else %}
-      <div class="empty" style="padding: 22px">{{ _("Nothing found.") }}</div>
+      <div class="empty u-p-22">{{ _("Nothing found.") }}</div>
       {% endif %}
       {% endif %}
     </section>
@@ -220,7 +220,7 @@
           <input class="code-input" id="return-code" type="text" name="code" placeholder="{{ _("Scan or type the number") }}" autofocus value="">
           <button class="btn primary">{{ icon("return") }} {{ _("Search") }}</button>
         </div>
-        <label class="check" style="margin-top: 12px"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Return immediately if there is exactly one match") }}</label>
+        <label class="check u-mt-12"><input type="checkbox" name="auto" value="1" {{ "checked" if auto == "1" }}> {{ _("Return immediately if there is exactly one match") }}</label>
       </form>
     </section>
     {% if code %}
@@ -239,14 +239,14 @@
         </form>
       </div>
       {% else %}
-      <div class="empty" style="padding: 26px">{{ _("Nothing is issued for this.") }}</div>
+      <div class="empty u-p-26">{{ _("Nothing is issued for this.") }}</div>
       {% endfor %}
     </section>
     {% endif %}
   </div>
   <section class="card card-pad">
     <h3>{{ _p("alt", "How it works") }}</h3>
-    <p class="muted" style="margin-top: 8px">{{ _("Scan or type the number of the returned item. If there is exactly one open loan, it is completed immediately. With several pieces you choose the matching loan.") }}</p>
+    <p class="muted u-mt-8">{{ _("Scan or type the number of the returned item. If there is exactly one open loan, it is completed immediately. With several pieces you choose the matching loan.") }}</p>
   </section>
 </div>
 {% endif %}
