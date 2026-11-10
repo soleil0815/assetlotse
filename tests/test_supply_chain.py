@@ -867,3 +867,16 @@ class ZapScanTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DockerSaveTests(unittest.TestCase):
+    """Daily scan of 8 and 9 Nov 2026 (ubuntu-26.04 runner, containerd image store): "docker save" of a tag pulled
+    for one platform tried to export the whole multi-arch index and failed with "content digest … not found"."""
+
+    def test_every_save_names_the_platform(self):
+        saves = [line.strip() for line in WF.splitlines() if re.search(r"\bdocker save\b", line)
+                 and not line.lstrip().startswith("#")]
+        self.assertTrue(saves)
+        for line in saves:
+            with self.subTest(line=line):
+                self.assertIn('--platform "linux/${a}"', line)
