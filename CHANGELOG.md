@@ -2,6 +2,18 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.5.1-s1 – 2026-11-10
+
+Security update: same program as 2.5.1, only updated packages.
+
+- Debian: apt 3.0.3 → 3.0.4
+- Debian: libapt-pkg7.0 3.0.3 → 3.0.4
+- Debian: zlib1g 1:1.3.dfsg+really1.3.1-1+b1 → 1:1.3.dfsg+really1.3.1-1+deb13u1
+- pip (build only): pip 26.2.2 → 26.3
+- Python: click 8.5.0 → 8.5.1
+- Python: pymysql 1.2.3 → 1.2.4
+- Python: sqlalchemy 2.1.6 → 2.1.8
+
 ## 2.5.1 – 2026-11-09
 
 **Added**
