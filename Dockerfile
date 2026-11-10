@@ -1,7 +1,7 @@
 # Base image: Python 3.13 on Debian 13 (trixie) – exact patch release AND digest, so every build starts
 # from exactly the same image. scripts/lock.py sets new values, but only ever within Python 3.13 and
 # Debian trixie; another Python line or Debian release is a deliberate change (see README, "Base").
-ARG PYTHON_IMAGE=python:3.13.18-slim-trixie@sha256:ae14d4ce8771606477a81446e7ef429edd6762305fc50c84507c1041fa8285d1
+ARG PYTHON_IMAGE=python:3.13.18-slim-trixie@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
 FROM ${PYTHON_IMAGE}
 
 LABEL org.opencontainers.image.title="AssetLotse" \
@@ -56,7 +56,7 @@ COPY requirements.txt requirements.in ./
 # Python packages: pip in a fixed version installs exactly the lock file – without pulling in anything
 # else (--no-deps) – and checks that everything fits together. Then pip is removed: AssetLotse does not
 # need a package manager at runtime (and pip carries its own, often older copies of urllib3 & co.).
-ARG PIP_VERSION=26.2.2
+ARG PIP_VERSION=26.3
 RUN PIP_ROOT_USER_ACTION=ignore pip install "pip==${PIP_VERSION}" \
  && PIP_ROOT_USER_ACTION=ignore pip install --no-deps --only-binary=:all: -r requirements.txt \
  && pip check \
