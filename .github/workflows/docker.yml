@@ -647,7 +647,7 @@ jobs:
           for a in amd64 arm64; do
             f="assetlotse-${NAME}-${a}.tar.gz"
             docker pull -q --platform "linux/${a}" "${image}:${NAME}"
-            docker save "${image}:${NAME}" | gzip > "$assets/$f"
+            docker save --platform "linux/${a}" "${image}:${NAME}" | gzip > "$assets/$f"
             (cd "$assets" && sha256sum "$f" > "$f.sha256")
             files+=("$assets/$f" "$assets/$f.sha256")
             docker image rm "${image}:${NAME}" >/dev/null
@@ -768,7 +768,9 @@ jobs:
               [ "$a" = arm64 ] || exit 1
               echo "::notice title=Daily scan::latest has no ${a} image yet – scanned amd64 only"; continue
             fi
-            docker save -o "${RUNNER_TEMP}/latest-${a}.tar" "$ref"
+            # --platform: with the containerd image store (ubuntu-26.04 runners) a plain save exports the whole
+            # multi-arch index and fails with "content digest … not found" for the platform that was not pulled
+            docker save --platform "linux/${a}" -o "${RUNNER_TEMP}/latest-${a}.tar" "$ref"
             [ "$a" != amd64 ] || echo "build=$(docker inspect -f '{{ index .Config.Labels "io.assetlotse.build" }}' "$ref")" >> "$GITHUB_OUTPUT"
             docker image rm "$ref" >/dev/null
           done
