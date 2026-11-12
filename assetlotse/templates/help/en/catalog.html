@@ -11,7 +11,7 @@
 {% elif f.catalog_own and not current_user.is_manager %}
 <p><b>What you see:</b> only the items currently issued to you.</p>
 {% elif f.catalog_own %}
-<p><b>What you see:</b> general items and the items of your groups. Staff members currently see no inventory, only their own items (<span class="ui">Settings → Inventory visibility</span>).</p>
+<p><b>What you see:</b> general items and the items of your groups. Staff members currently see no inventory, only their own items (<span class="ui">Settings → Inventory &amp; issuing → Inventory visibility</span>).</p>
 {% elif f.catalog_all %}
 <p><b>What you see:</b> the whole inventory. However, you can only be issued general items and items of your groups – for all others the item page shows a notice with a padlock.</p>
 {% else %}

@@ -11,7 +11,7 @@
 {% elif f.catalog_own and not current_user.is_manager %}
 <p><b>Was Sie sehen:</b> Nur die Gegenstände, die Ihnen gerade ausgegeben sind.</p>
 {% elif f.catalog_own %}
-<p><b>Was Sie sehen:</b> Die allgemeinen Gegenstände und die Gegenstände Ihrer Gruppen. Mitarbeiter sehen derzeit keinen Bestand, nur ihre eigenen Gegenstände (<span class="ui">Einstellungen → Sichtbarkeit des Bestands</span>).</p>
+<p><b>Was Sie sehen:</b> Die allgemeinen Gegenstände und die Gegenstände Ihrer Gruppen. Mitarbeiter sehen derzeit keinen Bestand, nur ihre eigenen Gegenstände (<span class="ui">Einstellungen → Bestand &amp; Ausgabe → Sichtbarkeit des Bestands</span>).</p>
 {% elif f.catalog_all %}
 <p><b>Was Sie sehen:</b> Den ganzen Bestand. Bekommen können Sie aber nur allgemeine Gegenstände und Gegenstände Ihrer Gruppen – bei allen anderen zeigt die Detailseite einen Hinweis mit Schloss.</p>
 {% else %}

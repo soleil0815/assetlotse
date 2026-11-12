@@ -221,7 +221,7 @@ Für Dinge wie den **BitLocker-Wiederherstellungsschlüssel** eines Laptops, ein
 - **Standard-Leihdauer** unter *Administration → Einstellungen*: **`0` = unbefristet (Standard)**. Mit einer Zahl > 0 bekommt jede Ausgabe automatisch dieses Rückgabedatum, sofern der Verwalter nichts anderes wählt.
 - **Unbefristete Ausgaben** (z. B. der Dienstlaptop) sind nie überfällig, bekommen keine Erinnerungen oder Mahnungen und müssen nicht verlängert werden.
 - **Befristete Ausgaben** lassen sich verlängern (Dauer und Höchstzahl der Verlängerungen einstellbar; Verwalter dürfen immer).
-- **Mitarbeiter sehen standardmäßig keinen Bestand**, nur unter **„Meine Gegenstände“**, was ihnen gerade ausgegeben ist (samt Detailseite). Ausgegeben wird über Verwalter bzw. die Ausgabetheke. Unter *Einstellungen → Sichtbarkeit des Bestands* lässt sich das umstellen: „nur eigene Gegenstände“ (Standard), „Gegenstände der eigenen Gruppen und allgemeine“ oder „gesamter Bestand“. Verwalter und Administratoren sehen den Bestand immer.
+- **Mitarbeiter sehen standardmäßig keinen Bestand**, nur unter **„Meine Gegenstände“**, was ihnen gerade ausgegeben ist (samt Detailseite). Ausgegeben wird über Verwalter bzw. die Ausgabetheke. Unter *Einstellungen → Bestand & Ausgabe → Sichtbarkeit des Bestands* lässt sich das umstellen: „nur eigene Gegenstände“ (Standard), „Gegenstände der eigenen Gruppen und allgemeine“ oder „gesamter Bestand“. Verwalter und Administratoren sehen den Bestand immer.
 - **Selbstausleihe** ist standardmäßig **aus**. Administratoren können Selbstausleihe, Selbstrückgabe und Selbstverlängerung einschalten; die Selbstausleihe setzt voraus, dass Mitarbeiter den Bestand sehen.
 - **Alle Ausleihen** (Verwalter) zeigt laufende, überfällige und abgeschlossene Ausgaben ihrer Gruppen.
 
@@ -294,7 +294,7 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 | **Verwalter** | Gegenstände anlegen/bearbeiten/löschen, ausgeben, zurücknehmen, Ausgabetheke, vertrauliche Angaben, Export – für die Gegenstände **seiner Gruppen** und allgemeine Gegenstände. Den **gesamten** Bestand verwaltet ein Verwalter nur mit dem Haken *Verwaltet den gesamten Bestand* im Benutzerkonto – nie nebenbei, z. B. weil ihm das AD alle Gruppen nimmt (beim Update auf 1.12.0 bekamen bisherige Verwalter ohne Gruppe den Haken automatisch). |
 | **Administrator** | Alles, dazu Benutzer, Gruppen, Einstellungen und Active Directory |
 
-**Gruppen** sind z. B. Abteilungen oder Arbeitsgruppen. Jeder Gegenstand gehört entweder zu einer Gruppe oder ist **allgemein**. Allgemeine Gegenstände kann jeder bekommen, Gruppengegenstände nur Mitglieder der Gruppe. Unter *Einstellungen → Sichtbarkeit des Bestands* legen Sie fest, ob Mitarbeiter nur ihre eigenen Gegenstände sehen (Standard), die Gegenstände ihrer Gruppen und allgemeine oder den ganzen Bestand (die Ausgabe bleibt trotzdem beschränkt).
+**Gruppen** sind z. B. Abteilungen oder Arbeitsgruppen. Jeder Gegenstand gehört entweder zu einer Gruppe oder ist **allgemein**. Allgemeine Gegenstände kann jeder bekommen, Gruppengegenstände nur Mitglieder der Gruppe. Unter *Einstellungen → Bestand & Ausgabe → Sichtbarkeit des Bestands* legen Sie fest, ob Mitarbeiter nur ihre eigenen Gegenstände sehen (Standard), die Gegenstände ihrer Gruppen und allgemeine oder den ganzen Bestand (die Ausgabe bleibt trotzdem beschränkt).
 
 ---
 
@@ -358,7 +358,7 @@ Unter *Abgleich im Hintergrund* (Standard: an, **stündlich**; wählbar 1, 2, 4,
 
 ## Selbstregistrierung
 
-Standardmäßig **aus**. Unter *Administration → Einstellungen → Selbstregistrierung*:
+Standardmäßig **aus**. Unter *Administration → Einstellungen → Konten → Selbstregistrierung*:
 
 | Einstellung | Wirkung |
 |---|---|
@@ -465,11 +465,11 @@ AssetLotse ist darauf ausgelegt, dass die Browser der Nutzer **nur mit Ihrem eig
 - **Fotos** der Gegenstände sind nur nach der Anmeldung abrufbar.
 - **Cookies:** nur technisch notwendige (Anmeldung, Formularschutz) – kein Cookie-Banner nötig. Kein Tracking, keine Werbung.
 
-**Impressum und Datenschutzerklärung** tragen Sie unter *Administration → Einstellungen → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
+**Impressum und Datenschutzerklärung** tragen Sie unter *Administration → Einstellungen → Datenschutz → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
 
 In die Datenschutzerklärung (bzw. das Verzeichnis der Verarbeitungstätigkeiten) gehört, was AssetLotse speichert: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausgaben mit Datum (wer hat was bekommen, wer hat ausgegeben/zurückgenommen), Protokoll der versendeten E-Mails, das Zugriffsprotokoll der vertraulichen Angaben (welcher Verwalter wann angezeigt/geändert hat), bei Zwei-Faktor-Anmeldung die registrierten Schlüssel. Wird der Server von jemand anderem als der Einrichtung selbst betrieben, brauchen Sie einen Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO). Ein Personal- oder Betriebsrat sollte bei der Einführung einbezogen werden, wenn Ausgaben einzelnen Personen zugeordnet werden.
 
-**Aufbewahrungsfristen** (*Einstellungen → Aufbewahrung*, Standard **12 Monate**): Abgeschlossene Ausgaben werden die eingestellte Zeit nach der Rückgabe automatisch gelöscht, ebenso Einträge im E-Mail-Protokoll. Pro Gegenstand bleibt nur die Anzahl der Ausgaben erhalten, damit die Statistik stimmt. Laufende (auch unbefristete) und überfällige Ausgaben sowie die Mahn-Einträge dazu werden nie gelöscht. Der Lauf erfolgt einmal täglich automatisch; „Jetzt bereinigen“ oder `flask --app wsgi apply-retention` startet ihn sofort. Wird ein Benutzer gelöscht, verschwinden seine Ausgaben sofort (die Anzahl pro Gegenstand bleibt). Nicht bestätigte Selbstregistrierungen werden nach 7 Tagen gelöscht. Auch das **Zugriffsprotokoll der vertraulichen Angaben** wird nach dieser Frist gelöscht (bei „nie löschen“ bleibt es, bis der Gegenstand gelöscht wird). Die Fristen gehören ebenfalls in die Datenschutzerklärung.
+**Aufbewahrungsfristen** (*Einstellungen → Datenschutz → Aufbewahrung*, Standard **12 Monate**): Abgeschlossene Ausgaben werden die eingestellte Zeit nach der Rückgabe automatisch gelöscht, ebenso Einträge im E-Mail-Protokoll. Pro Gegenstand bleibt nur die Anzahl der Ausgaben erhalten, damit die Statistik stimmt. Laufende (auch unbefristete) und überfällige Ausgaben sowie die Mahn-Einträge dazu werden nie gelöscht. Der Lauf erfolgt einmal täglich automatisch; „Jetzt bereinigen“ oder `flask --app wsgi apply-retention` startet ihn sofort. Wird ein Benutzer gelöscht, verschwinden seine Ausgaben sofort (die Anzahl pro Gegenstand bleibt). Nicht bestätigte Selbstregistrierungen werden nach 7 Tagen gelöscht. Auch das **Zugriffsprotokoll der vertraulichen Angaben** wird nach dieser Frist gelöscht (bei „nie löschen“ bleibt es, bis der Gegenstand gelöscht wird). Die Fristen gehören ebenfalls in die Datenschutzerklärung.
 
 ## Sicherheit
 
@@ -487,7 +487,7 @@ Sicherheitslücken bitte nicht als Issue, sondern **vertraulich** melden – sie
 
 ### Automatische Abmeldung
 
-*Einstellungen → Automatische Abmeldung* – wer so lange nichts in AssetLotse tut, wird abgemeldet (z. B. ein offener Browser am Ausgabeplatz). Jede aufgerufene Seite und jedes gespeicherte Formular zählt als Aktivität.
+*Einstellungen → Sicherheit → Automatische Abmeldung* – wer so lange nichts in AssetLotse tut, wird abgemeldet (z. B. ein offener Browser am Ausgabeplatz). Jede aufgerufene Seite und jedes gespeicherte Formular zählt als Aktivität.
 
 | Einstellung | Wirkung |
 |---|---|

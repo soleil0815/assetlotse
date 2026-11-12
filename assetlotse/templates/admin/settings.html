@@ -3,9 +3,17 @@
 {% block title %}{{ _("Settings") }}{% endblock %}
 {% block content %}
 <div class="page-head"><div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Settings") }}</h1></div></div>
-<form method="post">
+{# Topics as tabs. Without JavaScript all of them are shown one below the other, the tabs are then links to them. #}
+{% set tabs = [("allgemein", _("General")), ("ausgabe", _("Inventory & issuing")), ("konten", _("Accounts")),
+               ("sicherheit", _("Security")), ("datenschutz", _("Privacy"))] %}
+<nav class="tabs" data-settings-tabs aria-label="{{ _('Topics') }}">
+  {% for id, label in tabs %}<a href="#{{ id }}" data-tab="{{ id }}"{% if loop.first %} class="on"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+<form method="post" data-settings-form>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <div class="grid grid-2">
+  <input type="hidden" name="tab" value="allgemein" data-settings-tab-input>
+
+  <div class="grid grid-2" id="allgemein" data-tab-panel>
     <section class="card card-pad">
       <h2 class="u-mb-16">{{ _("General") }}</h2>
       <div class="field"><label for="f-org-name">{{ _("Name (organisation or program)") }}</label><input id="f-org-name" type="text" name="org_name" value="{{ s('org_name') }}"></div>
@@ -14,6 +22,12 @@
           {% for code, label in LANGUAGES.items() %}<option value="{{ code }}" {{ 'selected' if s('default_language') == code }}>{{ label }}</option>{% endfor %}
         </select>
         <small class="muted">{{ _("For visitors whose browser prefers neither language, and for emails to users who haven't chosen one. Everyone can switch the language themselves at the top right.") }}</small></div>
+    </section>
+  </div>
+
+  <div class="grid grid-2" id="ausgabe" data-tab-panel>
+    <section class="card card-pad">
+      <h2 class="u-mb-16">{{ _("Inventory") }}</h2>
       <div class="field"><label for="f-catalog-visibility">{{ _("Inventory visibility") }}</label>
         <select id="f-catalog-visibility" name="catalog_visibility">
           <option value="own" {{ 'selected' if s('catalog_visibility') not in ('groups', 'all') }}>{{ _("Staff members only see their own items (no inventory)") }}</option>
@@ -21,16 +35,7 @@
           <option value="all" {{ 'selected' if s('catalog_visibility') == 'all' }}>{{ _("Everyone sees the whole inventory (issuing stays restricted)") }}</option>
         </select>
         <small class="muted">{{ _("Default: own items only – sensible if items are only issued at the desk. Managers and administrators always see the inventory. For self-checkout, staff members must be able to see the inventory.") }}</small></div>
-
-      <h2 class="u-m-22-0-6">{{ icon("shield") }} {{ _("Legal") }}</h2>
-      <p class="muted u-fs-13_5">{{ _("Links appear on the sign-in page, in the sidebar and in emails. If AssetLotse is accessible on the internet, both are usually required.") }}</p>
-      <div class="field"><label for="f-imprint-url">{{ _("Legal notice (address)") }}</label>
-        <input id="f-imprint-url" type="url" name="imprint_url" value="{{ s('imprint_url') }}" placeholder="{{ _('https://www.example.org/legal-notice') }}"></div>
-      <div class="field"><label for="f-privacy-url">{{ _("Privacy policy (address)") }}</label>
-        <input id="f-privacy-url" type="url" name="privacy_url" value="{{ s('privacy_url') }}" placeholder="{{ _('https://www.example.org/privacy') }}">
-        <div class="hint">{{ _("It must be accepted during self-registration.") }}</div></div>
     </section>
-
     <section class="card card-pad">
       <h2 class="u-mb-16">{{ _("Issuing") }}</h2>
       <div class="form-grid">
@@ -48,7 +53,9 @@
       <label class="check"><input type="checkbox" name="self_return" value="1" {{ 'checked' if s('self_return') == '1' }}>
         <span>{{ _("Self-return") }}<small class="muted">{{ _("Otherwise a manager checks the item back in.") }}</small></span></label>
     </section>
+  </div>
 
+  <div class="grid grid-2" id="konten" data-tab-panel>
     <section class="card card-pad">
       <h2 class="u-mb-6">{{ icon("user") }} {{ _("Self-registration") }}</h2>
       <p class="muted u-fs-13_5">{{ _("May staff members create an account themselves? New accounts always get the role <b>Staff member</b>. With registration enabled, the sign-in page shows the link “Register now”.") }}</p>
@@ -73,23 +80,12 @@
             {% for g in groups %}<option value="{{ g.id }}" {{ 'selected' if s('registration_group_id') == g.id|string }}>{{ g.name }}</option>{% endfor %}
           </select></div>
         <div class="field span-3"><label>{{ _p("document", "Privacy policy") }}</label>
-          <div class="hint u-mt-6">{% if s('privacy_url') %}{{ _("Shown during registration and must be accepted.") }}{% else %}{{ _("None set yet – see <i>General → Legal</i>.") }}{% endif %}</div></div>
+          <div class="hint u-mt-6">{% if s('privacy_url') %}{{ _("Shown during registration and must be accepted.") }}{% else %}{{ _("None set yet – see <i>Privacy → Legal</i>.") }}{% endif %}</div></div>
       </div>
     </section>
+  </div>
 
-    <section class="card card-pad" id="aufbewahrung">
-      <h2 class="u-mb-6">{{ icon("clock") }} {{ _("Retention") }}</h2>
-      <p class="muted u-fs-13_5">{{ _("Completed loans and the e-mail log are deleted automatically once the period has passed (GDPR: keep data only as long as necessary). For each item, only the number of loans is kept. Current and overdue loans are never deleted.") }}</p>
-      <div class="field"><label for="f-retention-months">{{ _("Delete completed loans after") }}</label>
-        <select id="f-retention-months" name="retention_months">
-          {% for m, label in [("3", _("3 months")), ("6", _("6 months")), ("12", _("12 months (recommended)")), ("24", _("2 years")), ("36", _("3 years")), ("0", _("never (not recommended)"))] %}
-          <option value="{{ m }}" {{ 'selected' if s('retention_months') == m }}>{{ label }}</option>{% endfor %}
-        </select>
-        <div class="hint">{{ _("counted from the return · runs automatically once a day") }}</div></div>
-      {% if s('retention_last_result') %}<p class="muted u-fs-13 u-m-0-0-10">{{ _("Last run:") }} {{ retention_result }}</p>{% endif %}
-      <button class="btn sm" type="submit" form="retention-now">{{ icon("check") }} {{ _("Clean up now") }}</button>
-    </section>
-
+  <div class="grid grid-2" id="sicherheit" data-tab-panel>
     <section class="card card-pad">
       <h2 class="u-mb-6">{{ icon("shield") }} {{ _("Two-factor authentication") }}</h2>
       <p class="muted u-fs-13_5">{{ _("Authenticator app (TOTP) or security key (YubiKey/FIDO2). Anyone can set it up voluntarily in their profile; here you decide for whom it is mandatory. Those affected are guided through setup after their next sign-in.") }}</p>
@@ -107,22 +103,8 @@
           <option value="skip" {{ 'selected' if s('mfa_internal') == 'skip' }}>{{ _("no two-factor prompt") }}</option>
         </select>
         <div class="hint">{{ _("A session started internally without a second factor is not valid from outside: anyone using it from outside (e.g. a laptop at home) has to sign in again. “Stay signed in” does not apply then.") }}</div></div>
-      <div class="field"><label for="f-internal-networks">{{ _("Internal network") }}</label>
-        <textarea id="f-internal-networks" name="internal_networks" rows="4" class="mono" placeholder="{{ default_networks }}">{{ s('internal_networks') }}</textarea>
-        <div class="hint">{{ _("One network per line, e.g. <code>192.168.10.0/24</code>. Empty = 10.x and 192.168.x (see placeholder) – Docker networks 172.16–31.x only count if you enter them. Best restrict it to your actual LAN.") }}</div></div>
-      <div class="field"><label for="f-own-public-hosts">{{ _("Own internet connection") }}</label>
-        <textarea id="f-own-public-hosts" name="own_public_hosts" rows="2" class="mono" placeholder="{{ _('my-institute.dyndns.org') }}">{{ s('own_public_hosts') }}</textarea>
-        <div class="hint">{% if connection.own_ips %}{{ _("Static public IP or DynDNS name, one entry per line. Requests coming from this address count as internal – needed when internal computers open the public domain and the router passes them on with its own public IP. DynDNS names are re-resolved every 5 minutes (currently: <code>{ips}</code>).", ips=connection.own_ips|join(', ')) }}{% else %}{{ _("Static public IP or DynDNS name, one entry per line. Requests coming from this address count as internal – needed when internal computers open the public domain and the router passes them on with its own public IP. DynDNS names are re-resolved every 5 minutes.") }}{% endif %}</div>
-        <div class="notice warn u-d-block u-fs-12_5 u-mt-8">{{ _("Caution: devices on the <b>guest Wi-Fi</b> and every other device behind your router also arrive with this address and are then treated as internal. Keep the guest Wi-Fi separate or block it from AssetLotse.") }}</div></div>
-      <div class="notice {{ 'ok' if connection.internal else 'accent' }} u-d-block u-fs-13 u-mb-12">
-        {% if connection.internal and connection.zone == 'own' %}{{ _("Your current connection ({ip}) counts as <b>internal</b> (via your own internet connection).", ip=connection.ip) }}
-        {%- elif connection.internal %}{{ _("Your current connection ({ip}) counts as <b>internal</b>.", ip=connection.ip) }}
-        {%- else %}{{ _("Your current connection ({ip}) counts as <b>external</b>.", ip=connection.ip) }}{% endif %}
-        {% if connection.proxy_without_ip %}<br>{{ _("The reverse proxy does not send a visitor address (<code>X-Forwarded-For</code>) – for security reasons such requests always count as external.") }}{% endif %}
-        <br><small>{{ _("To check, open the page once from a phone over mobile data: it must say “external” there.") }}</small></div>
       <p class="muted u-fs-12_5">{{ _('Problems with the second factor? Under <a href="{url}">Users</a> → open the account → “Reset two-factor authentication” or “Lift sign-in lock”.', url=url_for('admin.users')) }}</p>
     </section>
-
     <section class="card card-pad" id="abmeldung">
       <h2 class="u-mb-6">{{ icon("clock") }} {{ _("Automatic sign-out") }}</h2>
       <p class="muted u-fs-13_5">{{ _("Anyone who does nothing in AssetLotse for this long is signed out – e.g. when a browser stays open at the issue desk. Every page opened and every saved form counts as activity. The shortest limit that applies wins.") }}</p>
@@ -143,8 +125,49 @@
         {{ _("Sign out when the browser is closed – “Stay signed in” is then no longer offered") }}</label>
       <p class="muted u-fs-12_5">{{ _("Allowed: 0.25 (15 minutes) to 720 hours. When the time is up, the open page also switches to the sign-in page, so that nothing confidential stays on the screen.") }}</p>
     </section>
-
+    <section class="card card-pad" id="netz">
+      <h2 class="u-mb-6">{{ icon("globe") }} {{ _("Internal network") }}</h2>
+      <p class="muted u-fs-13_5">{{ _("Which connections count as internal. Used by the two-factor rules and by the automatic sign-out for access from outside.") }}</p>
+      <div class="field"><label for="f-internal-networks">{{ _("Internal network") }}</label>
+        <textarea id="f-internal-networks" name="internal_networks" rows="4" class="mono" placeholder="{{ default_networks }}">{{ s('internal_networks') }}</textarea>
+        <div class="hint">{{ _("One network per line, e.g. <code>192.168.10.0/24</code>. Empty = 10.x and 192.168.x (see placeholder) – Docker networks 172.16–31.x only count if you enter them. Best restrict it to your actual LAN.") }}</div></div>
+      <div class="field"><label for="f-own-public-hosts">{{ _("Own internet connection") }}</label>
+        <textarea id="f-own-public-hosts" name="own_public_hosts" rows="2" class="mono" placeholder="{{ _('my-institute.dyndns.org') }}">{{ s('own_public_hosts') }}</textarea>
+        <div class="hint">{% if connection.own_ips %}{{ _("Static public IP or DynDNS name, one entry per line. Requests coming from this address count as internal – needed when internal computers open the public domain and the router passes them on with its own public IP. DynDNS names are re-resolved every 5 minutes (currently: <code>{ips}</code>).", ips=connection.own_ips|join(', ')) }}{% else %}{{ _("Static public IP or DynDNS name, one entry per line. Requests coming from this address count as internal – needed when internal computers open the public domain and the router passes them on with its own public IP. DynDNS names are re-resolved every 5 minutes.") }}{% endif %}</div>
+        <div class="notice warn u-d-block u-fs-12_5 u-mt-8">{{ _("Caution: devices on the <b>guest Wi-Fi</b> and every other device behind your router also arrive with this address and are then treated as internal. Keep the guest Wi-Fi separate or block it from AssetLotse.") }}</div></div>
+      <div class="notice {{ 'ok' if connection.internal else 'accent' }} u-d-block u-fs-13 u-mb-12">
+        {% if connection.internal and connection.zone == 'own' %}{{ _("Your current connection ({ip}) counts as <b>internal</b> (via your own internet connection).", ip=connection.ip) }}
+        {%- elif connection.internal %}{{ _("Your current connection ({ip}) counts as <b>internal</b>.", ip=connection.ip) }}
+        {%- else %}{{ _("Your current connection ({ip}) counts as <b>external</b>.", ip=connection.ip) }}{% endif %}
+        {% if connection.proxy_without_ip %}<br>{{ _("The reverse proxy does not send a visitor address (<code>X-Forwarded-For</code>) – for security reasons such requests always count as external.") }}{% endif %}
+        <br><small>{{ _("To check, open the page once from a phone over mobile data: it must say “external” there.") }}</small></div>
+    </section>
   </div>
+
+  <div class="grid grid-2" id="datenschutz" data-tab-panel>
+    <section class="card card-pad" id="rechtliches">
+      <h2 class="u-mb-6">{{ icon("shield") }} {{ _("Legal") }}</h2>
+      <p class="muted u-fs-13_5">{{ _("Links appear on the sign-in page, in the sidebar and in emails. If AssetLotse is accessible on the internet, both are usually required.") }}</p>
+      <div class="field"><label for="f-imprint-url">{{ _("Legal notice (address)") }}</label>
+        <input id="f-imprint-url" type="url" name="imprint_url" value="{{ s('imprint_url') }}" placeholder="{{ _('https://www.example.org/legal-notice') }}"></div>
+      <div class="field"><label for="f-privacy-url">{{ _("Privacy policy (address)") }}</label>
+        <input id="f-privacy-url" type="url" name="privacy_url" value="{{ s('privacy_url') }}" placeholder="{{ _('https://www.example.org/privacy') }}">
+        <div class="hint">{{ _("It must be accepted during self-registration.") }}</div></div>
+    </section>
+    <section class="card card-pad" id="aufbewahrung">
+      <h2 class="u-mb-6">{{ icon("clock") }} {{ _("Retention") }}</h2>
+      <p class="muted u-fs-13_5">{{ _("Completed loans and the e-mail log are deleted automatically once the period has passed (GDPR: keep data only as long as necessary). For each item, only the number of loans is kept. Current and overdue loans are never deleted.") }}</p>
+      <div class="field"><label for="f-retention-months">{{ _("Delete completed loans after") }}</label>
+        <select id="f-retention-months" name="retention_months">
+          {% for m, label in [("3", _("3 months")), ("6", _("6 months")), ("12", _("12 months (recommended)")), ("24", _("2 years")), ("36", _("3 years")), ("0", _("never (not recommended)"))] %}
+          <option value="{{ m }}" {{ 'selected' if s('retention_months') == m }}>{{ label }}</option>{% endfor %}
+        </select>
+        <div class="hint">{{ _("counted from the return · runs automatically once a day") }}</div></div>
+      {% if s('retention_last_result') %}<p class="muted u-fs-13 u-m-0-0-10">{{ _("Last run:") }} {{ retention_result }}</p>{% endif %}
+      <button class="btn sm" type="submit" form="retention-now">{{ icon("check") }} {{ _("Clean up now") }}</button>
+    </section>
+  </div>
+
   <div class="actions u-mt-20 u-jc-end">
     <button class="btn primary lg">{{ icon("check") }} {{ _("Save") }}</button>
   </div>

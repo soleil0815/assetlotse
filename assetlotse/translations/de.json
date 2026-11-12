@@ -571,7 +571,6 @@
  "none (389)": "keine (389)",
  "none (general items only)": "keine (nur allgemeine Gegenstände)",
  "none (port 25, internal relay only)": "keine (Port 25, nur internes Relay)",
- "None set yet – see <i>General → Legal</i>.": "Noch keine hinterlegt – siehe <i>Allgemein → Rechtliches</i>.",
  "none stored": "keins hinterlegt",
  "None stored. Under “Edit” you can store e.g. a BitLocker recovery key or a PIN – encrypted and visible only to administrators and managers of the group.": "Keine hinterlegt. Unter „Bearbeiten“ können Sie z. B. einen BitLocker-Wiederherstellungsschlüssel oder eine PIN speichern – verschlüsselt und nur für Administratoren und Verwalter der Gruppe sichtbar.",
  "none yet": "noch keiner",
@@ -1252,5 +1251,11 @@
  "same": "wie für alle",
  "Hallo {name},": "Guten Tag {name},",
  "Hallo,": "Guten Tag,",
- "<span class=\"u-c-danger\">Locked</span> after too many failed attempts (password or code). Lifts itself after 5 minutes.": "<span class=\"u-c-danger\">Gesperrt</span> nach zu vielen Fehlversuchen (Passwort oder Code). Hebt sich nach 5 Minuten von selbst auf."
+ "<span class=\"u-c-danger\">Locked</span> after too many failed attempts (password or code). Lifts itself after 5 minutes.": "<span class=\"u-c-danger\">Gesperrt</span> nach zu vielen Fehlversuchen (Passwort oder Code). Hebt sich nach 5 Minuten von selbst auf.",
+ "Inventory & issuing": "Bestand & Ausgabe",
+ "Accounts": "Konten",
+ "Privacy": "Datenschutz",
+ "Topics": "Themen",
+ "None set yet – see <i>Privacy → Legal</i>.": "Noch keine hinterlegt – siehe <i>Datenschutz → Rechtliches</i>.",
+ "Which connections count as internal. Used by the two-factor rules and by the automatic sign-out for access from outside.": "Welche Verbindungen als intern gelten. Das nutzen die Regeln der Zwei-Faktor-Anmeldung und die automatische Abmeldung für Zugriffe von außen."
 }

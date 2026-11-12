@@ -221,7 +221,7 @@ For things like a laptop's **BitLocker recovery key**, a PIN or a password:
 - **Default loan period** under *Administration → Settings*: **`0` = open-ended (the default)**. With a number > 0, every issue automatically gets that return date unless the manager chooses otherwise.
 - **Open-ended loans** (e.g. a personal work laptop) are never overdue, get no reminders or overdue notices and never need to be extended.
 - **Loans with a return date** can be extended (period and maximum number of extensions are configurable; managers can always extend).
-- **By default staff members see no inventory**, only what is currently issued to them under **“My items”** (including the item page). Items are issued by managers or at the issue desk. This can be changed under *Settings → Inventory visibility*: “own items only” (default), “items of their own groups and general items” or “whole inventory”. Managers and administrators always see the inventory.
+- **By default staff members see no inventory**, only what is currently issued to them under **“My items”** (including the item page). Items are issued by managers or at the issue desk. This can be changed under *Settings → Inventory & issuing → Inventory visibility*: “own items only” (default), “items of their own groups and general items” or “whole inventory”. Managers and administrators always see the inventory.
 - **Self-service checkout** is **off** by default. Administrators can enable self-service checkout, self-return and self-extension; self-checkout requires staff members to see the inventory.
 - **All loans** (managers) shows active, overdue and completed loans of their groups.
 
@@ -294,7 +294,7 @@ Under *Inventory*, managers can download the inventory of their groups as **CSV*
 | **Manager** | Add/edit/delete items, issue, check in, use the issue desk, confidential details, export – for the items of **their groups** and general items. A manager manages the **entire** inventory only with *Manages the entire inventory* ticked in the user account – never as a side effect, e.g. because AD removed all their groups (on the update to 1.12.0, existing managers without a group got the box ticked automatically). |
 | **Administrator** | Everything, plus users, groups, settings and Active Directory |
 
-**Groups** are e.g. departments or teams. Every item either belongs to a group or is **general**. General items can be issued to everyone, group items only to members of that group. Under *Settings → Inventory visibility* you decide whether staff members see only their own items (default), their groups' items and general items, or the whole inventory (issuing stays restricted either way).
+**Groups** are e.g. departments or teams. Every item either belongs to a group or is **general**. General items can be issued to everyone, group items only to members of that group. Under *Settings → Inventory & issuing → Inventory visibility* you decide whether staff members see only their own items (default), their groups' items and general items, or the whole inventory (issuing stays restricted either way).
 
 ---
 
@@ -358,7 +358,7 @@ Under *Background synchronisation* (default: on, **hourly**; 1, 2, 4, 8 hours or
 
 ## Self-registration
 
-**Off** by default. Under *Administration → Settings → Self-registration*:
+**Off** by default. Under *Administration → Settings → Accounts → Self-registration*:
 
 | Setting | Effect |
 |---|---|
@@ -465,11 +465,11 @@ AssetLotse is built so that users' browsers **only talk to your own server**:
 - **Item photos** are only reachable after signing in.
 - **Cookies:** only strictly necessary ones (sign-in, form protection) – no cookie banner required. No tracking, no ads.
 
-Enter the addresses of your **imprint and privacy policy** under *Administration → Settings → Legal*, e.g. pages on the institute's website. The links appear on the login page, in the sidebar and in every e-mail; self-registration requires accepting the privacy policy.
+Enter the addresses of your **imprint and privacy policy** under *Administration → Settings → Privacy → Legal*, e.g. pages on the institute's website. The links appear on the login page, in the sidebar and in every e-mail; self-registration requires accepting the privacy policy.
 
 The privacy policy (or your record of processing activities) should list what AssetLotse stores: name, username, e-mail address, group memberships, loans with dates (who received what, who issued/checked it in), a log of sent e-mails, the access log of confidential details (which manager revealed/changed them and when) and, with two-factor authentication, the registered keys. If the server is operated by someone other than the institution itself, you need a data processing agreement (Art. 28 GDPR). Involve your staff council when introducing it, since loans are linked to individual people.
 
-**Retention periods** (*Settings → Retention*, default **12 months**): completed loans are deleted automatically the configured time after their return, and so are e-mail log entries. Only the number of loans per item is kept, so statistics stay correct. Active (including open-ended) and overdue loans and their reminder entries are never deleted. The job runs once a day; “Clean up now” or `flask --app wsgi apply-retention` runs it immediately. When a user is deleted, their loans are removed at once (the per-item count is kept). Unconfirmed self-registrations are deleted after 7 days. The **access log of confidential details** is also deleted after this period (with “never delete” it is kept until the item is deleted). State the retention periods in your privacy policy as well.
+**Retention periods** (*Settings → Privacy → Retention*, default **12 months**): completed loans are deleted automatically the configured time after their return, and so are e-mail log entries. Only the number of loans per item is kept, so statistics stay correct. Active (including open-ended) and overdue loans and their reminder entries are never deleted. The job runs once a day; “Clean up now” or `flask --app wsgi apply-retention` runs it immediately. When a user is deleted, their loans are removed at once (the per-item count is kept). Unconfirmed self-registrations are deleted after 7 days. The **access log of confidential details** is also deleted after this period (with “never delete” it is kept until the item is deleted). State the retention periods in your privacy policy as well.
 
 ## Security
 
@@ -487,7 +487,7 @@ Please report security problems **privately**, not as an issue – see [SECURITY
 
 ### Automatic sign-out
 
-*Settings → Automatic sign-out* – anyone who does nothing in AssetLotse for this long is signed out (e.g. a browser left open at the issue desk). Every page opened and every saved form counts as activity.
+*Settings → Security → Automatic sign-out* – anyone who does nothing in AssetLotse for this long is signed out (e.g. a browser left open at the issue desk). Every page opened and every saved form counts as activity.
 
 | Setting | Effect |
 |---|---|

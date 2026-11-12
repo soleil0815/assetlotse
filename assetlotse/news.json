@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.5.2",
+      "date": "2026-11-12",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Einstellungen nach Themen geordnet",
+        "text": "Die Einstellungen sind jetzt in fünf Reiter gegliedert: Allgemein, Bestand & Ausgabe, Konten, Sicherheit und Datenschutz. Das interne Netz hat einen eigenen Abschnitt unter Sicherheit. Gespeichert wird weiterhin alles mit einem Klick."
+      },
+      "en": {
+        "title": "Settings sorted by topic",
+        "text": "The settings are now divided into five tabs: General, Inventory & issuing, Accounts, Security and Privacy. The internal network has a section of its own under Security. Everything is still saved with one click."
+      }
+    },
+    {
       "version": "2.5.1",
       "date": "2026-11-09",
       "kind": "feature",
