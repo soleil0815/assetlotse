@@ -2,6 +2,18 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.5.2 – 2026-11-12
+
+**Changed**
+- **Settings sorted by topic:** *Administration → Settings* now has five tabs – *General* (name, default
+  language), *Inventory & issuing* (inventory visibility, loan periods, self-service), *Accounts*
+  (self-registration), *Security* (two-factor authentication, automatic sign-out and the new card *Internal
+  network*, which used to be part of the two-factor card) and *Privacy* (legal notice and privacy policy,
+  retention). Still one form with one save button; the open tab stays open after saving, links such as
+  `…/einstellungen#aufbewahrung` open the right tab, and a field the browser rejects opens its tab. Without
+  JavaScript all topics are shown one below the other.
+- Help pages and README (de/en) name the new paths, e.g. *Settings → Security → Two-factor authentication*.
+
 ## 2.5.1-s1 – 2026-11-10
 
 Security update: same program as 2.5.1, only updated packages.

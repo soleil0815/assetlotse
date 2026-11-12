@@ -1,6 +1,6 @@
 """Automatic sign-out after inactivity.
 
-Settings (Administration → Settings → Automatic sign-out):
+Settings (Administration → Settings → Security → Automatic sign-out):
   session_idle_hours           for everyone (start value: ASSETLOTSE_SESSION_HOURS, otherwise 12; 0 = off)
   session_idle_hours_admin     shorter limit for administrators (empty = same as for everyone)
   session_idle_hours_external  shorter limit for access from outside (empty = same)

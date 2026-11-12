@@ -530,7 +530,8 @@ def settings():
                     "– with “own items only” they have no checkout button."), "warning")
         db.session.commit()
         flash(_("Settings saved."), "success")
-        return redirect(url_for("admin.settings"))
+        tab = request.form.get("tab", "")
+        return redirect(url_for("admin.settings") + (f"#{tab}" if tab in SETTINGS_TABS else ""))
     from ..mailer import mail_active
     from .. import netzone
     from .. import idle
@@ -540,6 +541,10 @@ def settings():
                            retention_result=_stamped(get_setting("retention_last_result"), _retention_message),
                            connection=netzone.describe(), default_networks=netzone.DEFAULT_INTERNAL,
                            groups=Group.query.order_by(Group.name).all(), mail_on=mail_active())
+
+
+# tabs of the settings page (templates/admin/settings.html) – the open one survives saving
+SETTINGS_TABS = ("allgemein", "ausgabe", "konten", "sicherheit", "datenschutz")
 
 
 def _save_idle_settings():

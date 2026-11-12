@@ -323,6 +323,47 @@
     try { await navigator.clipboard.writeText(text); btn.textContent = T("✓ Copied"); } catch (e) { window.prompt(T("Codes:"), text); }
   }));
 
+  /* ------------------------------------------------------------ Settings: topics as tabs
+     Without JavaScript every topic is shown one below the other. The open tab survives saving (hidden
+     field "tab" → the server redirects to #tab) and links such as …/einstellungen#aufbewahrung open the tab
+     that contains the target. A field the browser rejects (e.g. required) opens its tab, so the message is
+     visible instead of the save silently doing nothing. */
+  const settingsTabs = $("[data-settings-tabs]");
+  if (settingsTabs) {
+    const panels = $$("[data-tab-panel]");
+    const tabInput = $("[data-settings-tab-input]");
+    const show = (id, focus) => {
+      const panel = panels.find((p) => p.id === id) || panels[0];
+      panels.forEach((p) => { p.hidden = p !== panel; });
+      $$("[data-tab]", settingsTabs).forEach((a) => {
+        const on = a.dataset.tab === panel.id;
+        a.classList.toggle("on", on);
+        if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+      });
+      if (tabInput) tabInput.value = panel.id;
+      if (focus) { const t = document.getElementById(focus); if (t && t !== panel) t.scrollIntoView(); }
+    };
+    const fromHash = () => {
+      const target = location.hash ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+      const panel = target && target.closest("[data-tab-panel]");
+      show(panel ? panel.id : panels[0].id, target && panel && target !== panel ? target.id : null);
+    };
+    settingsTabs.addEventListener("click", (e) => {
+      const a = e.target.closest("[data-tab]");
+      if (!a) return;
+      e.preventDefault();
+      show(a.dataset.tab);
+      history.replaceState(null, "", "#" + a.dataset.tab);
+    });
+    window.addEventListener("hashchange", fromHash);
+    const form = $("[data-settings-form]");
+    if (form) form.addEventListener("invalid", (e) => {
+      const panel = e.target.closest("[data-tab-panel]");
+      if (panel && panel.hidden) show(panel.id);
+    }, true);
+    fromHash();
+  }
+
   /* ------------------------------------------------------------ Automatic sign-out after inactivity
      The server signs out after the limit; the page shows a notice shortly before and then leaves, so that
      nothing (e.g. a recovery key) stays on the screen. Other tabs can extend the session – before the notice
