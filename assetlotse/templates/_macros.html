@@ -111,3 +111,11 @@
   {%- endfor %}
 </form>
 {%- endmacro %}
+
+{# "Buy me a coffee" bar – only administrators see it (dashboard, Info), nobody else is asked for anything #}
+{% macro coffee_card(url) -%}
+<aside class="coffee-card" aria-label="{{ _('Support the development of AssetLotse') }}">
+  <p>{{ _("Do you like AssetLotse? I'd be glad about a coffee.") }}</p>
+  <a class="coffee-btn" href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ icon("coffee") }}<span>{{ _("Buy me a coffee") }}</span></a>
+</aside>
+{%- endmacro %}

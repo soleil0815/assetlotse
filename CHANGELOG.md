@@ -2,6 +2,14 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.5.3 – 2026-11-13
+
+**Changed**
+- **"Buy me a coffee" as a bar instead of a pill in the sidebar:** at the bottom of the dashboard and the Info page
+  a bar says "Gefällt Ihnen AssetLotse? Über einen Kaffee freue ich mich." / "Do you like AssetLotse? I'd be glad
+  about a coffee." with a yellow button "Einen Kaffee spendieren" / "Buy me a coffee". Still for administrators
+  only; nobody else sees it.
+
 ## 2.5.2 – 2026-11-12
 
 **Changed**

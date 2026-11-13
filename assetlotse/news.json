@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.5.3",
+      "date": "2026-11-13",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Kaffee-Hinweis neu gestaltet",
+        "text": "Der Hinweis „Einen Kaffee spendieren“ steht jetzt als Leiste unten auf der Übersicht und der Info-Seite statt in der Seitenleiste. Sehen können ihn weiterhin nur Administratoren."
+      },
+      "en": {
+        "title": "Coffee note redesigned",
+        "text": "The “Buy me a coffee” note is now a bar at the bottom of the dashboard and the Info page instead of in the sidebar. As before, only administrators see it."
+      }
+    },
+    {
       "version": "2.5.2",
       "date": "2026-11-12",
       "kind": "feature",

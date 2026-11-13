@@ -1257,5 +1257,7 @@
  "Privacy": "Datenschutz",
  "Topics": "Themen",
  "None set yet – see <i>Privacy → Legal</i>.": "Noch keine hinterlegt – siehe <i>Datenschutz → Rechtliches</i>.",
- "Which connections count as internal. Used by the two-factor rules and by the automatic sign-out for access from outside.": "Welche Verbindungen als intern gelten. Das nutzen die Regeln der Zwei-Faktor-Anmeldung und die automatische Abmeldung für Zugriffe von außen."
+ "Which connections count as internal. Used by the two-factor rules and by the automatic sign-out for access from outside.": "Welche Verbindungen als intern gelten. Das nutzen die Regeln der Zwei-Faktor-Anmeldung und die automatische Abmeldung für Zugriffe von außen.",
+ "Do you like AssetLotse? I'd be glad about a coffee.": "Gefällt Ihnen AssetLotse? Über einen Kaffee freue ich mich.",
+ "Buy me a coffee": "Einen Kaffee spendieren"
 }
