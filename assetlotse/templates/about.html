@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon %}
+{% from "_macros.html" import icon, coffee_card %}
 {% block title %}{{ _("About this program") }}{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -18,4 +18,5 @@
     {{ _("It is provided without any warranty. Anyone who offers a modified version over a network must make the source code of that version available to its users.") }}
   </p>
 </section>
+{% if current_user.is_admin %}{{ coffee_card(support_url) }}{% endif %}
 {% endblock %}

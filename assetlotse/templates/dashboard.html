@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, thumb, avail_badge, due_badge %}
+{% from "_macros.html" import icon, thumb, avail_badge, due_badge, coffee_card %}
 {% block title %}{{ _("Overview") }}{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -184,4 +184,5 @@
   {% endif %}
 </div>
 {% endif %}
+{% if current_user.is_admin %}{{ coffee_card(support_url) }}{% endif %}
 {% endblock %}

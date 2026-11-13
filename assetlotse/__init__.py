@@ -28,13 +28,13 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.5.2"
+__version__ = "2.5.3"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
 # enters the address of their own modified source code here or in ASSETLOTSE_SOURCE_URL.
 DEFAULT_SOURCE_URL = "https://github.com/soleil0815/assetlotse"
-# shown to administrators only, in the sidebar ("Buy me a coffee")
+# shown to administrators only, as a bar on the dashboard and the Info page ("Buy me a coffee")
 SUPPORT_URL = "https://buymeacoffee.com/soleil0815"
 AUTHOR_URL = "https://helfi.space"
 

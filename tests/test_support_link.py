@@ -13,20 +13,28 @@ class SupportLinkTests(BaseCase):
         return self.c.get("/", follow_redirects=True).get_data(as_text=True)
 
     def test_admins_see_it(self):
+        # 2.5.3: a bar on the dashboard and the Info page instead of the pill in the sidebar
         html = self.page("chefin", "admin")
-        link = re.search(r'<a class="side-coffee"[^>]*>', html)
-        self.assertIsNotNone(link)
+        self.assertNotIn("side-coffee", html)
+        card = re.search(r'<aside class="coffee-card".*?</aside>', html, re.S)
+        self.assertIsNotNone(card)
+        link = re.search(r'<a class="coffee-btn"[^>]*>', card.group(0))
         self.assertIn(f'href="{SUPPORT_URL}"', link.group(0))
         self.assertIn('target="_blank"', link.group(0))
         self.assertIn('rel="noopener noreferrer"', link.group(0))     # the page cannot reach back into AssetLotse
-        self.assertIn("Buy me a coffee", html)
+        self.assertIn("Einen Kaffee spendieren", card.group(0))
+        self.assertIn("Gefällt Ihnen AssetLotse?", card.group(0))
+        self.assertIn('class="coffee-card"', self.c.get("/info").get_data(as_text=True))
+        self.assertEqual(html.count('class="coffee-card"'), 1)
+        self.assertNotIn('class="coffee-card"', self.c.get("/gegenstaende").get_data(as_text=True))
 
     def test_nobody_else_sees_it(self):
         for name, role in (("vera", "manager"), ("mia", "reader")):
             with self.subTest(role=role):
                 html = self.page(name, role)
-                self.assertNotIn("side-coffee", html)
+                self.assertNotIn("coffee-card", html)
                 self.assertNotIn(SUPPORT_URL, html)
+                self.assertNotIn(SUPPORT_URL, self.c.get("/info").get_data(as_text=True))
                 self.c.post("/logout")
 
     def test_not_on_the_sign_in_page(self):
