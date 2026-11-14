@@ -369,6 +369,9 @@ class WebAuthnCredential(db.Model):
     sign_count = db.Column(db.Integer, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     last_used_at = db.Column(db.DateTime)
+    # 2.6.0: registered as a passkey (stored on the device, unlocked with Face ID/fingerprint/PIN) – usable for
+    # signing in without user name and password. A plain security key only serves as the second factor.
+    passkey = db.Column(db.Boolean, default=False, nullable=False)
 
     user = db.relationship("User", backref=db.backref("webauthn_credentials", cascade="all, delete-orphan"))
 
@@ -442,6 +445,8 @@ DEFAULT_SETTINGS = {
     "session_idle_hours_external": "",
     "session_warn": "1",
     "session_end_on_close": "0",
+    # Sign-in with a passkey (twofa.passkey_*): on by default
+    "passkey_login": "1",
     # Active Directory / LDAP
     "ldap_enabled": "0",
     "ldap_server": "",

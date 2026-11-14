@@ -558,3 +558,8 @@ input[type="file"] { max-width: 100%; min-width: 0; }
 .coffee-btn .i { width: 20px; height: 20px; }
 .coffee-btn:hover { background: #ffe94d; color: #0d0c22; }
 .coffee-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Sign-in page: "or" divider and passkey button */
+.passkey-login { margin-top: 18px; }
+.or-line { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+.or-line::before, .or-line::after { content: ""; flex: 1; border-top: 1px solid var(--line); }

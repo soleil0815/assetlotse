@@ -177,11 +177,117 @@ def challenge_key_complete():
     return jsonify({"ok": True, "redirect": _finish(user)})
 
 
+# ---------------------------------------------------------------- Sign-in with a passkey (2.6.0)
+
+PASSKEY_TTL = 300   # seconds between "start" and "check"
+
+
+def passkey_available_for(user: User) -> bool:
+    """May this account use a passkey? AD accounts only with a service account: without one, AssetLotse
+    could not check at sign-in whether the account is still active and authorized in AD."""
+    from ..ldap_auth import ldap_enabled
+    from ..models import get_setting
+    if not twofa.passkey_login_enabled():
+        return False
+    if user.auth_source == "ldap":
+        return ldap_enabled() and bool(get_setting("ldap_bind_dn"))
+    return True
+
+
+def _passkey_fail(key: str, message: str, status: int = 400):
+    lockout.fail(key, "")
+    return jsonify({"ok": False, "error": message}), status
+
+
+def _passkey_account_check(user: User) -> str | None:
+    """The same gates as the password sign-in – for AD accounts checked live via the service account
+    (still present, enabled, not expired, matching the role rules). Returns an error message or None."""
+    from ..ldap_auth import Directory, LDAPError
+    generic = _("This passkey cannot be used to sign in. Please sign in with user name and password.")
+    if user.self_registered and not user.email_verified:
+        return _("Please confirm your email address first.")
+    if user.pending_approval:
+        return _("Your account is still waiting for approval by the management team.")
+    if user.auth_source == "ldap":
+        if not passkey_available_for(user):
+            return generic
+        from .main import guid_conflict, may_reactivate, sync_ldap_user
+        try:
+            info = Directory().check_account(user.username)
+        except LDAPError as exc:
+            log.warning("Passkey sign-in %s: Active Directory not reachable: %s", user.username, exc)
+            return _("The Active Directory cannot be reached right now. Please try again later.")
+        if info is None or info.role is None or guid_conflict(info, user):
+            log.info("Passkey sign-in %s rejected: not (or no longer) authorized in AD", user.username)
+            return generic
+        reactivate = may_reactivate(user)
+        sync_ldap_user(info, user)
+        if reactivate:
+            user.active, user.deactivated_by_sync = True, False
+        db.session.commit()
+        session["ldap_ok_at"] = int(time.time())
+    if not user.active:
+        log.info("Passkey sign-in of locked account %s rejected", user.username)
+        return generic
+    return None
+
+
+@bp.route("/login/passkey/start", methods=["POST"])
+def passkey_begin():
+    if not twofa.passkey_login_enabled():
+        abort(404)
+    if current_user.is_authenticated:
+        return jsonify({"ok": True, "redirect": url_for("main.dashboard")})
+    if lockout.throttled(f"passkey|{request.remote_addr}"):
+        return jsonify({"ok": False, "error": _("Too many failed attempts. Please wait a few minutes.")}), 429
+    options, state = twofa.passkey_auth_begin(twofa.rp_id_for(request.host))
+    session["passkey_state"] = {"state": state, "ts": time.time()}
+    return jsonify({"ok": True, "options": options})
+
+
+@bp.route("/login/passkey/pruefen", methods=["POST"])
+def passkey_complete():
+    if not twofa.passkey_login_enabled():
+        abort(404)
+    from datetime import datetime
+    pending = session.pop("passkey_state", None)
+    key = f"passkey|{request.remote_addr}"
+    if lockout.throttled(key):
+        return jsonify({"ok": False, "error": _("Too many failed attempts. Please wait a few minutes.")}), 429
+    if not pending or time.time() - pending.get("ts", 0) > PASSKEY_TTL:
+        return jsonify({"ok": False, "error": _("Sign-in expired.")}), 400
+    payload = request.get_json(force=True, silent=True) or {}
+    try:
+        user = twofa.passkey_auth_complete(twofa.rp_id_for(request.host), pending["state"],
+                                           payload.get("credential") or {})
+    except Exception as exc:  # noqa: BLE001 – invalid response: never give details to the client
+        log.info("Passkey sign-in failed: %s", exc)
+        user = None
+    if user is None:
+        return _passkey_fail(key, _("The passkey was not accepted."))
+    problem = _passkey_account_check(user)
+    if problem:
+        return _passkey_fail(key, problem, 403)
+    lockout.clear(key)
+    # a passkey is two factors in one (the device + Face ID/fingerprint/PIN): no further step
+    for k in ("mfa_pending", "mfa_skipped", "webauthn_state"):
+        session.pop(k, None)
+    user.last_login = datetime.now()
+    db.session.commit()
+    from ..idle import end_on_close
+    login_user(user, remember=bool(payload.get("remember")) and not end_on_close())
+    session["mfa_ok"] = True
+    log.info("Passkey sign-in: %s", user.username)
+    return jsonify({"ok": True, "redirect": safe_next(payload.get("next")) or url_for("main.dashboard")})
+
+
 # ---------------------------------------------------------------- Profile: security
 
 def _render_settings(**extra):
     rp = twofa.rp_id_for(request.host)
     return render_template("security/settings.html", rp_id=rp, required=twofa.required_for(current_user),
+                           passkeys_offered=passkey_available_for(current_user),
+                           passkey_login=twofa.passkey_login_enabled(),
                            totp_broken=twofa.totp_unreadable(current_user),
                            codes_left=twofa.recovery_codes_left(current_user),
                            keys=sorted(current_user.webauthn_credentials, key=lambda c: c.created_at or 0),
@@ -323,8 +429,12 @@ def recovery_regenerate():
 def key_begin():
     if not _may_manage():
         return jsonify({"ok": False, "error": _stepup_msg()}), 403
-    options, state = twofa.webauthn_register_begin(current_user, twofa.rp_id_for(request.host))
+    passkey = bool((request.get_json(force=True, silent=True) or {}).get("passkey"))
+    if passkey and not passkey_available_for(current_user):
+        return jsonify({"ok": False, "error": _("Passkeys are not available for your account.")}), 403
+    options, state = twofa.webauthn_register_begin(current_user, twofa.rp_id_for(request.host), passkey=passkey)
     session["webauthn_reg_state"] = state
+    session["webauthn_reg_passkey"] = passkey
     return jsonify({"ok": True, "options": options})
 
 
@@ -335,13 +445,15 @@ def key_complete():
         session.pop("webauthn_reg_state", None)
         return jsonify({"ok": False, "error": _stepup_msg()}), 403
     state = session.pop("webauthn_reg_state", None)
+    passkey = bool(session.pop("webauthn_reg_passkey", False))
     payload = request.get_json(force=True) or {}
     if state is None:
         return jsonify({"ok": False, "error": _("Registration expired.")}), 400
     had_2fa = current_user.has_2fa
     try:
         twofa.webauthn_register_complete(current_user, twofa.rp_id_for(request.host), state,
-                                         payload.get("credential") or {}, str(payload.get("name") or ""))
+                                         payload.get("credential") or {}, str(payload.get("name") or ""),
+                                         passkey=passkey)
     except Exception as exc:  # noqa: BLE001
         log.info("WebAuthn registration failed: %s", exc)
         return jsonify({"ok": False, "error": _("The key could not be registered ({error}).", error=str(exc))}), 400
@@ -353,7 +465,8 @@ def key_complete():
         # only encrypted into the session cookie (readable by the browser)
         import json
         session["show_new_codes"] = twofa.encrypt(json.dumps(twofa.new_recovery_codes(current_user)))
-    flash(_("Security key added."), "success")
+    flash(_("Passkey added – from now on you can sign in with it.") if passkey else _("Security key added."),
+          "success")
     return jsonify({"ok": True, "redirect": url_for("security.settings", neu="1" if first else None)})
 
 

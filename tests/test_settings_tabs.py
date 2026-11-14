@@ -19,7 +19,7 @@ EXPECTED = {
                 "self_checkout", "self_extend", "self_return"],
     "konten": ["registration_mode", "registration_verify_email", "registration_notify_admins",
                "registration_domains", "registration_group_id"],
-    "sicherheit": ["mfa_policy", "mfa_internal", "session_idle_hours", "session_idle_hours_admin",
+    "sicherheit": ["mfa_policy", "mfa_internal", "passkey_login", "session_idle_hours", "session_idle_hours_admin",
                    "session_idle_hours_external", "session_warn", "session_end_on_close",
                    "internal_networks", "own_public_hosts"],
     "datenschutz": ["imprint_url", "privacy_url", "retention_months"],

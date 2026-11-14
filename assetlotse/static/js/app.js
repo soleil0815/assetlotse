@@ -265,21 +265,25 @@
   const webauthnError = (err) => (err && err.name === "NotAllowedError")
     ? T("Cancelled or timed out. Please try again.")
     : (err && err.name === "InvalidStateError") ? T("This key is already registered.")
+    : (err && err.name === "NotSupportedError") ? T("This browser or device does not support passkeys.")
     : T("Error: {error}", { error: (err && (err.message || err.name)) || err });
 
   $$("[data-webauthn-register]").forEach((btn) => {
     const box = btn.closest("[data-webauthn-register-box]");
     const status = $("[data-webauthn-status]", box);
+    const passkey = box.hasAttribute("data-passkey");
     if (!webauthnOk()) {
       btn.disabled = true;
-      status.textContent = T("Security keys only work over HTTPS (e.g. via your reverse proxy), not via http://IP.");
+      status.textContent = passkey ? T("Passkeys only work over HTTPS (e.g. via your reverse proxy), not via http://IP.")
+        : T("Security keys only work over HTTPS (e.g. via your reverse proxy), not via http://IP.");
       return;
     }
     btn.addEventListener("click", async () => {
       btn.disabled = true;
-      status.textContent = T("Insert and touch your key …");
+      status.textContent = passkey ? T("Confirm with Face ID, fingerprint or the device PIN …") : T("Insert and touch your key …");
       try {
-        const begin = await api("/profil/sicherheit/schluessel/start", { method: "POST", body: "{}" });
+        const begin = await api("/profil/sicherheit/schluessel/start", { method: "POST",
+          body: JSON.stringify({ passkey }) });
         if (!begin.ok) throw new Error(begin.error);
         const cred = await navigator.credentials.create(creationOptions(begin.options));
         const done = await api("/profil/sicherheit/schluessel/speichern", { method: "POST",
@@ -292,6 +296,52 @@
       }
     });
   });
+
+  /* Sign-in with a passkey: a button, and on phones also the suggestion in the user name field
+     (autocomplete="username webauthn", "conditional mediation") – tapping it signs in straight away. */
+  const passkeyBox = $("[data-passkey-login]");
+  if (passkeyBox && webauthnOk()) {
+    passkeyBox.hidden = false;
+    const btn = $("[data-passkey-button]", passkeyBox);
+    const status = $("[data-passkey-status]", passkeyBox);
+    let autofill = null;                       // pending conditional request – one request at a time
+    const signIn = async (conditional) => {
+      const begin = await api("/login/passkey/start", { method: "POST", body: "{}" });
+      if (!begin.ok) throw new Error(begin.error);
+      if (begin.redirect) { window.location.href = begin.redirect; return; }
+      const opts = requestOptions(begin.options);
+      if (conditional) { autofill = new AbortController(); opts.mediation = "conditional"; opts.signal = autofill.signal; }
+      const cred = await navigator.credentials.get(opts);
+      if (!cred) return;
+      const remember = $('input[name="remember"]');
+      const done = await api("/login/passkey/pruefen", { method: "POST", body: JSON.stringify({
+        credential: credentialJSON(cred), remember: !!(remember && remember.checked), next: passkeyBox.dataset.next }) });
+      if (!done.ok) throw new Error(done.error);
+      window.location.href = done.redirect;
+    };
+    const startAutofill = async () => {
+      try {
+        if (!PublicKeyCredential.isConditionalMediationAvailable || !(await PublicKeyCredential.isConditionalMediationAvailable())) return;
+        await signIn(true);
+      } catch (err) {
+        // Background request nobody asked for: never show its errors (the button took over, the browser
+        // cannot offer passkeys in the field, …) – the button still works and reports its own errors.
+      }
+    };
+    btn.addEventListener("click", async () => {
+      if (autofill) { autofill.abort(); autofill = null; }
+      btn.disabled = true;
+      status.textContent = T("Confirm with Face ID, fingerprint or the device PIN …");
+      try {
+        await signIn(false);
+      } catch (err) {
+        status.textContent = webauthnError(err);
+        btn.disabled = false;
+        startAutofill();
+      }
+    });
+    startAutofill();
+  }
 
   $$("[data-webauthn-login]").forEach((btn) => {
     const status = $("[data-webauthn-status]");

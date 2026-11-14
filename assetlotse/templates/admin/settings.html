@@ -103,6 +103,9 @@
           <option value="skip" {{ 'selected' if s('mfa_internal') == 'skip' }}>{{ _("no two-factor prompt") }}</option>
         </select>
         <div class="hint">{{ _("A session started internally without a second factor is not valid from outside: anyone using it from outside (e.g. a laptop at home) has to sign in again. “Stay signed in” does not apply then.") }}</div></div>
+      <label class="check"><input type="checkbox" name="passkey_login" value="1" {{ 'checked' if s('passkey_login') == '1' }}>
+        {{ _("Allow signing in with a passkey") }}</label>
+      <div class="hint u-mb-12">{{ _("Without user name and password, with Face ID, fingerprint or the device PIN – counts as two factors. Everyone creates their passkey under Profile → Security. For Active Directory accounts only with a service account: at every passkey sign-in the account is checked in AD.") }}</div>
       <p class="muted u-fs-12_5">{{ _('Problems with the second factor? Under <a href="{url}">Users</a> → open the account → “Reset two-factor authentication” or “Lift sign-in lock”.', url=url_for('admin.users')) }}</p>
     </section>
     <section class="card card-pad" id="abmeldung">

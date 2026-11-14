@@ -2,6 +2,34 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.6.0",
+      "date": "2026-11-14",
+      "kind": "feature",
+      "audience": "all",
+      "de": {
+        "title": "Anmelden mit Passkey",
+        "text": "Sie können sich jetzt mit Face ID, Fingerabdruck oder Geräte-PIN anmelden – ohne Benutzername und Passwort, z. B. auf dem iPhone. Legen Sie dazu auf dem Gerät unter Sicherheit einen Passkey an und tippen Sie danach auf der Anmeldeseite auf „Mit Passkey anmelden“. Funktioniert nur über HTTPS."
+      },
+      "en": {
+        "title": "Sign in with a passkey",
+        "text": "You can now sign in with Face ID, fingerprint or the device PIN – without username and password, e.g. on an iPhone. Create a passkey under Security on that device, then tap “Sign in with a passkey” on the sign-in page. Only works over HTTPS."
+      }
+    },
+    {
+      "version": "2.6.0",
+      "date": "2026-11-14",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Passkeys und Active Directory",
+        "text": "Konten aus dem Active Directory können Passkeys nur nutzen, wenn das Dienstkonto eingerichtet ist: Bei jeder Passkey-Anmeldung prüft AssetLotse im AD, ob das Konto noch aktiv ist, und gleicht Rolle und Gruppen ab. Abschalten lässt sich die Passkey-Anmeldung unter Einstellungen → Sicherheit."
+      },
+      "en": {
+        "title": "Passkeys and Active Directory",
+        "text": "Active Directory accounts can only use passkeys when the service account is configured: at every passkey sign-in AssetLotse checks in AD that the account is still active and synchronizes role and groups. Passkey sign-in can be switched off under Settings → Security."
+      }
+    },
+    {
       "version": "2.5.3",
       "date": "2026-11-13",
       "kind": "feature",

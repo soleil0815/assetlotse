@@ -386,7 +386,7 @@ New accounts are always **staff members**. Protection for internet-facing instal
 Every user sets it up under **Profile → Security** (also reachable from the user menu):
 
 - **Authenticator app (TOTP):** scan the QR code, confirm with a code. Works with Microsoft/Google Authenticator, Aegis, 2FAS, Bitwarden, Yubico Authenticator … – and everywhere, including `http://IP:9343` on the LAN.
-- **Security key (WebAuthn/FIDO2):** insert the YubiKey, touch it – done. Device fingerprint/Face ID (passkey) works too. Requires **HTTPS** and is bound to the address under which the key was registered (e.g. `assets.institute.org`). Several keys per account are possible – registering a spare key is a good idea.
+- **Security key (WebAuthn/FIDO2):** insert the YubiKey, touch it – done (as the second factor after the password). Requires **HTTPS** and is bound to the address under which the key was registered (e.g. `assets.institute.org`). Several keys per account are possible – registering a spare key is a good idea.
 - **Recovery codes:** 10 one-time codes are shown once during setup. They let you in without phone or key.
 
 Under **Administration → Settings** you decide for whom 2FA is **mandatory for access from outside** (nobody – the default, administrators, managers + admins, everyone). Affected users are guided through the setup at their next sign-in and can only continue afterwards. If you store confidential details (BitLocker keys), require 2FA at least for managers + admins.
@@ -408,7 +408,7 @@ Under **Administration → Settings** you decide for whom 2FA is **mandatory for
 - **Internal computers using the public domain:** when they call the internet address, the router (e.g. a FritzBox) often presents them with your own public IP – so they would look external. Enter your fixed IP or your **DynDNS name** under *Own internet connection*; the name is resolved again every 5 minutes, so a changing IP is followed. **Caution:** the guest Wi-Fi and every other device behind the router also arrive with this address and then count as internal. The cleaner alternative is an internal DNS entry (split DNS) that points the domain to the server's internal address on the LAN.
 
 **Sign-in problems – without the command line:** under *Users* → open the account → *Sign-in and security*:
-- **Reset two-factor authentication** – removes app and security keys; sign-in works with the password again (if 2FA is mandatory, setting it up again is required).
+- **Reset two-factor authentication** – removes app, security keys and passkeys; sign-in works with the password again (if 2FA is mandatory, setting it up again is required).
 - **Lift sign-in lock** – after 8 failed attempts sign-in is locked for 5 minutes; locked accounts are marked in the user list (filter “Sign-in lock”).
 
 If all admins are locked out: with “no 2FA prompt” on the internal network, an admin can sign in from the LAN without a second factor. Otherwise, in an emergency on the server:
@@ -418,6 +418,18 @@ docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi reset-2fa a
 ```
 
 Technical details: TOTP according to RFC 6238 (secrets stored encrypted, codes cannot be reused), WebAuthn via Yubico's `fido2` library including signature-counter checks, lockout after repeated failures, the second step expires after 5 minutes. In addition there is a per-username limit across all addresses (40 failures in 15 minutes from outside, 100 on the internal network); after 10 wrong second-factor codes the password must be entered again. Anyone who signed in on the LAN without a second factor must confirm it under *Profile → Security* before changing factors or recovery codes (first-time setup excepted).
+
+### Signing in with a passkey (e.g. iPhone)
+
+From 2.6.0 you can also sign in **without username and password**: with Face ID, fingerprint or the device PIN.
+
+- **Set up:** open AssetLotse on the device (e.g. Safari on the iPhone), sign in as usual, enter a device name under **Profile → Security → Passkey – sign in without a password** and tap *Create passkey*. On an iPhone the passkey goes into iCloud Keychain and is therefore also available on Mac and iPad.
+- **Sign in:** tap *Sign in with a passkey* on the sign-in page – or the suggestion Safari/Chrome offers right in the *Username* field. No second factor is asked for afterwards: the passkey requires confirmation on the device (Face ID/PIN) when it is created and at every sign-in, so it counts as two factors – also when 2FA is mandatory.
+- **Requirements:** **HTTPS** via the domain (e.g. Nginx Proxy Manager); via `http://IP:9343` there are no passkeys and the button does not appear. The passkey is bound to the address where it was created.
+- **Active Directory accounts:** only with a configured **service account** (bind DN under *Administration → Active Directory*, see above). Since no password is checked against AD with a passkey, AssetLotse asks AD through the service account at **every** passkey sign-in: if the account is disabled or no longer matches any group rule, sign-in is refused; role and groups are synchronized as with password sign-in. If AD cannot be reached, only the password works.
+- **Switch off:** *Administration → Settings → Security → Two-factor authentication → Allow signing in with a passkey* (default: on). Existing passkeys can then still be used as a security key in the second step.
+- **Lost device:** delete the passkey under *Profile → Security*, or an admin resets the account's two-factor authentication (also removes all passkeys).
+- Technical: WebAuthn with a discoverable credential (*resident key*) and mandatory user verification, signature counter check, lockout after failed attempts per address. Nothing needs to be entered in `.env`.
 
 ## E-mail notifications
 
