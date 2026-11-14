@@ -76,6 +76,8 @@ class User(UserMixin, db.Model):
     # Deactivated by the AD sync (disabled/deleted/no longer authorized in AD) – becomes active again
     # automatically as soon as the person is authorized in AD again. Manually disabled accounts stay disabled.
     deactivated_by_sync = db.Column(db.Boolean, default=False, nullable=False)
+    # 2.6.1: "Don't show again" on the passkey hint after a password sign-in on a phone
+    passkey_hint_off = db.Column(db.Boolean, default=False, nullable=False)
     role = db.Column(db.String(20), default=ROLE_READER, nullable=False)
     # Manager of the entire inventory (all groups) – only ever set explicitly, never as a side effect: formerly
     # a "manager without a group" counted as manager of everything; then it was enough to take away someone's

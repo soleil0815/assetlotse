@@ -209,7 +209,7 @@ def login():
 @login_required
 def logout():
     for k in ("mfa_ok", "mfa_skipped", "mfa_setup", "mfa_pending", "show_new_codes", "totp_setup",
-              "webauthn_state", "webauthn_reg_state", "ldap_ok_at", "seen"):
+              "webauthn_state", "webauthn_reg_state", "ldap_ok_at", "seen", "passkey_hint"):
         session.pop(k, None)
     logout_user()
     flash(_("You have been signed out."), "info")

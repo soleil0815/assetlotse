@@ -1280,5 +1280,9 @@
  "Without user name and password, with Face ID, fingerprint or the device PIN – counts as two factors. Everyone creates their passkey under Profile → Security. For Active Directory accounts only with a service account: at every passkey sign-in the account is checked in AD.": "Ohne Benutzername und Passwort, mit Face ID, Fingerabdruck oder Geräte-PIN – zählt als zwei Faktoren. Den Passkey legt jede Person unter Mein Profil → Sicherheit an. Für Konten aus dem Active Directory nur mit Dienstkonto: Bei jeder Passkey-Anmeldung wird das Konto im AD geprüft.",
  "YubiKey or another FIDO2 key as the second factor after the password.": "YubiKey oder ein anderer FIDO2-Schlüssel als zweiter Faktor nach dem Passwort.",
  "e.g. iPhone": "z. B. iPhone",
- "This browser or device does not support passkeys.": "Dieser Browser oder dieses Gerät unterstützt keine Passkeys."
+ "This browser or device does not support passkeys.": "Dieser Browser oder dieses Gerät unterstützt keine Passkeys.",
+ "Sign in faster with a passkey": "Schneller anmelden mit Passkey",
+ "Next time, sign in on this device with Face ID, fingerprint or the device PIN – no password, no extra code.": "Melden Sie sich beim nächsten Mal auf diesem Gerät mit Face ID, Fingerabdruck oder Geräte-PIN an – ohne Passwort, ohne zusätzlichen Code.",
+ "Set up now": "Jetzt einrichten",
+ "Don't show again": "Nicht mehr anzeigen"
 }

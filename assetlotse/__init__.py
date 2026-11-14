@@ -28,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.6.0"
+__version__ = "2.6.1"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
@@ -418,6 +418,8 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.jinja_env.globals["catalog_hidden"] = _catalog_hidden_for_current
     from .twofa import passkey_login_enabled
     app.jinja_env.globals["passkey_login_enabled"] = passkey_login_enabled
+    from .views.security import passkey_hint_due
+    app.jinja_env.globals["passkey_hint_due"] = passkey_hint_due
 
     # Maintenance (docker compose run --rm assetlotse restore …): no version check, no change to the
     # database – otherwise a backup could not be restored exactly when the start-up aborts.

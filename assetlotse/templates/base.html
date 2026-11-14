@@ -114,6 +114,25 @@
       {% if compose_outdated %}
       <p class="notice warn" role="status">{{ _("The docker-compose.yml on the server is out of date (version {found}, expected {want}). Run ./update.sh on the server – it puts the new file in place and keeps the old one as docker-compose.yml.alt. Or take the docker-compose.yml from the current release and then run docker compose up -d.", found=compose_outdated, want=compose_version) }}</p>
       {% endif %}
+      {% if passkey_hint_due() %}
+      {# shown by app.js only on phones and tablets that can create a passkey #}
+      <aside class="passkey-hint" data-passkey-hint hidden>
+        <span class="passkey-hint-icon">{{ icon("key") }}</span>
+        <div class="passkey-hint-text">
+          <b>{{ _("Sign in faster with a passkey") }}</b>
+          <p>{{ _("Next time, sign in on this device with Face ID, fingerprint or the device PIN – no password, no extra code.") }}</p>
+        </div>
+        <div class="passkey-hint-actions">
+          <a class="btn sm primary" href="{{ url_for('security.settings') }}#passkey">{{ icon("plus") }} {{ _("Set up now") }}</a>
+          <form method="post" action="{{ url_for('security.passkey_hint_off') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.full_path }}">
+            <button class="btn sm">{{ _("Don't show again") }}</button>
+          </form>
+        </div>
+        <button class="icon-btn passkey-hint-close" type="button" data-passkey-hint-close aria-label="{{ _('Close') }}">{{ icon("x") }}</button>
+      </aside>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

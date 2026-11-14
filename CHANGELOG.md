@@ -2,6 +2,17 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.6.1 – 2026-11-14
+
+**New**
+- **Passkey hint on phones:** after signing in with a password on a phone or tablet, a hint "Schneller anmelden mit
+  Passkey" / "Sign in faster with a passkey" appears once per sign-in, with *Set up now* (opens the passkey section
+  under *Profile → Security*) and *Don't show again* (stored per account). Only shown if the account may use
+  passkeys, passkey sign-in is switched on, the connection is HTTPS, there is no passkey for this address yet and
+  the device can create one (touch as the main input and a platform authenticator with Face ID, fingerprint or PIN).
+  Not shown after a passkey sign-in, and never on a PC.
+- Help pages and README (de/en) mention the hint.
+
 ## 2.6.0 – 2026-11-14
 
 **New**
