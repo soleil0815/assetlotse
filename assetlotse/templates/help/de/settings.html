@@ -17,7 +17,7 @@
     </ul></li>
   <li><b>Sicherheit</b>
     <ul>
-    <li><span class="ui">Zwei-Faktor-Anmeldung</span> – Pflicht und internes Netz, siehe eigenes Thema.</li>
+    <li><span class="ui">Zwei-Faktor-Anmeldung</span> – Pflicht und internes Netz, siehe eigenes Thema. Dort schalten Sie auch die <span class="ui">Anmeldung mit Passkey erlauben</span> ein oder aus (Standard: ein). Ein Passkey ersetzt Passwort und zweiten Faktor; Konten aus dem Active Directory können ihn nur nutzen, wenn ein Dienstkonto eingerichtet ist, weil AssetLotse bei jeder Passkey-Anmeldung im AD prüft, ob das Konto noch aktiv ist.</li>
     <li><span class="ui">Automatische Abmeldung</span> – nach wie vielen Stunden ohne Aktivität abgemeldet wird: <span class="ui">Für alle</span> (Standard 12, Startwert aus <code>ASSETLOTSE_SESSION_HOURS</code>; 0 = aus), optional kürzer <span class="ui">Für Administratoren</span> und <span class="ui">Von außen</span>. Es gilt die kürzeste zutreffende Frist. Dazu der Hinweis 2 Minuten vorher und <span class="ui">Beim Schließen des Browsers abmelden</span> (dann gibt es kein „Angemeldet bleiben“ mehr). Für Sie gilt derzeit: {% if f.idle_minutes %}{% if f.idle_minutes % 60 %}{{ f.idle_minutes }} Minuten{% else %}{{ f.idle_minutes // 60 }} {{ "Stunde" if f.idle_minutes == 60 else "Stunden" }}{% endif %}{% else %}keine automatische Abmeldung{% endif %}.</li>
     <li><span class="ui">Internes Netz</span> – welche Verbindungen als intern gelten (eigene Netze, eigener Internetanschluss); das nutzen die Zwei-Faktor-Regeln und die automatische Abmeldung für Zugriffe von außen. Unten im Abschnitt steht, wie Ihre aktuelle Verbindung eingestuft wird.</li>
     </ul></li>

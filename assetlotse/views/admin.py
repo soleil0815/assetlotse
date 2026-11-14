@@ -507,6 +507,7 @@ def settings():
         set_setting("mfa_policy", pol if pol in ("optional", "admins", "managers", "all") else "optional")
         mode = request.form.get("mfa_internal")
         set_setting("mfa_internal", mode if mode in ("same", "optional", "skip") else "same")
+        set_setting("passkey_login", form_bool("passkey_login"))
         if "internal_networks" in request.form:
             from ..netzone import parse
             text = (request.form.get("internal_networks") or "").strip()[:2000]

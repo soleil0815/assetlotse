@@ -22,7 +22,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from flask import current_app
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from .models import ROLE_ADMIN, ROLE_MANAGER, User, WebAuthnCredential, db, get_setting
+from .models import ROLE_ADMIN, ROLE_MANAGER, User, WebAuthnCredential, db, get_bool, get_setting
 
 TOTP_PERIOD = 30
 TOTP_DIGITS = 6
@@ -221,25 +221,37 @@ def _cred_data(cred: WebAuthnCredential):
     return AttestedCredentialData(base64.b64decode(cred.credential_data))
 
 
-def webauthn_register_begin(user: User, rp_id: str):
+def user_handle(user: User) -> bytes:
+    """WebAuthn user handle – stored on the authenticator; a passkey sign-in reports it back."""
+    return f"user-{user.id}".encode()
+
+
+def webauthn_register_begin(user: User, rp_id: str, passkey: bool = False):
+    """Register a security key (second factor) or – passkey=True – a passkey: stored on the device
+    (discoverable) and unlocked with Face ID, fingerprint or device PIN (user verification required)."""
     from fido2.webauthn import PublicKeyCredentialUserEntity
     existing = [_cred_data(c) for c in user.webauthn_credentials if c.rp_id == rp_id]
+    level = "required" if passkey else "discouraged"
     options, state = _server(rp_id).register_begin(
-        PublicKeyCredentialUserEntity(id=f"user-{user.id}".encode(), name=user.username,
-                                      display_name=user.name),
-        existing, user_verification="discouraged", resident_key_requirement="discouraged")
+        PublicKeyCredentialUserEntity(id=user_handle(user), name=user.username, display_name=user.name),
+        existing, user_verification=level, resident_key_requirement=level)
     return dict(options), state
 
 
-def webauthn_register_complete(user: User, rp_id: str, state, response: dict, name: str) -> WebAuthnCredential:
+def webauthn_register_complete(user: User, rp_id: str, state, response: dict, name: str,
+                               passkey: bool = False) -> WebAuthnCredential:
+    """For a passkey the server state demands user verification – fido2 rejects a response without it."""
     from fido2.utils import websafe_encode
     auth_data = _server(rp_id).register_complete(state, response)
+    if passkey and not auth_data.is_user_verified():
+        raise ValueError("no user verification")
     cd = auth_data.credential_data
     # default name "Sicherheitsschlüssel": stored format – keep (compared in views/security.py, model default)
-    cred = WebAuthnCredential(user_id=user.id, rp_id=rp_id, name=(name or "Sicherheitsschlüssel")[:100],
+    default = "Passkey" if passkey else "Sicherheitsschlüssel"
+    cred = WebAuthnCredential(user_id=user.id, rp_id=rp_id, name=(name or default)[:100],
                               credential_id=websafe_encode(cd.credential_id),
                               credential_data=base64.b64encode(bytes(cd)).decode(),
-                              sign_count=auth_data.counter)
+                              sign_count=auth_data.counter, passkey=bool(passkey))
     db.session.add(cred)
     db.session.commit()
     return cred
@@ -274,3 +286,44 @@ def webauthn_auth_complete(user: User, rp_id: str, state, response: dict) -> boo
     used.last_used_at = datetime.now()
     db.session.commit()
     return True
+
+
+# ---------------------------------------------------------------- Passkey sign-in (2.6.0)
+
+def passkey_login_enabled() -> bool:
+    return get_bool("passkey_login")
+
+
+def passkey_auth_begin(rp_id: str):
+    """Sign-in without user name: the browser offers every passkey it holds for this address."""
+    options, state = _server(rp_id).authenticate_begin(None, user_verification="required")
+    return dict(options), state
+
+
+def passkey_auth_complete(rp_id: str, state, response: dict) -> User | None:
+    """Check a passkey sign-in. Returns the account – or None if the response is not valid.
+
+    Accepted only: a credential registered as passkey for this address, signed with user verification
+    (fido2 checks the flag because the state demands it), whose user handle names the same account, and
+    whose signature counter (if the authenticator keeps one) went up."""
+    from datetime import datetime
+
+    from fido2.utils import websafe_encode
+    from fido2.webauthn import AuthenticationResponse
+
+    parsed = AuthenticationResponse.from_dict(response)
+    cred_id = websafe_encode(parsed.raw_id)
+    cred = WebAuthnCredential.query.filter_by(credential_id=cred_id, rp_id=rp_id, passkey=True).first()
+    if cred is None:
+        return None
+    handle = parsed.response.user_handle
+    if handle is not None and handle != user_handle(cred.user):
+        return None
+    _server(rp_id).authenticate_complete(state, [_cred_data(cred)], response)
+    counter = parsed.response.authenticator_data.counter
+    if counter and cred.sign_count and counter <= cred.sign_count:
+        return None                        # cloned authenticator
+    cred.sign_count = counter
+    cred.last_used_at = datetime.now()
+    db.session.commit()
+    return cred.user

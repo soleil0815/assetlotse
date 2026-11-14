@@ -17,7 +17,7 @@
     </ul></li>
   <li><b>Security</b>
     <ul>
-    <li><span class="ui">Two-factor authentication</span> – requirement and internal network, see its own topic.</li>
+    <li><span class="ui">Two-factor authentication</span> – requirement and internal network, see its own topic. This is also where you switch <span class="ui">Allow signing in with a passkey</span> on or off (default: on). A passkey replaces password and second factor; Active Directory accounts can only use it when a service account is set up, because AssetLotse checks in AD at every passkey sign-in whether the account is still active.</li>
     <li><span class="ui">Automatic sign-out</span> – after how many hours without activity people are signed out: <span class="ui">For everyone</span> (default 12, start value from <code>ASSETLOTSE_SESSION_HOURS</code>; 0 = off), optionally shorter <span class="ui">For administrators</span> and <span class="ui">From outside</span>. The shortest limit that applies wins. Plus the notice 2 minutes before and <span class="ui">Sign out when the browser is closed</span> (then there is no “Stay signed in”). For you it is currently: {% if f.idle_minutes %}{% if f.idle_minutes % 60 %}{{ f.idle_minutes }} minutes{% else %}{{ f.idle_minutes // 60 }} {{ "hour" if f.idle_minutes == 60 else "hours" }}{% endif %}{% else %}no automatic sign-out{% endif %}.</li>
     <li><span class="ui">Internal network</span> – which connections count as internal (own networks, own internet connection); used by the two-factor rules and by the automatic sign-out for access from outside. At the bottom of the section you see how your current connection is classified.</li>
     </ul></li>

@@ -2,6 +2,32 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.6.0 – 2026-11-14
+
+**New**
+- **Sign in with a passkey** – e.g. on an iPhone with Face ID, without username, password or extra code. Everyone
+  creates a passkey under *Profile → Security → Passkey – sign in without a password*; on the sign-in page the
+  button *Sign in with a passkey* appears (only over HTTPS), and Safari/Chrome also offer the passkey directly in
+  the username field (conditional mediation). A passkey requires user verification on the device at creation and
+  at every sign-in, so it counts as two factors and skips the 2FA step, also when 2FA is mandatory.
+- **Active Directory accounts** can use passkeys only when the AD service account (bind DN) is configured: since no
+  password is checked against AD, every passkey sign-in looks the account up in AD – disabled accounts, accounts
+  outside all group rules and GUID conflicts are refused, role and groups are synchronized as with a password
+  sign-in. If AD cannot be reached, passkey sign-in is refused with a message (password sign-in still works).
+- Administrators can switch passkey sign-in off under *Settings → Security → Two-factor authentication → Allow
+  signing in with a passkey* (default: on). Existing passkeys then keep working as security keys in the second step.
+
+**Security**
+- Passkey sign-in: discoverable credentials with mandatory user verification (checked at registration and at
+  sign-in), user handle and signature counter checked, challenge valid for 5 minutes and usable once, failed
+  attempts count towards the sign-in lock per address. Only credentials created as passkeys can sign in on their
+  own; plain security keys stay a second factor. Disabled, unapproved and unverified accounts are refused.
+
+**Changed**
+- *Profile → Security* has a new *Passkey* section with its own list; the *Security key* card now describes a
+  YubiKey or other FIDO2 key as the second factor after the password.
+- Help pages and README (de/en) describe passkeys; resetting two-factor authentication also removes passkeys.
+
 ## 2.5.3 – 2026-11-13
 
 **Changed**

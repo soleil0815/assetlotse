@@ -106,6 +106,11 @@ def help_url() -> str:
     return url_for("help.index", thema=topic) if topic else url_for("help.index")
 
 
+def _passkey_offered() -> bool:
+    from .security import passkey_available_for
+    return passkey_available_for(current_user)
+
+
 def facts() -> dict:
     """Current settings, so the help describes how the system is actually run."""
     from .. import ad_cache, backup, idle, netzone, twofa
@@ -135,6 +140,9 @@ def facts() -> dict:
         "mfa_required": twofa.required_for(current_user),
         "is_ldap": current_user.auth_source == "ldap",
         "has_2fa": current_user.has_2fa,
+        # 2.6.0: passkey sign-in switched on, and offered to the reader (AD accounts need the service account)
+        "passkey_login": twofa.passkey_login_enabled(),
+        "passkey_offered": _passkey_offered(),
         "languages": LANGUAGES,
         # Administration
         "mfa_policy": get_setting("mfa_policy") or "optional",   # optional | admins | managers | all

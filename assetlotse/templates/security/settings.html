@@ -40,6 +40,44 @@
 </section>
 {% endif %}
 
+{% set passkeys = keys|selectattr("passkey")|list %}
+{% set plain_keys = keys|rejectattr("passkey")|list %}
+{% if passkeys_offered or passkeys %}
+<section class="card card-pad u-mb-18" id="passkey">
+  <div class="actions u-jc-between u-mb-8">
+    <h2>{{ icon("key") }} {{ _("Passkey – sign in without a password") }}</h2>
+    {% if passkeys %}<span class="badge ok">{{ _("{n} registered", n=passkeys|length) }}</span>{% endif %}
+  </div>
+  <p class="muted u-fs-13_5">{{ _("Sign in on this phone or computer with Face ID, fingerprint or the device PIN – no user name, no password, no extra code. The passkey stays on the device (on an iPhone in the iCloud keychain, so it is also available on your other Apple devices).") }}
+    {{ _("Only works over HTTPS and is bound to the address <code>{rp_id}</code>.", rp_id=rp_id) }}</p>
+  {% if current_user.auth_source == "ldap" %}<p class="muted u-fs-13">{{ _("At every sign-in with the passkey, AssetLotse checks in the Active Directory that your account is still active and authorized.") }}</p>{% endif %}
+  {% if not passkey_login %}<div class="notice warn u-mt-10">{{ _("Signing in with a passkey is currently switched off by the administration.") }}</div>{% endif %}
+
+  {% for k in passkeys %}
+  <div class="list-row u-p-10-0">
+    <span class="badge {{ 'accent' if k.rp_id == rp_id else '' }}">{{ icon("key") }}</span>
+    <div class="grow"><b>{{ k.name or "Passkey" }}</b>
+      <small>{{ k.rp_id }} · {{ _("added {date}", date=k.created_at|de_day) }}{% if k.last_used_at %} · {{ _("last used {date}", date=k.last_used_at|de_date) }}{% endif %}</small></div>
+    <form method="post" action="{{ url_for('security.key_delete', cred_id=k.id) }}" data-confirm="{{ _('Remove “{name}”?', name=k.name or 'Passkey') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn sm danger" title="{{ _('Remove') }}">{{ icon("trash") }}</button>
+    </form>
+  </div>
+  {% endfor %}
+
+  {% if passkeys_offered %}
+  <div data-webauthn-register-box data-passkey class="u-mt-14">
+    <label for="f-passkey-name">{{ _("Device name") }}</label>
+    <div class="input-group">
+      <input type="text" id="f-passkey-name" maxlength="100" data-webauthn-name placeholder="{{ _('e.g. iPhone') }}">
+      <button type="button" class="btn primary" data-webauthn-register>{{ icon("plus") }} {{ _("Create passkey") }}</button>
+    </div>
+    <p class="muted u-fs-13 u-mt-8" data-webauthn-status>{{ _("Best done on the device you want to sign in with – it then asks for Face ID, fingerprint or the device PIN.") }}</p>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
 <div class="grid grid-2">
   <section class="card card-pad">
     <div class="actions u-jc-between u-mb-8">
@@ -96,12 +134,12 @@
   <section class="card card-pad">
     <div class="actions u-jc-between u-mb-8">
       <h2>{{ icon("shield") }} {{ _("Security key") }}</h2>
-      {% if keys %}<span class="badge ok">{{ _("{n} registered", n=keys|length) }}</span>{% endif %}
+      {% if plain_keys %}<span class="badge ok">{{ _("{n} registered", n=plain_keys|length) }}</span>{% endif %}
     </div>
-    <p class="muted u-fs-13_5">{{ _("YubiKey or another FIDO2 key – also the device's fingerprint/Face ID (passkey).") }}
+    <p class="muted u-fs-13_5">{{ _("YubiKey or another FIDO2 key as the second factor after the password.") }}
       {{ _("Only works over HTTPS and is bound to the address <code>{rp_id}</code>.", rp_id=rp_id) }}</p>
 
-    {% for k in keys %}
+    {% for k in plain_keys %}
     {% set key_name = _("Security key") if not k.name or k.name == "Sicherheitsschlüssel" else k.name %}
     <div class="list-row u-p-10-0">
       <span class="badge {{ 'accent' if k.rp_id == rp_id else '' }}">{{ icon("shield") }}</span>
@@ -117,7 +155,7 @@
     <div data-webauthn-register-box class="u-mt-14">
       <label for="f-key-name">{{ _("Key name") }}</label>
       <div class="input-group">
-        <input type="text" id="f-key-name" maxlength="100" data-webauthn-name placeholder="{{ _('e.g. blue YubiKey') }}" value="{{ 'YubiKey' if not keys else '' }}">
+        <input type="text" id="f-key-name" maxlength="100" data-webauthn-name placeholder="{{ _('e.g. blue YubiKey') }}" value="{{ 'YubiKey' if not plain_keys else '' }}">
         <button type="button" class="btn primary" data-webauthn-register>{{ icon("plus") }} {{ _("Add") }}</button>
       </div>
       <p class="muted u-fs-13 u-mt-8" data-webauthn-status>{{ _("After clicking, insert your key and touch it.") }}</p>

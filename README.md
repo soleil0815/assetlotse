@@ -386,7 +386,7 @@ Neue Konten sind immer **Mitarbeiter**. Schutz für den Betrieb im Internet: uns
 Jeder Benutzer richtet sie unter **Profil → Sicherheit** (oder im Benutzermenü → *Sicherheit*) ein:
 
 - **Authenticator-App (TOTP):** QR-Code scannen, Code bestätigen. Geht mit Microsoft/Google Authenticator, Aegis, 2FAS, Bitwarden, Yubico Authenticator … – und überall, auch per `http://IP:9343` im LAN.
-- **Sicherheitsschlüssel (WebAuthn/FIDO2):** YubiKey einstecken, berühren – fertig. Auch Fingerabdruck/Face-ID des Geräts (Passkey) funktioniert. Erfordert **HTTPS** und ist an die Adresse gebunden, unter der der Schlüssel registriert wurde (z. B. `assets.institut.de`). Mehrere Schlüssel pro Konto sind möglich – am besten einen Ersatzschlüssel registrieren.
+- **Sicherheitsschlüssel (WebAuthn/FIDO2):** YubiKey einstecken, berühren – fertig (als zweiter Faktor nach dem Passwort). Erfordert **HTTPS** und ist an die Adresse gebunden, unter der der Schlüssel registriert wurde (z. B. `assets.institut.de`). Mehrere Schlüssel pro Konto sind möglich – am besten einen Ersatzschlüssel registrieren.
 - **Wiederherstellungscodes:** Beim Einrichten werden 10 Einmal-Codes angezeigt (nur einmal!). Damit kommt man ohne Handy/Schlüssel noch herein.
 
 Unter **Administration → Einstellungen** legen Sie fest, für wen 2FA bei **Zugriff von außen Pflicht** ist (niemand – Standard, Administratoren, Verwalter + Admins, alle). Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt und können erst danach weiterarbeiten. Wer vertrauliche Angaben (BitLocker-Schlüssel) hinterlegt, sollte 2FA mindestens für Verwalter + Admins verlangen.
@@ -408,7 +408,7 @@ Unter **Administration → Einstellungen** legen Sie fest, für wen 2FA bei **Zu
 - **Interne Rechner über die öffentliche Domain:** Rufen sie die Internet-Adresse auf, gibt der Router (z. B. FritzBox) sie oft mit Ihrer eigenen öffentlichen IP aus – dann sähen sie extern aus. Tragen Sie dafür unter *Eigener Internetanschluss* Ihre feste IP oder Ihren **DynDNS-Namen** ein; der Name wird alle 5 Minuten neu aufgelöst, eine wechselnde IP wird also mitverfolgt. **Achtung:** Auch das Gäste-WLAN und alle anderen Geräte hinter dem Router kommen mit dieser Adresse an und gelten dann als intern. Die sauberere Alternative ist ein interner DNS-Eintrag (Split-DNS), der die Domain im LAN auf die interne Adresse des Servers zeigen lässt.
 
 **Probleme bei der Anmeldung – ohne Kommandozeile:** Unter *Benutzer* → Konto öffnen → *Anmeldung und Sicherheit*:
-- **Zwei-Faktor-Anmeldung zurücksetzen** – entfernt App und Sicherheitsschlüssel, die Anmeldung geht dann wieder mit dem Passwort (ist 2FA Pflicht, wird die Neueinrichtung verlangt).
+- **Zwei-Faktor-Anmeldung zurücksetzen** – entfernt App, Sicherheitsschlüssel und Passkeys, die Anmeldung geht dann wieder mit dem Passwort (ist 2FA Pflicht, wird die Neueinrichtung verlangt).
 - **Anmeldesperre aufheben** – nach 8 Fehlversuchen ist die Anmeldung 5 Minuten gesperrt; gesperrte Konten sind in der Benutzerliste markiert (Filter „Anmeldesperre“).
 
 Haben sich alle Admins ausgesperrt: Mit „keine Zwei-Faktor-Abfrage“ im internen Netz kommt ein Admin vom LAN aus ohne zweiten Faktor hinein. Sonst im Notfall auf dem Server:
@@ -418,6 +418,18 @@ docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi reset-2fa a
 ```
 
 Technisch: TOTP nach RFC 6238 (Geheimnisse verschlüsselt gespeichert, Codes nicht wiederverwendbar), WebAuthn über die Yubico-Bibliothek `fido2` inkl. Signaturzähler-Prüfung, Sperre nach mehreren Fehlversuchen. Zusätzlich gilt je Benutzername eine Grenze über alle Adressen (40 Fehlversuche in 15 Minuten von außen, 100 im internen Netz); nach 10 falschen Codes beim zweiten Faktor muss das Passwort erneut eingegeben werden. Wer sich im LAN ohne zweiten Faktor angemeldet hat, muss ihn unter *Profil → Sicherheit* erst bestätigen, bevor er Faktoren oder Wiederherstellungscodes ändern kann (Ersteinrichtung ausgenommen).
+
+### Anmelden mit Passkey (z. B. iPhone)
+
+Ab 2.6.0 geht die Anmeldung auch **ohne Benutzername und Passwort**: mit Face ID, Fingerabdruck oder Geräte-PIN.
+
+- **Einrichten:** AssetLotse auf dem Gerät öffnen (z. B. Safari auf dem iPhone), normal anmelden, unter **Profil → Sicherheit → Passkey – Anmeldung ohne Passwort** einen Gerätenamen eingeben und *Passkey anlegen* tippen. Beim iPhone landet der Passkey im iCloud-Schlüsselbund und steht so auch auf Mac und iPad bereit.
+- **Anmelden:** Auf der Anmeldeseite *Mit Passkey anmelden* tippen – oder auf den Vorschlag, den Safari/Chrome direkt im Feld *Benutzername* anbietet. Ein zweiter Faktor wird danach nicht abgefragt: Der Passkey verlangt beim Anlegen und bei jeder Anmeldung die Bestätigung am Gerät (Face ID/PIN) und zählt deshalb als zwei Faktoren – auch wenn 2FA Pflicht ist.
+- **Voraussetzungen:** **HTTPS** über die Domain (z. B. Nginx Proxy Manager); per `http://IP:9343` gibt es keine Passkeys, die Schaltfläche erscheint dann nicht. Der Passkey ist an die Adresse gebunden, unter der er angelegt wurde.
+- **Active-Directory-Konten:** nur mit eingerichtetem **Dienstkonto** (Bind-DN unter *Administration → Active Directory*, siehe oben). Weil beim Passkey kein Passwort gegen das AD geprüft wird, fragt AssetLotse bei **jeder** Passkey-Anmeldung über das Dienstkonto im AD nach: Ist das Konto deaktiviert oder fällt es aus allen Gruppen-Regeln, wird die Anmeldung abgelehnt; Rolle und Gruppen werden wie bei der Passwort-Anmeldung abgeglichen. Ist das AD nicht erreichbar, geht es nur mit dem Passwort weiter.
+- **Abschalten:** *Administration → Einstellungen → Sicherheit → Zwei-Faktor-Anmeldung → Anmeldung mit Passkey erlauben* (Standard: an). Angelegte Passkeys bleiben dann als Sicherheitsschlüssel für den zweiten Schritt nutzbar.
+- **Gerät verloren:** Passkey unter *Profil → Sicherheit* löschen, oder ein Admin setzt die Zwei-Faktor-Anmeldung des Kontos zurück (entfernt auch alle Passkeys).
+- Technisch: WebAuthn mit auffindbarem Schlüssel (*resident key*) und Pflicht zur Benutzerverifizierung, Signaturzähler-Prüfung, Sperre nach Fehlversuchen je Adresse. In der `.env` ist nichts einzutragen.
 
 ## E-Mail-Benachrichtigungen
 
