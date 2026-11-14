@@ -290,6 +290,60 @@ class PasskeyLocalTests(PasskeyBase):
         self.assertNotIn("Passkey anlegen", self.c.get("/hilfe?thema=security").get_data(as_text=True))
 
 
+
+class PasskeyHintTests(PasskeyBase):
+    """2.6.1: after a password sign-in, suggest a passkey once (app.js shows it only on phones/tablets)."""
+    HINT = "data-passkey-hint"
+
+    def test_once_after_password_sign_in(self):
+        self.make("rita")
+        self.password_login("rita")
+        self.assertNotIn(self.HINT, self.c.get("/profil/sicherheit").get_data(as_text=True))  # kept for later
+        page = self.c.get("/").get_data(as_text=True)
+        self.assertIn(self.HINT, page)
+        self.assertIn("Schneller anmelden mit Passkey", page)
+        self.assertNotIn(self.HINT, self.c.get("/").get_data(as_text=True))            # only once
+        self.c.post("/logout")
+        self.password_login("rita")
+        self.assertIn(self.HINT, self.c.get("/").get_data(as_text=True))               # again at the next sign-in
+
+    def test_not_with_a_passkey_or_after_passkey_sign_in(self):
+        self.make("rita")
+        self.password_login("rita")
+        self.c.get("/")
+        self.assertTrue(self.register_passkey().get_json()["ok"])
+        self.c.post("/logout")
+        self.password_login("rita")
+        self.assertNotIn(self.HINT, self.c.get("/").get_data(as_text=True))
+        self.c.post("/logout")
+        self.assertTrue(self.passkey_login().get_json()["ok"])
+        self.assertNotIn(self.HINT, self.c.get("/").get_data(as_text=True))
+
+    def test_dont_show_again(self):
+        u = self.make("rita")
+        self.password_login("rita")
+        r = self.c.post("/profil/sicherheit/passkey-hinweis-aus", data={"next": "/gegenstaende"})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers["Location"].endswith("/gegenstaende"))
+        db.session.refresh(u)
+        self.assertTrue(u.passkey_hint_off)
+        r = self.c.post("/profil/sicherheit/passkey-hinweis-aus", data={"next": "https://evil.example/"})
+        self.assertNotIn("evil", r.headers["Location"])
+        self.c.post("/logout")
+        self.password_login("rita")
+        self.assertNotIn(self.HINT, self.c.get("/").get_data(as_text=True))
+
+    def test_not_without_https_or_when_switched_off(self):
+        self.make("rita")
+        self.c = self.new_browser("http://" + HOST)
+        self.password_login("rita")
+        self.assertNotIn(self.HINT, self.c.get("/").get_data(as_text=True))
+        set_setting("passkey_login", "0")
+        db.session.commit()
+        self.c = self.new_browser()
+        self.password_login("rita")
+        self.assertNotIn(self.HINT, self.c.get("/").get_data(as_text=True))
+
 class PasskeyActiveDirectoryTests(PasskeyBase):
     def setUp(self):
         super().setUp()
@@ -353,9 +407,11 @@ class PasskeyActiveDirectoryTests(PasskeyBase):
         with self.c.session_transaction() as s:
             s["_user_id"] = str(self.ad.id)
             s["_fresh"] = True
+            s["passkey_hint"] = True
         r = self.c.post("/profil/sicherheit/schluessel/start", json={"passkey": True})
         self.assertEqual(r.status_code, 403)
         self.assertNotIn("data-passkey ", self.c.get("/profil/sicherheit").get_data(as_text=True))
+        self.assertNotIn("data-passkey-hint", self.c.get("/").get_data(as_text=True))
         help_page = self.c.get("/hilfe?thema=security").get_data(as_text=True)
         self.assertIn("erst zur Verfügung, wenn ein Administrator das Active-Directory-Dienstkonto", help_page)
 

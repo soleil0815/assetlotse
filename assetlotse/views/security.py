@@ -28,6 +28,7 @@ def start_login(user: User, remember: bool, next_url: str | None):
     session.pop("mfa_pending", None)
     session.pop("mfa_skipped", None)
     session.pop("mfa_ok", None)
+    session["passkey_hint"] = True     # signed in with the password: maybe suggest a passkey (see passkey_hint_due)
     internal = netzone.is_internal()
     if twofa.should_challenge(user, internal):
         session["mfa_pending"] = {"uid": user.id, "remember": bool(remember), "next": next_url or "",
@@ -270,7 +271,7 @@ def passkey_complete():
         return _passkey_fail(key, problem, 403)
     lockout.clear(key)
     # a passkey is two factors in one (the device + Face ID/fingerprint/PIN): no further step
-    for k in ("mfa_pending", "mfa_skipped", "webauthn_state"):
+    for k in ("mfa_pending", "mfa_skipped", "webauthn_state", "passkey_hint"):
         session.pop(k, None)
     user.last_login = datetime.now()
     db.session.commit()
@@ -279,6 +280,30 @@ def passkey_complete():
     session["mfa_ok"] = True
     log.info("Passkey sign-in: %s", user.username)
     return jsonify({"ok": True, "redirect": safe_next(payload.get("next")) or url_for("main.dashboard")})
+
+
+def passkey_hint_due() -> bool:
+    """Show the hint "Sign in faster with a passkey" on this page? Once per password sign-in, only if the
+    account may use passkeys, the connection is HTTPS and there is no passkey for this address yet.
+    The browser then decides: app.js shows it only on phones and tablets that can create a passkey."""
+    if not session.get("passkey_hint") or not current_user.is_authenticated:
+        return False
+    if request.endpoint == "security.settings":      # the passkey section is right there – keep for later
+        return False
+    session.pop("passkey_hint", None)
+    user = current_user
+    if not request.is_secure or user.passkey_hint_off or not passkey_available_for(user):
+        return False
+    rp = twofa.rp_id_for(request.host)
+    return not any(c.passkey and c.rp_id == rp for c in user.webauthn_credentials)
+
+
+@bp.route("/profil/sicherheit/passkey-hinweis-aus", methods=["POST"])
+@login_required
+def passkey_hint_off():
+    current_user.passkey_hint_off = True
+    db.session.commit()
+    return redirect(safe_next(request.form.get("next")) or url_for("main.dashboard"))
 
 
 # ---------------------------------------------------------------- Profile: security

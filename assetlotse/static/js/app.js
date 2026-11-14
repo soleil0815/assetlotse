@@ -343,6 +343,18 @@
     startAutofill();
   }
 
+  /* Hint "Sign in faster with a passkey" (rendered once after a password sign-in): only on phones and
+     tablets (touch as the main input) whose device can create a passkey with Face ID, fingerprint or PIN. */
+  const passkeyHint = $("[data-passkey-hint]");
+  if (passkeyHint && webauthnOk() && window.matchMedia("(pointer: coarse)").matches
+      && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+      .then((ok) => { if (ok) passkeyHint.hidden = false; })
+      .catch(() => {});
+    const close = $("[data-passkey-hint-close]", passkeyHint);
+    if (close) close.addEventListener("click", () => passkeyHint.remove());
+  }
+
   $$("[data-webauthn-login]").forEach((btn) => {
     const status = $("[data-webauthn-status]");
     if (!webauthnOk()) {

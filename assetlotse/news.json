@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.6.1",
+      "date": "2026-11-14",
+      "kind": "feature",
+      "audience": "all",
+      "de": {
+        "title": "Hinweis auf Passkeys am Handy",
+        "text": "Melden Sie sich auf Handy oder Tablet mit Passwort an und haben dort noch keinen Passkey, weist AssetLotse Sie einmal darauf hin. „Jetzt einrichten“ führt direkt zum Anlegen, „Nicht mehr anzeigen“ blendet den Hinweis dauerhaft aus."
+      },
+      "en": {
+        "title": "Passkey hint on phones",
+        "text": "If you sign in with your password on a phone or tablet and have no passkey there yet, AssetLotse points this out once. “Set up now” takes you straight to creating one, “Don't show again” hides the hint for good."
+      }
+    },
+    {
       "version": "2.6.0",
       "date": "2026-11-14",
       "kind": "feature",
