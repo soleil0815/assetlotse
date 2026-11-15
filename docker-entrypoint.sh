@@ -8,12 +8,15 @@ set -e
 # e.g. because the database comes from a newer version:
 #   backups          list the backups
 #   restore NAME     restore a backup (stop the container first: docker compose stop assetlotse)
+#   diagnose         write the anonymized diagnostic package to ./data/diagnose/
 case "${1:-}" in
     backups) shift; export ASSETLOTSE_MAINTENANCE=1 ASSETLOTSE_SCHEDULER=0
              set -- flask --app wsgi list-backups "$@" ;;
     restore) shift; export ASSETLOTSE_MAINTENANCE=1 ASSETLOTSE_SCHEDULER=0
              [ "$#" -ge 1 ] || { echo "Usage: docker compose run --rm assetlotse restore <backup name>  (list: … backups)" >&2; exit 2; }
              set -- flask --app wsgi restore-backup "$@" ;;
+    diagnose) shift; export ASSETLOTSE_MAINTENANCE=1 ASSETLOTSE_SCHEDULER=0
+             set -- flask --app wsgi diagnose "$@" ;;
 esac
 
 PUID="${PUID:-1000}"

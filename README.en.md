@@ -569,6 +569,16 @@ Everything else (default loan period, extensions, self-service checkout, invento
 
 ---
 
+## Diagnostics and diagnostic package
+
+*Administration → Diagnostics* checks the installation and shows findings (missing or old backup, e-mail or AD errors, access without HTTPS, administrators without a second factor, incomplete database, errors in the log …). **Download diagnostic package** creates a ZIP file to pass on when you need help:
+
+- `summary.txt` – version and findings, `diagnose.json` – all details (server, Python, time zone, memory, database check and structure, number of entries per table, backups, e-mail, AD, reverse proxy/HTTPS, settings, `.env`, package versions), `log.txt` – the newest lines of the program log.
+- **Anonymous:** no records, only counts. Passwords, keys, 2FA data and confidential details are not read. Names, user names, e-mail addresses, IP addresses, host names, AD paths and details of items, groups and locations are replaced by fixed placeholders (`user-3`, `email-2@example.invalid`, `ip-4 (private)`); organization name and own texts only as "set/empty".
+- **Without the web interface:** `docker compose run --rm assetlotse diagnose` stores the package in `./data/diagnose/` – also works when AssetLotse no longer starts.
+- **Program log:** in addition to the container output, AssetLotse writes its messages to `./data/logs/assetlotse.log` (at most about 2 MB, older lines are dropped). Nothing needs to be entered in `.env`.
+- **Stays up to date:** new settings, environment variables and database fields must be classified explicitly in the program (show, anonymize, count only, "set" only) – otherwise the tests fail. Tables and the database structure are covered automatically anyway.
+
 ## Maintenance
 
 Commands in the running container – always through the entrypoint, so they run as `PUID:PGID` like the app (otherwise e.g. backups end up owned by root and the app cannot offer them):

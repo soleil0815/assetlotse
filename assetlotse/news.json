@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.7.0",
+      "date": "2026-11-15",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Diagnose und Diagnosepaket",
+        "text": "Unter Administration → Diagnose prüft AssetLotse die Installation und zeigt Auffälligkeiten an. „Diagnosepaket herunterladen“ erzeugt eine anonymisierte ZIP-Datei mit Version, Zustand, Einstellungen und Protokoll – zum Weitergeben, wenn Sie Hilfe brauchen. Namen, Adressen und Geheimnisse sind nicht enthalten."
+      },
+      "en": {
+        "title": "Diagnostics and diagnostic package",
+        "text": "Under Administration → Diagnostics AssetLotse checks the installation and shows findings. “Download diagnostic package” creates an anonymized ZIP file with version, state, settings and log – to pass on when you need help. Names, addresses and secrets are not included."
+      }
+    },
+    {
       "version": "2.6.1",
       "date": "2026-11-14",
       "kind": "feature",

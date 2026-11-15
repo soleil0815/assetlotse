@@ -569,6 +569,16 @@ Alles Weitere (Standard-Leihdauer, Verlängerungen, Selbstausleihe, Sichtbarkeit
 
 ---
 
+## Diagnose und Diagnosepaket
+
+*Administration → Diagnose* prüft die Installation und zeigt Auffälligkeiten (fehlende oder alte Sicherung, E-Mail- oder AD-Fehler, Aufruf ohne HTTPS, Administratoren ohne zweiten Faktor, unvollständige Datenbank, Fehler im Protokoll …). **Diagnosepaket herunterladen** erzeugt eine ZIP-Datei zum Weitergeben, wenn Sie Hilfe brauchen:
+
+- `summary.txt` – Version und Auffälligkeiten, `diagnose.json` – alle Angaben (Server, Python, Zeitzone, Speicher, Datenbank-Prüfung und -Aufbau, Anzahl der Einträge je Tabelle, Sicherungen, E-Mail, AD, Reverse-Proxy/HTTPS, Einstellungen, `.env`, Paketversionen), `log.txt` – die neuesten Zeilen des Programmprotokolls.
+- **Anonym:** keine Datensätze, nur Anzahlen. Passwörter, Schlüssel, 2FA-Daten und vertrauliche Angaben werden nicht gelesen. Namen, Benutzernamen, E-Mail-Adressen, IP-Adressen, Rechnernamen, AD-Pfade sowie Angaben zu Gegenständen, Gruppen und Standorten werden durch feste Platzhalter ersetzt (`user-3`, `email-2@example.invalid`, `ip-4 (private)`); Organisationsname und eigene Texte nur als „gesetzt/leer“.
+- **Ohne Weboberfläche:** `docker compose run --rm assetlotse diagnose` legt das Paket unter `./data/diagnose/` ab – funktioniert auch, wenn AssetLotse nicht mehr startet.
+- **Programmprotokoll:** Zusätzlich zur Container-Ausgabe schreibt AssetLotse seine Meldungen nach `./data/logs/assetlotse.log` (höchstens etwa 2 MB, ältere Zeilen fallen weg). In `.env` ist nichts einzutragen.
+- **Bleibt aktuell:** Neue Einstellungen, Umgebungsvariablen und Datenbankfelder müssen im Programm ausdrücklich eingeordnet werden (zeigen, anonymisieren, nur zählen, nur „gesetzt“) – sonst schlagen die Tests fehl. Tabellen und Datenbankaufbau werden ohnehin automatisch erfasst.
+
 ## Wartung
 
 Befehle im laufenden Container – immer über den Entrypoint, damit sie wie die App als `PUID:PGID` laufen (sonst entstehen z. B. Sicherungen, die root gehören und die die App nicht anbieten kann):

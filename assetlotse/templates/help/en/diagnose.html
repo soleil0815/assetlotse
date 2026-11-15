@@ -1,0 +1,13 @@
+<p>Under <span class="ui">Administration → Diagnostics</span> AssetLotse checks the installation and shows <b>findings</b> – for example a missing or old backup, errors when sending e-mail or in Active Directory, access without HTTPS, administrators without a second factor or an incomplete database.</p>
+<p><b>Diagnostic package:</b> <span class="ui">Download diagnostic package</span> creates a ZIP file you can pass on when you need help. It contains:</p>
+<ul>
+  <li><code>summary.txt</code> – version and findings at a glance,</li>
+  <li><code>diagnose.json</code> – all details: server, Python, time zone, memory, state and structure of the database, backups, e-mail, Active Directory, reverse proxy and HTTPS, settings and <code>.env</code> values, numbers of users, items and loans,</li>
+  <li><code>log.txt</code> – the newest lines of the program log.</li>
+</ul>
+<p><b>Anonymous:</b> the package contains no records, only counts. Passwords, keys, 2FA data and confidential details (e.g. BitLocker keys) are not even read. Names, user names, e-mail addresses, IP addresses, host names, AD paths and details of items, groups and locations are replaced by placeholders, e.g. <code>user-3</code>, <code>email-2@example.invalid</code> or <code>ip-4 (private)</code>. The same value always gets the same placeholder within a package – connections stay visible, there is no mapping table. Settings such as the organization name or texts only show whether they are set.</p>
+<p>Feel free to look inside before passing it on – all files are plain text.</p>
+<p><b>If the web interface cannot be reached</b>, create the package on the server:</p>
+<pre><code>docker compose run --rm assetlotse diagnose</code></pre>
+<p>It is then in <code>./data/diagnose/</code>.</p>
+<p><b>Program log:</b> in addition to the container output (<code>docker compose logs</code>), AssetLotse writes its messages to <code>./data/logs/assetlotse.log</code> – at most about 2 MB, older lines are dropped automatically. The file stays on the server; its lines only go into the diagnostic package anonymized.</p>

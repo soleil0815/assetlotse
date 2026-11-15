@@ -58,6 +58,7 @@
       <a href="{{ url_for('admin.branding') }}" class="{{ 'active' if ep.startswith('admin.branding') }}">{{ icon("palette") }} {{ _("Branding") }}</a>
       <a href="{{ url_for('admin.backups') }}" class="{{ 'active' if ep.startswith('admin.backup') }}">{{ icon("database") }} {{ _("Backup") }}
         {% if backup_warning %}<span class="count warn" title="{{ backup_warning }}">!</span>{% endif %}</a>
+      <a href="{{ url_for('admin.diagnose') }}" class="{{ 'active' if ep.startswith('admin.diagnose') }}">{{ icon("pulse") }} {{ _("Diagnostics") }}</a>
       <a href="{{ url_for('admin.settings') }}" class="{{ 'active' if ep == 'admin.settings' }}">{{ icon("settings") }} {{ _("Settings") }}</a>
       {% endif %}
     </nav>

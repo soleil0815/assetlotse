@@ -9,8 +9,8 @@
   <li>Schlägt eine Sicherung fehl, erscheint ein Warnzeichen am Menüpunkt und Administratoren bekommen eine E-Mail{% if not f.mail_on %} (sobald der E-Mail-Versand aktiv ist){% endif %}.</li>
   <li>Gesichert wird die Datenbank. Fotos (<code>./data/images</code>), Logo und <code>secret_key</code> liegen als Dateien in <code>./data</code> – für einen Umzug den ganzen Ordner mitnehmen.</li>
 </ul>
-<p><b>Datenbank und <code>secret_key</code> gehören zusammen:</b> Spiel eine Datenbank immer zusammen mit ihrer <code>secret_key</code> zurück. Ohne den passenden Schlüssel funktionieren 2FA-Anmeldungen nicht, gespeicherte SMTP-/AD-Passwörter und die <b>vertraulichen Angaben</b> der Gegenstände (z. B. BitLocker-Schlüssel) sind unlesbar, und AssetLotse startet nicht.</p>
-<p><b>Wichtig:</b> Die Sicherungen liegen auf demselben Server und schützen nicht vor einem Festplattenausfall. Kopiert den Ordner regelmäßig an einen anderen Ort – die <code>secret_key</code> dabei getrennt geschützt aufbewahren.</p>
+<p><b>Datenbank und <code>secret_key</code> gehören zusammen:</b> Spielen Sie eine Datenbank immer zusammen mit ihrer <code>secret_key</code> zurück. Ohne den passenden Schlüssel funktionieren 2FA-Anmeldungen nicht, gespeicherte SMTP-/AD-Passwörter und die <b>vertraulichen Angaben</b> der Gegenstände (z. B. BitLocker-Schlüssel) sind unlesbar, und AssetLotse startet nicht.</p>
+<p><b>Wichtig:</b> Die Sicherungen liegen auf demselben Server und schützen nicht vor einem Festplattenausfall. Kopieren Sie den Ordner regelmäßig an einen anderen Ort und bewahren Sie die <code>secret_key</code> dabei getrennt und geschützt auf.</p>
 <p><b>Wiederherstellen</b> (auf dem Server; der aktuelle Stand wird vorher automatisch gesichert):</p>
 <pre><code>docker compose stop assetlotse
 docker compose run --rm assetlotse flask --app wsgi list-backups

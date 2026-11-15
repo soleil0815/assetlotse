@@ -28,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.6.1"
+__version__ = "2.7.0"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
@@ -360,6 +360,9 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     logging.basicConfig(level=os.environ.get("ASSETLOTSE_LOGLEVEL", "INFO"),
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    if not app.config.get("TESTING"):
+        from .applog import install as install_data_log   # short log in the data folder (diagnostic package)
+        install_data_log(instance)
     _ensure_timezone()
 
     # Reverse proxy and HTTPS are detected automatically (see proxy.py)
@@ -721,6 +724,20 @@ def create_app(test_config: dict | None = None) -> Flask:
         if not ok:
             raise click.ClickException(msg)
         click.echo(msg)
+
+    @app.cli.command("diagnose")
+    def diagnose_cmd():
+        """Write the anonymized diagnostic package to <data folder>/diagnose/."""
+        from .diagnose import build_zip
+        data, name = build_zip(app)
+        folder = Path(app.instance_path) / "diagnose"
+        folder.mkdir(mode=0o700, exist_ok=True)
+        target = folder / name
+        target.write_bytes(data)
+        os.chmod(target, 0o600)
+        click.echo(f"Diagnostic package / Diagnosepaket: {target}")
+        if str(target).startswith("/data/"):
+            click.echo(f"On the server / auf dem Server: ./data/{target.relative_to('/data')}")
 
     @app.cli.command("list-backups")
     def list_backups_cmd():
