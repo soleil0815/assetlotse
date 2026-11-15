@@ -2,6 +2,28 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.7.0 – 2026-11-15
+
+**New**
+- **Diagnostics** (*Administration → Diagnostics*): checks of the installation shown as findings (database check and
+  structure, data folder, disk space, backups, e-mail, Active Directory, HTTPS, administrators without a second
+  factor, errors in the log, outdated docker-compose.yml …), sorted by severity.
+- **Diagnostic package**: a ZIP with `summary.txt`, `diagnose.json` (runtime, database, backups, security, users and
+  inventory as counts, e-mail, AD, request/proxy, settings, environment, package versions) and `log.txt`.
+  Anonymized: no records, only counts; secrets are never read; e-mail and IP addresses, host names, AD paths and
+  every word of personal or identifying database fields and settings are replaced by stable pseudonyms
+  (`user-3`, `email-2@example.invalid`, `ip-4 (private)`). Downloaded via POST only, not cached, logged.
+- `docker compose run --rm assetlotse diagnose` writes the package to `./data/diagnose/` – also when the web
+  interface does not start.
+- **Program log in the data folder:** messages also go to `./data/logs/assetlotse.log` (AssetLotse from INFO,
+  everything else from WARNING, with tracebacks), at most ~2 MB in two files, safe with several workers.
+- Kept up to date by tests: every setting, environment variable and database text column must be classified for
+  the package; a new one without classification fails the test suite. A test fills every personal column and
+  setting with marker values and checks that none of them reaches the package.
+
+**Fixed**
+- Help page *Backups* (German): two sentences still used the informal form.
+
 ## 2.6.1 – 2026-11-14
 
 **New**

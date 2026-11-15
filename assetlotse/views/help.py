@@ -70,6 +70,7 @@ TOPICS: tuple[Topic, ...] = (
     Topic("email", ROLE_ADMIN, "E-Mail-Versand", "E-mail delivery", ("admin.email",)),
     Topic("branding", ROLE_ADMIN, "Erscheinungsbild", "Branding", ("admin.branding",)),
     Topic("backups", ROLE_ADMIN, "Datensicherung", "Backups", ("admin.backups",)),
+    Topic("diagnose", ROLE_ADMIN, "Diagnose und Diagnosepaket", "Diagnostics and diagnostic package", ("admin.diagnose",)),
     Topic("privacy", ROLE_ADMIN, "Datenschutz und Aufbewahrung", "Privacy and retention", ()),
     Topic("maintenance", ROLE_ADMIN, "Update und Wartung", "Updates and maintenance", ()),
 )

@@ -1,0 +1,13 @@
+<p>Unter <span class="ui">Administration → Diagnose</span> prüft AssetLotse die Installation und zeigt <b>Auffälligkeiten</b> an – zum Beispiel eine fehlende oder alte Datensicherung, Fehler beim E-Mail-Versand oder im Active Directory, einen Aufruf ohne HTTPS, Administratoren ohne zweiten Faktor oder eine unvollständige Datenbank.</p>
+<p><b>Diagnosepaket:</b> <span class="ui">Diagnosepaket herunterladen</span> erzeugt eine ZIP-Datei, die Sie weitergeben können, wenn Sie Hilfe brauchen. Sie enthält:</p>
+<ul>
+  <li><code>summary.txt</code> – Version und Auffälligkeiten auf einen Blick,</li>
+  <li><code>diagnose.json</code> – alle Angaben: Server, Python, Zeitzone, Speicher, Zustand und Aufbau der Datenbank, Datensicherung, E-Mail, Active Directory, Reverse-Proxy und HTTPS, Einstellungen und <code>.env</code>-Werte, Anzahlen von Benutzern, Gegenständen und Ausleihen,</li>
+  <li><code>log.txt</code> – die neuesten Zeilen des Programmprotokolls.</li>
+</ul>
+<p><b>Anonym:</b> Das Paket enthält keine Datensätze, nur Anzahlen. Passwörter, Schlüssel, 2FA-Daten und vertrauliche Angaben (z. B. BitLocker-Schlüssel) werden gar nicht erst gelesen. Namen, Benutzernamen, E-Mail-Adressen, IP-Adressen, Rechnernamen, AD-Pfade und Angaben zu Gegenständen, Gruppen und Standorten werden durch Platzhalter ersetzt, z. B. <code>user-3</code>, <code>email-2@example.invalid</code> oder <code>ip-4 (private)</code>. Derselbe Wert bekommt im Paket immer denselben Platzhalter – Zusammenhänge bleiben erkennbar, eine Zuordnungstabelle gibt es nicht. Von Einstellungen wie Organisationsname oder Texten wird nur gezeigt, ob sie gesetzt sind.</p>
+<p>Werfen Sie vor dem Weitergeben ruhig selbst einen Blick hinein – alle Dateien sind reiner Text.</p>
+<p><b>Wenn die Weboberfläche nicht erreichbar ist</b>, erzeugen Sie das Paket auf dem Server:</p>
+<pre><code>docker compose run --rm assetlotse diagnose</code></pre>
+<p>Es liegt danach unter <code>./data/diagnose/</code>.</p>
+<p><b>Programmprotokoll:</b> AssetLotse schreibt seine Meldungen zusätzlich zur Ausgabe des Containers (<code>docker compose logs</code>) in <code>./data/logs/assetlotse.log</code> – höchstens etwa 2 MB, ältere Zeilen fallen automatisch weg. Die Datei bleibt auf dem Server; ins Diagnosepaket gelangen ihre Zeilen nur anonymisiert.</p>

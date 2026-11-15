@@ -391,6 +391,30 @@ def backup_delete(name):
     return redirect(url_for("admin.backups"))
 
 
+# ---------------------------------------------------------------- Diagnostics (2.7.0)
+
+@bp.route("/diagnose")
+@admin_required
+def diagnose():
+    from ..diagnose import finding_text, live_findings
+    found = live_findings(current_app._get_current_object(), request)
+    items = [{"level": f["level"], "text": finding_text(f, _)} for f in found]
+    return render_template("admin/diagnose.html", findings=items)
+
+
+@bp.route("/diagnose/paket", methods=["POST"])
+@admin_required
+def diagnose_download():
+    import io
+
+    from ..diagnose import build_zip
+    data, name = build_zip(current_app._get_current_object(), request)
+    log.info("Diagnostic package created by %s", current_user.username)
+    resp = send_file(io.BytesIO(data), as_attachment=True, download_name=name, mimetype="application/zip", max_age=0)
+    resp.headers["Cache-Control"] = "private, no-store"
+    return resp
+
+
 # ---------------------------------------------------------------- Groups
 
 @bp.route("/gruppen")
