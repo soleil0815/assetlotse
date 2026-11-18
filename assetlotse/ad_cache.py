@@ -165,7 +165,9 @@ def sync(force: bool = False, now: datetime | None = None) -> dict | None:
         set_setting("ldap_cache_result", json.dumps(result))
         set_setting("ldap_cache_synced_at", now.isoformat(timespec="seconds"))
         db.session.commit()
-        log.info("AD sync: %(total)s people without an account (%(added)s new, %(removed)s removed); accounts: "
+        changed = any(result.get(k) for k in ("added", "removed", "updated", "renamed", "deactivated", "reactivated"))
+        # hourly: only a change is worth a line in the log (keeps the log – and the diagnostic package – meaningful)
+        log.log(logging.INFO if changed else logging.DEBUG, "AD sync: %(total)s people without an account (%(added)s new, %(removed)s removed); accounts: "
                  "%(updated)s updated, %(renamed)s renamed, %(deactivated)s deactivated, "
                  "%(reactivated)s reactivated", result)
         return result

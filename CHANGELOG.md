@@ -2,6 +2,20 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.7.1 – 2026-11-18
+
+Improvements from the first real diagnostic package.
+
+**Changed**
+- The hourly Active Directory sync writes a line to the log only when something changed (added, removed, updated,
+  renamed, deactivated or reactivated); otherwise only at DEBUG level. The program log – and `log.txt` in the
+  diagnostic package – now reaches back much further.
+- The backup log line is English (`Backup: <file> created (<size>)`); the stored result shown on the page stays as
+  before and is translated on display.
+- Diagnostic package: public registries and code hosts (ghcr.io, docker.io, quay.io, github.com …) are shown as they
+  are instead of as `host-N`. `ASSETLOTSE_REGISTRY_IMAGE` is classified (anonymized), and the classification test
+  now also covers the variables used in `docker-compose.yml`, `update.sh` and the entrypoint.
+
 ## 2.7.0 – 2026-11-15
 
 **New**

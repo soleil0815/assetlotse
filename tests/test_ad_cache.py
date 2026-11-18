@@ -102,6 +102,14 @@ class SyncTests(Base):
         db.session.commit()
         return u
 
+    def test_log_line_only_when_something_changed(self):
+        # 2.7.1: the hourly sync writes INFO only on a change – the program log stays meaningful
+        with self.assertLogs("assetlotse.ad_cache", "DEBUG") as cm:
+            self.run_sync([self.person("anna")])
+            self.run_sync([self.person("anna")])
+        levels = [r.levelname for r in cm.records if r.getMessage().startswith("AD sync: 1 people")]
+        self.assertEqual(levels, ["INFO", "DEBUG"])
+
     # ---- cache
 
     def test_cache_holds_only_people_without_account_and_drops_the_rest(self):
