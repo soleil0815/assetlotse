@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.4.2** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.7.1** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -19,10 +19,12 @@ Web-based issuing and returning of equipment in institutes and offices: laptops,
 - **CSV export** of the inventory (Excel-compatible) with an “Issued to” column.
 - **Self-registration** (optional, off by default) – with admin approval, e-mail verification and domain restrictions.
 - **Custom branding** – logo, login background image, colours and welcome texts.
-- **Two-factor authentication** with an authenticator app (TOTP) or security keys (YubiKey/FIDO2, passkeys), recovery codes and a per-role policy.
+- **Two-factor authentication** with an authenticator app (TOTP) or security keys (YubiKey/FIDO2), recovery codes and a per-role policy.
+- **Sign in with a passkey** – e.g. on an iPhone with Face ID, without username and password; also for Active Directory accounts (with a service account, checked at every sign-in).
 - **E-mail notifications** via SMTP – issue and return confirmations, due-date reminders, overdue notices, daily digest for managers.
 - **Active Directory / LDAP** – freely define which AD groups (or OUs) may sign in, manage or administer. AD groups can be mapped to AssetLotse groups.
 - **Automatic backups** – daily, the last 10 backups are kept (configurable).
+- **Diagnostics** – findings about the installation at a glance and an **anonymized diagnostic package** to pass on when you need help.
 - German and English, responsive design with light and dark mode. Data stored in **SQLite** (default), optionally MySQL/MariaDB or PostgreSQL.
 
 <p align="center">
@@ -632,6 +634,8 @@ python -m mypy            # type check (settings in mypy.ini; tools: tests/requi
 The type check is introduced step by step: the modules in the strict sections of `mypy.ini` must have no findings (otherwise `tests/test_typing.py` fails), findings in all others are only listed. Once a module is clean, it goes on the strict list.
 
 On GitHub the tests run on every push and pull request in the finished image, on amd64 and arm64.
+
+**Screenshots on this page:** `python3 scripts/readme_screenshots.py` (needs Playwright with Chromium) starts AssetLotse with neutral example data and renews the images in `.github/readme/` (German and English). Run it whenever the interface changes visibly; `tests/test_readme.py` checks that the version line at the top matches the program version.
 
 ## Project layout
 
