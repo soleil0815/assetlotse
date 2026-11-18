@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.4.2** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.7.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -19,10 +19,12 @@ Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Lap
 - **CSV-Export** des Bestands (Excel-kompatibel) mit Spalte „Ausgegeben an“.
 - **Selbstregistrierung** (optional, standardmäßig aus) – mit Freigabe durch Admins, E-Mail-Bestätigung und Domain-Beschränkung.
 - **Eigenes Erscheinungsbild** – Logo, Hintergrundbild der Anmeldeseite, Farben und Begrüßungstexte.
-- **Zwei-Faktor-Anmeldung** mit Authenticator-App (TOTP) oder Sicherheitsschlüssel (YubiKey/FIDO2, Passkeys), Wiederherstellungscodes und einstellbarer Pflicht je Rolle.
+- **Zwei-Faktor-Anmeldung** mit Authenticator-App (TOTP) oder Sicherheitsschlüssel (YubiKey/FIDO2), Wiederherstellungscodes und einstellbarer Pflicht je Rolle.
+- **Anmelden mit Passkey** – z. B. am iPhone mit Face ID, ohne Benutzername und Passwort; auch für Active-Directory-Konten (mit Dienstkonto, Prüfung bei jeder Anmeldung).
 - **E-Mail-Benachrichtigungen** per SMTP – Ausgabe- und Rückgabebestätigung, Erinnerung vor Fälligkeit, Mahnungen, tägliche Übersicht für Verwalter.
 - **Active Directory / LDAP** – frei definierbar, welche OUs oder AD-Gruppen sich anmelden, verwalten oder administrieren dürfen. AD-Gruppen lassen sich AssetLotse-Gruppen zuordnen.
 - **Automatische Datensicherung** – täglich, die letzten 10 Sicherungen werden aufbewahrt (einstellbar).
+- **Diagnose** – Auffälligkeiten der Installation auf einen Blick und ein **anonymisiertes Diagnosepaket** zum Weitergeben, wenn Sie Hilfe brauchen.
 - Deutsch und Englisch, responsives Design mit Hell-/Dunkelmodus. Daten in **SQLite** (Standard), optional MySQL/MariaDB oder PostgreSQL.
 
 <p align="center">
@@ -632,6 +634,8 @@ python -m mypy            # Typprüfung (Einstellungen in mypy.ini; Werkzeuge: t
 Die Typprüfung wird schrittweise eingeführt: Die Module in den strengen Abschnitten von `mypy.ini` müssen fehlerfrei sein (sonst scheitert `tests/test_typing.py`), Funde in allen anderen werden nur aufgelistet. Ist ein Modul sauber, kommt es in die strenge Liste.
 
 Auf GitHub laufen die Tests bei jedem Push und Pull Request im fertigen Image, auf amd64 und arm64.
+
+**Bildschirmfotos dieser Seite:** `python3 scripts/readme_screenshots.py` (braucht Playwright mit Chromium) startet AssetLotse mit neutralen Beispieldaten und erneuert die Bilder in `.github/readme/` (deutsch und englisch). Bei jeder sichtbaren Änderung ausführen; `tests/test_readme.py` prüft, dass die Versionszeile oben zur Programmversion passt.
 
 ## Aufbau
 
