@@ -46,6 +46,11 @@ class ClassificationTests(BaseCase):
         used = set(re.findall(r'(?:environ|env)(?:\.get)?[(\[]\s*"([A-Z][A-Z0-9_]+)"', text))
         used |= set(re.findall(r'getenv\(\s*"([A-Z][A-Z0-9_]+)"', text))
         used |= set(re.findall(r"^#?\s*([A-Z][A-Z0-9_]+)=", (ROOT / ".env.example").read_text(), re.M))
+        # passed in by docker-compose.yml, read by update.sh / the entrypoint from .env
+        used |= set(re.findall(r"\$\{([A-Z][A-Z0-9_]+)", (ROOT / "docker-compose.yml").read_text()))
+        used |= set(re.findall(r"env_value ([A-Z][A-Z0-9_]+)", (ROOT / "update.sh").read_text()))
+        used |= {v for v in re.findall(r"\$\{?([A-Z][A-Z0-9_]+)", (ROOT / "docker-entrypoint.sh").read_text())
+                 if v.startswith("ASSETLOTSE_")}
         used -= WSGI_KEYS
         sets = [diagnose.ENV_SHOW, diagnose.ENV_ANON, diagnose.ENV_MASK]
         for name in sorted(used):
@@ -220,6 +225,9 @@ class AnonymizerTests(BaseCase):
         self.assertIn("<redacted>", out)
         for kept in ("10:07:09", "127.0.0.1", "::1", "sqlalchemy.engine", "line 1967", ":587"):
             self.assertIn(kept, out)
+        # public registries are no secret
+        self.assertEqual(a.scrub("image ghcr.io/soleil0815/assetlotse:latest https://ghcr.io/x"),
+                         "image ghcr.io/soleil0815/assetlotse:latest https://ghcr.io/x")
         # stable: the same value gets the same pseudonym
         self.assertEqual(a.scrub("mmueller"), a.scrub("MMUELLER"))
 
@@ -318,3 +326,4 @@ class LogInstallTests(BaseCase):
             applog.install(d)
             applog.install(d)                                  # only once
         self.assertEqual(len(root.handlers), len(before) + 1)
+

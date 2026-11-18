@@ -273,7 +273,7 @@ def run_now(kind: str = "-manuell", now: datetime | None = None) -> tuple[bool, 
         return False, msg
     msg = f"{path.name} gesichert ({human_size(size)})"   # stored format – parsed by localized_message, keep
     _record(True, msg, now)
-    log.info("Backup: %s", msg)
+    log.info("Backup: %s created (%s)", path.name, human_size(size, "en"))
     return True, msg
 
 

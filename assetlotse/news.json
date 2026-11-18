@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.7.1",
+      "date": "2026-11-18",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Aussagekräftigeres Protokoll",
+        "text": "Der stündliche Abgleich mit dem Active Directory schreibt nur noch dann eine Zeile ins Protokoll, wenn sich etwas geändert hat. Das Protokoll – und damit das Diagnosepaket – reicht so deutlich weiter zurück."
+      },
+      "en": {
+        "title": "More meaningful log",
+        "text": "The hourly Active Directory sync now only writes a line to the log when something changed. The log – and with it the diagnostic package – now reaches back much further."
+      }
+    },
+    {
       "version": "2.7.0",
       "date": "2026-11-15",
       "kind": "feature",

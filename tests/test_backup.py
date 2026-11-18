@@ -103,6 +103,14 @@ class BackupTests(unittest.TestCase):
         backup.run_now("-manuell", T0 + timedelta(minutes=5))
         self.assertEqual(backup.warning(), "")
 
+    def test_log_line_is_english(self):
+        with self.assertLogs("assetlotse.backup", "INFO") as cm:
+            ok, msg = backup.run_now("-manuell", T0)
+        self.assertTrue(ok)
+        self.assertIn("gesichert", msg)                       # stored format, translated on display
+        line = cm.records[-1].getMessage()
+        self.assertRegex(line, r"^Backup: assetlotse-.*\.db created \(\d+ KB\)$")
+
     def test_failure_mail_to_admins(self):
         from assetlotse.mailer import render_mail
         with self.app.test_request_context():

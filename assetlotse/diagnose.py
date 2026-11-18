@@ -87,8 +87,11 @@ ENV_SHOW = {
     "ASSETLOTSE_BEHIND_PROXY", "TZ", "TZDIR", "PUID", "PGID", "FLASK_DEBUG", "PORT",
 }
 ENV_ANON = {"ASSETLOTSE_TRUSTED_PROXIES", "ASSETLOTSE_BIND", "ASSETLOTSE_DATA_DIR", "ASSETLOTSE_BACKUP_DIR",
-            "ASSETLOTSE_IMAGE", "HOST"}
+            "ASSETLOTSE_IMAGE", "ASSETLOTSE_REGISTRY_IMAGE", "HOST"}
 ENV_MASK = {"ASSETLOTSE_SECRET_KEY", "ASSETLOTSE_SOURCE_URL", "DATABASE_URL"}
+# Public container registries and code hosts: not identifying, shown as they are (ghcr.io/…/assetlotse)
+PUBLIC_HOSTS = {"ghcr.io", "docker.io", "registry-1.docker.io", "index.docker.io", "quay.io", "github.com",
+                "gitlab.com", "codeberg.org", "lscr.io"}
 
 # Text columns of the database: "personal" (identifies people, the organization or its inventory – its words
 # are pseudonymized in every text of the package), "secret" (never read for the package) or "plain" (program
@@ -200,7 +203,7 @@ class Anonymizer:
         ip = self._ip(bare, None)
         if ip is not None:
             return ip
-        if bare.lower() in ("localhost",):
+        if bare.lower() == "localhost" or bare.lower() in PUBLIC_HOSTS:
             return bare
         return self.pseudonym("host", bare)
 
@@ -229,6 +232,8 @@ class Anonymizer:
         return self._ip(m.group(1), m.group(2)) or m.group(0)
 
     def _fqdn(self, m: re.Match) -> str:
+        if m.group(1).lower() in PUBLIC_HOSTS:
+            return m.group(0)
         if m.group(1).split(".", 1)[0].lower() in _module_names():   # a Python module path, not a host name
             return m.group(0)
         return self.pseudonym("host", m.group(1))
