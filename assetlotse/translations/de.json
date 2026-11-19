@@ -1325,5 +1325,18 @@
  "Active Directory sync reports an error: {error}": "Der Abgleich mit dem Active Directory meldet einen Fehler: {error}",
  "{n} error(s) in the program log in the last 24 hours.": "{n} Fehler im Programmprotokoll in den letzten 24 Stunden.",
  "Part \"{section}\" could not be read: {error}": "Teil „{section}“ konnte nicht gelesen werden: {error}",
- "There is no backup yet.": "Es gibt noch keine Datensicherung."
+ "There is no backup yet.": "Es gibt noch keine Datensicherung.",
+ "Footer": "Fußzeile",
+ "e.g. Company Ltd – IT · 0123 456789": "z. B. Firma GmbH – IT · 0123 456789",
+ "Printed small at the bottom right of every label and prefilled in the print dialog for everyone; it can be changed there for a single print. At most 80 characters, empty = no footer.": "Steht klein unten rechts auf jedem Etikett und ist im Druckdialog für alle vorausgefüllt; dort lässt es sich für einen einzelnen Druck ändern. Höchstens 80 Zeichen, leer = keine Fußzeile.",
+ "Print labels": "Etiketten drucken",
+ "Print label": "Etikett drucken",
+ "Default from Settings → Inventory & issuing → Labels. Changed here, it applies to this print only.": "Vorgabe aus Einstellungen → Bestand & Ausgabe → Etiketten. Hier geändert gilt es nur für diesen Druck.",
+ "Small at the bottom right, e.g. company and phone number of the IT. Set it permanently for everyone under Settings → Inventory & issuing → Labels.": "Klein unten rechts, z. B. Firma und Telefonnummer der IT. Dauerhaft für alle unter Einstellungen → Bestand & Ausgabe → Etiketten festlegen.",
+ "Number of labels": "Anzahl Etiketten",
+ "Copies per item": "Anzahl je Gegenstand",
+ "At most 500 labels per print run.": "Höchstens 500 Etiketten je Druck.",
+ "Format 62 × 29 mm – e.g. Brother QL with continuous tape. Print at “Actual size” / 100 %.": "Format 62 × 29 mm – z. B. Brother QL mit Endlosband. Mit „Tatsächliche Größe“ / 100 % drucken.",
+ "Create PDF": "PDF erstellen",
+ "Too many labels for one print run (at most {n}). Please narrow the selection or print fewer copies per item.": "Zu viele Etiketten für einen Druck (höchstens {n}). Bitte grenzen Sie die Auswahl ein oder drucken Sie weniger je Gegenstand."
 }

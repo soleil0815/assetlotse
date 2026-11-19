@@ -803,10 +803,18 @@ def export_csv():
 
 # ---------------------------------------------------------------- Labels (PDF, 62 × 29 mm)
 
+def _label_footer() -> str:
+    """Footer from the print dialog (?fusszeile=, also empty) – otherwise the one from the settings."""
+    from ..labels import clean_footer, default_footer
+    if "fusszeile" in request.args:
+        return clean_footer(request.args.get("fusszeile"))
+    return default_footer()
+
+
 def _labels_response(items: list, filename: str):
-    from ..branding import org_name
     from ..labels import build_pdf, label_for
-    pdf = build_pdf([label_for(a, org_name()) for a in items], title=_("Labels"))
+    footer = _label_footer()
+    pdf = build_pdf([label_for(a, footer) for a in items], title=_("Labels"))
     return Response(pdf, mimetype="application/pdf", headers={
         "Content-Disposition": f"inline; filename={filename}",
         "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
@@ -819,7 +827,8 @@ def label(asset_id):
     asset = _get_asset_or_404(asset_id)
     if not current_user.can_manage(asset):
         abort(403)
-    n = min(50, max(1, request.args.get("anzahl", 1, type=int) or 1))
+    from ..labels import MAX_COPIES_ONE
+    n = min(MAX_COPIES_ONE, max(1, request.args.get("anzahl", 1, type=int) or 1))
     name = "label" if get_locale() == "en" else "etikett"
     return _labels_response([asset] * n, f"{name}-{asset.id}.pdf")
 
@@ -828,14 +837,20 @@ def label(asset_id):
 @manager_required
 def labels():
     """Labels for all items in the current inventory selection (same filters as the list)."""
-    from ..labels import MAX_LABELS
+    from ..labels import MAX_COPIES, MAX_LABELS
+    copies = min(MAX_COPIES, max(1, request.args.get("anzahl", 1, type=int) or 1))
     query = _apply_filters(manageable_assets_query(current_user), _filter_args())
     items = query.order_by(Asset.inventory_no, Asset.name, Asset.id).limit(MAX_LABELS + 1).all()
     if not items:
         flash(_("No items found for labels."), "info")
         return redirect(url_for("assets.index", **{k: v for k, v in _filter_args().items() if v}))
+    items = [a for a in items for _copy in range(copies)]
     if len(items) > MAX_LABELS:
-        flash(_("Too many items for one print run (at most {n}). Please narrow the selection.",
-                n=MAX_LABELS), "error")
+        if copies > 1:
+            flash(_("Too many labels for one print run (at most {n}). Please narrow the selection or print fewer "
+                    "copies per item.", n=MAX_LABELS), "error")
+        else:
+            flash(_("Too many items for one print run (at most {n}). Please narrow the selection.",
+                    n=MAX_LABELS), "error")
         return redirect(url_for("assets.index", **{k: v for k, v in _filter_args().items() if v}))
     return _labels_response(items, "labels.pdf" if get_locale() == "en" else "etiketten.pdf")

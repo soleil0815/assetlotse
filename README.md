@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.7.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.8.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -244,11 +244,14 @@ Für Dinge wie den **BitLocker-Wiederherstellungsschlüssel** eines Laptops, ein
 Für jeden Gegenstand erzeugt AssetLotse ein **Etikett als PDF im Format 62 × 29 mm** – passend z. B. für
 **Brother QL** (QL-820NWB, QL-700 …) mit DK-11209-Etiketten oder 62-mm-Endlosband. Auf dem Etikett stehen
 Bezeichnung, Kategorie/Modell und Seriennummer, ein **Barcode (Code 128)** mit der **Inventarnummer** und darunter
-die Nummer im Klartext sowie der Name der Einrichtung.
+die Nummer im Klartext; klein unten rechts eine **Fußzeile**, z. B. „Firma GmbH – IT · 0123 456789“.
 
-- **Einzeln:** Detailseite → **Etikett** (öffnet das PDF; mit `?anzahl=3` in der Adresse drei gleiche).
+- **Fußzeile:** einmal für alle unter *Einstellungen → Bestand & Ausgabe → Etiketten* festlegen (höchstens 80 Zeichen,
+  leer = keine). Der Druckdialog ist damit vorausgefüllt; eine Änderung dort gilt nur für diesen Druck. Ist nichts
+  eingestellt, steht wie bisher der Name der Einrichtung dort.
+- **Einzeln:** Detailseite → **Etikett** – Fußzeile und Anzahl (bis 50 gleiche) wählen → **PDF erstellen**.
 - **Viele auf einmal:** Im **Bestand** filtern (z. B. Kategorie „Laptop“) → **Etiketten** – ein PDF mit einer Seite je
-  Gegenstand (höchstens 500).
+  Gegenstand, auf Wunsch bis zu 10 je Gegenstand (höchstens 500 Etiketten).
 - Ohne Inventarnummer – oder wenn sie Umlaute enthält – codiert der Barcode `#<interne Nummer>`. Die Ausgabetheke
   findet beides.
 - **Drucken:** Im Druckdialog die Etikettengröße 62 × 29 mm wählen und **„Tatsächliche Größe“ / 100 %** einstellen

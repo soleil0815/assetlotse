@@ -18,6 +18,28 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+  /* ------------------------------------------------------------ Dialogs (e.g. label printing) */
+  document.addEventListener("click", (e) => {
+    const open = e.target.closest("[data-dialog-open]");
+    if (open) {
+      const dlg = document.getElementById(open.dataset.dialogOpen);
+      if (dlg && typeof dlg.showModal === "function") {
+        e.preventDefault();
+        dlg.showModal();
+        const first = dlg.querySelector("input:not([type=hidden])");
+        if (first) first.focus();
+      }
+      return;
+    }
+    const close = e.target.closest("[data-dialog-close]");
+    if (close) { const dlg = close.closest("dialog"); if (dlg) dlg.close(); }
+  });
+  /* The PDF opens in a new tab – close the dialog right after sending. */
+  $$("form[data-dialog-submit]").forEach((f) => f.addEventListener("submit", () => {
+    const dlg = f.closest("dialog");
+    if (dlg) setTimeout(() => dlg.close(), 0);
+  }));
+
   /* ------------------------------------------------------------ Basics */
   $$("[data-theme-toggle]").forEach((btn) => btn.addEventListener("click", () => {
     const root = document.documentElement;

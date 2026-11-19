@@ -294,6 +294,7 @@ td.actions-cell { text-align: right; white-space: nowrap; }
 .list-row .grow b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 dialog { border: 0; border-radius: 18px; padding: 0; background: var(--card); color: var(--ink); width: min(560px, 94vw); box-shadow: 0 30px 60px -20px rgba(0,0,0,.5); }
+.label-dialog input[type="number"] { max-width: 120px; }
 dialog::backdrop { background: rgba(10, 14, 12, .55); backdrop-filter: blur(3px); }
 
 /* ------------------------------------------------------------ Auth */

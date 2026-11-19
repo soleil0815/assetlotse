@@ -9,6 +9,10 @@
 <a href="{{ url_for('assets.index') }}" class="btn ghost sm u-mb-14">{{ icon("arrow-left") }} {{ _("Inventory") }}</a>
 {% endif %}
 
+{% if manage %}
+{% set dlg_id = "label-dlg" %}{% set single = true %}{% set action = url_for('assets.label', asset_id=asset.id) %}{% set hidden = {} %}
+{% include "assets/_label_dialog.html" %}
+{% endif %}
 <div class="asset-hero">
   <div class="thumb-col">{{ thumb(asset) }}</div>
   <div>
@@ -17,7 +21,7 @@
       {% if manage %}
       <div class="actions">
         <a class="btn sm" href="{{ url_for('assets.edit', asset_id=asset.id) }}">{{ icon("edit") }} {{ _("Edit") }}</a>
-        <a class="btn sm" href="{{ url_for('assets.label', asset_id=asset.id) }}" target="_blank" rel="noopener" title="{{ _("Label 62 × 29 mm as PDF") }}">{{ icon("tag") }} {{ _("Label") }}</a>
+        <button type="button" class="btn sm" data-dialog-open="label-dlg" title="{{ _("Label 62 × 29 mm as PDF") }}">{{ icon("tag") }} {{ _("Label") }}</button>
         <a class="btn sm" href="{{ url_for('assets.create', vorlage=asset.id) }}" title="{{ _("Add a new item with the same details") }}">{{ icon("copy") }} {{ _("Add similar") }}</a>
         <form method="post" action="{{ url_for('assets.delete', asset_id=asset.id) }}" data-confirm="{{ _("Really delete “{title}”? The loan history will be removed as well.", title=asset.name) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

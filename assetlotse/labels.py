@@ -19,6 +19,9 @@ BARCODE_H_MM = 10.5
 QUIET_MODULES = 10               # quiet zone left and right (required for reliable scanning)
 MAX_MODULE_MM = 0.5
 MAX_LABELS = 500
+MAX_COPIES = 10          # copies per item when printing a selection
+MAX_COPIES_ONE = 50      # copies when printing a single item (e.g. for accessories)
+MAX_FOOTER = 80
 
 # Code 128 patterns (bar, space, bar, … in module widths) for the values 0–106
 _PATTERNS = (
@@ -163,16 +166,32 @@ def _pdf_string(text: str) -> str:
 
 # ---------------------------------------------------------------- Page and PDF
 
+def clean_footer(v) -> str:
+    """One line, no control characters, at most 80 characters (fits on the label in small print)."""
+    return " ".join("".join(ch if ch >= " " else " " for ch in str(v or "")).split())[:MAX_FOOTER]
+
+
+def default_footer() -> str:
+    """2.8.0: footer for everyone (Settings → Inventory & issuing → Labels). Not set yet: the name of the
+    organization, as on every label before 2.8.0. Saved empty: no footer."""
+    from .models import Setting, db
+    row = db.session.get(Setting, "label_footer")
+    if row is None:
+        from .branding import org_name
+        return clean_footer(org_name())
+    return clean_footer(row.value)
+
+
 @dataclass
 class Label:
     title: str
     subtitle: str
     code: str      # barcode content
-    footer: str    # e.g. name of the organization
+    footer: str    # e.g. company and IT phone (default_footer)
     text: str = "" # plain text below the barcode (default: the code itself)
 
 
-def label_for(asset, org_name: str = "") -> Label:
+def label_for(asset, footer: str = "") -> Label:
     sub = " · ".join(p for p in (asset.category, asset.maker_model) if p)
     if asset.serial_number:
         sub = (sub + " · " if sub else "") + "S/N " + asset.serial_number
@@ -180,7 +199,7 @@ def label_for(asset, org_name: str = "") -> Label:
     inv = (asset.inventory_no or "").strip()
     # always print the inventory number legibly – even if the barcode contains "#ID" instead
     text = code if not inv or inv == code else f"{inv} ({code})"
-    return Label(title=asset.name or "", subtitle=sub, code=code, footer=org_name or "", text=text)
+    return Label(title=asset.name or "", subtitle=sub, code=code, footer=clean_footer(footer), text=text)
 
 
 def _f(v: float) -> str:

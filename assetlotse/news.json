@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.8.0",
+      "date": "2026-11-19",
+      "kind": "feature",
+      "audience": "manager",
+      "de": {
+        "title": "Fußzeile auf Etiketten",
+        "text": "Beim Etikettendruck öffnet sich jetzt ein kleiner Dialog: Dort legen Sie die Fußzeile fest – z. B. Firma und Telefonnummer der IT – und wie viele Etiketten Sie brauchen. Administratoren hinterlegen die Fußzeile für alle unter Einstellungen → Bestand & Ausgabe → Etiketten."
+      },
+      "en": {
+        "title": "Footer on labels",
+        "text": "Printing labels now opens a small dialog: set the footer there – e.g. company and IT phone number – and how many labels you need. Administrators set the footer for everyone under Settings → Inventory & issuing → Labels."
+      }
+    },
+    {
       "version": "2.7.1",
       "date": "2026-11-18",
       "kind": "feature",

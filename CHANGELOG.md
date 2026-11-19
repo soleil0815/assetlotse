@@ -2,6 +2,18 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.8.0 – 2026-11-19
+
+**New**
+- **Label footer** (as in Pocket Knife): *Settings → Inventory & issuing → Labels → Footer* sets the small text at the
+  bottom right of every label for everyone, e.g. `Company Ltd – IT · 0123 456789` (one line, no control characters,
+  80 characters at most; empty = no footer). Until it is saved, the name of the organization stays the footer, as
+  before.
+- **Print dialog** for labels: *Label* on an item page and *Labels* in the inventory first open a dialog with the
+  footer (prefilled; a change applies to this print only) and the number of copies – up to 50 for one item, up to
+  10 per item for a selection (still 500 labels at most per PDF), plus the format hint (62 × 29 mm, actual size).
+- Diagnostic package: `label_footer` is classified as identifying and anonymized.
+
 ## 2.7.1 – 2026-11-18
 
 Improvements from the first real diagnostic package.
