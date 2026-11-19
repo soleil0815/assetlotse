@@ -1338,5 +1338,7 @@
  "At most 500 labels per print run.": "Höchstens 500 Etiketten je Druck.",
  "Format 62 × 29 mm – e.g. Brother QL with continuous tape. Print at “Actual size” / 100 %.": "Format 62 × 29 mm – z. B. Brother QL mit Endlosband. Mit „Tatsächliche Größe“ / 100 % drucken.",
  "Create PDF": "PDF erstellen",
- "Too many labels for one print run (at most {n}). Please narrow the selection or print fewer copies per item.": "Zu viele Etiketten für einen Druck (höchstens {n}). Bitte grenzen Sie die Auswahl ein oder drucken Sie weniger je Gegenstand."
+ "Too many labels for one print run (at most {n}). Please narrow the selection or print fewer copies per item.": "Zu viele Etiketten für einen Druck (höchstens {n}). Bitte grenzen Sie die Auswahl ein oder drucken Sie weniger je Gegenstand.",
+ "Confirm with passkey": "Mit Passkey bestätigen",
+ "A passkey or security key counts as the second factor.": "Ein Passkey oder Sicherheitsschlüssel gilt als zweiter Faktor."
 }

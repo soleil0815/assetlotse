@@ -180,6 +180,27 @@ class PasskeyLocalTests(PasskeyBase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.c.get("/").status_code, 200)            # no challenge, no setup redirect
 
+    def test_password_then_code_step_offers_the_passkey(self):
+        """Password sign-in (e.g. filled in by the password manager) by someone with a passkey: the second step
+        offers "Mit Passkey bestätigen" instead of "insert your key", and the passkey completes it."""
+        set_setting("mfa_policy", "all")
+        db.session.commit()
+        self.make("rita")
+        self.password_login("rita")
+        self.assertTrue(self.register_passkey().get_json()["ok"])
+        self.c = self.new_browser()
+        r = self.c.post("/login", data={"username": "rita", "password": "geheim12345"})
+        self.assertIn("/login/2fa", r.headers["Location"])
+        html = self.c.get("/login/2fa").get_data(as_text=True)
+        self.assertIn("Mit Passkey bestätigen", html)
+        self.assertIn('data-waiting="Mit Face ID, Fingerabdruck oder Geräte-PIN bestätigen …"', html)
+        self.assertNotIn("Sicherheitsschlüssel bestätigen", html)
+        r = self.c.post("/login/2fa/schluessel/start", json={})
+        options = r.get_json()["options"]
+        r = self.c.post("/login/2fa/schluessel/pruefen", json=self.phone.get(options))
+        self.assertTrue(r.get_json()["ok"], r.get_json())
+        self.assertEqual(self.c.get("/").status_code, 200)
+
     def test_registration_needs_user_verification(self):
         self.make("rita")
         self.password_login("rita")
