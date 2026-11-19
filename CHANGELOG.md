@@ -2,6 +2,16 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.8.1 – 2026-11-19
+
+**Fixed**
+- Passkey sign-in on phones: if the password manager filled in and submitted user name and password while the
+  passkey was being confirmed with Face ID/fingerprint/PIN, the password sign-in replaced the passkey session and
+  asked for the second factor. Once the device has answered, the sign-in page now ignores the password submit (the
+  passkey already counts as two factors); a waiting passkey suggestion is cancelled when the password is sent.
+- Second step after a password sign-in: people with a passkey see **Confirm with passkey** (Face ID, fingerprint
+  or device PIN) instead of "Confirm with security key / insert your key".
+
 ## 2.8.0 – 2026-11-19
 
 **New**

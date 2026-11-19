@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.8.1",
+      "date": "2026-11-19",
+      "kind": "fix",
+      "audience": "all",
+      "de": {
+        "title": "Passkey-Anmeldung am Handy zuverlässiger",
+        "text": "Füllt der Passwort-Manager am Handy gleichzeitig Benutzername und Kennwort aus, während Sie den Passkey bestätigen, gewinnt jetzt der Passkey – es folgt keine Nachfrage nach dem zweiten Faktor mehr. Fragt AssetLotse nach dem Kennwort doch nach dem zweiten Faktor, bestätigen Sie dort einfach „Mit Passkey“."
+      },
+      "en": {
+        "title": "More reliable passkey sign-in on phones",
+        "text": "If the password manager on your phone fills in user name and password while you confirm the passkey, the passkey now wins – no request for the second factor follows. If AssetLotse does ask for the second factor after the password, simply choose “Confirm with passkey” there."
+      }
+    },
+    {
       "version": "2.8.0",
       "date": "2026-11-19",
       "kind": "feature",

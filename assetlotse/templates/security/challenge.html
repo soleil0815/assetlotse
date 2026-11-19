@@ -17,8 +17,13 @@
 {% else %}
   {% if has_keys %}
   <div class="u-mt-22">
+    {% if has_passkey %}
+    <button type="button" class="btn primary lg block" data-webauthn-login data-waiting="{{ _('Confirm with Face ID, fingerprint or the device PIN …') }}">{{ icon("shield") }} {{ _("Confirm with passkey") }}</button>
+    <p class="muted u-fs-13 u-mt-8" data-webauthn-status>{{ _("A passkey or security key counts as the second factor.") }}</p>
+    {% else %}
     <button type="button" class="btn primary lg block" data-webauthn-login>{{ icon("shield") }} {{ _("Confirm with security key") }}</button>
     <p class="muted u-fs-13 u-mt-8" data-webauthn-status>{{ _("Insert your key and touch it when it flashes.") }}</p>
+    {% endif %}
   </div>
   {% endif %}
   {% if user.totp_enabled and totp_broken %}

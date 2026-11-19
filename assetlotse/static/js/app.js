@@ -327,6 +327,14 @@
     const btn = $("[data-passkey-button]", passkeyBox);
     const status = $("[data-passkey-status]", passkeyBox);
     let autofill = null;                       // pending conditional request – one request at a time
+    let verifying = false;                     // the device has answered (Face ID/PIN done), the server checks
+    const loginForm = ($('input[name="password"]') || {}).form;
+    if (loginForm) loginForm.addEventListener("submit", (e) => {
+      // The password manager submitted the form while the passkey answer is being checked: the passkey is two
+      // factors in one and wins – a parallel password sign-in would only ask for a code on top.
+      if (verifying) { e.preventDefault(); return; }
+      if (autofill) { autofill.abort(); autofill = null; }
+    });
     const signIn = async (conditional) => {
       const begin = await api("/login/passkey/start", { method: "POST", body: "{}" });
       if (!begin.ok) throw new Error(begin.error);
@@ -335,9 +343,13 @@
       if (conditional) { autofill = new AbortController(); opts.mediation = "conditional"; opts.signal = autofill.signal; }
       const cred = await navigator.credentials.get(opts);
       if (!cred) return;
+      verifying = true;
       const remember = $('input[name="remember"]');
-      const done = await api("/login/passkey/pruefen", { method: "POST", body: JSON.stringify({
-        credential: credentialJSON(cred), remember: !!(remember && remember.checked), next: passkeyBox.dataset.next }) });
+      let done;
+      try {
+        done = await api("/login/passkey/pruefen", { method: "POST", body: JSON.stringify({
+          credential: credentialJSON(cred), remember: !!(remember && remember.checked), next: passkeyBox.dataset.next }) });
+      } finally { if (!done || !done.ok) verifying = false; }
       if (!done.ok) throw new Error(done.error);
       window.location.href = done.redirect;
     };
@@ -386,7 +398,7 @@
     }
     const run = async () => {
       btn.disabled = true;
-      if (status) status.textContent = T("Insert and touch your key …");
+      if (status) status.textContent = btn.dataset.waiting || T("Insert and touch your key …");
       try {
         const begin = await api("/login/2fa/schluessel/start", { method: "POST", body: "{}" });
         if (!begin.ok) throw new Error(begin.error);
