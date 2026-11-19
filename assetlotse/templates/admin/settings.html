@@ -35,6 +35,10 @@
           <option value="all" {{ 'selected' if s('catalog_visibility') == 'all' }}>{{ _("Everyone sees the whole inventory (issuing stays restricted)") }}</option>
         </select>
         <small class="muted">{{ _("Default: own items only – sensible if items are only issued at the desk. Managers and administrators always see the inventory. For self-checkout, staff members must be able to see the inventory.") }}</small></div>
+      <h3 class="u-mt-22 u-mb-10">{{ icon("tag") }} {{ _("Labels") }}</h3>
+      <div class="field"><label for="f-label-footer">{{ _("Footer") }}</label>
+        <input id="f-label-footer" type="text" name="label_footer" maxlength="80" value="{{ label_footer }}" placeholder="{{ _('e.g. Company Ltd – IT · 0123 456789') }}">
+        <div class="hint">{{ _("Printed small at the bottom right of every label and prefilled in the print dialog for everyone; it can be changed there for a single print. At most 80 characters, empty = no footer.") }}</div></div>
     </section>
     <section class="card card-pad">
       <h2 class="u-mb-16">{{ _("Issuing") }}</h2>

@@ -8,11 +8,14 @@
     <p>{{ _("1 entry found") if total == 1 else _("{n} entries found", n=total) }}</p></div>
   {% if current_user.is_manager %}
   <div class="actions">
-    <a class="btn" href="{{ url_for('assets.labels', q=q or None, kategorie=category or None, gruppe=group or None, standort=location or None, status=status or None) }}" target="_blank" rel="noopener"
-       title="{{ _('Labels (62 × 29 mm) for the items of this selection') }}">{{ icon("tag") }} {{ _("Labels") }}</a>
+    <button type="button" class="btn" data-dialog-open="label-dlg"
+       title="{{ _('Labels (62 × 29 mm) for the items of this selection') }}">{{ icon("tag") }} {{ _("Labels") }}</button>
     <a class="btn" href="{{ url_for('assets.export_csv') }}">{{ icon("download") }} CSV</a>
     <a class="btn primary" href="{{ url_for('assets.create', kategorie=category or None) }}">{{ icon("plus") }} {{ _("Add item") }}</a>
   </div>
+  {% set dlg_id = "label-dlg" %}{% set single = false %}{% set action = url_for('assets.labels') %}
+  {% set hidden = {"q": q, "kategorie": category, "gruppe": group, "standort": location, "status": status} %}
+  {% include "assets/_label_dialog.html" %}
   {% endif %}
 </div>
 

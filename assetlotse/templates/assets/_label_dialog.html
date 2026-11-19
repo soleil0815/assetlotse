@@ -1,0 +1,20 @@
+{# Print dialog for labels (2.8.0). Expects: dlg_id, action (URL of the PDF), single (one item?), hidden (filters). #}
+{% from "_macros.html" import icon %}
+{% set footer = label_footer() %}
+<dialog id="{{ dlg_id }}" class="label-dialog" aria-labelledby="{{ dlg_id }}-title">
+  <form method="get" action="{{ action }}" target="_blank" class="card-pad" data-dialog-submit>
+    {% for k, v in hidden.items() if v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+    <h2 id="{{ dlg_id }}-title" class="u-mb-14">{{ icon("tag") }} {{ _("Print labels") if not single else _("Print label") }}</h2>
+    <div class="field"><label for="{{ dlg_id }}-footer">{{ _("Footer") }}</label>
+      <input id="{{ dlg_id }}-footer" type="text" name="fusszeile" maxlength="80" value="{{ footer }}" placeholder="{{ _('e.g. Company Ltd – IT · 0123 456789') }}">
+      <div class="hint">{% if footer %}{{ _("Default from Settings → Inventory & issuing → Labels. Changed here, it applies to this print only.") }}{% else %}{{ _("Small at the bottom right, e.g. company and phone number of the IT. Set it permanently for everyone under Settings → Inventory & issuing → Labels.") }}{% endif %}</div></div>
+    <div class="field"><label for="{{ dlg_id }}-count">{{ _("Number of labels") if single else _("Copies per item") }}</label>
+      <input id="{{ dlg_id }}-count" type="number" name="anzahl" value="1" min="1" max="{{ 50 if single else 10 }}" required>
+      {% if not single %}<div class="hint">{{ _("At most 500 labels per print run.") }}</div>{% endif %}</div>
+    <p class="muted u-fs-13">{{ _("Format 62 × 29 mm – e.g. Brother QL with continuous tape. Print at “Actual size” / 100 %.") }}</p>
+    <div class="actions u-jc-end u-mt-16">
+      <button type="button" class="btn" data-dialog-close>{{ _("Cancel") }}</button>
+      <button class="btn primary">{{ icon("download") }} {{ _("Create PDF") }}</button>
+    </div>
+  </form>
+</dialog>

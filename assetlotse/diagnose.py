@@ -69,6 +69,7 @@ SETTINGS_COUNT = {
 SETTINGS_MASK = {
     "ldap_bind_password", "smtp_password", "org_name", "smtp_from_name", "mail_footer", "imprint_url",
     "privacy_url", "brand_logo", "brand_favicon", "brand_bg", "brand_logo_text", "login_eyebrow", "login_text",
+    "label_footer",
 }
 # Settings whose value identifies the organization (hosts, domains, AD paths and groups, own texts) – their words
 # are replaced in every text of the package
@@ -76,7 +77,7 @@ SETTINGS_IDENTIFYING = {
     "ldap_server", "ldap_ca_file", "ldap_bind_dn", "ldap_upn_suffix", "ldap_base_dn", "ldap_user_filter",
     "ldap_login_rules", "ldap_manager_rules", "ldap_admin_rules", "smtp_host", "smtp_user", "smtp_from",
     "smtp_reply_to", "app_base_url", "own_public_hosts", "registration_domains", "org_name", "smtp_from_name",
-    "mail_footer", "imprint_url", "privacy_url", "brand_logo_text", "login_eyebrow", "login_text",
+    "mail_footer", "imprint_url", "privacy_url", "brand_logo_text", "login_eyebrow", "login_text", "label_footer",
 }
 
 # Environment variables

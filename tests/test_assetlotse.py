@@ -458,6 +458,71 @@ class LabelTests(Base):
         self.assertIn(b"Schl\\374ssel \\(Haus\\) \\\\ \\304", pdf)
         self.assertIn(f"(\\334-12 \\(#{a.id}\\)) Tj".encode(), pdf)   # inventory number readable, barcode #ID
 
+    def test_clean_footer(self):
+        from assetlotse.labels import clean_footer
+        self.assertEqual(clean_footer("  Firma GmbH\n– IT\t· 0123  "), "Firma GmbH – IT · 0123")
+        self.assertEqual(clean_footer(None), "")
+        self.assertEqual(len(clean_footer("x" * 200)), 80)
+
+    def test_footer_defaults_to_organization_until_set(self):
+        a = self.laptop(secret="")
+        set_setting("org_name", "Institut Alt")
+        self.login("vera")
+        self.assertIn(b"(Institut Alt) Tj", self.c.get(f"/gegenstaende/{a.id}/etikett.pdf").data)
+        set_setting("label_footer", "Firma GmbH - IT 0123")
+        pdf = self.c.get(f"/gegenstaende/{a.id}/etikett.pdf").data
+        self.assertIn(b"(Firma GmbH - IT 0123) Tj", pdf)
+        self.assertNotIn(b"Institut Alt", pdf)
+        set_setting("label_footer", "")                       # saved empty: no footer at all
+        pdf = self.c.get(f"/gegenstaende/{a.id}/etikett.pdf").data
+        self.assertNotIn(b"Institut Alt", pdf)
+        self.assertNotIn(b"Firma GmbH", pdf)
+
+    def test_footer_from_print_dialog_applies_to_this_print_only(self):
+        a = self.laptop(secret="")
+        set_setting("label_footer", "Zentral")
+        self.login("vera")
+        pdf = self.c.get(f"/gegenstaende/{a.id}/etikett.pdf?fusszeile=Nur+heute%0Ajetzt").data
+        self.assertIn(b"(Nur heute jetzt) Tj", pdf)            # one line, control characters removed
+        self.assertNotIn(b"Zentral", pdf)
+        self.assertNotIn(b"Zentral", self.c.get(f"/gegenstaende/{a.id}/etikett.pdf?fusszeile=").data)
+        self.assertIn(b"(Zentral) Tj", self.c.get("/gegenstaende/etiketten.pdf").data)
+        self.assertEqual(get_setting("label_footer"), "Zentral")
+
+    def test_copies_per_item_for_selection(self):
+        self.laptop(secret="")
+        self.laptop(secret="", name="Zweiter", inventory_no="IT-0043")
+        self.login("vera")
+        self.assertEqual(self._pages(self.c.get("/gegenstaende/etiketten.pdf?anzahl=3").data), 6)
+        self.assertEqual(self._pages(self.c.get("/gegenstaende/etiketten.pdf?anzahl=99").data), 20)   # at most 10 each
+        from assetlotse import labels as L
+        old = L.MAX_LABELS
+        L.MAX_LABELS = 5
+        try:
+            r = self.c.get("/gegenstaende/etiketten.pdf?anzahl=3", follow_redirects=True)
+            self.assertIn("weniger je Gegenstand", r.get_data(as_text=True))
+        finally:
+            L.MAX_LABELS = old
+
+    def test_print_dialog_and_setting(self):
+        a = self.laptop(secret="")
+        set_setting("label_footer", "Firma GmbH – IT")
+        self.login("vera")
+        html = self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True)
+        self.assertIn('data-dialog-open="label-dlg"', html)
+        self.assertIn('name="fusszeile" maxlength="80" value="Firma GmbH – IT"', html)
+        self.assertIn('max="50"', html)
+        html = self.c.get("/gegenstaende?kategorie=Laptop").get_data(as_text=True)
+        self.assertIn('name="kategorie" value="Laptop"', html)
+        self.assertIn('max="10"', html)
+        self.login("mia")
+        self.assertNotIn("label-dlg", self.c.get(f"/gegenstaende/{a.id}").get_data(as_text=True))
+        self.login("admin")
+        r = self.c.post("/admin/einstellungen", data={"tab": "ausgabe", "label_footer": " Neu\nGmbH ",
+                                                       "loan_days": "14"}, follow_redirects=True)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(get_setting("label_footer"), "Neu GmbH")
+
 
 class DashboardTests(Base):
     def test_key_figures_and_categories(self):

@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.7.1** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.8.0** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -244,11 +244,14 @@ For things like a laptop's **BitLocker recovery key**, a PIN or a password:
 For each item AssetLotse generates a **PDF label in the 62 × 29 mm format** – suitable e.g. for **Brother QL**
 printers (QL-820NWB, QL-700 …) with DK-11209 labels or 62 mm continuous tape. The label shows the name,
 category/model and serial number, a **barcode (Code 128)** containing the **inventory number**, the number in plain
-text below it and the name of your organisation.
+text below it and, in small print at the bottom right, a **footer** such as “Company Ltd – IT · 0123 456789”.
 
-- **Single label:** item page → **Label** (opens the PDF; add `?anzahl=3` to the address for three identical ones).
-- **Many at once:** filter the **Inventory** (e.g. category “Laptop”) → **Labels** – one PDF with one page per item
-  (500 at most).
+- **Footer:** set it once for everyone under *Settings → Inventory & issuing → Labels* (80 characters at most, empty =
+  none). It prefills the print dialog; a change there applies to that print only. If nothing is set, the name of your
+  organisation is printed as before.
+- **Single label:** item page → **Label** – choose footer and number (up to 50 identical ones) → **Create PDF**.
+- **Many at once:** filter the **Inventory** (e.g. category “Laptop”) → **Labels** – one PDF with one page per item,
+  optionally up to 10 per item (500 labels at most).
 - Without an inventory number – or if it contains non-ASCII characters such as umlauts – the barcode contains
   `#<internal number>`. The issue desk finds both.
 - **Printing:** choose the 62 × 29 mm label size in the print dialog and set **“Actual size” / 100 %** (not “fit to

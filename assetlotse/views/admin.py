@@ -509,6 +509,9 @@ def settings():
         set_setting("max_loans", min(form_int("max_loans", 0, 0), 1000))
         for key in ("self_checkout", "self_return", "self_extend"):
             set_setting(key, form_bool(key))
+        if "label_footer" in request.form:
+            from ..labels import clean_footer
+            set_setting("label_footer", clean_footer(request.form.get("label_footer")))
         reg = request.form.get("registration_mode")
         set_setting("registration_mode", reg if reg in ("off", "approval", "open") else "off")
         if get_setting("registration_mode") != "off" and not get_setting("app_base_url"):
@@ -560,7 +563,8 @@ def settings():
     from ..mailer import mail_active
     from .. import netzone
     from .. import idle
-    return render_template("admin/settings.html", s=get_setting,
+    from ..labels import default_footer
+    return render_template("admin/settings.html", s=get_setting, label_footer=default_footer(),
                            idle_hours=get_setting("session_idle_hours", idle.env_default()),
                            idle_default=idle.env_default(),
                            retention_result=_stamped(get_setting("retention_last_result"), _retention_message),
