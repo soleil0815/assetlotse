@@ -13,6 +13,35 @@
   </div>
 </div>
 
+<section class="card card-pad u-mb-16">
+  <div class="update-status">
+    <div>
+      <h2 class="u-mb-8">{{ _("Updates") }}</h2>
+      <p class="u-m-0">
+        {% if update.newer %}<span class="badge accent">{{ _("New version") }}</span>
+          {{ _("Version {new} is available (installed: {current}).", new=update.latest, current=update.running) }}
+          <a href="{{ update_url(update.latest) }}" target="_blank" rel="noopener noreferrer">{{ _("Release notes") }}</a>
+        {% elif update.latest %}<span class="badge ok">{{ icon("check") }} {{ _("Up to date") }}</span>
+          {{ _("Installed: {current}, newest published: {latest}.", current=update.running, latest=update.latest) }}
+        {% else %}{{ _("Installed: {current}.", current=update.running) }}{% endif %}
+      </p>
+      <p class="muted u-fs-13 u-m-8-0-0">
+        {% if update.disabled_by_env %}{{ _("Switched off in .env (ASSETLOTSE_UPDATE_CHECK=0).") }}
+        {% elif not update.setting %}{{ _("The daily check is switched off (Settings → General). You can still check here.") }}
+        {% else %}{{ _("Checked once a day.") }}{% endif %}
+        {% if update.checked_at %}{{ _("Last checked: {when}.", when=update.checked_at.replace("T", " ")) }}{% endif %}
+        {% if update.error %}<br><span class="err">{{ _("Last check failed: {error}", error=update.error) }}</span>{% endif %}
+      </p>
+    </div>
+    {% if not update.disabled_by_env %}
+    <form method="post" action="{{ url_for('admin.update_check_now') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn">{{ icon("pulse") }} {{ _("Check now") }}</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+
 <div class="grid grid-2">
   <section class="card card-pad">
     <h2 class="u-mb-14">{{ _("Findings") }}</h2>
@@ -34,7 +63,7 @@
     <ul class="diag-list">
       <li>{{ _("Version, server, Python, time zone, memory and disk space") }}</li>
       <li>{{ _("State of the database (check, structure, number of entries per table)") }}</li>
-      <li>{{ _("Backups, e-mail, Active Directory, reverse proxy and HTTPS") }}</li>
+      <li>{{ _("Backups, update check, e-mail, Active Directory, reverse proxy and HTTPS") }}</li>
       <li>{{ _("Settings and <code>.env</code> values – without passwords and keys") }}</li>
       <li>{{ _("Numbers of users, items and loans – never the records themselves") }}</li>
       <li>{{ _("The newest lines of the program log") }}</li>

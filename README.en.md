@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.8.1** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.9.0** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -79,6 +79,8 @@ The container sets the permissions of `./data` itself at start-up and then runs 
   ```
 
 **Every way is safe:** when a new version starts for the first time, AssetLotse backs up the database itself **before** changing anything (`…-vor-<version>.db`, under *Administration → Backups*; the three newest of these backups are never deleted automatically; SQLite only – with MySQL/PostgreSQL back up yourself first). Only then does it adapt the database.
+
+**Notice of new versions:** if you do not update automatically, you still find out: once a day AssetLotse asks GitHub for the newest published version. If there is a newer one, **administrators** see a notice at the top with a link to the changes and the update command (with a version pinned in `.env`: enter the new number there); it can be hidden until the next version. *Administration → Diagnostics* shows the state and has **Check now**. Only new program versions are announced, not the monthly security images (`2.9.0-s1`) – they arrive through `latest` anyway. Nothing about the installation is sent; GitHub only sees the server's IP address, as with every `docker pull`. Switch it off under *Settings → General → Updates*, or completely – without any connection to GitHub – with `ASSETLOTSE_UPDATE_CHECK=0` in `.env` (e.g. for servers without internet).
 
 **New `docker-compose.yml`:** the file carries a version number (`ASSETLOTSE_COMPOSE_VERSION`). If a new version needs a newer file, AssetLotse says so itself – in the log and as a notice for administrators. Then run `./update.sh` (puts the new file in place, the old one stays as `.alt`) or take `docker-compose.yml` from the release and run `docker compose up -d`.
 
@@ -479,7 +481,7 @@ When publishing to the internet, do not forward port 9343 on your router – onl
 AssetLotse is built so that users' browsers **only talk to your own server**:
 
 - **Fonts** (Inter) are bundled – no connection to Google Fonts.
-- **No external services:** nothing is fetched from third-party servers and no scripts are loaded from elsewhere. The server itself only connects to your own services (AD/LDAP, mail server) and – when fetching the DC certificate – possibly to the AIA address of your certificate authority.
+- **No external services:** nothing is fetched from third-party servers and no scripts are loaded from elsewhere. The server itself only connects to your own services (AD/LDAP, mail server) and – when fetching the DC certificate – possibly to the AIA address of your certificate authority. In addition, once a day, the [update check](#updates) asks GitHub (`api.github.com`, without details about the installation; can be switched off).
 - **Item photos** are only reachable after signing in.
 - **Cookies:** only strictly necessary ones (sign-in, form protection) – no cookie banner required. No tracking, no ads.
 
@@ -565,6 +567,7 @@ Privacy: backups contain all data, including data already deleted by the retenti
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (default), `DEBUG` for LDAP troubleshooting |
 | `ASSETLOTSE_SESSION_HOURS` | Start value of the [automatic sign-out](#automatic-sign-out) in hours without activity (default `12`, `0` = off). After that, what is saved under *Settings* applies |
 | `ASSETLOTSE_BACKUP_DIR` | Folder for automatic backups inside the container (default: `backups` in the data directory). Must be mounted as a volume in `docker-compose.override.yml` – otherwise the container warns at start-up |
+| `ASSETLOTSE_UPDATE_CHECK` | `0` = never ask GitHub for new versions (e.g. servers without internet); the switch under *Settings → General* is then locked. Default: check once a day |
 | `ASSETLOTSE_SCHEDULER` | `0` = no scheduled jobs (reminders, backup, retention) in this process, e.g. when several app servers run and only one should do them. Default `1` |
 | `ASSETLOTSE_SOURCE_URL` | Link to the source code on the *About this program* page (default: this repository; for a modified version, its source code) – see [License](#license) |
 
@@ -578,7 +581,7 @@ Everything else (default loan period, extensions, self-service checkout, invento
 
 *Administration → Diagnostics* checks the installation and shows findings (missing or old backup, e-mail or AD errors, access without HTTPS, administrators without a second factor, incomplete database, errors in the log …). **Download diagnostic package** creates a ZIP file to pass on when you need help:
 
-- `summary.txt` – version and findings, `diagnose.json` – all details (server, Python, time zone, memory, database check and structure, number of entries per table, backups, e-mail, AD, reverse proxy/HTTPS, settings, `.env`, package versions), `log.txt` – the newest lines of the program log.
+- `summary.txt` – version and findings, `diagnose.json` – all details (server, Python, time zone, memory, database check and structure, number of entries per table, backups, update check, e-mail, AD, reverse proxy/HTTPS, settings, `.env`, package versions), `log.txt` – the newest lines of the program log.
 - **Anonymous:** no records, only counts. Passwords, keys, 2FA data and confidential details are not read. Names, user names, e-mail addresses, IP addresses, host names, AD paths and details of items, groups and locations are replaced by fixed placeholders (`user-3`, `email-2@example.invalid`, `ip-4 (private)`); organization name and own texts only as "set/empty".
 - **Without the web interface:** `docker compose run --rm assetlotse diagnose` stores the package in `./data/diagnose/` – also works when AssetLotse no longer starts.
 - **Program log:** in addition to the container output, AssetLotse writes its messages to `./data/logs/assetlotse.log` (at most about 2 MB, older lines are dropped). Nothing needs to be entered in `.env`.

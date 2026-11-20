@@ -23,6 +23,16 @@
         </select>
         <small class="muted">{{ _("For visitors whose browser prefers neither language, and for emails to users who haven't chosen one. Everyone can switch the language themselves at the top right.") }}</small></div>
     </section>
+    <section class="card card-pad">
+      <h2 class="u-mb-16">{{ _("Updates") }}</h2>
+      {% if update_check_locked %}
+      <p class="muted">{{ _("The update check is switched off in .env (ASSETLOTSE_UPDATE_CHECK=0) – AssetLotse does not contact GitHub.") }}</p>
+      {% else %}
+      <input type="hidden" name="update_check_shown" value="1">
+      <label class="check"><input type="checkbox" name="update_check" value="1" {{ 'checked' if s('update_check') == '1' }}>
+        <span>{{ _("Check for new versions") }}<small class="muted">{{ _("Once a day AssetLotse asks GitHub for the newest published version; administrators then see a notice at the top. Nothing about this installation is sent – GitHub only sees the server's IP address, as with every docker pull. For servers without internet access: ASSETLOTSE_UPDATE_CHECK=0 in .env.") }}</small></span></label>
+      {% endif %}
+    </section>
   </div>
 
   <div class="grid grid-2" id="ausgabe" data-tab-panel>

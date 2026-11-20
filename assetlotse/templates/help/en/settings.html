@@ -4,6 +4,7 @@
   <li><b>General</b>
     <ul>
     <li><span class="ui">Name (organisation or program)</span> – shown everywhere, “AssetLotse” by default; <span class="ui">Default language</span> (currently {{ f.languages.get(f.default_language, f.default_language) }}) – used for visitors whose browser prefers neither German nor English, and for emails to users who have not chosen a language.</li>
+    <li><span class="ui">Updates → Check for new versions</span> – ask GitHub once a day and tell administrators about a new version (default: on; nothing about the installation is sent). Completely off with <code>ASSETLOTSE_UPDATE_CHECK=0</code> in <code>.env</code>.</li>
     </ul></li>
   <li><b>Inventory &amp; issuing</b>
     <ul>
