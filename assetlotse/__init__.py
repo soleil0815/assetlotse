@@ -28,7 +28,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.8.1"
+__version__ = "2.9.0"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
@@ -565,6 +565,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             "news_unread": 0,
             "compose_outdated": "",
             "compose_version": COMPOSE_VERSION,
+            "update_available": "",
         }
         if has_request_context() and current_user.is_authenticated:
             from .news import unread as news_unread
@@ -575,6 +576,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             from .backup import warning as backup_warning
             ctx["backup_warning"] = backup_warning()
             ctx["compose_outdated"] = app.config.get("COMPOSE_OUTDATED", "")
+            from . import updatecheck
+            ctx["update_available"] = updatecheck.available()
+            if ctx["update_available"]:
+                ctx["update_url"] = updatecheck.release_url(ctx["update_available"])
+                ctx["update_pinned"] = updatecheck.pinned_tag()
         if has_request_context() and current_user.is_authenticated and current_user.is_manager:
             from .models import Asset, manageable_assets_query
             ctx["overdue_count"] = Loan.query.filter(

@@ -112,6 +112,20 @@
       </details>
     </header>
     <main class="content">
+      {% if update_available %}
+      <div class="notice accent update-notice" role="status">
+        <span>{{ icon("download") }} {{ _("AssetLotse {new} is available (installed: {current}).", new=update_available, current=version) }}
+          {% if update_pinned %}{{ _("The version is pinned in .env (ASSETLOTSE_TAG={tag}): enter the new version there, then docker compose pull && docker compose up -d.", tag=update_pinned) }}{% else %}{{ _("Update with your container management (e.g. Dockhand) or with docker compose pull && docker compose up -d.") }}{% endif %}
+          <a href="{{ update_url }}" target="_blank" rel="noopener noreferrer">{{ _("Release notes") }}</a> ·
+          <a href="{{ url_for('help.index', thema='maintenance') }}">{{ _("How to update") }}</a></span>
+        <form method="post" action="{{ url_for('admin.update_dismiss') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="version" value="{{ update_available }}">
+          <input type="hidden" name="next" value="{{ request.full_path if request.method == 'GET' else '' }}">
+          <button class="btn sm ghost" title="{{ _('Hide this notice until the next version') }}">{{ _("Hide") }}</button>
+        </form>
+      </div>
+      {% endif %}
       {% if compose_outdated %}
       <p class="notice warn" role="status">{{ _("The docker-compose.yml on the server is out of date (version {found}, expected {want}). Run ./update.sh on the server – it puts the new file in place and keeps the old one as docker-compose.yml.alt. Or take the docker-compose.yml from the current release and then run docker compose up -d.", found=compose_outdated, want=compose_version) }}</p>
       {% endif %}

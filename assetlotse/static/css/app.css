@@ -222,6 +222,11 @@ fieldset { border: 0; padding: 0; margin: 0; }
 .notice.danger { background: var(--danger-soft); }
 .notice.ok { background: var(--ok-soft); }
 .notice.accent { background: var(--accent-soft); }
+.update-notice { align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 14px; }
+.update-notice > span { flex: 1 1 320px; }
+.update-notice svg { vertical-align: -3px; }
+.update-status { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.update-status .err { color: var(--danger); }
 
 /* ------------------------------------------------------------ Tables */
 .table-wrap { overflow-x: auto; }

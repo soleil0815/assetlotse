@@ -51,14 +51,15 @@ SETTINGS_SHOW = {
     "mail_retries", "mail_retry_after", "backup_enabled", "backup_keep", "backup_hour", "backup_last_ok",
     "retention_months", "mfa_internal", "mfa_policy", "registration_mode", "registration_verify_email",
     "registration_notify_admins", "registration_group_id", "brand_bg_dim", "brand_logo_plate", "brand_accent",
-    "brand_brass", "brand_side", "login_show_shelf", "setup_completed", "app_version",
+    "brand_brass", "brand_side", "login_show_shelf", "setup_completed", "app_version", "update_check",
+    "update_latest", "update_checked_at", "update_dismissed", "update_check_last_run",
 }
 # Settings: value through the anonymizer (structure stays visible: scheme, port, IP class, error text)
 SETTINGS_ANON = {
     "ldap_server", "ldap_ca_file", "ldap_bind_dn", "ldap_upn_suffix", "ldap_base_dn", "ldap_user_filter",
     "smtp_host", "smtp_user", "smtp_from", "smtp_reply_to", "app_base_url", "internal_networks",
     "mail_last_result", "backup_last_result", "backup_last_error", "retention_last_result", "ldap_cache_error",
-    "ldap_cache_warning", "ldap_cache_result",
+    "ldap_cache_warning", "ldap_cache_result", "update_error",
 }
 # Settings: only the number of entries (lines)
 SETTINGS_COUNT = {
@@ -85,7 +86,7 @@ ENV_SHOW = {
     "ASSETLOTSE_LOGLEVEL", "ASSETLOTSE_PORT", "ASSETLOTSE_SESSION_HOURS", "ASSETLOTSE_FORCE_HTTPS",
     "ASSETLOTSE_SECURE_COOKIES", "ASSETLOTSE_ACCEPT_NEW_KEY", "ASSETLOTSE_CONTAINER", "ASSETLOTSE_COMPOSE_VERSION",
     "ASSETLOTSE_MAINTENANCE", "ASSETLOTSE_SCHEDULER", "ASSETLOTSE_I18N_PARTS", "ASSETLOTSE_TAG",
-    "ASSETLOTSE_BEHIND_PROXY", "TZ", "TZDIR", "PUID", "PGID", "FLASK_DEBUG", "PORT",
+    "ASSETLOTSE_BEHIND_PROXY", "ASSETLOTSE_UPDATE_CHECK", "TZ", "TZDIR", "PUID", "PGID", "FLASK_DEBUG", "PORT",
 }
 ENV_ANON = {"ASSETLOTSE_TRUSTED_PROXIES", "ASSETLOTSE_BIND", "ASSETLOTSE_DATA_DIR", "ASSETLOTSE_BACKUP_DIR",
             "ASSETLOTSE_IMAGE", "ASSETLOTSE_REGISTRY_IMAGE", "HOST"}
@@ -451,6 +452,13 @@ def _storage(app, anon: Anonymizer) -> dict:
     return out
 
 
+def _update(anon: Anonymizer) -> dict:
+    from . import updatecheck
+    out = updatecheck.status()
+    out["error"] = anon.scrub(out["error"]) or None
+    return out
+
+
 def _backups(anon: Anonymizer) -> dict:
     from . import backup
     from .models import get_bool, get_setting
@@ -732,6 +740,11 @@ def findings(report: dict) -> list[dict]:
         add("no_zoneinfo", "warning")
     if rt.get("maintenance"):
         add("maintenance", "info")
+    upd = report.get("update") or {}
+    if upd.get("newer"):
+        add("update_available", "info", latest=upd.get("latest"), running=upd.get("running"))
+    if upd.get("enabled") and upd.get("error"):
+        add("update_error", "info", error=upd.get("error"))
     bk = report.get("backups") or {}
     if bk.get("supported"):
         if not bk.get("enabled"):
@@ -790,6 +803,8 @@ _TEXTS = {
     "compose_outdated": "docker-compose.yml on the server is out of date (version {found}) – run ./update.sh.",
     "no_zoneinfo": "Time zone data is missing – times are in UTC.",
     "maintenance": "Maintenance mode is on.",
+    "update_available": "Version {latest} is available (installed: {running}).",
+    "update_error": "The update check failed: {error}",
     "backup_off": "Automatic backups are switched off.",
     "backup_none": "There is no backup yet.",
     "backup_old": "The newest backup is older than two days ({hours} hours).",
@@ -840,6 +855,7 @@ def collect(app, req=None, with_log: bool = True) -> tuple[dict, list[str]]:
     report["storage"] = _safe(lambda: _storage(app, anon), anon)
     report["database"] = _safe(lambda: _database(anon), anon)
     report["backups"] = _safe(lambda: _backups(anon), anon)
+    report["update"] = _safe(lambda: _update(anon), anon)
     report["security"] = _safe(lambda: _security(app, anon), anon)
     report["users"] = _safe(_users, anon)
     report["inventory"] = _safe(_inventory, anon)

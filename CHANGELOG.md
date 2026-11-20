@@ -2,6 +2,23 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.9.0 – 2026-11-20
+
+**New**
+- **Update check** for installations that do not update automatically: once a day the server asks GitHub
+  (`api.github.com/repos/<repository>/releases/latest`) for the newest published version. If it is newer,
+  administrators see a notice at the top with a link to the release and the update command – or, with a version
+  pinned in `.env` (`ASSETLOTSE_TAG`), the hint to enter the new number there. *Hide* hides it until the next
+  version. Only program versions are announced, not the monthly security images (`-sN`).
+- *Administration → Diagnostics*: state of the update check (installed, newest, last checked, last error) and
+  **Check now**.
+- Nothing about the installation is sent (no ID, no version in the URL); the release link is built by the program,
+  never taken from the answer; at most 512 KB are read, timeout 10 s; errors stay on the diagnostics page and in the
+  log. A modified version with its own `ASSETLOTSE_SOURCE_URL` on GitHub asks its own repository.
+- Switch: *Settings → General → Updates* (default on). `ASSETLOTSE_UPDATE_CHECK=0` in `.env` switches it off
+  completely, also for *Check now* (servers without internet access).
+- Diagnostic package: new section `update` and findings `update_available` / `update_error`.
+
 ## 2.8.1 – 2026-11-19
 
 **Fixed**

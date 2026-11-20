@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.8.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.9.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -79,6 +79,8 @@ Die `docker-compose.yml` folgt dem Tag **`latest`** – der neuesten Version ein
   ```
 
 **Abgesichert ist jeder Weg:** Startet eine neue Version zum ersten Mal, sichert AssetLotse **vor** jeder Änderung an der Datenbank selbst (`…-vor-<Version>.db`, unter *Administration → Datensicherung*; die drei neuesten solcher Sicherungen werden nie automatisch gelöscht; nur SQLite – bei MySQL/PostgreSQL vorher selbst sichern). Erst danach passt es die Datenbank an.
+
+**Hinweis auf neue Versionen:** Wer nicht automatisch aktualisiert, erfährt es trotzdem: Einmal am Tag fragt AssetLotse bei GitHub nach der neuesten veröffentlichten Version. Gibt es eine neuere, sehen **Administratoren** oben einen Hinweis mit Link auf die Änderungen und dem Update-Befehl (bei festgelegter Version in der `.env`: dort die neue Nummer eintragen); er lässt sich bis zur nächsten Version ausblenden. *Administration → Diagnose* zeigt den Stand und hat **Jetzt prüfen**. Gemeldet werden nur neue Programmversionen, nicht die monatlichen Sicherheits-Images (`2.9.0-s1`) – die kommen über `latest` ohnehin. Über die Installation wird nichts gesendet; GitHub sieht nur die IP-Adresse des Servers, wie bei jedem `docker pull`. Abschalten unter *Einstellungen → Allgemein → Updates* oder ganz – ohne jede Verbindung zu GitHub – mit `ASSETLOTSE_UPDATE_CHECK=0` in der `.env` (z. B. für Server ohne Internet).
 
 **Neue `docker-compose.yml`:** Die Datei trägt eine Versionsnummer (`ASSETLOTSE_COMPOSE_VERSION`). Braucht eine neue Version eine neuere Datei, sagt AssetLotse es selbst – im Protokoll und als Hinweis für Administratoren. Dann `./update.sh` ausführen (legt die neue Datei ab, die alte bleibt als `.alt`) oder die `docker-compose.yml` aus dem Release übernehmen und `docker compose up -d`.
 
@@ -479,7 +481,7 @@ Bei Freigabe ins Internet Port 9343 am Router nicht freigeben – von außen sol
 AssetLotse ist darauf ausgelegt, dass die Browser der Nutzer **nur mit Ihrem eigenen Server** sprechen:
 
 - **Schriften** (Inter) liegen im Programm – keine Verbindung zu Google Fonts.
-- **Keine externen Dienste:** Es werden keine Daten von fremden Servern abgerufen und keine Skripte nachgeladen. Der Server selbst baut ausgehende Verbindungen nur zu Ihren eigenen Diensten auf (AD/LDAP, Mailserver) und – beim Abruf des DC-Zertifikats – ggf. zur AIA-Adresse Ihrer Zertifizierungsstelle.
+- **Keine externen Dienste:** Es werden keine Daten von fremden Servern abgerufen und keine Skripte nachgeladen. Der Server selbst baut ausgehende Verbindungen nur zu Ihren eigenen Diensten auf (AD/LDAP, Mailserver) und – beim Abruf des DC-Zertifikats – ggf. zur AIA-Adresse Ihrer Zertifizierungsstelle. Dazu kommt einmal am Tag die [Update-Prüfung](#update) bei GitHub (`api.github.com`, ohne Angaben zur Installation; abschaltbar).
 - **Fotos** der Gegenstände sind nur nach der Anmeldung abrufbar.
 - **Cookies:** nur technisch notwendige (Anmeldung, Formularschutz) – kein Cookie-Banner nötig. Kein Tracking, keine Werbung.
 
@@ -565,6 +567,7 @@ Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewa
 | `ASSETLOTSE_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
 | `ASSETLOTSE_SESSION_HOURS` | Startwert der [automatischen Abmeldung](#automatische-abmeldung) in Stunden ohne Aktivität (Standard `12`, `0` = aus). Danach gilt, was unter *Einstellungen* gespeichert ist |
 | `ASSETLOTSE_BACKUP_DIR` | Ordner für die automatischen Sicherungen im Container (Standard: `backups` im Datenverzeichnis). Muss in `docker-compose.override.yml` als Volume eingebunden sein – sonst warnt der Container beim Start |
+| `ASSETLOTSE_UPDATE_CHECK` | `0` = nie bei GitHub nach neuen Versionen fragen (z. B. Server ohne Internet); der Schalter unter *Einstellungen → Allgemein* ist dann gesperrt. Standard: Prüfung einmal am Tag |
 | `ASSETLOTSE_SCHEDULER` | `0` = keine zeitgesteuerten Läufe (Erinnerungen, Sicherung, Aufbewahrung) in diesem Prozess, z. B. wenn mehrere App-Server laufen und nur einer sie ausführen soll. Standard `1` |
 | `ASSETLOTSE_SOURCE_URL` | Link zum Quellcode auf der Seite *Über dieses Programm* (Standard: dieses Repository; bei einer veränderten Fassung deren Quellcode) – siehe [Lizenz](#lizenz) |
 
@@ -578,7 +581,7 @@ Alles Weitere (Standard-Leihdauer, Verlängerungen, Selbstausleihe, Sichtbarkeit
 
 *Administration → Diagnose* prüft die Installation und zeigt Auffälligkeiten (fehlende oder alte Sicherung, E-Mail- oder AD-Fehler, Aufruf ohne HTTPS, Administratoren ohne zweiten Faktor, unvollständige Datenbank, Fehler im Protokoll …). **Diagnosepaket herunterladen** erzeugt eine ZIP-Datei zum Weitergeben, wenn Sie Hilfe brauchen:
 
-- `summary.txt` – Version und Auffälligkeiten, `diagnose.json` – alle Angaben (Server, Python, Zeitzone, Speicher, Datenbank-Prüfung und -Aufbau, Anzahl der Einträge je Tabelle, Sicherungen, E-Mail, AD, Reverse-Proxy/HTTPS, Einstellungen, `.env`, Paketversionen), `log.txt` – die neuesten Zeilen des Programmprotokolls.
+- `summary.txt` – Version und Auffälligkeiten, `diagnose.json` – alle Angaben (Server, Python, Zeitzone, Speicher, Datenbank-Prüfung und -Aufbau, Anzahl der Einträge je Tabelle, Sicherungen, Update-Prüfung, E-Mail, AD, Reverse-Proxy/HTTPS, Einstellungen, `.env`, Paketversionen), `log.txt` – die neuesten Zeilen des Programmprotokolls.
 - **Anonym:** keine Datensätze, nur Anzahlen. Passwörter, Schlüssel, 2FA-Daten und vertrauliche Angaben werden nicht gelesen. Namen, Benutzernamen, E-Mail-Adressen, IP-Adressen, Rechnernamen, AD-Pfade sowie Angaben zu Gegenständen, Gruppen und Standorten werden durch feste Platzhalter ersetzt (`user-3`, `email-2@example.invalid`, `ip-4 (private)`); Organisationsname und eigene Texte nur als „gesetzt/leer“.
 - **Ohne Weboberfläche:** `docker compose run --rm assetlotse diagnose` legt das Paket unter `./data/diagnose/` ab – funktioniert auch, wenn AssetLotse nicht mehr startet.
 - **Programmprotokoll:** Zusätzlich zur Container-Ausgabe schreibt AssetLotse seine Meldungen nach `./data/logs/assetlotse.log` (höchstens etwa 2 MB, ältere Zeilen fallen weg). In `.env` ist nichts einzutragen.

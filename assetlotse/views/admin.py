@@ -399,7 +399,41 @@ def diagnose():
     from ..diagnose import finding_text, live_findings
     found = live_findings(current_app._get_current_object(), request)
     items = [{"level": f["level"], "text": finding_text(f, _)} for f in found]
-    return render_template("admin/diagnose.html", findings=items)
+    from .. import updatecheck
+    return render_template("admin/diagnose.html", findings=items, update=updatecheck.status(),
+                           update_url=updatecheck.release_url)
+
+
+@bp.route("/update/pruefen", methods=["POST"])
+@admin_required
+def update_check_now():
+    """"Check now" on the diagnostics page – also when the daily check is switched off (asked for explicitly),
+    but never when .env forbids any connection (ASSETLOTSE_UPDATE_CHECK=0)."""
+    from .. import __version__, updatecheck
+    if updatecheck.disabled_by_env():
+        flash(_("The update check is switched off in .env (ASSETLOTSE_UPDATE_CHECK=0)."), "info")
+        return redirect(url_for("admin.diagnose"))
+    ok, result = updatecheck.check_now()
+    if not ok:
+        flash(_("Could not check for updates: {error}", error=result), "error")
+    elif updatecheck.is_newer(result):
+        flash(_("Version {new} is available (installed: {current}).", new=result, current=__version__), "info")
+    else:
+        flash(_("AssetLotse is up to date ({current}).", current=__version__), "success")
+    return redirect(url_for("admin.diagnose"))
+
+
+@bp.route("/update/ausblenden", methods=["POST"])
+@admin_required
+def update_dismiss():
+    """Hide the notice for this version (for all administrators) – the next version shows it again."""
+    from .. import updatecheck
+    version = request.form.get("version", "")
+    if updatecheck.parse_version(version):
+        set_setting("update_dismissed", ".".join(str(x) for x in updatecheck.parse_version(version)))
+        db.session.commit()
+        log.info("Update notice for version %s hidden by %s", version, current_user.username)
+    return redirect(safe_next(request.form.get("next")) or url_for("main.dashboard"))
 
 
 @bp.route("/diagnose/paket", methods=["POST"])
@@ -509,6 +543,8 @@ def settings():
         set_setting("max_loans", min(form_int("max_loans", 0, 0), 1000))
         for key in ("self_checkout", "self_return", "self_extend"):
             set_setting(key, form_bool(key))
+        if "update_check_shown" in request.form:     # only when the switch was on the page (not locked by .env)
+            set_setting("update_check", form_bool("update_check"))
         if "label_footer" in request.form:
             from ..labels import clean_footer
             set_setting("label_footer", clean_footer(request.form.get("label_footer")))
@@ -564,7 +600,9 @@ def settings():
     from .. import netzone
     from .. import idle
     from ..labels import default_footer
+    from ..updatecheck import disabled_by_env as update_check_locked
     return render_template("admin/settings.html", s=get_setting, label_footer=default_footer(),
+                           update_check_locked=update_check_locked(),
                            idle_hours=get_setting("session_idle_hours", idle.env_default()),
                            idle_default=idle.env_default(),
                            retention_result=_stamped(get_setting("retention_last_result"), _retention_message),

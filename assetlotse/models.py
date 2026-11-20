@@ -496,6 +496,12 @@ DEFAULT_SETTINGS = {
     "backup_enabled": "1",     # daily backup (SQLite only)
     "backup_keep": "10",       # number of backups kept
     "backup_hour": "2",        # from this hour on
+    "update_check": "1",       # once a day: is a newer version published on GitHub? (2.9.0; ASSETLOTSE_UPDATE_CHECK=0)
+    "update_latest": "",       # newest version found, e.g. 2.9.0
+    "update_checked_at": "",
+    "update_error": "",
+    "update_dismissed": "",    # version whose notice the administrators have hidden
+    "update_check_last_run": "",
     "retention_months": "12",  # delete completed loans and the mail log after X months; 0 = never
     "mfa_internal": "same",    # two-factor in the internal network: same | optional | skip
     "internal_networks": "",   # empty = private networks (10/8, 172.16/12, 192.168/16, fc00::/7)
