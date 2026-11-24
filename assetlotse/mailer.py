@@ -25,6 +25,7 @@ from email.utils import formataddr, formatdate, make_msgid
 from flask import current_app, render_template
 from sqlalchemy import func, update
 
+from .applog import personal
 from .i18n import _
 from .models import (ROLE_ADMIN, ROLE_MANAGER, Loan, MailLog, Setting, User, db, get_bool, get_int,
                      get_setting, set_setting)
@@ -358,7 +359,7 @@ def run_notifications(today: date | None = None) -> dict:
             except Exception:  # noqa: BLE001 – one person must never abort the run for everyone else
                 db.session.rollback()
                 ok = False
-                log.exception("Reminder to %s failed", user.username)
+                log.exception("Reminder to %s failed", personal(user.username))
             stats["sent" if ok else "errors"] += 1
             stats["loans"] += len(bucket["due_soon"]) + len(bucket["overdue"])
             if not ok and not reconnected:
@@ -410,7 +411,7 @@ def _send_digests(cfg, smtp, today) -> int:
             ok, _err = send_mail(m.email, subject, text, html, kind="digest", cfg=cfg, smtp=smtp, user_id=m.id)
         except Exception:  # noqa: BLE001
             db.session.rollback()
-            log.exception("Summary to %s not sent", m.username)
+            log.exception("Summary to %s not sent", personal(m.username))
             continue
         sent += 1 if ok else 0
     return sent
@@ -490,7 +491,7 @@ def format_stats(stats: dict) -> str:
         return _("Email sending is not active.") if stats["skipped"] == "inactive" else str(stats["skipped"])
     if stats.get("error"):
         return _("Error – {error}", error=stats["error"])
-    txt = _("{sent} e-mail(s) to staff members about {loans} loan(s)", sent=stats["sent"], loans=stats["loans"])
+    txt = _("{sent} email(s) to staff members about {loans} loan(s)", sent=stats["sent"], loans=stats["loans"])
     if stats.get("digest"):
         txt += ", " + _("{n} summary/summaries to managers", n=stats["digest"])
     if stats.get("errors"):

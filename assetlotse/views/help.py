@@ -67,7 +67,7 @@ TOPICS: tuple[Topic, ...] = (
     Topic("settings", ROLE_ADMIN, "Einstellungen", "Settings", ("admin.settings",)),
     Topic("twofa-policy", ROLE_ADMIN, "Zwei-Faktor-Regeln und internes Netz", "Two-factor rules and internal network", ()),
     Topic("ldap", ROLE_ADMIN, "Active Directory", "Active Directory", ("admin.ldap",)),
-    Topic("email", ROLE_ADMIN, "E-Mail-Versand", "E-mail delivery", ("admin.email",)),
+    Topic("email", ROLE_ADMIN, "E-Mail-Versand", "Email delivery", ("admin.email",)),
     Topic("branding", ROLE_ADMIN, "Erscheinungsbild", "Branding", ("admin.branding",)),
     Topic("backups", ROLE_ADMIN, "Datensicherung", "Backups", ("admin.backups",)),
     Topic("diagnose", ROLE_ADMIN, "Diagnose und Diagnosepaket", "Diagnostics and diagnostic package", ("admin.diagnose",)),

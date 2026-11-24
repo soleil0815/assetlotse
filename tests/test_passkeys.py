@@ -415,6 +415,25 @@ class PasskeyActiveDirectoryTests(PasskeyBase):
             self.assertEqual(r.status_code, 403, info)
             self.assertEqual(self.c.get("/").status_code, 302)
 
+    def test_reassigned_name_without_identifier_is_rejected(self):
+        # Audit 2026-11: the AD check went by user name only when the directory delivered no identifier (or the
+        # account had none stored) – a former employee's passkey then signed into the account of the person
+        # who now has the name, with that person's role.
+        self.enroll()
+        successor = LDAPUser(username="m.becker", dn="CN=Max Becker,OU=IT,DC=example,DC=org",
+                             display_name="Max Becker", email="max.becker@example.org", role="admin", guid="")
+        with self.directory(successor):
+            r = self.passkey_login()
+        self.assertEqual(r.status_code, 403, r.get_json())
+        self.ad.ldap_guid = None
+        db.session.commit()
+        with self.directory(self.ad_info("admin")):
+            r = self.passkey_login()
+        self.assertEqual(r.status_code, 403, r.get_json())
+        db.session.expire_all()
+        self.assertEqual(db.session.get(User, self.ad.id).role, "reader")
+        self.assertEqual(self.c.get("/").status_code, 302)
+
     def test_ad_unreachable(self):
         self.enroll()
         with self.directory(error=LDAPError("timeout")):

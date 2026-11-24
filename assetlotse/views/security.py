@@ -8,6 +8,7 @@ from flask import (Blueprint, abort, flash, jsonify, redirect, render_template, 
                    url_for)
 from flask_login import current_user, login_required, login_user
 
+from ..applog import personal
 from .. import lockout, twofa
 from ..i18n import _
 from ..models import User, WebAuthnCredential, db
@@ -97,7 +98,7 @@ def _too_many_mfa_fails(user: User) -> bool:
             from flask_login import logout_user
             session.clear()
             logout_user()
-        log.warning("Too many failed second-factor attempts for %s – sign-in discarded", user.username)
+        log.warning("Too many failed second-factor attempts for %s – sign-in discarded", personal(user.username))
         return True
     return False
 
@@ -134,7 +135,7 @@ def challenge():
             lockout.clear(key)
             return redirect(_finish(user))
         lockout.fail(key, user.username)
-        log.info("2FA failed for %s", user.username)
+        log.info("2FA failed for %s", personal(user.username))
         flash(_("The code is invalid."), "error")
     here = [c for c in user.webauthn_credentials if c.rp_id == twofa.rp_id_for(request.host)]
     return render_template("security/challenge.html", user=user, mode=mode,
@@ -147,7 +148,7 @@ def challenge():
 def challenge_key_begin():
     user = _pending_user()
     if user is None:
-        return jsonify({"ok": False, "error": _("Sign-in expired.")}), 400
+        return jsonify({"ok": False, "error": _("Sign-in expired – please reload the page and try again.")}), 400
     options, state = twofa.webauthn_auth_begin(user, twofa.rp_id_for(request.host))
     if options is None:
         return jsonify({"ok": False, "error": _("No security key is registered for this address.")}), 400
@@ -160,7 +161,7 @@ def challenge_key_complete():
     user = _pending_user()
     state = session.pop("webauthn_state", None)
     if user is None or state is None:
-        return jsonify({"ok": False, "error": _("Sign-in expired.")}), 400
+        return jsonify({"ok": False, "error": _("Sign-in expired – please reload the page and try again.")}), 400
     key = _fail_key(user)
     if _too_many_mfa_fails(user):
         flash(_("Too many failed attempts with the second factor. Please sign in again."), "error")
@@ -171,7 +172,7 @@ def challenge_key_complete():
     try:
         ok = twofa.webauthn_auth_complete(user, twofa.rp_id_for(request.host), state, request.get_json(force=True))
     except Exception as exc:  # noqa: BLE001
-        log.info("WebAuthn sign-in %s failed: %s", user.username, exc)
+        log.info("WebAuthn sign-in %s failed: %s", personal(user.username), exc)
         ok = False
     if not ok:
         lockout.fail(key, user.username)
@@ -193,7 +194,8 @@ def passkey_available_for(user: User) -> bool:
     if not twofa.passkey_login_enabled():
         return False
     if user.auth_source == "ldap":
-        return ldap_enabled() and bool(get_setting("ldap_bind_dn"))
+        # 2.9.1: the sign-in also checks the immutable AD identifier – without one stored, no passkey
+        return ldap_enabled() and bool(get_setting("ldap_bind_dn")) and bool(user.ldap_guid)
     return True
 
 
@@ -206,7 +208,7 @@ def _passkey_account_check(user: User) -> str | None:
     """The same gates as the password sign-in – for AD accounts checked live via the service account
     (still present, enabled, not expired, matching the role rules). Returns an error message or None."""
     from ..ldap_auth import Directory, LDAPError
-    generic = _("This passkey cannot be used to sign in. Please sign in with user name and password.")
+    generic = _("This passkey cannot be used to sign in. Please sign in with username and password.")
     if user.self_registered and not user.email_verified:
         return _("Please confirm your email address first.")
     if user.pending_approval:
@@ -218,10 +220,16 @@ def _passkey_account_check(user: User) -> str | None:
         try:
             info = Directory().check_account(user.username)
         except LDAPError as exc:
-            log.warning("Passkey sign-in %s: Active Directory not reachable: %s", user.username, exc)
+            log.warning("Passkey sign-in %s: Active Directory not reachable: %s", personal(user.username), exc)
             return _("The Active Directory cannot be reached right now. Please try again later.")
         if info is None or info.role is None or guid_conflict(info, user):
-            log.info("Passkey sign-in %s rejected: not (or no longer) authorized in AD", user.username)
+            log.info("Passkey sign-in %s rejected: not (or no longer) authorized in AD", personal(user.username))
+            return generic
+        # A passkey proves the device, not the AD password: only the immutable identifier shows that the AD account
+        # behind the username is still the same person (a reassigned name would otherwise hand over the account and
+        # the new owner's role). Without an identifier on both sides: password sign-in only.
+        if not (user.ldap_guid and getattr(info, "guid", "") and user.ldap_guid == info.guid):
+            log.info("Passkey sign-in %s rejected: AD identifier missing or changed", personal(user.username))
             return generic
         reactivate = may_reactivate(user)
         sync_ldap_user(info, user)
@@ -230,7 +238,7 @@ def _passkey_account_check(user: User) -> str | None:
         db.session.commit()
         session["ldap_ok_at"] = int(time.time())
     if not user.active:
-        log.info("Passkey sign-in of locked account %s rejected", user.username)
+        log.info("Passkey sign-in of locked account %s rejected", personal(user.username))
         return generic
     return None
 
@@ -258,7 +266,7 @@ def passkey_complete():
     if lockout.throttled(key):
         return jsonify({"ok": False, "error": _("Too many failed attempts. Please wait a few minutes.")}), 429
     if not pending or time.time() - pending.get("ts", 0) > PASSKEY_TTL:
-        return jsonify({"ok": False, "error": _("Sign-in expired.")}), 400
+        return jsonify({"ok": False, "error": _("Sign-in expired – please reload the page and try again.")}), 400
     payload = request.get_json(force=True, silent=True) or {}
     try:
         user = twofa.passkey_auth_complete(twofa.rp_id_for(request.host), pending["state"],
@@ -267,7 +275,7 @@ def passkey_complete():
         log.info("Passkey sign-in failed: %s", exc)
         user = None
     if user is None:
-        return _passkey_fail(key, _("The passkey was not accepted."))
+        return _passkey_fail(key, _("The passkey was not accepted. Sign in with username and password and create a new passkey under Profile → Security."))
     problem = _passkey_account_check(user)
     if problem:
         return _passkey_fail(key, problem, 403)
@@ -280,7 +288,7 @@ def passkey_complete():
     from ..idle import end_on_close
     login_user(user, remember=bool(payload.get("remember")) and not end_on_close())
     session["mfa_ok"] = True
-    log.info("Passkey sign-in: %s", user.username)
+    log.info("Passkey sign-in: %s", personal(user.username))
     return jsonify({"ok": True, "redirect": safe_next(payload.get("next")) or url_for("main.dashboard")})
 
 
@@ -528,7 +536,7 @@ def enforce_setup():
     internal = netzone.is_internal()
     if session.get("mfa_skipped") and not internal and twofa.needed_outside(current_user):
         log.info("Session of %s without second factor (started internally) used from outside – sign in again",
-                 current_user.username)
+                 personal(current_user.username))
         session.clear()     # first – logout_user() records in it that the remember cookie must be deleted
         logout_user()
         if request.path.startswith("/api/"):

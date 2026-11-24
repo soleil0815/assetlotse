@@ -9,6 +9,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import case, func
 from sqlalchemy.exc import IntegrityError
 
+from ..applog import personal
 from ..ldap_auth import LDAPError, authenticate, ldap_enabled, normalize_dn, rule_matches
 from .. import lockout
 from ..i18n import _
@@ -68,7 +69,7 @@ def sync_ldap_user(info, existing: User | None, ldap_groups: list | None = None,
         # renamed in AD (found via the immutable identifier): adopt the name if it is free
         clash = User.query.filter(func.lower(User.username) == info.username.lower(), User.id != user.id).first()
         if clash is None:
-            log.info("AD account %s is now called %s – renamed", user.username, info.username)
+            log.info("AD account %s is now called %s – renamed", personal(user.username), personal(info.username))
             user.username = info.username
     user.auth_source = "ldap"
     user.password_hash = None
@@ -138,22 +139,22 @@ def login():
                 if info.role is None:
                     # deliberately the same message as for a wrong password: outsiders must not be
                     # able to tell whether an account exists or the password was correct.
-                    log.info("LDAP sign-in %s rejected: no rule matches (%s)", username, info.dn)
+                    log.info("LDAP sign-in %s rejected: no rule matches (%s)", personal(username), info.dn)
                 else:
                     # always match AD accounts via the immutable identifier (even if the typed name exists)
                     user = find_ldap_account(info)
                     if guid_conflict(info, user):
                         log.warning("AD sign-in as %s rejected: according to objectGUID the AssetLotse account %s "
                                     "belongs to a different (former) person – rename the old account under Users",
-                                    username, user.username)
+                                    personal(username), personal(user.username))
                     elif legacy_locked(info, user):
                         log.warning("AD sign-in as %s rejected: the locked legacy account %s has no AD identifier – "
-                                    "an administrator must check whether it is the same person", username, user.username)
+                                    "an administrator must check whether it is the same person", personal(username), personal(user.username))
                     elif user is not None and user.auth_source != "ldap":
                         # a local account is never taken over via AD sign-in (e.g. "DOMAIN\\kasse"
                         # for the local account "kasse") – same message as for a wrong password.
                         log.warning("AD sign-in as %s rejected: local account %s with the same name "
-                                    "is not taken over", username, user.username)
+                                    "is not taken over", personal(username), personal(user.username))
                     else:
                         reactivate = user is not None and may_reactivate(user)   # check before syncing
                         ok_user = sync_ldap_user(info, user)
@@ -171,7 +172,7 @@ def login():
             except LDAPError as exc:
                 db.session.rollback()
                 ok_user = None
-                log.warning("LDAP sign-in %s failed: %s", username, exc)
+                log.warning("LDAP sign-in %s failed: %s", personal(username), exc)
             except Exception:  # noqa: BLE001 – never give details to the client
                 db.session.rollback()
                 ok_user = None
@@ -188,7 +189,7 @@ def login():
             return render_template("login.html", username=username), 403
 
         if ok_user is not None and not ok_user.active:
-            log.info("Sign-in of locked account %s rejected", ok_user.username)
+            log.info("Sign-in of locked account %s rejected", personal(ok_user.username))
             ok_user = None
 
         if ok_user is None:
@@ -398,7 +399,7 @@ def profile():
             flash(_("Too many failed attempts. Please wait a few minutes."), "error")
         elif not current_user.check_password(current):
             lockout.fail(key, current_user.username)
-            log.warning("Password change: wrong current password from %s", current_user.username)
+            log.warning("Password change: wrong current password from %s", personal(current_user.username))
             flash(_("Your current password is incorrect."), "error")
         elif len(new) < MIN_PASSWORD_LENGTH:
             flash(_("The new password must be at least {n} characters long.", n=MIN_PASSWORD_LENGTH), "error")

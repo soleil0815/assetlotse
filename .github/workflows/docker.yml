@@ -244,13 +244,14 @@ jobs:
 
           elif [ "$KIND" = security ]; then
             ! incomplete || repair
-            # same program as the release: only lock files, changelog, docs, tests and CI may differ
+            # same program as the release: only lock files, changelog, README, tests and CI may differ
+            # (docs/ goes into the image – the manuals are shown under Help – so only docs/README.md is left out)
             git rev-parse -q --verify "refs/tags/v${version}" >/dev/null && [ "$VERSION_EXISTS" = true ] \
               || { echo "::error title=Security update::${version} is not released yet – release it first (Run workflow → release)"; exit 1; }
             changed="$(git diff --name-only "v${version}" HEAD -- . ':(exclude)requirements.txt' \
               ':(exclude)build/debian-packages.lock' ':(exclude)build/debian-packages.arm64.lock' \
               ':(exclude)CHANGELOG.md' ':(exclude)README.md' \
-              ':(exclude)README.en.md' ':(exclude)docs' ':(exclude)tests' ':(exclude)scripts' \
+              ':(exclude)README.en.md' ':(exclude)docs/README.md' ':(exclude)tests' ':(exclude)scripts' \
               ':(exclude).github' ':(exclude)Dockerfile' ':(exclude).trivyignore' ':(exclude).gitignore')"
             if ! diff -q <(git show "v${version}:Dockerfile" | grep -vE '^ARG (PYTHON_IMAGE|PIP_VERSION)=') \
                          <(grep -vE '^ARG (PYTHON_IMAGE|PIP_VERSION)=' Dockerfile) >/dev/null; then
@@ -552,7 +553,7 @@ jobs:
           else
             # main must still be where this run started – checked BEFORE the image is pushed
             [ "$(git_auth ls-remote origin refs/heads/main | cut -f1)" = "${GITHUB_SHA}" ] \
-              || { echo "::error title=Security update::main changed while this run was going – nothing published; the next run (Monday or by hand) repeats it"; exit 1; }
+              || { echo "::error title=Security update::main changed while this run was going – nothing published; the next patch day (second Tuesday) or a run by hand repeats it"; exit 1; }
             [ "$pushed" = true ] || push_image
             git commit -q -am "Security update ${NAME}: updated packages (same program as ${VERSION})"
             git tag "v${NAME}"
@@ -783,7 +784,7 @@ jobs:
 
       - name: Trivy scan of latest
         env:
-          CONSEQUENCE: "new since the release – the next security update (Mondays) usually fixes it; otherwise see README"
+          CONSEQUENCE: "new since the release – the next security update (patch day, second Tuesday of the month) usually fixes it; otherwise see README"
           BUILD: ${{ steps.img.outputs.build }}
         run: |
           rc=0

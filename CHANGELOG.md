@@ -2,6 +2,63 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.9.1 – 2026-11-24
+
+Code audit 2026-11 (second run: changes 2.0.2 → 2.9.0).
+
+**Security**
+- **HTTPS behind the proxy is remembered per proxy address.** With the default `ASSETLOTSE_TRUSTED_PROXIES=private`
+  every computer on the LAN counts as a proxy: a single request from any of them with `X-Forwarded-Proto: https`
+  (or only `X-Forwarded-Port: 443`) switched a host name to HTTPS for everyone – users of a proxy without HTTPS were
+  then redirected into nothing (301, which browsers remember). `https-hosts.txt` now stores host **and** proxy
+  address; a sender only switches HTTPS on for its own requests, and senders inventing names can no longer fill the
+  list. Lines of older versions are ignored and learned again at the next HTTPS request (a few seconds after the
+  update); HSTS from AssetLotse returns once it has redirected an HTTP request again.
+- **Passkey sign-in of Active Directory accounts requires the AD identifier** (objectGUID/entryUUID) on both sides
+  and that it matches. Before, the check went by the user name alone when the directory delivered no identifier or
+  the account had none stored – after a user name was reassigned in AD, the former person's passkey signed into the
+  account with the new person's role. Without an identifier: sign-in with user name and password (passkeys are then
+  not offered for that account).
+- **Diagnostic package:** user names and typed text in the program log are now marked when they are written and
+  replaced as a whole in `log.txt` – also deleted accounts, names searched at the desk, a password typed into the
+  user name field and names that are also program words (e.g. "anna"). Before, only values still in the database
+  were replaced.
+
+**Fixed**
+- Update check: after every patch day GitHub marks the security release (`v2.9.0-s1`) as "Latest" – the check
+  failed every day ("no version") until the next program version. A security release now counts as its program
+  version.
+- Label footer: saving the settings page with the prefilled footer froze the organization name (renaming the
+  organization even froze the old one). The footer is only stored when it was changed. A footer frozen before can be
+  corrected under *Settings → Inventory & issuing → Labels*.
+- German emails greet with "Guten Tag …" again (formal address since 2.3.0); remaining informal wording in two
+  messages, the privacy help and the README changed to "Sie".
+- Emergency commands `make-admin`, `reset-password`, `reset-2fa`, `create-admin` ignore upper/lower case of the user
+  name like the sign-in does (`make-admin mmuster` finds "MMuster").
+- User page (administration): passkeys are counted as passkeys, no longer as security keys; the reset question says
+  that passkeys are removed too.
+- Settings page: a broken link anchor (e.g. `#%E0`) no longer stops the page script (tabs, automatic sign-out).
+- Settings: if a field could not be saved, the page no longer also says "Settings saved." but names the rest as
+  saved. *Clean up now* (retention) names the saved period in its question and warns that unsaved changes are lost.
+- Passkey suggestion in the user name field: if the server rejects the chosen passkey (e.g. page open too long,
+  account waiting for approval), the message is shown and the suggestion is offered again; messages say what to do.
+- Locations: the message about shared locations names "managers of the entire inventory" (since `manages_all`).
+- Diagnostics: `proxy_trusted` shows whether proxy headers came from a trusted sender (the old key was never set).
+- Security updates on patch day also count changes to the manuals in `docs/` as program changes (they are in the
+  image and shown under Help); texts in the workflow no longer mention a Monday security update.
+
+**Interface**
+- Status lines for passkeys and security keys are announced by screen readers; larger tap targets in the passkey
+  and sign-out notices; the settings tabs wrap on phones; the hint under "Allow signing in with a passkey" is styled
+  as a hint; *Copy* (recovery codes, confidential details) shows its label again after copying, also after a double
+  click.
+- Update notice: *Hide* says that it hides the notice for all administrators.
+- Help → Maintenance: the emergency commands are complete, ready to copy.
+- English interface texts: "email" and "username" throughout.
+
+**ZAP scan:** no confirmed findings; the reasons for the reported rules are in `.zap/rules.tsv`. The scan container
+runs without the update check.
+
 ## 2.9.0 – 2026-11-20
 
 **New**

@@ -5,9 +5,9 @@ Contents: README.txt, summary.txt (findings in plain text), diagnose.json (every
 
 What makes it anonymous
 * Data is never exported row by row – only counts, states and the program's own results.
-* Every text that leaves (log lines, error messages, results, settings) goes through ``Anonymizer``: e-mail
+* Every text that leaves (log lines, error messages, results, settings) goes through ``Anonymizer``: email
   addresses, IP addresses, host names, AD paths (CN=…,DC=…) and every word that occurs in a personal or
-  identifying database field (user names, names, item data, groups, locations …) or in an identifying setting is
+  identifying database field (usernames, names, item data, groups, locations …) or in an identifying setting is
   replaced by a fixed pseudonym such as ``user-3``, ``email-2@example.invalid``, ``ip-4 (private)`` – the same
   value always gets the same pseudonym, so the connections stay visible.
 * Secrets (passwords, keys, 2FA data, BitLocker data) are never read for the package.
@@ -593,6 +593,7 @@ def _security(app, anon: Anonymizer) -> dict:
 
 
 def _request(req, anon: Anonymizer) -> dict | None:
+    from .proxy import VIA_PROXY
     if req is None:
         return None
     host = req.host.rsplit(":", 1)[0] if not req.host.startswith("[") else req.host.split("]")[0] + "]"
@@ -611,7 +612,9 @@ def _request(req, anon: Anonymizer) -> dict | None:
         "secure": req.is_secure, "scheme": req.scheme, "host_kind": host_kind, "host": anon.scrub(req.host),
         "client": anon.scrub(req.remote_addr or ""), "forwarded_headers": forwarded,
         "x_forwarded_proto": req.headers.get("X-Forwarded-Proto"),
-        "via_proxy": bool(req.environ.get("assetlotse.proxied") or forwarded),
+        "via_proxy": bool(forwarded),
+        # proxy headers from a trusted sender (ASSETLOTSE_TRUSTED_PROXIES) – only then do they count
+        "proxy_trusted": bool(req.environ.get(VIA_PROXY)),
         "browser": browser, "device": device,
     }
 
@@ -709,7 +712,20 @@ def _log(app, anon: Anonymizer | None) -> tuple[list[str], dict]:
     for level in ("WARNING", "ERROR", "CRITICAL"):
         stats[level.lower() + "_24h"] = sum(1 for ln in lines if f" {level} " in ln[:60] and ln[:19] >= since)
     stats["first"] = lines[0][:19] if lines else None
-    return ([anon.scrub(ln) for ln in lines] if anon is not None else []), stats
+    return ([_scrub_log_line(anon, ln) for ln in lines] if anon is not None else []), stats
+
+
+_MARKED = re.compile("\u2068(t:)?([^\u2068\u2069]*)\u2069")
+
+
+def _scrub_log_line(anon: Anonymizer, line: str) -> str:
+    """Personal values marked by applog (personal()) are replaced as a whole – whatever they contain, even if they
+    are not in the database (deleted accounts, typed search text, a password typed into the username field);
+    the rest of the line is scrubbed as usual."""
+    def repl(m: re.Match) -> str:
+        return anon.pseudonym("text" if m.group(1) else "user", m.group(2).strip()) if m.group(2).strip() else ""
+    marked = _MARKED.sub(repl, line)
+    return anon.scrub(marked.replace("\u2068", "").replace("\u2069", ""))
 
 
 # ---------------------------------------------------------------- findings
@@ -815,8 +831,8 @@ _TEXTS = {
     "one_admin": "Only one active administrator – a second one helps if you lock yourself out.",
     "admins_without_2fa": "{n} administrator(s) without a second factor.",
     "no_https": "This page was not opened over HTTPS – passkeys and secure cookies need HTTPS.",
-    "mail_no_host": "E-mail is switched on, but no SMTP server is entered.",
-    "mail_errors": "{n} e-mail(s) failed in the last 7 days.",
+    "mail_no_host": "Email is switched on, but no SMTP server is entered.",
+    "mail_errors": "{n} email(s) failed in the last 7 days.",
     "ldap_no_verify": "The Active Directory certificate is not checked.",
     "ldap_no_service_account": "Active Directory without service account – AD accounts cannot use passkeys and "
                                "people cannot be searched at the desk.",
@@ -884,7 +900,7 @@ Gegenständen, Gruppen und Standorten sind durch Platzhalter ersetzt (z. B. user
 Werte bekommen innerhalb eines Pakets denselben Platzhalter; eine Zuordnungstabelle gibt es nicht.
 
 EN: This package describes the state of an AssetLotse installation so that problems can be diagnosed.
-It is anonymized: no records (only counts), no passwords, keys, 2FA or BitLocker data. Names, user names, e-mail
+It is anonymized: no records (only counts), no passwords, keys, 2FA or BitLocker data. Names, usernames, email
 addresses, IP addresses, host names, AD paths and details of items, groups and locations are replaced by
 placeholders (e.g. user-3, ip-2 (private)). Equal values get the same placeholder within one package; there is
 no mapping table.

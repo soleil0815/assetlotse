@@ -22,6 +22,7 @@ from flask_login import current_user
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from sqlalchemy import func
 
+from ..applog import personal
 from ..i18n import _, _p
 from ..models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLE_READER, Group, User, db, get_bool, get_setting
 from . import form_str
@@ -96,7 +97,7 @@ def _exists_in_directory(username: str) -> bool | None:
         finally:
             conn.unbind()
     except Exception as exc:  # noqa: BLE001
-        log.warning("Registration: AD check for %s not possible: %s", username, exc)
+        log.warning("Registration: AD check for %s not possible: %s", personal(username), exc)
         return None
 
 
@@ -282,7 +283,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         log.info("New registration: %s (%s) – approval required: %s, confirmation required: %s",
-                 username, email, user.pending_approval, verify)
+                 personal(username), email, user.pending_approval, verify)
         if verify:
             if not send_verification(user):
                 flash(_("The confirmation email could not be sent right now. "
@@ -315,7 +316,7 @@ def verify(token):
         maybe_activate(user)
         db.session.commit()
         notify_admins(user)
-        log.info("Email confirmed: %s", user.username)
+        log.info("Email confirmed: %s", personal(user.username))
     return render_template("register_done.html", state="verified", approval=user.pending_approval)
 
 
@@ -345,7 +346,7 @@ def confirm_email_change(token):
         return redirect(url_for("main.profile"))
     user.email = new
     db.session.commit()
-    log.info("Email address changed and confirmed: %s", user.username)
+    log.info("Email address changed and confirmed: %s", personal(user.username))
     flash(_("Your new email address is confirmed."), "success")
     return redirect(url_for("main.profile"))
 

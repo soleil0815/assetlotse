@@ -9,7 +9,8 @@ in ``.env`` (servers without internet access). Errors (offline, firewall, unexpe
 they are kept for the diagnostics page and the program log.
 
 Only program versions count (``2.9.0``). The monthly security images (``2.8.1-s1``) carry the same program and reach
-everyone who follows ``latest`` anyway – they are not announced.
+everyone who follows ``latest`` anyway – they are not announced: their release (marked "Latest" on GitHub after the
+patch day) counts as its program version (``v2.9.0-s1`` → ``2.9.0``).
 """
 from __future__ import annotations
 
@@ -28,6 +29,7 @@ log = logging.getLogger(__name__)
 TIMEOUT = 10                 # seconds for the request to GitHub
 MAX_ANSWER = 512 * 1024      # never read more than this (the answer is a few kilobytes)
 _VERSION = re.compile(r"^v?(\d{1,4})\.(\d{1,4})\.(\d{1,4})$")
+_SECURITY_TAG = re.compile(r"^(v?\d{1,4}\.\d{1,4}\.\d{1,4})-s\d{1,4}$")
 _REPO = re.compile(r"^https://github\.com/([A-Za-z0-9-]{1,39})/([A-Za-z0-9._-]{1,100}?)(?:\.git)?/?$")
 
 
@@ -79,8 +81,9 @@ def fetch_latest() -> str:
         data = json.loads(raw)
     except ValueError:
         raise RuntimeError("Unexpected answer from GitHub (no JSON)") from None
-    tag = data.get("tag_name") if isinstance(data, dict) else None
-    version = parse_version(tag)
+    tag = str(data.get("tag_name") or "").strip() if isinstance(data, dict) else ""
+    m = _SECURITY_TAG.match(tag)          # security update of a program version (after every patch day)
+    version = parse_version(m.group(1) if m else tag)
     if version is None or (isinstance(data, dict) and (data.get("draft") or data.get("prerelease"))):
         raise RuntimeError("Unexpected answer from GitHub (no version)")
     return ".".join(str(x) for x in version)

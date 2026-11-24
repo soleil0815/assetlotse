@@ -24,11 +24,12 @@ from flask import Flask, flash, has_request_context, redirect, render_template, 
 from flask_login import LoginManager, current_user, logout_user
 from flask_wtf.csrf import CSRFError, CSRFProtect
 
+from .applog import personal
 from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_bool, get_setting
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.9.0"
+__version__ = "2.9.1"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
@@ -512,7 +513,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         try:
             info = Directory().check_account(current_user.username)
         except LDAPError as exc:
-            log.warning("LDAP re-check for %s not possible: %s", current_user.username, exc)
+            log.warning("LDAP re-check for %s not possible: %s", personal(current_user.username), exc)
             session["ldap_ok_at"] = now - LDAP_RECHECK_SECONDS + 600   # again in 10 minutes
             return None
         except Exception:  # noqa: BLE001 – an AD problem must not lock anyone out
@@ -521,11 +522,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             return None
         from .views.main import guid_conflict
         if guid_conflict(info, current_user):
-            log.warning("LDAP account %s: the user name now belongs to a different person in AD – session ended",
-                        current_user.username)
+            log.warning("LDAP account %s: the username now belongs to a different person in AD – session ended",
+                        personal(current_user.username))
             info = None
         if info is None or info.role is None:
-            log.info("LDAP account %s no longer authorized – session ended", current_user.username)
+            log.info("LDAP account %s no longer authorized – session ended", personal(current_user.username))
             session.clear()     # first – logout_user() records in it that the remember cookie is to be deleted
             logout_user()
             flash(_("Your session has expired. Please sign in again."), "info")
@@ -651,12 +652,18 @@ def create_app(test_config: dict | None = None) -> Flask:
                                text=_("Please reload the page and try again.")), 400
 
     # ------------------------------------------------------------ CLI
+    def _cli_user(username: str) -> User | None:
+        """Like the sign-in: the username regardless of upper/lower case (AD names are often mixed case)."""
+        from sqlalchemy import func
+        return (User.query.filter_by(username=username).first()
+                or User.query.filter(func.lower(User.username) == username.strip().lower()).first())
+
     @app.cli.command("reset-password")
     @click.argument("username")
     @click.password_option()
     def reset_password(username, password):
         """Reset the password of a local account (e.g. admin); also re-enables it and lifts a sign-in lockout."""
-        user = User.query.filter_by(username=username).first()
+        user = _cli_user(username)
         if not user:
             raise click.ClickException(f"User {username} not found.")
         if len(password) < MIN_PASSWORD_LENGTH:
@@ -674,7 +681,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     def reset_2fa_cmd(username):
         """Reset an account's second factor (e.g. phone/security key lost)."""
         from .twofa import reset_2fa
-        user = User.query.filter_by(username=username).first()
+        user = _cli_user(username)
         if not user:
             raise click.ClickException(f"User {username} not found.")
         reset_2fa(user)
@@ -684,14 +691,14 @@ def create_app(test_config: dict | None = None) -> Flask:
     @click.argument("username")
     def make_admin(username):
         """Give an existing account the administrator role back (and re-enable it)."""
-        user = User.query.filter_by(username=username).first()
+        user = _cli_user(username)
         if not user:
             raise click.ClickException(f"User {username} not found.")
         user.role = ROLE_ADMIN
         user.active = True
         user.pending_approval = False
         db.session.commit()
-        click.echo(f"{username} is administrator again.")
+        click.echo(f"{user.username} is administrator again.")
         if user.auth_source == "ldap":
             click.echo("Note: this is an Active Directory account – at its next sign-in the role is taken from the "
                        "AD rules again. If they do not make it an administrator, sign in with a local account "
@@ -779,7 +786,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     @click.password_option()
     def create_admin(username, password):
         """Create a local administrator account."""
-        if User.query.filter_by(username=username).first():
+        if _cli_user(username):
             raise click.ClickException("User already exists.")
         user = User(username=username, display_name=username, role=ROLE_ADMIN, auth_source="local")
         if len(password) < MIN_PASSWORD_LENGTH:

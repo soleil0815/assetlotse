@@ -295,7 +295,7 @@ def passkey_login_enabled() -> bool:
 
 
 def passkey_auth_begin(rp_id: str):
-    """Sign-in without user name: the browser offers every passkey it holds for this address."""
+    """Sign-in without username: the browser offers every passkey it holds for this address."""
     options, state = _server(rp_id).authenticate_begin(None, user_verification="required")
     return dict(options), state
 

@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.9.1",
+      "date": "2026-11-24",
+      "kind": "security",
+      "audience": "all",
+      "de": {
+        "title": "Code-Audit: Korrekturen",
+        "text": "Passkeys von Active-Directory-Konten werden nur noch angenommen, wenn die AD-Kennung des Kontos passt. Die HTTPS-Umstellung hinter dem Reverse-Proxy kann nicht mehr von einem beliebigen Rechner im Netz für alle ausgelöst werden. Das Diagnosepaket ersetzt Namen im Protokoll jetzt vollständig. Außerdem: Der Update-Hinweis funktioniert auch nach dem monatlichen Sicherheitsupdate, die Fußzeile der Etiketten folgt wieder dem Namen der Einrichtung, E-Mails beginnen mit „Guten Tag“, und einige Meldungen sagen jetzt, was zu tun ist."
+      },
+      "en": {
+        "title": "Code audit: fixes",
+        "text": "Passkeys of Active Directory accounts are only accepted when the account's AD identifier matches. Switching to HTTPS behind the reverse proxy can no longer be triggered for everyone by any computer on the network. The diagnostic package now replaces names in the log completely. Also: the update notice works after the monthly security update too, the label footer follows the organization name again, and several messages now say what to do."
+      }
+    },
+    {
       "version": "2.9.0",
       "date": "2026-11-20",
       "kind": "feature",

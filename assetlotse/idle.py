@@ -22,6 +22,7 @@ from flask import (Blueprint, Flask, current_app, flash, g, has_request_context,
                    url_for)
 from flask_login import current_user, logout_user, user_loaded_from_cookie, user_logged_in
 
+from .applog import personal
 from .i18n import _
 from .models import get_bool, get_setting
 
@@ -135,13 +136,13 @@ def check() -> Any:
     from . import netzone
     if g.pop("idle_from_cookie", False) and end_on_close():
         log.info("Session of %s restored from the remember cookie, but sign-out on closing the browser is on – "
-                 "sign in again", current_user.username)
+                 "sign in again", personal(current_user.username))
         return _sign_out(_("Please sign in again."))
     limit = limit_seconds(current_user, netzone.is_internal())
     now = int(time.time())
     seen = session.get(SEEN)
     if limit and isinstance(seen, int) and now - seen > limit:
-        log.info("Session of %s signed out after %d minutes of inactivity", current_user.username,
+        log.info("Session of %s signed out after %d minutes of inactivity", personal(current_user.username),
                  (now - seen) // 60)
         return _sign_out(_("You have been signed out automatically after a period of inactivity."))
     g.idle_limit = limit
