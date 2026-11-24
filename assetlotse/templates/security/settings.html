@@ -179,7 +179,8 @@
 <section class="card card-pad u-mt-18">
   <div class="actions u-jc-between">
     <div><h2>{{ _("Signed-in devices") }}</h2>
-      <p class="muted u-mt-4">{{ _("Lost your phone or stayed signed in on someone else's computer? Here you can sign out all other devices – including those with “Stay signed in”. This device stays signed in.") }}</p></div>
+      <p class="muted u-mt-4">{{ _("Lost your phone or stayed signed in on someone else's computer? Here you can sign out all other devices – including those with “Stay signed in”. This device stays signed in.") }}</p>
+      <p class="u-mt-4"><span class="badge {{ 'warn' if other_sessions else 'ok' }}">{% if other_sessions %}{{ _n("{n} more sign-in", "{n} more sign-ins", other_sessions) }}{% else %}{{ _("Signed in on this device only") }}{% endif %}</span></p></div>
     <form method="post" action="{{ url_for('main.logout_everywhere') }}" data-confirm="{{ _('Sign out all other devices?') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn">{{ icon("logout") }} {{ _("Sign out on all other devices") }}</button>

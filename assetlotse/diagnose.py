@@ -119,6 +119,7 @@ COLUMNS = {
     "secret_access.asset_label": "item", "secret_access.user_label": "person", "secret_access.action": "plain",
     "mail_log.kind": "plain", "mail_log.status": "plain", "mail_log.to_addr": "email", "mail_log.subject": "text",
     "mail_log.error": "text",
+    "user_sessions.token_hash": "secret",
 }
 
 # ---------------------------------------------------------------- anonymizer

@@ -5,6 +5,7 @@ from unittest import mock
 from test_assetlotse import AD_CFG, Base
 
 from assetlotse import ad_cache
+from assetlotse.sessions import issue as issue_session
 from assetlotse.ldap_auth import Directory, LDAPError, LDAPUser
 from assetlotse.models import DirectoryPerson, Group, User, db, get_setting, set_setting
 
@@ -488,7 +489,7 @@ class SecondReviewTests(SyncTests):
         u = self.ad_account("anna", ldap_guid=G1, last_login=datetime.now())
         self.c = self.app.test_client()
         with self.c.session_transaction() as s:
-            s["_user_id"] = u.get_id()
+            s["_user_id"] = issue_session(u)
             s["_fresh"] = True
             s["ldap_ok_at"] = 0
         with mock.patch.object(Directory, "check_account", return_value=self.person("anna", guid=G2)):
@@ -523,7 +524,7 @@ class SecondReviewTests(SyncTests):
         boss = self.ad_account("boss", role="admin", ldap_guid=G1, last_login=datetime.now())
         self.c = self.app.test_client()
         with self.c.session_transaction() as s:
-            s["_user_id"] = boss.get_id()
+            s["_user_id"] = issue_session(boss)
             s["_fresh"] = True
             import time
             s["ldap_ok_at"] = int(time.time())
@@ -566,7 +567,7 @@ class FinalReviewTests(SecondReviewTests):
         self.c = self.app.test_client()
         import time
         with self.c.session_transaction() as s:
-            s["_user_id"] = boss.get_id()
+            s["_user_id"] = issue_session(boss)
             s["_fresh"] = True
             s["ldap_ok_at"] = int(time.time())
         form = {**{k: v for k, v in AD_CFG.items() if k != "ldap_bind_password"}, "ldap_enabled": "",

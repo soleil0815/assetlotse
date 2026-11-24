@@ -15,7 +15,7 @@ from test_app import BaseCase
 
 from assetlotse import applog, diagnose
 from assetlotse.models import (DEFAULT_SETTINGS, Asset, DirectoryPerson, Group, Loan, Location, LoginAttempt, MailLog,
-                               SecretAccess, WebAuthnCredential, db, set_setting)
+                               SecretAccess, UserSession, WebAuthnCredential, db, set_setting)
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = [*sorted((ROOT / "assetlotse").rglob("*.py")), ROOT / "gunicorn.conf.py", ROOT / "wsgi.py"]
@@ -92,7 +92,7 @@ class AnonymityTests(BaseCase):
         db.session.add_all([Loan(asset_id=asset.id, user_id=reader.id),
                             SecretAccess(asset_id=asset.id, user_id=admin.id),
                             WebAuthnCredential(user_id=reader.id, rp_id="x", credential_id="c", credential_data="d"),
-                            MailLog(kind="test")])
+                            MailLog(kind="test"), UserSession(user_id=reader.id, token_hash="t" * 64)])
         db.session.commit()
         markers: list[str] = []
         self.secret_markers: list[str] = []      # never read for the package (and never logged by the program)

@@ -531,10 +531,12 @@ def start_scheduler(app, interval: int = 300):
     def loop():
         from .backup import run_daily as run_backup_daily
         from .lockout import cleanup as cleanup_lockouts
+        from .sessions import cleanup as cleanup_sessions
         from .retention import run_daily as run_retention_daily
         from .updatecheck import run_daily as run_update_check
         # Each job separately: an error in one must not skip the others.
         jobs = [("clean up registrations", cleanup_unverified), ("clean up sign-in lockouts", cleanup_lockouts),
+                ("clean up expired sessions", cleanup_sessions),
                 ("backup", run_backup_daily),               # back up first …
                 ("retention", run_retention_daily),         # … then clean up (waits for the backup)
                 ("reminders", run_scheduled),

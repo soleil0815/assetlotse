@@ -1368,5 +1368,8 @@
  "Check now": "Jetzt prüfen",
  "The update check failed: {error}": "Die Update-Prüfung ist fehlgeschlagen: {error}",
  "Version {latest} is available (installed: {running}).": "Version {latest} ist verfügbar (installiert: {running}).",
- "Backups, update check, email, Active Directory, reverse proxy and HTTPS": "Datensicherung, Update-Prüfung, E-Mail, Active Directory, Reverse-Proxy und HTTPS"
+ "Backups, update check, email, Active Directory, reverse proxy and HTTPS": "Datensicherung, Update-Prüfung, E-Mail, Active Directory, Reverse-Proxy und HTTPS",
+ "{n} more sign-in": "{n} weitere Anmeldung",
+ "{n} more sign-ins": "{n} weitere Anmeldungen",
+ "Signed in on this device only": "Nur auf diesem Gerät angemeldet"
 }

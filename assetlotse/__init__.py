@@ -379,18 +379,11 @@ def create_app(test_config: dict | None = None) -> Flask:
     login_manager.localize_callback = _gettext
     login_manager.login_message_category = "info"
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        uid, _, epoch = str(user_id).partition(":")
-        if not uid.isdigit():
-            return None
-        user = db.session.get(User, int(uid))
-        if user is None or not user.active:
-            return None
-        # Session from an older "generation" (password changed, signed out everywhere …) -> invalid
-        if str(user.auth_epoch or 0) != (epoch or "0"):
-            return None
-        return user
+    # Server-side sessions (2.10.0): the cookie holds "<id>:<epoch>:<token>", valid only while the session row
+    # exists – signing out, "sign out everywhere", a new password … delete it (assetlotse/sessions.py)
+    from . import sessions as _sessions
+    login_manager.user_loader(_sessions.load)
+    _sessions.install(app)
 
     # Automatic sign-out after inactivity – before the blueprints, so it runs before their per-request checks
     from .idle import install as install_idle

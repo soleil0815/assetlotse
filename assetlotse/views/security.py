@@ -320,7 +320,10 @@ def passkey_hint_off():
 
 def _render_settings(**extra):
     rp = twofa.rp_id_for(request.host)
+    from ..sessions import count as session_count
+    other_sessions = max(0, session_count(current_user) - 1)
     return render_template("security/settings.html", rp_id=rp, required=twofa.required_for(current_user),
+                           other_sessions=other_sessions,
                            passkeys_offered=passkey_available_for(current_user),
                            passkey_login=twofa.passkey_login_enabled(),
                            totp_broken=twofa.totp_unreadable(current_user),

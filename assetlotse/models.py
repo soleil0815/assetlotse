@@ -120,6 +120,8 @@ class User(UserMixin, db.Model):
 
     def end_all_sessions(self):
         self.auth_epoch = (self.auth_epoch or 0) + 1
+        if self.id is not None:                       # 2.10.0: the server-side sessions as well
+            UserSession.query.filter_by(user_id=self.id).delete(synchronize_session=False)
 
     # --- Passwords ---
     def set_password(self, password: str):
@@ -376,6 +378,21 @@ class WebAuthnCredential(db.Model):
     passkey = db.Column(db.Boolean, default=False, nullable=False)
 
     user = db.relationship("User", backref=db.backref("webauthn_credentials", cascade="all, delete-orphan"))
+
+
+class UserSession(db.Model):
+    """2.10.0: one row per signed-in browser. The session cookie and the "stay signed in" cookie carry a random
+    token; only its SHA-256 is stored here. Signing out deletes the row – a copied cookie is worthless afterwards.
+    No IP address, no browser – only the times needed for the expiry."""
+    __tablename__ = "user_sessions"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = db.Column(db.String(64), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    last_seen = db.Column(db.DateTime, default=datetime.now, nullable=False)
+
+    user = db.relationship("User", backref=db.backref("sessions", cascade="all, delete-orphan",
+                                                      passive_deletes=True))
 
 
 class MailLog(db.Model):
