@@ -507,7 +507,7 @@ Please report security problems **privately**, not as an issue – see [SECURITY
 
 ### Automatic sign-out
 
-*Settings → Security → Automatic sign-out* – anyone who does nothing in AssetLotse for this long is signed out (e.g. a browser left open at the issue desk). Every page opened and every saved form counts as activity.
+*Settings → Security → Automatic sign-out* – anyone who does nothing in AssetLotse for this long is signed out (e.g. a browser left open at the issue desk). Every page opened, every saved form and also filling in a form counts as activity – so a long form is not lost.
 
 | Setting | Effect |
 |---|---|

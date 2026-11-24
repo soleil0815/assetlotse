@@ -507,7 +507,7 @@ Sicherheitslücken bitte nicht als Issue, sondern **vertraulich** melden – sie
 
 ### Automatische Abmeldung
 
-*Einstellungen → Sicherheit → Automatische Abmeldung* – wer so lange nichts in AssetLotse tut, wird abgemeldet (z. B. ein offener Browser am Ausgabeplatz). Jede aufgerufene Seite und jedes gespeicherte Formular zählt als Aktivität.
+*Einstellungen → Sicherheit → Automatische Abmeldung* – wer so lange nichts in AssetLotse tut, wird abgemeldet (z. B. ein offener Browser am Ausgabeplatz). Jede aufgerufene Seite, jedes gespeicherte Formular und auch das Ausfüllen eines Formulars zählt als Aktivität – ein langes Formular geht also nicht verloren.
 
 | Einstellung | Wirkung |
 |---|---|
