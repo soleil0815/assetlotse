@@ -82,3 +82,32 @@ class SettingsTabsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UnsavedFormTests(unittest.TestCase):
+    """2.10.0: a page shown again after a test button still counts as unsaved (data-warn-unsaved="dirty")."""
+
+    def setUp(self):
+        self.app = create_app({"TESTING": True, "WTF_CSRF_ENABLED": False, "SQLALCHEMY_DATABASE_URI": "sqlite://"})
+        self.ctx = self.app.app_context()
+        self.ctx.push()
+        db.create_all()
+        u = User(username="chef", display_name="Chef", role="admin", auth_source="local")
+        u.set_password("geheim12345")
+        db.session.add(u)
+        set_setting("setup_completed", "1")
+        db.session.commit()
+        self.c = self.app.test_client()
+        self.c.post("/login", data={"username": "chef", "password": "geheim12345"})
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.ctx.pop()
+
+    def test_email_page_after_test_button(self):
+        self.assertIn("data-warn-unsaved>", self.c.get("/admin/email").get_data(as_text=True))
+        html = self.c.post("/admin/email", data={"action": "test", "smtp_host": "mail.neu.local", "test_to": ""}).get_data(
+            as_text=True)
+        self.assertIn('data-warn-unsaved="dirty"', html)
+        self.assertNotEqual(get_setting("smtp_host"), "mail.neu.local")

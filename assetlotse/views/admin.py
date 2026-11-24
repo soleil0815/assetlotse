@@ -143,6 +143,8 @@ def _save_user(user: User, is_new: bool):
         user.role = role
     if bool(user.active) != active:
         user.deactivated_by_sync = False     # changed manually: the AD sync does not switch it back
+    if user.active and not active and user.id is not None:
+        user.end_all_sessions()              # reactivating later must not revive old (possibly copied) sign-ins
     user.active = active
     if active and user.pending_approval:   # "account active" checked = approved
         user.pending_approval = False
@@ -689,6 +691,11 @@ def _would_lock_out_self(cfg: dict) -> str | None:
     return None
 
 
+def _unsaved(cfg: dict | None) -> bool:
+    """The page shows form values that are not stored (after a test button): it still warns before leaving."""
+    return bool(cfg) and any(get_setting(k) != v for k, v in cfg.items())
+
+
 def _ldap_form_cfg() -> dict:
     cfg = {k: form_str(k, 500) for k in LDAP_TEXT}
     for k in LDAP_MULTI:
@@ -811,7 +818,8 @@ def ldap():
                            cache=ad_cache.status(), cache_hours=ad_cache.HOURS_CHOICES,
                            test_error=test_error, ROLES=ROLES, ldap_groups=ldap_groups,
                            stored_certs=stored, fetched=fetched, ad_groups=ad_groups,
-                           group_query=request.form.get("group_query", ""), group_cn=group_cn)
+                           group_query=request.form.get("group_query", ""), group_cn=group_cn,
+                           unsaved=_unsaved(cfg))
 
 
 @bp.route("/verzeichnisdienst/abgleichen", methods=["POST"])
@@ -923,7 +931,7 @@ def email():
     suggested_url = request.host_url.rstrip("/")
     values = dict(values, mail_last_result=mailer.last_result_text(values.get("mail_last_result", "")))
     return render_template("admin/email.html", v=values, has_pw=has_pw, logs=logs, pending=pending,
-                           without_mail=without_mail, suggested_url=suggested_url)
+                           without_mail=without_mail, suggested_url=suggested_url, unsaved=_unsaved(cfg))
 
 
 # ---------------------------------------------------------------- Branding

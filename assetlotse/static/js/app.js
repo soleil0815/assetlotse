@@ -34,7 +34,6 @@
     const close = e.target.closest("[data-dialog-close]");
     if (close) { const dlg = close.closest("dialog"); if (dlg) dlg.close(); }
   });
-  /* The PDF opens in a new tab – close the dialog right after sending. */
   // label dialog for a selection: total = items × copies, never more than the limit
   $$("input[data-label-items]").forEach((input) => {
     const out = input.form && input.form.querySelector("[data-label-total]");
@@ -44,6 +43,7 @@
       out.textContent = String(items * copies);
     });
   });
+  /* The PDF opens in a new tab – close the dialog right after sending. */
   $$("form[data-dialog-submit]").forEach((f) => f.addEventListener("submit", () => {
     const dlg = f.closest("dialog");
     if (dlg) setTimeout(() => dlg.close(), 0);
@@ -136,9 +136,10 @@
 
   /* ------------------------------------------------------------ Unsaved changes
      Forms with data-warn-unsaved (settings, email, Active Directory, branding): leaving the page after a change
-     asks first, and on the settings page the tab with the change gets a mark. Saving clears it. */
+     asks first, and on the settings page the tab with the change gets a mark. Saving clears it; data-warn-unsaved
+     ="dirty" (page shown again after a test button) starts with unsaved changes. */
   $$("form[data-warn-unsaved]").forEach((form) => {
-    let dirty = false;
+    let dirty = form.dataset.warnUnsaved === "dirty";   // shown again after a test button, still not saved
     const mark = (el) => {
       dirty = true;
       const panel = el && el.closest && el.closest("[data-tab-panel]");
@@ -150,7 +151,15 @@
     };
     form.addEventListener("input", (e) => mark(e.target));
     form.addEventListener("change", (e) => mark(e.target));
-    form.addEventListener("submit", () => { dirty = false; });
+    form.addEventListener("submit", (e) => {
+      // a button with its own target (e.g. "Synchronise now") does not save this form
+      if (dirty && e.submitter && e.submitter.hasAttribute("formaction")
+          && !window.confirm(T("Your changes have not been saved and will be lost. Continue?"))) {
+        e.preventDefault();
+        return;
+      }
+      dirty = false;
+    });
     window.addEventListener("beforeunload", (e) => {
       if (!dirty || form.dataset.busy) return;
       e.preventDefault();

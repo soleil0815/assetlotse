@@ -1394,5 +1394,6 @@
  "{n} item in this selection": "{n} Gegenstand in dieser Auswahl",
  "{n} items in this selection": "{n} Gegenstände in dieser Auswahl",
  "Labels in total:": "Etiketten insgesamt:",
- "(at most {max})": "(höchstens {max})"
+ "(at most {max})": "(höchstens {max})",
+ "Your changes have not been saved and will be lost. Continue?": "Ihre Änderungen sind nicht gespeichert und gehen verloren. Trotzdem fortfahren?"
 }

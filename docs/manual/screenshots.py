@@ -66,7 +66,7 @@ def extra_data(app, lang: str) -> int:
         db.session.commit()
         for days in (3, 2, 1):
             backup.create_backup(now=datetime.now() - timedelta(days=days))
-        backup.create_backup("manuell")
+        backup.create_backup("-manuell")
         return drive.id
 
 

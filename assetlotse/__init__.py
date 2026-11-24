@@ -418,6 +418,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         from .labels import default_footer
         return default_footer()
     app.jinja_env.globals["label_footer"] = _label_footer
+    from . import labels as _labels
+    app.jinja_env.globals["label_limits"] = {"labels": _labels.MAX_LABELS, "copies": _labels.MAX_COPIES,
+                                             "copies_one": _labels.MAX_COPIES_ONE}
     from .twofa import passkey_login_enabled
     app.jinja_env.globals["passkey_login_enabled"] = passkey_login_enabled
     from .views.security import passkey_hint_due

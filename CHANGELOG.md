@@ -11,7 +11,9 @@ The current version is shown at the bottom left of the sidebar after signing in.
   SHA-256 hash (table `user_sessions`). Signing out, "Sign out on all other devices", a new password, a reset of
   two-factor authentication, a deactivated or deleted account and the automatic sign-out end it there – a copied
   session or "Stay signed in" cookie is worthless afterwards. A sign-in is valid for at most 14 days; expired ones are
-  cleaned up by the scheduler. *Profile → Security* shows how many other sign-ins exist.
+  cleaned up by the scheduler, as are those past the inactivity limit (a browser closed without signing out).
+  *Profile → Security* shows how many other sign-ins exist. Deactivating an account by hand now also ends its
+  sign-ins, so reactivating it later does not revive old (possibly copied) ones.
 - **Backups before an update** are protected beyond the normal number for 30 days only (the newest three), so that
   deleted data does not stay in old backups for ever.
 
@@ -26,7 +28,8 @@ The current version is shown at the bottom left of the sidebar after signing in.
   in the app's date format.
 - **Forms:** after sending, the button shows a busy state and a second click is ignored (no double loans or items on
   a slow connection). Settings, email, Active Directory and branding warn before leaving with unsaved changes; the
-  settings tab with a change carries a dot.
+  settings tab with a change carries a dot. After a test button (test email, AD tests) the page still counts as
+  unsaved, and buttons that leave without saving (e.g. "Synchronise now") ask first.
 - **Automatic sign-out:** typing and choosing in a form count as activity – also with the notice switched off, a long
   form is no longer lost on saving.
 - **Labels for a selection:** the print dialog shows the number of items and the total number of labels, limits the

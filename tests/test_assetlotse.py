@@ -444,8 +444,6 @@ class LabelTests(Base):
         self.assertIn("Keine Gegenstände für Etiketten", r.get_data(as_text=True))
 
     def test_label_dialog_shows_the_total_and_the_limit(self):
-        from assetlotse.labels import MAX_LABELS
-        self.assertEqual(MAX_LABELS, 500)               # _label_dialog.html uses the same limit
         self.laptop(secret="")
         self.laptop(secret="", name="Zweiter", inventory_no="IT-0043")
         db.session.add(Asset(name="Fremd", category="Laptop", group_id=self.hr.id))

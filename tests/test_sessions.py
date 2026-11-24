@@ -142,6 +142,31 @@ class SessionTests(BaseCase):
             self.assertIsNone(sessions.load(forged), forged)
         self.assertEqual(sessions.load(sid).id, bob.id)
 
+    def test_sessions_past_the_inactivity_limit_are_not_counted(self):
+        a = self.sign_in(self.app.test_client())
+        self.sign_in(self.app.test_client())              # a browser closed without signing out …
+        old = UserSession.query.order_by(UserSession.id.desc()).first()
+        old.last_seen = datetime.now() - timedelta(hours=13)   # … longer ago than the limit (12 hours)
+        db.session.commit()
+        self.assertEqual(sessions.count(self.anna), 1)
+        self.assertIn("Nur auf diesem Gerät angemeldet", a.get("/profil/sicherheit").get_data(as_text=True))
+        self.assertEqual(sessions.cleanup(), 1)
+
+    def test_manual_deactivation_ends_the_sessions(self):
+        a = self.sign_in(self.app.test_client())
+        thief = self.copy(a, "session")
+        self.make_user("chef", role="admin")
+        admin = self.app.test_client()
+        admin.post("/login", data={"username": "chef", "password": "geheim123"})
+        form = {"username": "anna", "display_name": "Anna", "email": "", "role": "reader"}
+        admin.post(f"/admin/benutzer/{self.anna.id}", data=form)          # "Account active" unticked
+        db.session.refresh(self.anna)
+        self.assertFalse(self.anna.active)
+        admin.post(f"/admin/benutzer/{self.anna.id}", data={**form, "active": "1"})
+        db.session.refresh(self.anna)
+        self.assertTrue(self.anna.active)
+        self.assertFalse(self.signed_in(thief))           # reactivating does not revive the old sign-in
+
     def test_security_page_counts_other_sessions(self):
         a = self.sign_in(self.app.test_client())
         self.sign_in(self.app.test_client())

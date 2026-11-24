@@ -77,16 +77,32 @@ def _on_logout(sender: object, user: User, **extra: object) -> None:
         user.session_token = None
 
 
+def _oldest(now: datetime, idle_seconds: int) -> datetime:
+    """last_seen before this: the session has ended – after MAX_AGE, or earlier through the automatic sign-out
+    (which also applies with "Stay signed in"; a browser closed without signing out leaves its row behind)."""
+    age = MAX_AGE
+    if idle_seconds > 0:
+        age = min(age, timedelta(seconds=idle_seconds) + TOUCH_AFTER)   # last_seen is written every TOUCH_AFTER
+    return now - age
+
+
+def _general_idle_seconds() -> int:
+    from .idle import _hours, env_default
+    return int(_hours("session_idle_hours", env_default()) * 3600)
+
+
 def count(user: User) -> int:
-    """Valid sessions of the account (for "Sign out everywhere")."""
-    return UserSession.query.filter(UserSession.user_id == user.id,
-                                    UserSession.last_seen >= datetime.now() - MAX_AGE).count()
+    """Sessions of the account that can still be used (for "Sign out everywhere")."""
+    from .idle import limit_seconds
+    oldest = _oldest(datetime.now(), limit_seconds(user, internal=True))
+    return UserSession.query.filter(UserSession.user_id == user.id, UserSession.last_seen >= oldest).count()
 
 
 def cleanup(now: datetime | None = None) -> int:
-    """Delete expired sessions and those of deleted accounts (scheduler)."""
+    """Delete ended sessions and those of deleted accounts (scheduler)."""
     now = now or datetime.now()
-    n = UserSession.query.filter(UserSession.last_seen < now - MAX_AGE).delete(synchronize_session=False)
+    oldest = _oldest(now, _general_idle_seconds())
+    n = UserSession.query.filter(UserSession.last_seen < oldest).delete(synchronize_session=False)
     n += UserSession.query.filter(~UserSession.user_id.in_(db.session.query(User.id))).delete(
         synchronize_session=False)
     db.session.commit()

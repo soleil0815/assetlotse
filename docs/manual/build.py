@@ -1,7 +1,7 @@
 """Builds the PDF manuals: content.<lang>.html + cover + table of contents → PDF (two passes, so the page
 numbers in the table of contents are right). Screenshots come from screenshots.py.
 
-    python3 docs/manual/screenshots.py              # img/de/*.png and img/en/*.png (needs Playwright/Chromium)
+    python3 docs/manual/screenshots.py              # img/de/*.jpg and img/en/*.jpg (needs Playwright/Chromium)
     python3 docs/manual/build.py de                  # → docs/Handbuch-AssetLotse.pdf
     python3 docs/manual/build.py en                  # → docs/Manual-AssetLotse.pdf
 
