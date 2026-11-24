@@ -422,12 +422,16 @@
     btn.addEventListener("click", run);
   });
 
-  $$("[data-copy-codes]").forEach((btn) => btn.addEventListener("click", async () => {
-    const text = $$("[data-codes] > div").map((d) => d.textContent.trim()).join("\n");
+  $$("[data-copy-codes]").forEach((btn) => {
     const label = btn.innerHTML;
-    try { await navigator.clipboard.writeText(text); btn.textContent = T("✓ Copied"); } catch (e) { window.prompt(T("Codes:"), text); }
-    setTimeout(() => { btn.innerHTML = label; }, 2500);
-  }));
+    let timer = null;
+    btn.addEventListener("click", async () => {
+      const text = $$("[data-codes] > div").map((d) => d.textContent.trim()).join("\n");
+      try { await navigator.clipboard.writeText(text); btn.textContent = T("✓ Copied"); } catch (e) { window.prompt(T("Codes:"), text); }
+      clearTimeout(timer);
+      timer = setTimeout(() => { btn.innerHTML = label; }, 2500);
+    });
+  });
 
   /* ------------------------------------------------------------ Settings: topics as tabs
      Without JavaScript every topic is shown one below the other. The open tab survives saving (hidden
@@ -546,14 +550,18 @@
   });
 
   /* ------------------------------------------------------------ Copy confidential details */
-  $$("[data-copy-secret]").forEach((btn) => btn.addEventListener("click", async () => {
-    const box = $("[data-secret]");
-    if (!box) return;
-    const label = btn.innerHTML;
-    try { await navigator.clipboard.writeText(box.textContent.trim()); btn.textContent = T("✓ Copied"); }
-    catch (e) { window.getSelection().selectAllChildren(box); btn.textContent = T("Selected – press Ctrl+C to copy"); }
-    setTimeout(() => { btn.innerHTML = label; }, 2500);
-  }));
+  $$("[data-copy-secret]").forEach((btn) => {
+    const label = btn.innerHTML;          // read once: a second click within 2.5 s must not keep "Copied"
+    let timer = null;
+    btn.addEventListener("click", async () => {
+      const box = $("[data-secret]");
+      if (!box) return;
+      try { await navigator.clipboard.writeText(box.textContent.trim()); btn.textContent = T("✓ Copied"); }
+      catch (e) { window.getSelection().selectAllChildren(box); btn.textContent = T("Selected – press Ctrl+C to copy"); }
+      clearTimeout(timer);
+      timer = setTimeout(() => { btn.innerHTML = label; }, 2500);
+    });
+  });
 
   /* ------------------------------------------------------------ Help */
   const helpBox = $("[data-help-topics]");

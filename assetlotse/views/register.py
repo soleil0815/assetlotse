@@ -283,7 +283,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         log.info("New registration: %s (%s) – approval required: %s, confirmation required: %s",
-                 personal(username), personal(email, "text"), user.pending_approval, verify)
+                 personal(username), email, user.pending_approval, verify)
         if verify:
             if not send_verification(user):
                 flash(_("The confirmation email could not be sent right now. "

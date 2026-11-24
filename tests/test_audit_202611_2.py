@@ -103,11 +103,30 @@ class DiagnosticLogTests(BaseCase):
             for node in ast.walk(tree):
                 if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                         and isinstance(node.func.value, ast.Name) and node.func.value.id == "log"):
+                    marked = False
                     for arg in node.args[1:]:
                         text = ast.unparse(arg)
-                        if text.endswith("username") or text in ("query", "email", "to"):
+                        marked = marked or text.startswith("personal(")
+                        if text.endswith("username") or text in ("query", "display_name"):
                             missing.append(f"{path.name}:{node.lineno} {text}")
+                    # the marks only survive %s (with %r they would be escaped and the value stay in clear)
+                    fmt = node.args[0].value if node.args and isinstance(node.args[0], ast.Constant) else ""
+                    if marked and "%r" in str(fmt):
+                        missing.append(f"{path.name}:{node.lineno} %r")
         self.assertEqual(missing, [])
+
+    def test_line_breaks_in_a_marked_value(self):
+        # the package reads the log line by line: a value with a line break must stay one marked piece
+        self.make_user("chefin", role="admin")
+        self.login("chefin")
+        with mock.patch("assetlotse.views.loans.ad_search_available", return_value=True), \
+                mock.patch("assetlotse.ldap_auth.Directory") as directory:
+            directory.return_value.search_users.return_value = ([], False)
+            self.c.get("/theke?modus=ausgabe&benutzer=Hildegard%0AQuaschning")
+        log = self.package()
+        self.assertNotIn("Quaschning", log)
+        self.assertNotIn("Hildegard", log)
+        self.assertNotIn("t:", log)
 
 
 class UpdateCheckAfterPatchDayTests(BaseCase):
@@ -238,3 +257,21 @@ class WorkflowTests(BaseCase):
         self.assertNotIn("security update (Mondays)", wf)
         self.assertNotIn("next run (Monday", wf)
         self.assertNotIn("weekly security update", (ROOT / "scripts" / "ci.py").read_text())
+
+
+class PasskeyWithoutIdentifierTests(BaseCase):
+    """Review: an AD account without a stored AD identifier was still offered a passkey that could then never be
+    used to sign in (the sign-in requires the identifier since 2.9.1)."""
+
+    def test_not_offered_without_identifier(self):
+        from assetlotse.models import set_setting
+        from assetlotse.views.security import passkey_available_for
+        for k, v in {"ldap_enabled": "1", "ldap_server": "dc1.example.org", "ldap_bind_dn": "svc-asset"}.items():
+            set_setting(k, v)
+        u = self.make_user("m.becker")
+        u.auth_source = "ldap"
+        db.session.commit()
+        with self.app.test_request_context("/"):
+            self.assertFalse(passkey_available_for(u))
+            u.ldap_guid = "guid-1"
+            self.assertTrue(passkey_available_for(u))

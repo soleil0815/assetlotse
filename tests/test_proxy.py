@@ -3,6 +3,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("ASSETLOTSE_DATA_DIR", tempfile.mkdtemp(prefix="assetlotse-proxy-"))
@@ -169,10 +170,12 @@ class ForceHttpsTests(unittest.TestCase):
     def test_flooding_names_does_not_block_the_real_proxy(self):
         from assetlotse import proxy
         c = self.client()
-        for i in range(proxy.MAX_HOSTS + 5):
-            c.get("/", headers={"X-Forwarded-Proto": "https", "Host": f"h{i}.example.org"},
-                  environ_base={"REMOTE_ADDR": "192.168.1.66"})
-        c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
+        with mock.patch.object(proxy, "MAX_ENTRIES", 3 * proxy.MAX_HOSTS):
+            for n in range(4):                 # several LAN addresses inventing names until everything is full
+                for i in range(proxy.MAX_HOSTS + 5):
+                    c.get("/", headers={"X-Forwarded-Proto": "https", "Host": f"h{i}.example.org"},
+                          environ_base={"REMOTE_ADDR": f"192.168.1.{66 + n}"})
+            c.get("/", headers=self.HTTPS, environ_base=self.PROXY)
         self.assertEqual(c.get("/", headers=self.HTTP, environ_base=self.PROXY).status_code, 301)
 
     def test_auto_is_remembered_after_restart(self):

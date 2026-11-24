@@ -194,7 +194,8 @@ def passkey_available_for(user: User) -> bool:
     if not twofa.passkey_login_enabled():
         return False
     if user.auth_source == "ldap":
-        return ldap_enabled() and bool(get_setting("ldap_bind_dn"))
+        # 2.9.1: the sign-in also checks the immutable AD identifier – without one stored, no passkey
+        return ldap_enabled() and bool(get_setting("ldap_bind_dn")) and bool(user.ldap_guid)
     return True
 
 

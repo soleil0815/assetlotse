@@ -178,7 +178,7 @@ def send_mail(to: str, subject: str, text: str, html: str | None = None, *, kind
                                error=error[:1000], loan_id=lid, user_id=user_id))
     db.session.commit()
     if error:
-        log.warning("Mail to %s (%s) failed: %s", personal(to, "text"), kind, error)
+        log.warning("Mail to %s (%s) failed: %s", to, kind, error)
     return not error, error
 
 
@@ -560,7 +560,7 @@ def start_scheduler(app, interval: int = 300):
                 log.exception("Error while syncing the AD cache")
             time.sleep(interval)
 
-    threading.Thread(target=loop, name="assetlotsemail", daemon=True).start()
+    threading.Thread(target=loop, name="assetlotse-mail", daemon=True).start()
 
 
 __all__ = ["MailError", "SmtpConfig", "send_mail", "smtp_connect", "render_mail", "notify_loan", "notify_return",

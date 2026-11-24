@@ -60,13 +60,18 @@ class _Filter(logging.Filter):
         return record.levelno >= logging.WARNING or record.name == "assetlotse" or record.name.startswith("assetlotse.")
 
 
+def _one_line(value: str) -> str:
+    """The marked value on one line (the package reads the log line by line), without the marks themselves."""
+    return " ".join(value.replace(MARK_START, "").replace(MARK_END, "").split())
+
+
 class _MarkingFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         args = record.args
         if isinstance(args, tuple) and any(isinstance(a, Personal) for a in args):
             record = logging.makeLogRecord(record.__dict__)
             record.args = tuple(f"{MARK_START}{'t:' if isinstance(a, PersonalText) else ''}"
-                                f"{a.replace(MARK_START, '').replace(MARK_END, '')}{MARK_END}"
+                                f"{_one_line(a)}{MARK_END}"
                                 if isinstance(a, Personal) else a for a in args)
         return super().format(record)
 

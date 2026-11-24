@@ -200,9 +200,18 @@ class HttpsHosts:
             return
         with self._lock:
             self._reload()
-            if key in self.hosts or len(self.hosts) >= MAX_ENTRIES \
-                    or sum(1 for _, a in self.hosts if a == addr) >= MAX_HOSTS:
+            if key in self.hosts or sum(1 for _, a in self.hosts if a == addr) >= MAX_HOSTS:
                 return
+            if len(self.hosts) >= MAX_ENTRIES:
+                # full: make room at the sender with the most entries – a real proxy forwards only a few names,
+                # so senders inventing names can never keep it from learning its own
+                counts: dict[str, int] = {}
+                for _, a in self.hosts:
+                    counts[a] = counts.get(a, 0) + 1
+                busiest = max(counts, key=lambda a: counts[a])
+                drop = sorted(k for k in self.hosts if k[1] == busiest)[0]
+                self.hosts.discard(drop)
+                self.redirected.discard(drop)
             self.hosts.add(key)
             self._save("HTTPS through the reverse proxy detected for %s (proxy %s) – HTTP is now redirected to HTTPS",
                        host, addr)
