@@ -14,3 +14,4 @@ packages
 .gitignore
 *.zip.sha256
 .mypy_cache
+docs/manual

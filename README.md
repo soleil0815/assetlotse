@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.9.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.10.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -279,7 +279,7 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 
 **Neuigkeiten:** Gibt es nach einem Update etwas Neues, erscheint unten links neben der Versionsnummer ein kleiner Punkt. Er führt zu *Neuigkeiten*: kurze Hinweise zu neuen Funktionen, Sicherheitsupdates und Korrekturen – jede Person sieht nur, was ihre Rolle betrifft (Mitarbeiter, Verwalter, Administratoren). Nach dem Lesen verschwindet der Punkt bis zum nächsten Update. Die Einträge stehen in `assetlotse/news.json` (Deutsch und Englisch) und kommen mit jeder Version mit.
 
-**Handbuch als PDF:** `docs/Handbuch-AssetLotse.pdf` (Deutsch) und `docs/Manual-AssetLotse.pdf` (Englisch, mit Bildschirmfotos der englischen Oberfläche) – für Mitarbeitende, Verwalter und Administratoren, mit Fehlerbehebung und Notfallbefehlen. Die Hilfe im Programm verlinkt oben das Handbuch in der Sprache der Oberfläche (*Handbuch (PDF)*).
+**Handbuch als PDF:** `docs/Handbuch-AssetLotse.pdf` (Deutsch) und `docs/Manual-AssetLotse.pdf` (Englisch, mit Bildschirmfotos der englischen Oberfläche) – für Mitarbeitende, Verwalter und Administratoren, mit Fehlerbehebung und Notfallbefehlen. Die Hilfe im Programm verlinkt oben das Handbuch in der Sprache der Oberfläche (*Handbuch (PDF)*). Text, Bildschirmfotos und Bau-Skripte liegen in `docs/manual/` (siehe `docs/README.md`).
 
 **Übersetzungen pflegen:** Der englische Text ist zugleich der Schlüssel (`_("…")` in Templates und Python, `T("…")` in `app.js`; gleiches englisches Wort mit verschiedener deutscher Bedeutung: `_p("Kontext", "…")`); die deutschen Texte stehen in `assetlotse/translations/de.json`. Der Test `tests/test_i18n.py` meldet jeden Text ohne Übersetzung und deutsche Reste auf englischen Seiten. Code, Kommentare, Protokollmeldungen, CHANGELOG und Commit-Nachrichten sind englisch. Die Hilfetexte liegen je Sprache in `assetlotse/templates/help/de|en/`.
 

@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.9.1** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.10.0** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -279,7 +279,7 @@ Under *Inventory*, managers can download the inventory of their groups as **CSV*
 
 **What's new:** if there is something new after an update, a small dot appears next to the version number at the bottom left. It leads to *What's new*: short notes on new features, security updates and fixes – everyone only sees what concerns their role (staff, managers, administrators). After reading, the dot disappears until the next update. The entries live in `assetlotse/news.json` (German and English) and ship with every version.
 
-**PDF manual:** `docs/Manual-AssetLotse.pdf` (English, with screenshots of the English interface) and `docs/Handbuch-AssetLotse.pdf` (German) – for staff, managers and administrators, including troubleshooting and emergency commands. The in-app help links the manual in the language of the interface at the top (*Manual (PDF)*).
+**PDF manual:** `docs/Manual-AssetLotse.pdf` (English, with screenshots of the English interface) and `docs/Handbuch-AssetLotse.pdf` (German) – for staff, managers and administrators, including troubleshooting and emergency commands. The in-app help links the manual in the language of the interface at the top (*Manual (PDF)*). Text, screenshots and build scripts are in `docs/manual/` (see `docs/README.md`).
 
 **Maintaining translations:** The English text is also the key (`_("…")` in templates and Python, `T("…")` in `app.js`; the same English word with different German meanings: `_p("context", "…")`); the German texts live in `assetlotse/translations/de.json`. The test `tests/test_i18n.py` reports every text without a translation and German leftovers on English pages. Code, comments, log messages, the CHANGELOG and commit messages are in English. Help texts are stored per language in `assetlotse/templates/help/de|en/`.
 

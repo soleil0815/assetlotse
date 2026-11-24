@@ -11,3 +11,4 @@ pakete/
 *.zip.sha256
 .assetlotse-update.*
 .mypy_cache
+docs/manual/img/
