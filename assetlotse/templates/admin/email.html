@@ -11,7 +11,7 @@
   </div>
 </div>
 
-<form method="post" autocomplete="off">
+<form method="post" autocomplete="off" data-warn-unsaved>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <button type="submit" name="action" value="save" class="offscreen" tabindex="-1" aria-hidden="true"></button>
   <div class="grid grid-2">

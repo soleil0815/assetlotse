@@ -6,7 +6,7 @@
   <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Diagnostics") }}</h1>
     <p>{{ _("Checks of the installation – and an anonymized diagnostic package you can pass on when you need help.") }}</p></div>
   <div class="actions">
-    <form method="post" action="{{ url_for('admin.diagnose_download') }}">
+    <form method="post" action="{{ url_for('admin.diagnose_download') }}" data-no-lock>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn primary">{{ icon("download") }} {{ _("Download diagnostic package") }}</button>
     </form>

@@ -443,6 +443,30 @@ class LabelTests(Base):
         r = self.c.get("/gegenstaende/etiketten.pdf?kategorie=Gibtsnicht", follow_redirects=True)
         self.assertIn("Keine Gegenstände für Etiketten", r.get_data(as_text=True))
 
+    def test_label_dialog_shows_the_total_and_the_limit(self):
+        from assetlotse.labels import MAX_LABELS
+        self.assertEqual(MAX_LABELS, 500)               # _label_dialog.html uses the same limit
+        self.laptop(secret="")
+        self.laptop(secret="", name="Zweiter", inventory_no="IT-0043")
+        db.session.add(Asset(name="Fremd", category="Laptop", group_id=self.hr.id))
+        db.session.commit()
+        self.login("vera")
+        html = self.c.get("/gegenstaende?kategorie=Laptop").get_data(as_text=True)
+        self.assertIn('data-label-items="2"', html)    # only the items this person manages
+        self.assertIn("2 Gegenstände in dieser Auswahl", html)
+        self.assertIn('max="10"', html)
+        html = self.c.get("/gegenstaende?kategorie=Gibtsnicht").get_data(as_text=True)
+        self.assertIn("keine Gegenstände, die Sie verwalten", html)
+        import assetlotse.views.assets as views
+        real = views._label_items
+        views._label_items = lambda f: 600              # a selection with 600 items, without creating them
+        try:
+            html = self.c.get("/gegenstaende").get_data(as_text=True)
+        finally:
+            views._label_items = real
+        self.assertIn("Die Auswahl hat 600 Gegenstände – höchstens 500 Etiketten pro Druck", html)
+        self.assertIn('class="btn primary" disabled', html)
+
     def test_labels_only_for_managers(self):
         a = self.laptop()
         self.login("mia")

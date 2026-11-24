@@ -1331,7 +1331,6 @@
  "Small at the bottom right, e.g. company and phone number of the IT. Set it permanently for everyone under Settings → Inventory & issuing → Labels.": "Klein unten rechts, z. B. Firma und Telefonnummer der IT. Dauerhaft für alle unter Einstellungen → Bestand & Ausgabe → Etiketten festlegen.",
  "Number of labels": "Anzahl Etiketten",
  "Copies per item": "Anzahl je Gegenstand",
- "At most 500 labels per print run.": "Höchstens 500 Etiketten je Druck.",
  "Format 62 × 29 mm – e.g. Brother QL with continuous tape. Print at “Actual size” / 100 %.": "Format 62 × 29 mm – z. B. Brother QL mit Endlosband. Mit „Tatsächliche Größe“ / 100 % drucken.",
  "Create PDF": "PDF erstellen",
  "Too many labels for one print run (at most {n}). Please narrow the selection or print fewer copies per item.": "Zu viele Etiketten für einen Druck (höchstens {n}). Bitte grenzen Sie die Auswahl ein oder drucken Sie weniger je Gegenstand.",
@@ -1387,5 +1386,13 @@
  "Language saved.": "Sprache gespeichert.",
  "{n} account has chosen its own language:": "{n} Konto hat eine eigene Sprache gewählt:",
  "{n} accounts have chosen their own language:": "{n} Konten haben eine eigene Sprache gewählt:",
- "They change it in their profile or with DE / EN at the top right.": "Ändern lässt sie sich im Profil oder mit DE / EN oben rechts."
+ "They change it in their profile or with DE / EN at the top right.": "Ändern lässt sie sich im Profil oder mit DE / EN oben rechts.",
+ "Unsaved changes": "Nicht gespeicherte Änderungen",
+ "No items in this selection that you manage.": "In dieser Auswahl sind keine Gegenstände, die Sie verwalten.",
+ "The selection has {n} item – at most {max} labels per print run. Please narrow the selection with the filters.": "Die Auswahl hat {n} Gegenstand – höchstens {max} Etiketten pro Druck. Bitte grenzen Sie die Auswahl mit den Filtern ein.",
+ "The selection has {n} items – at most {max} labels per print run. Please narrow the selection with the filters.": "Die Auswahl hat {n} Gegenstände – höchstens {max} Etiketten pro Druck. Bitte grenzen Sie die Auswahl mit den Filtern ein.",
+ "{n} item in this selection": "{n} Gegenstand in dieser Auswahl",
+ "{n} items in this selection": "{n} Gegenstände in dieser Auswahl",
+ "Labels in total:": "Etiketten insgesamt:",
+ "(at most {max})": "(höchstens {max})"
 }

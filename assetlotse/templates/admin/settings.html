@@ -9,7 +9,7 @@
 <nav class="tabs" data-settings-tabs aria-label="{{ _('Topics') }}">
   {% for id, label in tabs %}<a href="#{{ id }}" data-tab="{{ id }}"{% if loop.first %} class="on"{% endif %}>{{ label }}</a>{% endfor %}
 </nav>
-<form method="post" data-settings-form>
+<form method="post" data-settings-form data-warn-unsaved>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="tab" value="allgemein" data-settings-tab-input>
 
