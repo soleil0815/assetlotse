@@ -78,7 +78,7 @@ Die `docker-compose.yml` folgt dem Tag **`latest`** – der neuesten Version ein
   ./update.sh --help          # alle Möglichkeiten
   ```
 
-**Abgesichert ist jeder Weg:** Startet eine neue Version zum ersten Mal, sichert AssetLotse **vor** jeder Änderung an der Datenbank selbst (`…-vor-<Version>.db`, unter *Administration → Datensicherung*; die drei neuesten solcher Sicherungen werden nie automatisch gelöscht; nur SQLite – bei MySQL/PostgreSQL vorher selbst sichern). Erst danach passt es die Datenbank an.
+**Abgesichert ist jeder Weg:** Startet eine neue Version zum ersten Mal, sichert AssetLotse **vor** jeder Änderung an der Datenbank selbst (`…-vor-<Version>.db`, unter *Administration → Datensicherung*; die drei neuesten solcher Sicherungen bleiben 30 Tage lang erhalten, auch über die normale Anzahl hinaus; nur SQLite – bei MySQL/PostgreSQL vorher selbst sichern). Erst danach passt es die Datenbank an.
 
 **Hinweis auf neue Versionen:** Wer nicht automatisch aktualisiert, erfährt es trotzdem: Einmal am Tag fragt AssetLotse bei GitHub nach der neuesten veröffentlichten Version. Gibt es eine neuere, sehen **Administratoren** oben einen Hinweis mit Link auf die Änderungen und dem Update-Befehl (bei festgelegter Version in der `.env`: dort die neue Nummer eintragen); er lässt sich bis zur nächsten Version ausblenden. *Administration → Diagnose* zeigt den Stand und hat **Jetzt prüfen**. Gemeldet werden nur neue Programmversionen, nicht die monatlichen Sicherheits-Images (`2.9.0-s1`) – die kommen über `latest` ohnehin. Über die Installation wird nichts gesendet; GitHub sieht nur die IP-Adresse des Servers, wie bei jedem `docker pull`. Abschalten unter *Einstellungen → Allgemein → Updates* oder ganz – ohne jede Verbindung zu GitHub – mit `ASSETLOTSE_UPDATE_CHECK=0` in der `.env` (z. B. für Server ohne Internet).
 
@@ -523,7 +523,7 @@ Sicherheitslücken bitte nicht als Issue, sondern **vertraulich** melden – sie
 
 ## Datensicherung
 
-*Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 Sicherungen** (einstellbar 1–100), ältere werden automatisch gelöscht. Zusätzlich sichert jede neue Version beim ersten Start (`…-vor-<Version>.db`); die drei neuesten dieser Sicherungen bleiben immer erhalten – sie braucht, wer auf eine ältere Version zurückgeht.
+*Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 Sicherungen** (einstellbar 1–100), ältere werden automatisch gelöscht. Zusätzlich sichert jede neue Version beim ersten Start (`…-vor-<Version>.db`); die drei neuesten dieser Sicherungen bleiben 30 Tage lang zusätzlich erhalten – sie braucht, wer auf eine ältere Version zurückgeht. Danach zählen sie wie alle anderen, damit gelöschte Daten nicht unbegrenzt in alten Sicherungen bleiben.
 
 - **Ablage:** `./data/backups` auf dem Server. Mit `ASSETLOTSE_BACKUP_DIR` lässt sich ein anderer Ordner einstellen, z. B. ein eingebundenes NAS-Laufwerk (in `docker-compose.override.yml` als zusätzliches Volume einbinden, z. B. `/mnt/nas/assetlotse:/backup`).
 - **„Jetzt sichern“** legt sofort eine Sicherung an (auch vor größeren Änderungen sinnvoll). Einzelne Sicherungen lassen sich herunterladen oder löschen.

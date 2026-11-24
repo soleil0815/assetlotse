@@ -78,7 +78,7 @@ The container sets the permissions of `./data` itself at start-up and then runs 
   ./update.sh --help          # everything it can do
   ```
 
-**Every way is safe:** when a new version starts for the first time, AssetLotse backs up the database itself **before** changing anything (`…-vor-<version>.db`, under *Administration → Backups*; the three newest of these backups are never deleted automatically; SQLite only – with MySQL/PostgreSQL back up yourself first). Only then does it adapt the database.
+**Every way is safe:** when a new version starts for the first time, AssetLotse backs up the database itself **before** changing anything (`…-vor-<version>.db`, under *Administration → Backups*; the three newest of these backups are kept for 30 days, even beyond the normal number; SQLite only – with MySQL/PostgreSQL back up yourself first). Only then does it adapt the database.
 
 **Notice of new versions:** if you do not update automatically, you still find out: once a day AssetLotse asks GitHub for the newest published version. If there is a newer one, **administrators** see a notice at the top with a link to the changes and the update command (with a version pinned in `.env`: enter the new number there); it can be hidden until the next version. *Administration → Diagnostics* shows the state and has **Check now**. Only new program versions are announced, not the monthly security images (`2.9.0-s1`) – they arrive through `latest` anyway. Nothing about the installation is sent; GitHub only sees the server's IP address, as with every `docker pull`. Switch it off under *Settings → General → Updates*, or completely – without any connection to GitHub – with `ASSETLOTSE_UPDATE_CHECK=0` in `.env` (e.g. for servers without internet).
 
@@ -523,7 +523,7 @@ Please report security problems **privately**, not as an issue – see [SECURITY
 
 ## Backups
 
-*Administration → Backups.* The database is **backed up automatically every day** (default from 2 a.m.) – while running, without downtime. Every backup is checked for corruption after writing. The **newest 10 backups** are kept (configurable 1–100); older ones are deleted automatically. In addition, every new version backs up on its first start (`…-vor-<version>.db`); the three newest of these are always kept – you need them to go back to an older version.
+*Administration → Backups.* The database is **backed up automatically every day** (default from 2 a.m.) – while running, without downtime. Every backup is checked for corruption after writing. The **newest 10 backups** are kept (configurable 1–100); older ones are deleted automatically. In addition, every new version backs up on its first start (`…-vor-<version>.db`); the three newest of these are kept for 30 days in addition – you need them to go back to an older version. After that they count like all others, so deleted data does not stay in old backups indefinitely.
 
 - **Location:** `./data/backups` on the server. `ASSETLOTSE_BACKUP_DIR` sets a different folder, e.g. a mounted NAS share (add it as an extra volume in `docker-compose.override.yml`, e.g. `/mnt/nas/assetlotse:/backup`).
 - **“Back up now”** creates a backup immediately (useful before bigger changes). Single backups can be downloaded or deleted.
