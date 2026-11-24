@@ -124,10 +124,16 @@ class LanguageTests(Base):
         self.assertIn('<html lang="de">', html)
         self.assertIn("Anmelden", html)
 
-    def test_browser_language(self):
+    def test_browser_language_does_not_count(self):
+        # 2.10.0: an English browser gets the default language of the installation …
         html = self.c.get("/login", headers={"Accept-Language": "en-GB,en;q=0.9"}).get_data(as_text=True)
-        self.assertIn('<html lang="en">', html)
-        self.assertNotIn(">Anmelden<", html)
+        self.assertIn('<html lang="de">', html)
+        self.login("leser")
+        html = self.c.get("/", headers={"Accept-Language": "en"}).get_data(as_text=True)
+        self.assertIn('<html lang="de">', html)
+        # … until the person chooses English themselves
+        self.c.post("/sprache/en", data={"next": "/"})
+        self.assertIn('<html lang="en">', self.c.get("/", headers={"Accept-Language": "de"}).get_data(as_text=True))
 
     def test_admin_default_language(self):
         set_setting("default_language", "en")

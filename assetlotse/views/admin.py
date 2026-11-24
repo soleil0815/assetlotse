@@ -9,7 +9,7 @@ from flask_login import current_user
 from sqlalchemy import func, or_
 
 from ..applog import personal
-from ..i18n import _, _n
+from ..i18n import _, _n, _p
 from ..ldap_auth import Directory, LDAPError, group_cn, parse_rules
 from ..models import (MIN_PASSWORD_LENGTH, DEFAULT_SETTINGS, ROLE_ADMIN, ROLE_MANAGER, ROLES, Asset, Group, Loan, User, db, get_bool,
                       get_setting, set_setting)
@@ -397,12 +397,27 @@ def backup_delete(name):
 @bp.route("/diagnose")
 @admin_required
 def diagnose():
-    from ..diagnose import finding_text, live_findings
+    from ..diagnose import finding_link, finding_text, live_findings
+    pages = {"backups": _("Backup"), "users": _p("plural", "Users"), "email": _("Email"), "ldap": _("Active Directory"),
+             "help_maintenance": _("Help: updates and maintenance"), "help_backups": _("Help: backups"),
+             "help_security": _("Help: security")}
     found = live_findings(current_app._get_current_object(), request)
-    items = [{"level": f["level"], "text": finding_text(f, _)} for f in found]
+    items = []
+    for f in found:
+        link = finding_link(f)
+        items.append({"level": f["level"], "text": finding_text(f, _),
+                      "link": {"url": url_for(link[0], **link[1]), "label": pages[link[2]]} if link else None})
+    from datetime import datetime
+
     from .. import updatecheck
-    return render_template("admin/diagnose.html", findings=items, update=updatecheck.status(),
-                           update_url=updatecheck.release_url)
+    update = updatecheck.status()
+    try:
+        checked = datetime.fromisoformat(update["checked_at"]) if update["checked_at"] else None
+    except ValueError:
+        checked = None
+    return render_template("admin/diagnose.html", findings=items, update=update, update_checked=checked,
+                           update_error=updatecheck.error_text(update["error"]) if update["error"] else "",
+                           release_url=updatecheck.release_url)
 
 
 @bp.route("/update/pruefen", methods=["POST"])
@@ -416,7 +431,7 @@ def update_check_now():
         return redirect(url_for("admin.diagnose"))
     ok, result = updatecheck.check_now()
     if not ok:
-        flash(_("Could not check for updates: {error}", error=result), "error")
+        flash(_("Could not check for updates: {error}", error=updatecheck.error_text(result)), "error")
     elif updatecheck.is_newer(result):
         flash(_("Version {new} is available (installed: {current}).", new=result, current=__version__), "info")
     else:

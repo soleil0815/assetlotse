@@ -60,8 +60,12 @@ class StoredGermanDefaultTests(unittest.TestCase):
             set_setting("login_eyebrow", "Willkommen")         # stored by a version before 2.1
             db.session.commit()
         c = app.test_client()
-        en = c.get("/login", headers={"Accept-Language": "en"}).get_data(as_text=True)
-        de = c.get("/login", headers={"Accept-Language": "de"}).get_data(as_text=True)
+        with c.session_transaction() as s:
+            s["lang"] = "en"                                   # chosen with EN on the sign-in page
+        en = c.get("/login").get_data(as_text=True)
+        with c.session_transaction() as s:
+            s["lang"] = "de"
+        de = c.get("/login").get_data(as_text=True)
         self.assertIn("Welcome", en)
         self.assertNotIn("Willkommen", en)
         self.assertIn("Willkommen", de)

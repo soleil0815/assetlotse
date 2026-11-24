@@ -572,9 +572,6 @@ def create_app(test_config: dict | None = None) -> Flask:
             ctx["compose_outdated"] = app.config.get("COMPOSE_OUTDATED", "")
             from . import updatecheck
             ctx["update_available"] = updatecheck.available()
-            if ctx["update_available"]:
-                ctx["update_url"] = updatecheck.release_url(ctx["update_available"])
-                ctx["update_pinned"] = updatecheck.pinned_tag()
         if has_request_context() and current_user.is_authenticated and current_user.is_manager:
             from .models import Asset, manageable_assets_query
             ctx["overdue_count"] = Loan.query.filter(

@@ -114,10 +114,9 @@
     <main class="content">
       {% if update_available %}
       <div class="notice accent update-notice" role="status">
-        <span>{{ icon("download") }} {{ _("AssetLotse {new} is available (installed: {current}).", new=update_available, current=version) }}
-          {% if update_pinned %}{{ _("The version is pinned in .env (ASSETLOTSE_TAG={tag}): enter the new version there, then docker compose pull && docker compose up -d.", tag=update_pinned) }}{% else %}{{ _("Update with your container management (e.g. Dockhand) or with docker compose pull && docker compose up -d.") }}{% endif %}
-          <a href="{{ update_url }}" target="_blank" rel="noopener noreferrer">{{ _("Release notes") }}</a> ·
-          <a href="{{ url_for('help.index', thema='maintenance') }}">{{ _("How to update") }}</a></span>
+        {# one line, also on a phone – the commands are on the diagnostics page #}
+        <span>{{ icon("download") }} {{ _("AssetLotse {new} is available.", new=update_available) }}
+          <a href="{{ url_for('admin.diagnose') }}#updates">{{ _("How to update") }}</a></span>
         <form method="post" action="{{ url_for('admin.update_dismiss') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="version" value="{{ update_available }}">

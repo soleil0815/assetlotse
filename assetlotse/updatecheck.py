@@ -89,6 +89,27 @@ def fetch_latest() -> str:
     return ".".join(str(x) for x in version)
 
 
+def error_text(error: str) -> str:
+    """The stored (English) reason of a failed check, as a sentence in the user's language."""
+    from .i18n import gettext as _
+    error = str(error or "")
+    m = re.fullmatch(r"GitHub answered HTTP (\d{3})", error)
+    if m:
+        if m.group(1) in ("403", "429"):
+            return _("GitHub is limiting requests right now (HTTP {code}) – the next check tries again.",
+                     code=m.group(1))
+        if m.group(1) == "404":
+            return _("GitHub does not know the repository or it has no release yet (HTTP 404).")
+        return _("GitHub answered with an error (HTTP {code}) – the next check tries again.", code=m.group(1))
+    m = re.fullmatch(r"GitHub not reachable \((.*)\)", error, re.S)
+    if m:
+        return _("The server cannot reach GitHub ({reason}). Without internet access, switch the check off with "
+                 "ASSETLOTSE_UPDATE_CHECK=0 in .env.", reason=m.group(1))
+    if error.startswith("Unexpected answer from GitHub"):
+        return _("GitHub sent an unexpected answer – the next check tries again.")
+    return error
+
+
 def check_now(now: datetime | None = None) -> tuple[bool, str]:
     """Ask GitHub and remember the answer. Returns (ok, newest version or error text)."""
     from .models import db, set_setting

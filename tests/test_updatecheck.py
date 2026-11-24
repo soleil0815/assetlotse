@@ -122,11 +122,14 @@ class UpdateCheckTests(BaseCase):
         self.login("chef")
         html = self.c.get("/").get_data(as_text=True)
         self.assertIn("update-notice", html)
-        self.assertIn(f"AssetLotse {NEWER} ist verfügbar (installiert: {__version__})", html)
-        self.assertIn(f"https://github.com/soleil0815/assetlotse/releases/tag/v{NEWER}", html)
-        self.assertIn("Container-Verwaltung", html)
+        self.assertIn(f"AssetLotse {NEWER} ist verfügbar.", html)
+        self.assertIn('href="/admin/diagnose#updates">So aktualisieren Sie', html)
+        self.assertNotIn("Container-Verwaltung", html)                    # one line: the commands are on …
+        diag = self.c.get("/admin/diagnose").get_data(as_text=True)      # … the diagnostics page
+        self.assertIn(f"https://github.com/soleil0815/assetlotse/releases/tag/v{NEWER}", diag)
+        self.assertIn("Container-Verwaltung", diag)
         os.environ["ASSETLOTSE_TAG"] = __version__                       # pinned in .env
-        self.assertIn(f"ASSETLOTSE_TAG={__version__}", self.c.get("/").get_data(as_text=True))
+        self.assertIn(f"ASSETLOTSE_TAG={__version__}", self.c.get("/admin/diagnose").get_data(as_text=True))
         r = self.c.post("/admin/update/ausblenden", data={"version": NEWER, "next": "/gegenstaende"})
         self.assertEqual(r.headers["Location"], "/gegenstaende")
         self.assertNotIn("update-notice", self.c.get("/").get_data(as_text=True))
@@ -162,7 +165,8 @@ class UpdateCheckTests(BaseCase):
         patch, _ = github(status=500)
         with patch:
             html = self.c.post("/admin/update/pruefen", follow_redirects=True).get_data(as_text=True)
-        self.assertIn("Letzte Prüfung fehlgeschlagen: GitHub answered HTTP 500", html)
+        self.assertIn("Letzte Prüfung fehlgeschlagen: GitHub hat mit einem Fehler geantwortet (HTTP 500)", html)
+        self.assertNotIn("function release_url", html)          # the notice link was broken on this page
         os.environ["ASSETLOTSE_UPDATE_CHECK"] = "0"                        # .env: never contact GitHub
         patch, calls = github(f"v{NEWER}")
         with patch:
