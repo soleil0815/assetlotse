@@ -6,21 +6,23 @@
   <div><div class="eyebrow">{{ _("Administration") }}</div><h1>{{ _("Diagnostics") }}</h1>
     <p>{{ _("Checks of the installation – and an anonymized diagnostic package you can pass on when you need help.") }}</p></div>
   <div class="actions">
-    <form method="post" action="{{ url_for('admin.diagnose_download') }}">
+    <form method="post" action="{{ url_for('admin.diagnose_download') }}" data-no-lock>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn primary">{{ icon("download") }} {{ _("Download diagnostic package") }}</button>
     </form>
   </div>
 </div>
 
-<section class="card card-pad u-mb-16">
+<section class="card card-pad u-mb-16" id="updates">
   <div class="update-status">
     <div>
       <h2 class="u-mb-8">{{ _("Updates") }}</h2>
       <p class="u-m-0">
         {% if update.newer %}<span class="badge accent">{{ _("New version") }}</span>
           {{ _("Version {new} is available (installed: {current}).", new=update.latest, current=update.running) }}
-          <a href="{{ update_url(update.latest) }}" target="_blank" rel="noopener noreferrer">{{ _("Release notes") }}</a>
+          <a href="{{ release_url(update.latest) }}" target="_blank" rel="noopener noreferrer">{{ _("Release notes") }}</a>
+          <br>{% if update.pinned_tag %}{{ _("The version is pinned in .env (ASSETLOTSE_TAG={tag}): enter the new version there, then docker compose pull && docker compose up -d.", tag=update.pinned_tag) }}{% else %}{{ _("Update with your container management (e.g. Dockhand) or with docker compose pull && docker compose up -d.") }}{% endif %}
+          <a href="{{ url_for('help.index', thema='maintenance') }}">{{ _("How to update") }}</a>
         {% elif update.latest %}<span class="badge ok">{{ icon("check") }} {{ _("Up to date") }}</span>
           {{ _("Installed: {current}, newest published: {latest}.", current=update.running, latest=update.latest) }}
         {% else %}{{ _("Installed: {current}.", current=update.running) }}{% endif %}
@@ -29,8 +31,8 @@
         {% if update.disabled_by_env %}{{ _("Switched off in .env (ASSETLOTSE_UPDATE_CHECK=0).") }}
         {% elif not update.setting %}{{ _("The daily check is switched off (Settings → General). You can still check here.") }}
         {% else %}{{ _("Checked once a day.") }}{% endif %}
-        {% if update.checked_at %}{{ _("Last checked: {when}.", when=update.checked_at.replace("T", " ")) }}{% endif %}
-        {% if update.error %}<br><span class="err">{{ _("Last check failed: {error}", error=update.error) }}</span>{% endif %}
+        {% if update_checked %}{{ _("Last checked: {when}.", when=update_checked|datetime) }}{% endif %}
+        {% if update_error %}<br><span class="err">{{ _("Last check failed: {error}", error=update_error) }}</span>{% endif %}
       </p>
     </div>
     {% if not update.disabled_by_env %}
@@ -50,7 +52,7 @@
       {% for f in findings %}
       <li><span class="badge {{ 'danger' if f.level == 'error' else ('warn' if f.level == 'warning' else 'accent') }}">{{
         _("Error") if f.level == "error" else (_("Warning") if f.level == "warning" else _("Notice")) }}</span>
-        <span>{{ f.text }}</span></li>
+        <span>{{ f.text }}{% if f.link %} <a href="{{ f.link.url }}">{{ f.link.label }} →</a>{% endif %}</span></li>
       {% endfor %}
     </ul>
     {% else %}

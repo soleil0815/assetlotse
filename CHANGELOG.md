@@ -2,6 +2,44 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.10.0 – 2026-11-24
+
+**After the update everyone signs in once more** – sign-ins of earlier versions are no longer accepted.
+
+**Security**
+- **Sign-ins are kept on the server.** Every sign-in gets its own random token; the database stores only its
+  SHA-256 hash (table `user_sessions`). Signing out, "Sign out on all other devices", a new password, a reset of
+  two-factor authentication, a deactivated or deleted account and the automatic sign-out end it there – a copied
+  session or "Stay signed in" cookie is worthless afterwards. A sign-in is valid for at most 14 days; expired ones are
+  cleaned up by the scheduler, as are those past the inactivity limit (a browser closed without signing out).
+  *Profile → Security* shows how many other sign-ins exist. Deactivating an account by hand now also ends its
+  sign-ins, so reactivating it later does not revive old (possibly copied) ones.
+- **Backups before an update** are protected beyond the normal number for 30 days only (the newest three), so that
+  deleted data does not stay in old backups for ever.
+
+**Changed**
+- **Language:** the browser language no longer counts – everyone without a language of their own gets the default
+  language of the installation. *My profile → Language* shows what is saved and offers "Default of the installation";
+  *Settings → General* shows how many accounts have chosen their own language.
+- **Update notice:** one short line ("How to update" → diagnostics page) instead of a block of commands on every
+  admin page, also on phones. Release notes, update command and the pinned-version hint are on the diagnostics page.
+- **Diagnostics:** every finding links to the page where it is fixed; errors of the update check are translated
+  instead of raw English; proper singular/plural ("1 administrator", "2 administrators"); the time of the last check
+  in the app's date format.
+- **Forms:** after sending, the button shows a busy state and a second click is ignored (no double loans or items on
+  a slow connection). Settings, email, Active Directory and branding warn before leaving with unsaved changes; the
+  settings tab with a change carries a dot. After a test button (test email, AD tests) the page still counts as
+  unsaved, and buttons that leave without saving (e.g. "Synchronise now") ask first.
+- **Automatic sign-out:** typing and choosing in a form count as activity – also with the notice switched off, a long
+  form is no longer lost on saving.
+- **Labels for a selection:** the print dialog shows the number of items and the total number of labels, limits the
+  copies to the 500-label maximum and explains when the selection is too large – instead of an error in a new tab.
+- **Manuals (PDF)** brought up to date in German (formal address) and English, with new screenshots. Sources and
+  build scripts are in `docs/manual/`.
+
+**Fixed**
+- Diagnostics page: the "Release notes" link of the update notice at the top was broken on this page.
+
 ## 2.9.1 – 2026-11-24
 
 Code audit 2026-11 (second run: changes 2.0.2 → 2.9.0).

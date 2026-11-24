@@ -9,7 +9,7 @@ from flask_login import current_user
 from sqlalchemy import func, or_
 
 from ..applog import personal
-from ..i18n import _, _n
+from ..i18n import _, _n, _p
 from ..ldap_auth import Directory, LDAPError, group_cn, parse_rules
 from ..models import (MIN_PASSWORD_LENGTH, DEFAULT_SETTINGS, ROLE_ADMIN, ROLE_MANAGER, ROLES, Asset, Group, Loan, User, db, get_bool,
                       get_setting, set_setting)
@@ -143,6 +143,8 @@ def _save_user(user: User, is_new: bool):
         user.role = role
     if bool(user.active) != active:
         user.deactivated_by_sync = False     # changed manually: the AD sync does not switch it back
+    if user.active and not active and user.id is not None:
+        user.end_all_sessions()              # reactivating later must not revive old (possibly copied) sign-ins
     user.active = active
     if active and user.pending_approval:   # "account active" checked = approved
         user.pending_approval = False
@@ -397,12 +399,27 @@ def backup_delete(name):
 @bp.route("/diagnose")
 @admin_required
 def diagnose():
-    from ..diagnose import finding_text, live_findings
+    from ..diagnose import finding_link, finding_text, live_findings
+    pages = {"backups": _("Backup"), "users": _p("plural", "Users"), "email": _("Email"), "ldap": _("Active Directory"),
+             "help_maintenance": _("Help: updates and maintenance"), "help_backups": _("Help: backups"),
+             "help_security": _("Help: security")}
     found = live_findings(current_app._get_current_object(), request)
-    items = [{"level": f["level"], "text": finding_text(f, _)} for f in found]
+    items = []
+    for f in found:
+        link = finding_link(f)
+        items.append({"level": f["level"], "text": finding_text(f, _),
+                      "link": {"url": url_for(link[0], **link[1]), "label": pages[link[2]]} if link else None})
+    from datetime import datetime
+
     from .. import updatecheck
-    return render_template("admin/diagnose.html", findings=items, update=updatecheck.status(),
-                           update_url=updatecheck.release_url)
+    update = updatecheck.status()
+    try:
+        checked = datetime.fromisoformat(update["checked_at"]) if update["checked_at"] else None
+    except ValueError:
+        checked = None
+    return render_template("admin/diagnose.html", findings=items, update=update, update_checked=checked,
+                           update_error=updatecheck.error_text(update["error"]) if update["error"] else "",
+                           release_url=updatecheck.release_url)
 
 
 @bp.route("/update/pruefen", methods=["POST"])
@@ -416,7 +433,7 @@ def update_check_now():
         return redirect(url_for("admin.diagnose"))
     ok, result = updatecheck.check_now()
     if not ok:
-        flash(_("Could not check for updates: {error}", error=result), "error")
+        flash(_("Could not check for updates: {error}", error=updatecheck.error_text(result)), "error")
     elif updatecheck.is_newer(result):
         flash(_("Version {new} is available (installed: {current}).", new=result, current=__version__), "info")
     else:
@@ -611,7 +628,11 @@ def settings():
     from .. import idle
     from ..labels import default_footer
     from ..updatecheck import disabled_by_env as update_check_locked
+    # accounts with a language of their own (DE / EN clicked or chosen in the profile): the default does not apply to them
+    own_languages = dict(db.session.query(User.language, func.count(User.id))
+                         .filter(User.language != "").group_by(User.language).all())
     return render_template("admin/settings.html", s=get_setting, label_footer=default_footer(),
+                           own_languages=own_languages,
                            update_check_locked=update_check_locked(),
                            idle_hours=get_setting("session_idle_hours", idle.env_default()),
                            idle_default=idle.env_default(),
@@ -668,6 +689,11 @@ def _would_lock_out_self(cfg: dict) -> str | None:
         return _("With these settings you would no longer be an administrator "
                  "(role: {role}) – not saved. Please check the rules.", role=str(ROLES.get(info.role, _("none"))) if info else _("none"))
     return None
+
+
+def _unsaved(cfg: dict | None) -> bool:
+    """The page shows form values that are not stored (after a test button): it still warns before leaving."""
+    return bool(cfg) and any(get_setting(k) != v for k, v in cfg.items())
 
 
 def _ldap_form_cfg() -> dict:
@@ -792,7 +818,8 @@ def ldap():
                            cache=ad_cache.status(), cache_hours=ad_cache.HOURS_CHOICES,
                            test_error=test_error, ROLES=ROLES, ldap_groups=ldap_groups,
                            stored_certs=stored, fetched=fetched, ad_groups=ad_groups,
-                           group_query=request.form.get("group_query", ""), group_cn=group_cn)
+                           group_query=request.form.get("group_query", ""), group_cn=group_cn,
+                           unsaved=_unsaved(cfg))
 
 
 @bp.route("/verzeichnisdienst/abgleichen", methods=["POST"])
@@ -904,7 +931,7 @@ def email():
     suggested_url = request.host_url.rstrip("/")
     values = dict(values, mail_last_result=mailer.last_result_text(values.get("mail_last_result", "")))
     return render_template("admin/email.html", v=values, has_pw=has_pw, logs=logs, pending=pending,
-                           without_mail=without_mail, suggested_url=suggested_url)
+                           without_mail=without_mail, suggested_url=suggested_url, unsaved=_unsaved(cfg))
 
 
 # ---------------------------------------------------------------- Branding

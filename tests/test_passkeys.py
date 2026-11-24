@@ -23,6 +23,7 @@ from fido2.cose import ES256  # noqa: E402
 from fido2.webauthn import AttestedCredentialData, AuthenticatorData  # noqa: E402
 
 from assetlotse import create_app  # noqa: E402
+from assetlotse.sessions import issue as issue_session
 from assetlotse.ldap_auth import LDAPError, LDAPUser  # noqa: E402
 from assetlotse.models import User, WebAuthnCredential, db, set_setting  # noqa: E402
 
@@ -391,7 +392,7 @@ class PasskeyActiveDirectoryTests(PasskeyBase):
     def enroll(self):
         # the AD sign-in itself is tested elsewhere: start from a signed-in session
         with self.c.session_transaction() as s:
-            s["_user_id"] = str(self.ad.id)
+            s["_user_id"] = issue_session(self.ad)
             s["_fresh"] = True
         r = self.register_passkey()
         self.assertTrue(r.get_json()["ok"], r.get_json())
@@ -445,7 +446,7 @@ class PasskeyActiveDirectoryTests(PasskeyBase):
         set_setting("ldap_bind_dn", "")
         db.session.commit()
         with self.c.session_transaction() as s:
-            s["_user_id"] = str(self.ad.id)
+            s["_user_id"] = issue_session(self.ad)
             s["_fresh"] = True
             s["passkey_hint"] = True
         r = self.c.post("/profil/sicherheit/schluessel/start", json={"passkey": True})

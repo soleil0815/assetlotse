@@ -7,6 +7,7 @@
   newer version (with the backup to restore), restoring while it refuses to start, version of docker-compose.yml
 All tests work in temporary folders – never in /etc or real data folders.
 """
+from datetime import datetime, timedelta
 import json
 import os
 import re
@@ -493,14 +494,31 @@ class DatabaseVersionTests(AppBase):
         self.assertEqual(r.returncode, 4, r.stderr)
         self.assertIn("newer version 99.0.0", r.stderr)
 
+    def test_upgrade_backups_protected_for_30_days_only(self):
+        """2.10.0: "before update" backups no longer stay for ever – after 30 days they rotate like the others."""
+        from assetlotse import backup
+        app = self.app()
+        self.set_version(app, "1.0.0")
+        with app.app_context():
+            self.backups.mkdir(exist_ok=True)
+            old = ["assetlotse-2026-01-0%d_020000-vor-1.%d.0.db" % (d, d) for d in range(1, 4)]
+            new = ["assetlotse-2026-03-0%d_020000.db" % d for d in range(1, 4)]
+            for n in old + new:
+                (self.backups / n).write_text("x")
+            backup.rotate(keep=2, now=datetime(2026, 1, 25))       # 3 weeks old: still protected
+            self.assertTrue(all(n in self.files() for n in old))
+            backup.rotate(keep=2, now=datetime(2026, 3, 5))        # 2 months old: rotated away
+            self.assertEqual(sorted(self.files()), sorted(new[1:]))
+
     def test_upgrade_backups_survive_rotation(self):
         from assetlotse import backup
         app = self.app()
         self.set_version(app, "1.0.0")
         with app.app_context():
             self.backups.mkdir(exist_ok=True)
-            names = ["assetlotse-2026-01-0%d_020000-vor-1.%d.0.db" % (d, d) for d in range(1, 6)]
-            names += ["assetlotse-2026-02-0%d_020000.db" % d for d in range(1, 6)]
+            day = lambda n: (datetime.now() - timedelta(days=n)).strftime("%Y-%m-%d")   # noqa: E731
+            names = ["assetlotse-%s_020000-vor-1.%d.0.db" % (day(11 - d), d) for d in range(1, 6)]
+            names += ["assetlotse-%s_020000.db" % day(6 - d) for d in range(1, 6)]
             for n in names:
                 (self.backups / n).write_text("x")
             backup.rotate(keep=2)

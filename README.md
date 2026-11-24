@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.9.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.10.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -78,7 +78,7 @@ Die `docker-compose.yml` folgt dem Tag **`latest`** – der neuesten Version ein
   ./update.sh --help          # alle Möglichkeiten
   ```
 
-**Abgesichert ist jeder Weg:** Startet eine neue Version zum ersten Mal, sichert AssetLotse **vor** jeder Änderung an der Datenbank selbst (`…-vor-<Version>.db`, unter *Administration → Datensicherung*; die drei neuesten solcher Sicherungen werden nie automatisch gelöscht; nur SQLite – bei MySQL/PostgreSQL vorher selbst sichern). Erst danach passt es die Datenbank an.
+**Abgesichert ist jeder Weg:** Startet eine neue Version zum ersten Mal, sichert AssetLotse **vor** jeder Änderung an der Datenbank selbst (`…-vor-<Version>.db`, unter *Administration → Datensicherung*; die drei neuesten solcher Sicherungen bleiben 30 Tage lang erhalten, auch über die normale Anzahl hinaus; nur SQLite – bei MySQL/PostgreSQL vorher selbst sichern). Erst danach passt es die Datenbank an.
 
 **Hinweis auf neue Versionen:** Wer nicht automatisch aktualisiert, erfährt es trotzdem: Einmal am Tag fragt AssetLotse bei GitHub nach der neuesten veröffentlichten Version. Gibt es eine neuere, sehen **Administratoren** oben einen Hinweis mit Link auf die Änderungen und dem Update-Befehl (bei festgelegter Version in der `.env`: dort die neue Nummer eintragen); er lässt sich bis zur nächsten Version ausblenden. *Administration → Diagnose* zeigt den Stand und hat **Jetzt prüfen**. Gemeldet werden nur neue Programmversionen, nicht die monatlichen Sicherheits-Images (`2.9.0-s1`) – die kommen über `latest` ohnehin. Über die Installation wird nichts gesendet; GitHub sieht nur die IP-Adresse des Servers, wie bei jedem `docker pull`. Abschalten unter *Einstellungen → Allgemein → Updates* oder ganz – ohne jede Verbindung zu GitHub – mit `ASSETLOTSE_UPDATE_CHECK=0` in der `.env` (z. B. für Server ohne Internet).
 
@@ -269,7 +269,7 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 
 ## Sprache und Hilfe
 
-**Deutsch und Englisch.** Oben rechts (und auf der Anmeldeseite) schaltet jeder mit **DE / EN** um. Angemeldet wird die Wahl im Profil gespeichert – sie gilt dann auf allen Geräten und für die E-Mails an diese Person. Ohne eigene Wahl gilt die Sprache des Browsers, sonst die **Standardsprache** aus *Einstellungen → Allgemein* (Standard: Deutsch). Datumsangaben folgen der Sprache (20.10.2026 / 20 Oct 2026). Eingaben wie Bezeichnungen, Kategorien, Gruppen- und Standortnamen bleiben, wie sie erfasst wurden.
+**Deutsch und Englisch.** Oben rechts (und auf der Anmeldeseite) schaltet jeder mit **DE / EN** um. Angemeldet wird die Wahl im Profil gespeichert – sie gilt dann auf allen Geräten und für die E-Mails an diese Person. Ohne eigene Wahl gilt die **Standardsprache** aus *Einstellungen → Allgemein* (Standard: Deutsch) – die Sprache des Browsers zählt nicht. Im Profil sieht jede Person, welche Sprache gespeichert ist, und kann zu „Standard der Einrichtung“ zurückkehren; die Einstellungen zeigen, wie viele Konten eine eigene Sprache gewählt haben. Datumsangaben folgen der Sprache (20.10.2026 / 20 Oct 2026). Eingaben wie Bezeichnungen, Kategorien, Gruppen- und Standortnamen bleiben, wie sie erfasst wurden.
 
 **Hilfe im Programm** (*Hilfe* in der Seitenleiste oder **?** oben rechts):
 - Jeder sieht nur die Themen seiner Rolle – Mitarbeiter 7 („Für alle“), Verwalter zusätzlich 6 („Verwaltung“), Administratoren alle 24 (zusätzlich 11 unter „Administration“).
@@ -279,7 +279,7 @@ Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunter
 
 **Neuigkeiten:** Gibt es nach einem Update etwas Neues, erscheint unten links neben der Versionsnummer ein kleiner Punkt. Er führt zu *Neuigkeiten*: kurze Hinweise zu neuen Funktionen, Sicherheitsupdates und Korrekturen – jede Person sieht nur, was ihre Rolle betrifft (Mitarbeiter, Verwalter, Administratoren). Nach dem Lesen verschwindet der Punkt bis zum nächsten Update. Die Einträge stehen in `assetlotse/news.json` (Deutsch und Englisch) und kommen mit jeder Version mit.
 
-**Handbuch als PDF:** `docs/Handbuch-AssetLotse.pdf` (Deutsch) und `docs/Manual-AssetLotse.pdf` (Englisch, mit Bildschirmfotos der englischen Oberfläche) – für Mitarbeitende, Verwalter und Administratoren, mit Fehlerbehebung und Notfallbefehlen. Die Hilfe im Programm verlinkt oben das Handbuch in der Sprache der Oberfläche (*Handbuch (PDF)*).
+**Handbuch als PDF:** `docs/Handbuch-AssetLotse.pdf` (Deutsch) und `docs/Manual-AssetLotse.pdf` (Englisch, mit Bildschirmfotos der englischen Oberfläche) – für Mitarbeitende, Verwalter und Administratoren, mit Fehlerbehebung und Notfallbefehlen. Die Hilfe im Programm verlinkt oben das Handbuch in der Sprache der Oberfläche (*Handbuch (PDF)*). Text, Bildschirmfotos und Bau-Skripte liegen in `docs/manual/` (siehe `docs/README.md`).
 
 **Übersetzungen pflegen:** Der englische Text ist zugleich der Schlüssel (`_("…")` in Templates und Python, `T("…")` in `app.js`; gleiches englisches Wort mit verschiedener deutscher Bedeutung: `_p("Kontext", "…")`); die deutschen Texte stehen in `assetlotse/translations/de.json`. Der Test `tests/test_i18n.py` meldet jeden Text ohne Übersetzung und deutsche Reste auf englischen Seiten. Code, Kommentare, Protokollmeldungen, CHANGELOG und Commit-Nachrichten sind englisch. Die Hilfetexte liegen je Sprache in `assetlotse/templates/help/de|en/`.
 
@@ -507,7 +507,7 @@ Sicherheitslücken bitte nicht als Issue, sondern **vertraulich** melden – sie
 
 ### Automatische Abmeldung
 
-*Einstellungen → Sicherheit → Automatische Abmeldung* – wer so lange nichts in AssetLotse tut, wird abgemeldet (z. B. ein offener Browser am Ausgabeplatz). Jede aufgerufene Seite und jedes gespeicherte Formular zählt als Aktivität.
+*Einstellungen → Sicherheit → Automatische Abmeldung* – wer so lange nichts in AssetLotse tut, wird abgemeldet (z. B. ein offener Browser am Ausgabeplatz). Jede aufgerufene Seite, jedes gespeicherte Formular und auch das Ausfüllen eines Formulars zählt als Aktivität – ein langes Formular geht also nicht verloren.
 
 | Einstellung | Wirkung |
 |---|---|
@@ -523,7 +523,7 @@ Sicherheitslücken bitte nicht als Issue, sondern **vertraulich** melden – sie
 
 ## Datensicherung
 
-*Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 Sicherungen** (einstellbar 1–100), ältere werden automatisch gelöscht. Zusätzlich sichert jede neue Version beim ersten Start (`…-vor-<Version>.db`); die drei neuesten dieser Sicherungen bleiben immer erhalten – sie braucht, wer auf eine ältere Version zurückgeht.
+*Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 Sicherungen** (einstellbar 1–100), ältere werden automatisch gelöscht. Zusätzlich sichert jede neue Version beim ersten Start (`…-vor-<Version>.db`); die drei neuesten dieser Sicherungen bleiben 30 Tage lang zusätzlich erhalten – sie braucht, wer auf eine ältere Version zurückgeht. Danach zählen sie wie alle anderen, damit gelöschte Daten nicht unbegrenzt in alten Sicherungen bleiben.
 
 - **Ablage:** `./data/backups` auf dem Server. Mit `ASSETLOTSE_BACKUP_DIR` lässt sich ein anderer Ordner einstellen, z. B. ein eingebundenes NAS-Laufwerk (in `docker-compose.override.yml` als zusätzliches Volume einbinden, z. B. `/mnt/nas/assetlotse:/backup`).
 - **„Jetzt sichern“** legt sofort eine Sicherung an (auch vor größeren Änderungen sinnvoll). Einzelne Sicherungen lassen sich herunterladen oder löschen.

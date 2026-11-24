@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.9.1** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.10.0** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -78,7 +78,7 @@ The container sets the permissions of `./data` itself at start-up and then runs 
   ./update.sh --help          # everything it can do
   ```
 
-**Every way is safe:** when a new version starts for the first time, AssetLotse backs up the database itself **before** changing anything (`…-vor-<version>.db`, under *Administration → Backups*; the three newest of these backups are never deleted automatically; SQLite only – with MySQL/PostgreSQL back up yourself first). Only then does it adapt the database.
+**Every way is safe:** when a new version starts for the first time, AssetLotse backs up the database itself **before** changing anything (`…-vor-<version>.db`, under *Administration → Backups*; the three newest of these backups are kept for 30 days, even beyond the normal number; SQLite only – with MySQL/PostgreSQL back up yourself first). Only then does it adapt the database.
 
 **Notice of new versions:** if you do not update automatically, you still find out: once a day AssetLotse asks GitHub for the newest published version. If there is a newer one, **administrators** see a notice at the top with a link to the changes and the update command (with a version pinned in `.env`: enter the new number there); it can be hidden until the next version. *Administration → Diagnostics* shows the state and has **Check now**. Only new program versions are announced, not the monthly security images (`2.9.0-s1`) – they arrive through `latest` anyway. Nothing about the installation is sent; GitHub only sees the server's IP address, as with every `docker pull`. Switch it off under *Settings → General → Updates*, or completely – without any connection to GitHub – with `ASSETLOTSE_UPDATE_CHECK=0` in `.env` (e.g. for servers without internet).
 
@@ -269,7 +269,7 @@ Under *Inventory*, managers can download the inventory of their groups as **CSV*
 
 ## Language and help
 
-**German and English.** Everyone switches with **DE / EN** at the top right (also on the sign-in page). When signed in, the choice is saved in the profile – it then applies on every device and to the e-mails sent to that person. Without a choice, the browser language is used, otherwise the **default language** from *Settings → General* (default: German). Dates follow the language (20.10.2026 / 20 Oct 2026). Data such as item names, categories, group and location names stay as entered.
+**German and English.** Everyone switches with **DE / EN** at the top right (also on the sign-in page). When signed in, the choice is saved in the profile – it then applies on every device and to the e-mails sent to that person. Without a choice, the **default language** from *Settings → General* applies (default: German) – the browser language does not count. The profile shows which language is saved, with “Default of the installation” to go back; the settings show how many accounts have chosen their own language. Dates follow the language (20.10.2026 / 20 Oct 2026). Data such as item names, categories, group and location names stay as entered.
 
 **Built-in help** (*Help* in the sidebar or **?** at the top right):
 - Everyone sees only the topics for their role – staff members 7 (“For everyone”), managers 6 more (“Management”), administrators all 24 (11 more under “Administration”).
@@ -279,7 +279,7 @@ Under *Inventory*, managers can download the inventory of their groups as **CSV*
 
 **What's new:** if there is something new after an update, a small dot appears next to the version number at the bottom left. It leads to *What's new*: short notes on new features, security updates and fixes – everyone only sees what concerns their role (staff, managers, administrators). After reading, the dot disappears until the next update. The entries live in `assetlotse/news.json` (German and English) and ship with every version.
 
-**PDF manual:** `docs/Manual-AssetLotse.pdf` (English, with screenshots of the English interface) and `docs/Handbuch-AssetLotse.pdf` (German) – for staff, managers and administrators, including troubleshooting and emergency commands. The in-app help links the manual in the language of the interface at the top (*Manual (PDF)*).
+**PDF manual:** `docs/Manual-AssetLotse.pdf` (English, with screenshots of the English interface) and `docs/Handbuch-AssetLotse.pdf` (German) – for staff, managers and administrators, including troubleshooting and emergency commands. The in-app help links the manual in the language of the interface at the top (*Manual (PDF)*). Text, screenshots and build scripts are in `docs/manual/` (see `docs/README.md`).
 
 **Maintaining translations:** The English text is also the key (`_("…")` in templates and Python, `T("…")` in `app.js`; the same English word with different German meanings: `_p("context", "…")`); the German texts live in `assetlotse/translations/de.json`. The test `tests/test_i18n.py` reports every text without a translation and German leftovers on English pages. Code, comments, log messages, the CHANGELOG and commit messages are in English. Help texts are stored per language in `assetlotse/templates/help/de|en/`.
 
@@ -507,7 +507,7 @@ Please report security problems **privately**, not as an issue – see [SECURITY
 
 ### Automatic sign-out
 
-*Settings → Security → Automatic sign-out* – anyone who does nothing in AssetLotse for this long is signed out (e.g. a browser left open at the issue desk). Every page opened and every saved form counts as activity.
+*Settings → Security → Automatic sign-out* – anyone who does nothing in AssetLotse for this long is signed out (e.g. a browser left open at the issue desk). Every page opened, every saved form and also filling in a form counts as activity – so a long form is not lost.
 
 | Setting | Effect |
 |---|---|
@@ -523,7 +523,7 @@ Please report security problems **privately**, not as an issue – see [SECURITY
 
 ## Backups
 
-*Administration → Backups.* The database is **backed up automatically every day** (default from 2 a.m.) – while running, without downtime. Every backup is checked for corruption after writing. The **newest 10 backups** are kept (configurable 1–100); older ones are deleted automatically. In addition, every new version backs up on its first start (`…-vor-<version>.db`); the three newest of these are always kept – you need them to go back to an older version.
+*Administration → Backups.* The database is **backed up automatically every day** (default from 2 a.m.) – while running, without downtime. Every backup is checked for corruption after writing. The **newest 10 backups** are kept (configurable 1–100); older ones are deleted automatically. In addition, every new version backs up on its first start (`…-vor-<version>.db`); the three newest of these are kept for 30 days in addition – you need them to go back to an older version. After that they count like all others, so deleted data does not stay in old backups indefinitely.
 
 - **Location:** `./data/backups` on the server. `ASSETLOTSE_BACKUP_DIR` sets a different folder, e.g. a mounted NAS share (add it as an extra volume in `docker-compose.override.yml`, e.g. `/mnt/nas/assetlotse:/backup`).
 - **“Back up now”** creates a backup immediately (useful before bigger changes). Single backups can be downloaded or deleted.

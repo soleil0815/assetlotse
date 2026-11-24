@@ -65,13 +65,6 @@ def default_language() -> str:
         return DEFAULT
 
 
-def browser_language() -> str | None:
-    from flask import has_request_context, request
-    if not has_request_context():
-        return None
-    return normalize(request.accept_languages.best_match(list(LANGUAGES)))
-
-
 def get_locale() -> str:
     forced = _forced.get()
     if forced:
@@ -89,7 +82,9 @@ def get_locale() -> str:
             lang = normalize(getattr(current_user, "language", ""))
     except Exception:  # noqa: BLE001
         lang = None
-    lang = lang or normalize(session.get("lang")) or browser_language() or default_language()
+    # the browser language is not used (2.10.0): the default language of the installation applies to everyone
+    # who has not chosen one – an English browser at a German institute still gets the German interface
+    lang = lang or normalize(session.get("lang")) or default_language()
     g._assetlotse_locale = lang
     return lang
 

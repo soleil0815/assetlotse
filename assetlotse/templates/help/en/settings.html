@@ -1,9 +1,9 @@
 <p><span class="ui">Administration → Settings</span> controls how AssetLotse works for you. Don't forget <span class="ui">Save</span> at the bottom.</p>
-<p>The page is divided into five tabs. The one you had open stays open after saving.</p>
+<p>The page is divided into five tabs. The one you had open stays open after saving. A tab with unsaved changes carries a dot, and leaving the page before saving asks first.</p>
 <ul>
   <li><b>General</b>
     <ul>
-    <li><span class="ui">Name (organisation or program)</span> – shown everywhere, “AssetLotse” by default; <span class="ui">Default language</span> (currently {{ f.languages.get(f.default_language, f.default_language) }}) – used for visitors whose browser prefers neither German nor English, and for emails to users who have not chosen a language.</li>
+    <li><span class="ui">Name (organisation or program)</span> – shown everywhere, “AssetLotse” by default; <span class="ui">Default language</span> (currently {{ f.languages.get(f.default_language, f.default_language) }}) – applies to everyone who has not chosen a language themselves (also on the sign-in page and in e-mails); the browser language does not count. Below it you see how many accounts have chosen their own language – the default does not apply to them; they change it in their profile.</li>
     <li><span class="ui">Updates → Check for new versions</span> – ask GitHub once a day and tell administrators about a new version (default: on; nothing about the installation is sent). Completely off with <code>ASSETLOTSE_UPDATE_CHECK=0</code> in <code>.env</code>.</li>
     </ul></li>
   <li><b>Inventory &amp; issuing</b>

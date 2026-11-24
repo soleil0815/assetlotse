@@ -1,0 +1,456 @@
+<!-- Inhalt des Handbuchs (Deutsch, Sie-Form). h1 = Teil, h2 = Kapitel (nummeriert, im Inhaltsverzeichnis),
+     h3 = Abschnitt. Bilder: img/<name>.png – erzeugt von docs/manual/screenshots.py. Bauen: docs/manual/build.py -->
+
+<h1 id="teil-a" class="part"><span class="part-no">Teil A</span>Für alle</h1>
+<p class="part-lead">Was jede Person wissen muss, die von AssetLotse Geräte bekommt: anmelden, die eigenen Gegenstände im Blick behalten, verlängern, zurückgeben und – falls freigegeben – den BitLocker-Schlüssel des eigenen Geräts nachschauen.</p>
+
+<h2 id="ueberblick">AssetLotse im Überblick</h2>
+<p>AssetLotse verwaltet die Arbeitsmittel Ihrer Einrichtung, die ausgegeben und wieder zurückgegeben werden: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel und Ähnliches. Verbrauchsmaterial gehört nicht hinein. Das Programm läuft im Browser – auf PC, Tablet und Handy; installiert werden muss nichts.</p>
+<p>Jede Person hat eine von drei <b>Rollen</b>:</p>
+<table class="grid">
+  <thead><tr><th style="width:24%">Rolle</th><th>Darf</th></tr></thead>
+  <tbody>
+    <tr><td><b>Mitarbeiter</b></td><td>die eigenen Gegenstände sehen, befristete Ausgaben verlängern (wenn erlaubt), Benachrichtigungen, Sprache und Sicherheit einstellen. Je nach Einstellung auch den Bestand ansehen und sich selbst etwas ausleihen oder zurückgeben.</td></tr>
+    <tr><td><b>Verwalter</b></td><td>Gegenstände anlegen, bearbeiten und löschen, ausgeben und zurücknehmen, die Ausgabetheke nutzen, Etiketten drucken, den Bestand exportieren – für die Gegenstände der eigenen Gruppen und alle „allgemeinen“ Gegenstände.</td></tr>
+    <tr><td><b>Administrator</b></td><td>alles, dazu Benutzer, Gruppen, Einstellungen, Active Directory, E-Mail, Erscheinungsbild, Datensicherung und Diagnose.</td></tr>
+  </tbody>
+</table>
+<p><b>Gruppen</b> sind zum Beispiel Abteilungen oder Arbeitsgruppen. Jeder Gegenstand gehört entweder zu einer Gruppe oder ist <b>allgemein</b>. Allgemeine Gegenstände kann jede Person bekommen, Gruppengegenstände nur Mitglieder der Gruppe.</p>
+<div class="note"><b>So ist dieses Handbuch aufgebaut:</b> Teil A gilt für alle, Teil B für Verwalter, Teil C für Administratoren, Teil D hilft bei Problemen. Im Programm gibt es zusätzlich die <span class="ui">Hilfe</span>, die sich nach den Einstellungen Ihrer Einrichtung richtet.</div>
+
+<h2 id="anmelden">Anmelden, Sprache und Hilfe</h2>
+<figure class="half-right"><img src="img/login.jpg" alt=""><figcaption>Die Anmeldeseite (Logo, Farben und Texte kann Ihr Administrator anpassen).</figcaption></figure>
+<p>Öffnen Sie die Adresse, die Ihnen Ihre IT genannt hat (zum Beispiel <code>https://assets.institut.de</code>), und melden Sie sich mit <b>Benutzernamen und Passwort</b> an. Ist AssetLotse mit dem Active Directory verbunden, ist das Ihr normales Windows-Konto – derselbe Name und dasselbe Passwort wie am PC. Mit <span class="ui">Angemeldet bleiben</span> müssen Sie sich auf diesem Gerät eine Weile nicht neu anmelden (sofern Ihr Administrator das anbietet).</p>
+<p>Nach mehreren falschen Passwörtern wird die Anmeldung für einige Minuten gesperrt. Warten Sie kurz, oder bitten Sie einen Administrator, die Sperre aufzuheben.</p>
+<h3>Anmelden mit Passkey</h3>
+<p>Haben Sie einen <b>Passkey</b> eingerichtet (siehe <a href="#profil">Profil und Sicherheit</a>), tippen Sie auf <span class="ui">Mit Passkey anmelden</span> und bestätigen mit Face ID, Fingerabdruck oder Geräte-PIN – ganz ohne Benutzernamen und Passwort. Ein zweiter Faktor wird danach nicht abgefragt.</p>
+<h3>Zwei-Faktor-Anmeldung</h3>
+<p>Haben Sie eine Zwei-Faktor-Anmeldung eingerichtet (oder ist sie für Sie Pflicht), fragt AssetLotse nach dem Passwort zusätzlich nach einem Code aus Ihrer Authenticator-App oder nach Ihrem Sicherheitsschlüssel.</p>
+<div class="clear"></div>
+<h3>Automatische Abmeldung</h3>
+<p>Wer eine Zeit lang nichts in AssetLotse tut, wird automatisch abgemeldet (Standard: nach 12 Stunden, Ihr Administrator kann das ändern). Kurz vorher erscheint der Hinweis <i>„Sie werden in 2 Minuten abgemeldet – weiterarbeiten?“</i>. Jede aufgerufene Seite und auch das Ausfüllen eines Formulars zählt als Aktivität – ein langes Formular geht also nicht verloren. <span class="ui">Abmelden</span> beendet die Anmeldung sofort und auf dem Server: Auch eine Kopie der Anmeldedaten aus diesem Browser ist danach nichts mehr wert.</p>
+<h3>Sprache</h3>
+<p>Oben rechts schalten Sie mit <span class="ui">DE</span> / <span class="ui">EN</span> zwischen Deutsch und Englisch um. Die Wahl wird in Ihrem Profil gespeichert und gilt auf allen Geräten und für E-Mails an Sie. Ohne eigene Wahl gilt die Standardsprache Ihrer Einrichtung – die Sprache des Browsers spielt keine Rolle. Unter <span class="ui">Mein Profil → Sprache</span> sehen Sie, was gespeichert ist, und kehren mit <span class="ui">Standard der Einrichtung</span> zur Standardsprache zurück.</p>
+<h3>Hilfe und Neuigkeiten</h3>
+<p>Unter <span class="ui">Hilfe</span> finden Sie Erklärungen zu allen Seiten, die Sie benutzen dürfen. Das <span class="ui">?</span> oben rechts springt direkt zur Hilfe für die Seite, auf der Sie gerade sind. Die Hilfetexte richten sich nach den Einstellungen Ihrer Einrichtung – sie nennen also zum Beispiel die tatsächliche Leihdauer. Gibt es nach einem Update etwas Neues, erscheint unten links neben der Versionsnummer ein kleiner Punkt; er führt zu den <span class="ui">Neuigkeiten</span>.</p>
+
+<h2 id="meine-gegenstaende">Meine Gegenstände</h2>
+<figure><img src="img/staff_dashboard.jpg" alt=""><figcaption>Die Übersicht einer Mitarbeiterin: was ihr gerade ausgegeben ist, mit Status.</figcaption></figure>
+<p>Die <span class="ui">Übersicht</span> und die Seite <span class="ui">Meine Gegenstände</span> zeigen alles, was Ihnen gerade ausgegeben ist – mit Inventarnummer, Ausgabedatum und Status. Die Reiter <span class="ui">Überfällig</span> und <span class="ui">Verlauf</span> zeigen nur Überfälliges bzw. bereits Zurückgegebenes.</p>
+<table class="grid">
+  <thead><tr><th style="width:30%">Status</th><th>Bedeutung</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge accent">unbefristet</span></td><td>Sie behalten den Gegenstand, bis Sie ihn zurückgeben (Standard, z. B. beim Dienstlaptop). Er wird nie überfällig, es gibt keine Erinnerungen.</td></tr>
+    <tr><td><span class="badge ok">bis 14.11.2026</span></td><td>Rückgabedatum vereinbart, noch genug Zeit.</td></tr>
+    <tr><td><span class="badge warn">in 2 Tagen fällig</span></td><td>Bald zurückgeben oder verlängern.</td></tr>
+    <tr><td><span class="badge danger">4 Tg. überfällig</span></td><td>Das Rückgabedatum ist überschritten.</td></tr>
+  </tbody>
+</table>
+<p>Ein Klick auf einen Gegenstand öffnet seine <b>Detailseite</b> mit Inventar- und Seriennummer, Standort und Zubehör.</p>
+<div class="note"><b>Kein „Bestand“ im Menü?</b> Das ist der Normalfall: Standardmäßig sehen Mitarbeitende nur ihre eigenen Gegenstände. Ausgegeben wird über die Verwaltung bzw. die Ausgabetheke. Gibt Ihr Administrator den Bestand frei, erscheint der Menüpunkt <span class="ui">Bestand</span> mit einer Suche.</div>
+<h3>Verlängern</h3>
+<p>Hat ein Gegenstand ein Rückgabedatum und ist das Selbstverlängern erlaubt, verschiebt <span class="ui">Verlängern</span> das Datum (Standard: um 14 Tage, höchstens zweimal pro Ausgabe). Gezählt wird ab dem späteren Datum: heute oder bisheriges Rückgabedatum. Ist die Höchstzahl erreicht, verschwindet der Knopf – dann kann nur noch die Verwaltung verlängern. Unbefristete Ausgaben brauchen keine Verlängerung.</p>
+<h3>Zurückgeben</h3>
+<p>Bringen Sie den Gegenstand samt Zubehör zur Verwaltung bzw. Ausgabetheke; dort wird die Rückgabe eingetragen. Erst dann verschwindet er aus Ihren Gegenständen. Ist die Selbstrückgabe eingeschaltet, gibt es zusätzlich einen Knopf <span class="ui">Zurückgeben</span> – bringen Sie den Gegenstand danach an seinen Standort.</p>
+<h3>Erinnerungen per E-Mail</h3>
+<p>Bei Gegenständen mit Rückgabedatum kann AssetLotse kurz vorher erinnern und bei Überfälligkeit mahnen. Mehrere Gegenstände stehen in einer Mail. Abschalten können Sie das in Ihrem <span class="ui">Profil</span>.</p>
+
+<h2 id="schluessel">BitLocker-Schlüssel des eigenen Geräts</h2>
+<figure class="half-right"><img src="img/staff_detail_secret.jpg" alt=""><figcaption>Auf der Detailseite der ausgegebenen Festplatte: Schlüssel nach Passworteingabe anzeigen.</figcaption></figure>
+<p>Für verschlüsselte Geräte (z. B. eine externe Festplatte mit BitLocker) kann die Verwaltung den <b>Wiederherstellungsschlüssel</b> in AssetLotse hinterlegen. Hat sie ihn für Ihr Gerät freigegeben, können Sie ihn selbst nachschauen, wenn Sie ihn vergessen haben:</p>
+<ol class="steps">
+  <li>Öffnen Sie unter <span class="ui">Meine Gegenstände</span> das Gerät.</li>
+  <li>Geben Sie unter <span class="ui">Vertrauliche Angaben</span> Ihr Passwort ein und klicken Sie <span class="ui">Anzeigen</span>.</li>
+  <li>Der Schlüssel erscheint mit einem Knopf <span class="ui">Kopieren</span>. <span class="ui">Ausblenden</span> verbirgt ihn wieder.</li>
+</ol>
+<p>Das geht nur, solange Ihnen das Gerät ausgegeben ist – mit der Rückgabe ist der Zugriff vorbei. Jedes Anzeigen wird protokolliert. Andere Mitarbeitende sehen Ihren Schlüssel nie. Haben Sie sich ohne zweiten Faktor angemeldet (z. B. im internen Netz), müssen Sie ihn vorher bestätigen.</p>
+<div class="clear"></div>
+
+<h2 id="profil">Profil und Sicherheit</h2>
+<p>Unter <span class="ui">Mein Profil</span> wählen Sie die <b>Sprache</b> (<span class="ui">Standard der Einrichtung</span>, Deutsch oder English), hinterlegen Ihre <b>E-Mail-Adresse</b> (bei Konten aus dem Active Directory kommt sie automatisch von dort) und schalten <b>E-Mail-Benachrichtigungen</b> ein oder aus. Lokale Konten können hier auch ihr <b>Passwort ändern</b> (mindestens 10 Zeichen). Darunter steht Ihr Ausleihverlauf.</p>
+<figure><img src="img/security.jpg" alt=""><figcaption>Sicherheit: Passkey, Authenticator-App, Sicherheitsschlüssel und angemeldete Geräte.</figcaption></figure>
+<p>Unter <span class="ui">Sicherheit</span> richten Sie ein, wie Sie sich anmelden:</p>
+<ul>
+  <li><b>Passkey – Anmeldung ohne Passwort:</b> AssetLotse auf dem Gerät öffnen (z. B. Safari auf dem iPhone), einen Gerätenamen eingeben und <span class="ui">Passkey anlegen</span> tippen. Beim iPhone landet der Passkey im iCloud-Schlüsselbund und steht so auch auf Mac und iPad bereit. Wer sich am Handy mit Passwort anmeldet, sieht einmal pro Anmeldung den Hinweis <i>„Schneller anmelden mit Passkey“</i>. Passkeys gehen nur über HTTPS.</li>
+  <li><b>Authenticator-App</b> (Microsoft oder Google Authenticator, Aegis, 2FAS, Bitwarden …): QR-Code scannen, angezeigten Code eingeben, fertig.</li>
+  <li><b>Sicherheitsschlüssel</b> (YubiKey, FIDO2): einstecken, berühren – funktioniert nur über HTTPS. Am besten gleich einen Ersatzschlüssel registrieren.</li>
+  <li><b>Wiederherstellungscodes:</b> Beim Einrichten erscheinen zehn Einmal-Codes – nur ein einziges Mal. Drucken Sie sie aus oder bewahren Sie sie sicher auf; damit kommen Sie auch ohne Handy oder Schlüssel hinein.</li>
+</ul>
+<p>Unter <span class="ui">Angemeldete Geräte</span> sehen Sie, ob Sie noch woanders angemeldet sind. <span class="ui">Auf allen anderen Geräten abmelden</span> beendet diese Anmeldungen sofort – sinnvoll, wenn Sie sich z. B. an einem fremden Rechner angemeldet hatten. Das passiert auch automatisch, wenn Sie Ihr Passwort ändern.</p>
+
+<!-- ====================================================================== -->
+<h1 id="teil-b" class="part"><span class="part-no">Teil B</span>Für Verwalter</h1>
+<p class="part-lead">Gegenstände erfassen, ausgeben und zurücknehmen – an der Ausgabetheke oft mit einem einzigen Scan. Verwalter arbeiten mit den Gegenständen ihrer Gruppen und allen allgemeinen Gegenständen; den gesamten Bestand verwaltet, bei wem der Administrator <i>Verwaltet den gesamten Bestand</i> angehakt hat.</p>
+
+<h2 id="kennzahlen">Übersicht mit Kennzahlen</h2>
+<figure><img src="img/dashboard.jpg" alt=""><figcaption>Die Startseite für Verwalter und Administratoren.</figcaption></figure>
+<p>Oben stehen die wichtigsten Zahlen: <b>Bestand</b> (Stück und Einträge), <b>Verfügbar</b>, <b>Ausgegeben</b> mit Auslastung, <b>Überfällig</b> (mit den in 7 Tagen fälligen) und <b>Vertraulich</b> (Gegenstände mit hinterlegtem Schlüssel). Ein Klick auf eine Kachel öffnet die passende gefilterte Liste. Darunter: <b>Bestand nach Kategorie</b> mit Auslastungsbalken, die <b>letzten Bewegungen</b>, <b>Überfälliges</b> und was <b>bald zurück</b> muss.</p>
+
+<h2 id="bestand">Bestand: suchen, filtern, ansehen</h2>
+<figure><img src="img/catalog.jpg" alt=""><figcaption>Der Bestand als Tabelle mit Filtern, Etiketten und CSV-Export.</figcaption></figure>
+<p>Der <span class="ui">Bestand</span> zeigt alle Gegenstände, die Sie verwalten dürfen – standardmäßig als Tabelle mit der Spalte <span class="ui">Ausgegeben an</span>; rechts schalten Sie auf Kacheln mit Foto um. Filtern können Sie nach <b>Kategorie, Gruppe, Standort</b> und <b>Status</b> (verfügbar/ausgegeben), sortieren nach Bezeichnung, Kategorie, Inventarnummer oder Anlagedatum.</p>
+<figure class="half-right"><img src="img/search_suggest.jpg" alt=""><figcaption>Die Suche oben zeigt schon beim Tippen passende Gegenstände.</figcaption></figure>
+<p>Das <b>Suchfeld oben</b> zeigt schon beim Tippen passende Gegenstände mit Inventar- und Seriennummer und ob sie frei sind. Ein Klick (oder <span class="kbd">↓</span> und <span class="kbd">Enter</span>) öffnet das Gerät, <span class="kbd">Enter</span> allein bzw. <span class="ui">Alle Treffer anzeigen</span> die ganze Liste. Gesucht wird in Bezeichnung, Kategorie, Hersteller, Modell, Inventar- und Seriennummer. Eine Inventarnummer können Sie auch mit dem Barcodescanner vom Etikett hineinscannen.</p>
+<div class="clear"></div>
+<h3>Die Detailseite</h3>
+<figure><img src="img/detail_manager.jpg" alt=""><figcaption>Detailseite einer ausgegebenen Festplatte mit vertraulichen Angaben und Verlauf.</figcaption></figure>
+<p>Sie zeigt alle Angaben, den aktuellen Status und den Verlauf. Oben finden Sie <span class="ui">Bearbeiten</span>, <span class="ui">Etikett</span>, <span class="ui">Ähnlichen anlegen</span> und <span class="ui">Löschen</span> (nur möglich, wenn der Gegenstand nicht ausgegeben ist). Unter <span class="ui">Ausgeben an …</span> geben Sie aus; daneben stehen die vertraulichen Angaben und der Verlauf aller Ausgaben.</p>
+
+<h2 id="anlegen">Gegenstände anlegen und bearbeiten</h2>
+<figure><img src="img/form_new.jpg" alt=""><figcaption>Beim Tippen der Inventarnummer zeigt AssetLotse vorhandene Nummern und die nächste freie.</figcaption></figure>
+<p>Klicken Sie oben auf <span class="ui">+ Gegenstand</span>. Pflicht ist nur die <b>Bezeichnung</b> (z. B. „Laptop Dell Latitude 5440“). Alles andere können Sie später ergänzen:</p>
+<table class="grid">
+  <thead><tr><th style="width:26%">Feld</th><th>Hinweis</th></tr></thead>
+  <tbody>
+    <tr><td><b>Kategorie</b></td><td>frei, z. B. „Laptop“, „USB-Stick“, „Schlüssel“. Vorhandene Kategorien werden vorgeschlagen; eine neue entsteht einfach durch Eintippen.</td></tr>
+    <tr><td>Hersteller, Modell</td><td>frei</td></tr>
+    <tr><td><b>Inventarnummer</b></td><td>z. B. vom Etikett, auch per Barcodescanner. Unter dem Feld steht beim Tippen <span class="ui">Frei</span> oder <span class="ui">Schon vergeben</span> (mit Link zum Gerät), dazu ähnliche vorhandene Nummern und die <span class="ui">Nächste freie</span> – ein Klick übernimmt sie (z. B. <code>IT-0044</code> nach <code>IT-0043</code>).</td></tr>
+    <tr><td><b>Seriennummer</b></td><td>ebenfalls mit Prüfung „frei/vergeben“.</td></tr>
+    <tr><td>Beschreibung / Zubehör</td><td>z. B. „mit Netzteil und Tasche; Garantie bis 2028“</td></tr>
+    <tr><td><b>Gruppe</b></td><td><span class="ui">Allgemein – für alle</span> oder eine Gruppe; Gruppengegenstände bekommen nur deren Mitglieder.</td></tr>
+    <tr><td><b>Anzahl</b></td><td><code>1</code> für Einzelstücke mit eigener Nummer. Mehr nur für gleichartige Dinge ohne Nummer, z. B. 20 HDMI-Kabel – dann wird stückweise ausgegeben.</td></tr>
+    <tr><td>Standort</td><td>aus der Liste der Standorte (siehe <a href="#standorte">Standorte</a>).</td></tr>
+    <tr><td>Foto</td><td>JPG, PNG, WEBP oder GIF; wird verkleinert und ohne Metadaten gespeichert.</td></tr>
+  </tbody>
+</table>
+<div class="warn"><b>Jede Nummer gibt es nur einmal.</b> Eine Inventar- oder Seriennummer, die schon bei einem anderen Gegenstand steht, wird beim Speichern abgelehnt – egal ob groß oder klein geschrieben. Ihre Eingaben bleiben dabei im Formular stehen. So können keine Doppelten durch Vertippen oder Kopieren entstehen.</div>
+<h3>Viele gleichartige Geräte erfassen</h3>
+<ul>
+  <li><span class="ui">Speichern &amp; nächsten</span> öffnet nach dem Speichern sofort ein neues Formular mit denselben Angaben – ohne Nummern, Foto und vertrauliche Angaben. Für zehn gleiche Laptops müssen Sie dann nur noch Inventar- und Seriennummer scannen.</li>
+  <li><span class="ui">Ähnlichen anlegen</span> auf der Detailseite macht dasselbe ausgehend von einem vorhandenen Gegenstand.</li>
+</ul>
+<p>Ein Klick auf <span class="ui">Speichern</span> zeigt am Knopf, dass gesendet wird; ein zweiter Klick in dieser Zeit wird ignoriert – so entsteht auch bei langsamer Verbindung kein Gegenstand doppelt.</p>
+
+<h2 id="vertraulich">Vertrauliche Angaben (z. B. BitLocker-Schlüssel)</h2>
+<figure class="half-right"><img src="img/form_secret.jpg" alt=""><figcaption>Der Kasten „Vertrauliche Angaben“ im Formular.</figcaption></figure>
+<p>Im Kasten <span class="ui">Vertrauliche Angaben</span> hinterlegen Sie z. B. den <b>BitLocker-Wiederherstellungsschlüssel</b>, eine PIN oder ein Kennwort. Diese Angaben</p>
+<ul>
+  <li>werden <b>verschlüsselt</b> gespeichert und nie exportiert oder per E-Mail verschickt,</li>
+  <li>sind nur für <b>Administratoren</b> und für <b>Verwalter, die Mitglied der Gruppe</b> des Gegenstands sind, sichtbar – bei „Allgemein“ nur für Administratoren. Tipp: Geräte mit Schlüssel einer Gruppe wie „IT“ zuordnen.</li>
+  <li>erscheinen erst nach Klick auf <span class="ui">Anzeigen</span>; jedes Anzeigen, Ändern und Löschen steht mit Name und Zeit im <span class="ui">Protokoll</span> auf der Detailseite.</li>
+</ul>
+<p>Beim Bearbeiten bleibt das Feld leer – füllen Sie es nur aus, um die Angaben zu <b>ersetzen</b>. Mit dem Haken <span class="ui">Vertrauliche Angaben löschen</span> entfernen Sie sie. Bei Konten mit Zwei-Faktor-Anmeldung verlangt das Anzeigen und Ändern immer den zweiten Faktor in der laufenden Anmeldung.</p>
+<h3>Freigabe für die Person, die das Gerät hat</h3>
+<p>Mit dem Haken <span class="ui">Die Person, der der Gegenstand ausgegeben ist, darf die Angaben selbst ansehen</span> kann z. B. jemand den BitLocker-Schlüssel seiner Festplatte selbst nachschauen (siehe <a href="#schluessel">Kapitel 3</a>). Damit sich niemand einen Schlüssel „erleihen“ kann, gilt das</p>
+<ul>
+  <li>nur für <b>Einzelstücke</b> (Anzahl 1),</li>
+  <li>nur, wenn das Gerät von jemandem ausgegeben wurde, der die Angaben <b>selbst sehen darf</b> (Administrator bzw. Verwalter der Gruppe) – nicht bei Selbstausleihe,</li>
+  <li>nur nach erneuter Eingabe des eigenen Passworts und nur, solange das Gerät ausgegeben ist.</li>
+</ul>
+<div class="clear"></div>
+
+<h2 id="ausgeben">Ausgeben und zurücknehmen</h2>
+<p>Einzelne Ausgaben erledigen Sie direkt auf der <b>Detailseite</b> unter <span class="ui">Ausgeben an …</span>: Person wählen (es erscheinen nur Personen, die den Gegenstand bekommen dürfen), wahlweise <span class="ui">Rückgabe bis</span> ein Datum oder <span class="ui">unbefristet</span>, optional eine Notiz wie „mit Netzteil“. Zurücknehmen können Sie im Verlauf derselben Seite oder unter <span class="ui">Alle Ausleihen</span>.</p>
+<p>AssetLotse prüft automatisch, ob das Konto aktiv ist, die Person den Gegenstand bekommen darf (Gruppe), noch ein Stück frei ist, sie ihn nicht schon hat und – falls eingestellt – ob ihre Höchstzahl an Gegenständen erreicht ist. Ist der E-Mail-Versand eingerichtet, bekommt die Person eine Bestätigung.</p>
+<p>Für viele Ausgaben am Stück – etwa wenn neue Kolleginnen und Kollegen ihre Ausstattung bekommen – ist die <b>Ausgabetheke</b> schneller.</p>
+
+<h2 id="theke">Die Ausgabetheke</h2>
+<p><span class="ui">Ausgabetheke</span> in der Seitenleiste hat zwei Reiter: <b>Ausgabe</b> und <b>Rückgabe</b>. Sie ist für Tastatur und Barcodescanner gemacht – das Eingabefeld bleibt aktiv, Sie scannen einfach ein Etikett nach dem anderen.</p>
+<h3>1. Person wählen</h3>
+<figure class="half-right"><img src="img/desk_people.jpg" alt=""><figcaption>Schon beim Tippen erscheinen passende Konten.</figcaption></figure>
+<p>Tippen Sie Benutzernamen oder Namen. Schon beim Tippen erscheinen passende Konten; ein Klick wählt die Person. Ist das Active Directory mit Dienstkonto eingerichtet, erscheinen auch Personen, die sich <b>noch nie angemeldet</b> haben – markiert mit <span class="badge accent">AD – noch kein Konto</span>. Ein Klick legt ihr Konto an (AssetLotse prüft die Person dabei noch einmal direkt im AD) und wählt sie aus. Gefunden wird nur, wer sich nach Ihren AD-Regeln anmelden dürfte.</p>
+<p>Rechts sehen Sie, was die Person schon hat. <span class="ui">Wechseln</span> beginnt mit der nächsten Person.</p>
+<div class="clear"></div>
+<h3>2. Gegenstand scannen oder suchen</h3>
+<figure><img src="img/desk_items.jpg" alt=""><figcaption>Beim Tippen erscheinen Gegenstände, die die gewählte Person bekommen darf – mit „x von y frei“.</figcaption></figure>
+<p>Scannen Sie das Etikett oder tippen Sie Inventarnummer, Seriennummer oder Bezeichnung. Beim Tippen (z. B. „Laptop“) erscheinen passende Gegenstände, die diese Person bekommen darf; ein Klick (oder <span class="kbd">↓</span> und <span class="kbd">Enter</span>) gibt sofort aus. Gegenstände, die die Person nicht bekommen darf oder die vergriffen sind, sind entsprechend markiert.</p>
+<ul>
+  <li><b>Bei eindeutigem Treffer sofort ausgeben</b> (voreingestellt): Passt genau ein Gegenstand, wird er ohne weiteren Klick ausgegeben, und das Feld ist sofort für den nächsten bereit. Automatisch geht das nur bei genauen Treffern (Inventar-, Seriennummer, <code>#Nummer</code>), nie bei einer Suche nach der Bezeichnung.</li>
+  <li><code>#12</code> steht immer für die <b>interne Nummer</b> 12 – so ist sie auf Etiketten von Gegenständen ohne Inventarnummer codiert.</li>
+  <li><b>Im Bestand suchen</b> (unter der Scan-Zeile): Suchtext und/oder Kategorie, standardmäßig nur verfügbare Gegenstände, die Sie ausgeben dürfen – mit <span class="ui">Ausgeben</span> direkt in der Trefferliste.</li>
+</ul>
+<div class="tip"><b>Barcodescanner:</b> Ein USB- oder Bluetooth-Scanner „tippt“ die Nummer und drückt Enter – das funktioniert ohne Einrichtung. Die Vorschlagsliste stört dabei nicht: Enter ohne ausgewählten Vorschlag sucht immer nach der gescannten Nummer. Kommt kein Enter, stellen Sie den Scanner laut seiner Anleitung auf „Enter/CR als Suffix“. Falsche Zeichen (z. B. <code>ß</code> statt <code>-</code>) deuten auf ein anderes Tastaturlayout des Scanners hin.</div>
+<h3>Rückgabe</h3>
+<figure class="half-right"><img src="img/desk_return.jpg" alt=""><figcaption>Der Reiter Rückgabe.</figcaption></figure>
+<p>Im Reiter <span class="ui">Rückgabe</span> scannen Sie das Etikett. Mit <span class="ui">Bei eindeutigem Treffer sofort zurücknehmen</span> wird die Ausleihe direkt abgeschlossen, wenn es genau eine offene gibt. Bei mehreren Stück (z. B. Kabel) wählen Sie die passende Ausleihe und klicken <span class="ui">Zurücknehmen</span>. Prüfen Sie dabei kurz das Zubehör laut Notiz.</p>
+<div class="clear"></div>
+
+<h2 id="etiketten">Etiketten drucken</h2>
+<figure class="half-right narrow"><img src="img/label.jpg" alt="" class="framed"><figcaption>Etikett 62 × 29 mm mit Code-128-Barcode und Fußzeile.</figcaption></figure>
+<p>AssetLotse erzeugt für jeden Gegenstand ein <b>Etikett als PDF im Format 62 × 29 mm</b> – passend z. B. für Brother-QL-Drucker mit DK-11209-Etiketten oder 62-mm-Endlosband. Darauf stehen Bezeichnung, Kategorie/Modell, Seriennummer, ein <b>Barcode</b> mit der Inventarnummer und klein unten rechts eine <b>Fußzeile</b>, z. B. „Firma GmbH – IT · 0123 456789“.</p>
+<ul>
+  <li><b>Einzeln:</b> Detailseite → <span class="ui">Etikett</span>.</li>
+  <li><b>Viele auf einmal:</b> im Bestand filtern (z. B. Kategorie „Laptop“) → <span class="ui">Etiketten</span>.</li>
+  <li>Ohne Inventarnummer – oder wenn sie Umlaute enthält – codiert der Barcode <code>#&lt;interne Nummer&gt;</code>. Die Ausgabetheke findet beides.</li>
+</ul>
+<div class="clear"></div>
+<figure class="half-right"><img src="img/label_dialog.jpg" alt=""><figcaption>Der Druckdialog für eine Auswahl: Fußzeile, Anzahl und Gesamtzahl der Etiketten.</figcaption></figure>
+<p>Beide öffnen zuerst einen kleinen <b>Druckdialog</b>:</p>
+<ul>
+  <li><span class="ui">Fußzeile</span> – vorausgefüllt aus den Einstellungen (Administratoren legen sie unter <i>Einstellungen → Bestand &amp; Ausgabe → Etiketten</i> für alle fest); hier geändert, gilt sie nur für diesen Druck.</li>
+  <li><b>Anzahl</b> – einzeln bis 50 gleiche Etiketten, bei einer Auswahl bis 10 je Gegenstand. Der Dialog zeigt, wie viele Gegenstände die Auswahl hat und wie viele Etiketten es insgesamt werden; mehr als <b>500 Etiketten</b> pro Druck gehen nicht – dann die Auswahl mit den Filtern eingrenzen.</li>
+  <li><span class="ui">PDF erstellen</span> öffnet das PDF in einem neuen Tab.</li>
+</ul>
+<p><b>Drucken:</b> Im Druckdialog des Browsers die Etikettengröße 62 × 29 mm wählen und <b>„Tatsächliche Größe“ bzw. 100 %</b> einstellen – nicht „An Seite anpassen“. Bei Endlosband im Brother-Treiber die Länge 29 mm einstellen. Für viel genutzte Geräte halten Kunststoff-Etiketten (z. B. Brother DK-22113) deutlich länger als Papier.</p>
+<div class="clear"></div>
+
+<h2 id="ausleihen">Alle Ausleihen, Erinnerungen und Export</h2>
+<figure><img src="img/all_loans.jpg" alt=""><figcaption>Alle Ausleihen mit Verlängern, Erinnern und Rücknahme.</figcaption></figure>
+<p><span class="ui">Alle Ausleihen</span> zeigt die laufenden Ausgaben Ihrer Gruppen, im Reiter <span class="ui">Überfällig</span> nur Überfälliges und unter <span class="ui">Verlauf</span> Abgeschlossenes. Pro Zeile können Sie <span class="ui">Verlängern</span>, mit dem Briefumschlag eine <b>Erinnerung per E-Mail</b> schicken und den Gegenstand <span class="ui">Zurücknehmen</span>. Verwalter dürfen immer verlängern, auch über die Höchstzahl hinaus.</p>
+<h3>CSV-Export</h3>
+<p>Im <span class="ui">Bestand</span> lädt <span class="ui">CSV</span> die aktuelle Auswahl als Tabelle herunter (Semikolon, UTF-8 – öffnet direkt in Excel): ID, Bezeichnung, Kategorie, Hersteller, Modell, Seriennummer, Inventarnummer, Standort, Gruppe, Anzahl, Verfügbar und <b>Ausgegeben an</b>. Vertrauliche Angaben werden nie exportiert.</p>
+
+<h2 id="standorte">Standorte</h2>
+<figure><img src="img/locations.jpg" alt=""><figcaption>Standorte festlegen – beim Erfassen wird dann ausgewählt statt getippt.</figcaption></figure>
+<p>Unter <span class="ui">Standorte</span> legen Sie Räume, Schränke oder Regale einmal fest – auch mehrere auf einmal, einer pro Zeile. Danach wird der Standort beim Anlegen und Bearbeiten <b>aus einer Liste gewählt</b>; so entstehen keine Schreibvarianten.</p>
+<ul>
+  <li><b>Umbenennen</b> ändert den Standort bei allen betroffenen Gegenständen mit. <b>Löschen</b> geht erst, wenn dort kein Gegenstand mehr steht.</li>
+  <li>Früher frei getippte Standorte erscheinen unter <span class="ui">Im Bestand, aber nicht festgelegt</span>. Sie können sie übernehmen oder durch einen festgelegten Standort ersetzen – bei ähnlicher Schreibweise ist der passende schon vorausgewählt.</li>
+  <li>Umbenennen und Ersetzen, das Gegenstände anderer Gruppen betrifft, bleibt Administratoren und Verwaltern des gesamten Bestands vorbehalten.</li>
+</ul>
+
+<!-- ====================================================================== -->
+<h1 id="teil-c" class="part"><span class="part-no">Teil C</span>Für Administratoren</h1>
+<p class="part-lead">Installation, Einrichtung und Betrieb: Updates, Benutzer und Gruppen, Einstellungen, Active Directory, E-Mail, Zwei-Faktor-Regeln, Datensicherung, Diagnose, Sicherheit und Datenschutz.</p>
+
+<h2 id="installation">Installation und Update</h2>
+<p>AssetLotse läuft als <b>Docker-Container</b>. Das Programm steckt komplett im fertigen Image; auf dem Server liegen nur die <code>docker-compose.yml</code>, die <code>.env</code> (Ihre Einstellungen) und der Ordner <code>data</code> (Datenbank, Fotos, Schlüssel, Sicherungen). Nichts wird auf dem Server gebaut oder entpackt. Nötig ist Docker mit Compose (Plugin <code>docker compose</code> oder das ältere <code>docker-compose</code>).</p>
+<h3>Installation</h3>
+<ol class="steps">
+  <li>Einen Ordner anlegen, z. B. <code>/opt/assetlotse</code> (auf einer Synology z. B. <code>/volume1/docker/assetlotse</code>).</li>
+  <li>Aus dem neuesten Release auf GitHub die <code>docker-compose.yml</code> und die <code>env.example</code> dort ablegen, <code>env.example</code> als <code>.env</code> speichern und nach Bedarf anpassen (Port, Zeitzone …). Ohne Einträge gelten die Vorgaben.</li>
+  <li>Starten: <code>docker compose up -d</code> – eine Anmeldung bei GitHub ist nicht nötig, das Image ist öffentlich.</li>
+  <li>Im Browser <code>http://SERVER:9343</code> öffnen und das <b>lokale Administratorkonto</b> anlegen – das geht nur aus dem internen Netz. Dieses Konto funktioniert immer, auch wenn das Active Directory einmal nicht erreichbar ist.</li>
+</ol>
+<p>Der Container läuft nicht als root, sondern als Benutzer <code>1000:1000</code> (änderbar mit <code>PUID</code>/<code>PGID</code>); <code>./data</code> ist nur für diesen Benutzer lesbar.</p>
+<h3>Eigene Einstellungen: die Datei .env</h3>
+<p>Port, Zeitzone usw. gehören in die <code>.env</code> – nicht in die <code>docker-compose.yml</code>, die bei Bedarf durch eine neue ersetzt wird. Zusätzliche Ordner oder Dienste (z. B. ein Sicherungslaufwerk) kommen in eine eigene <code>docker-compose.override.yml</code>; die berührt kein Update. Alle Möglichkeiten stehen im <a href="#anhang-env">Anhang</a>. Wichtig für den Anfang:</p>
+<ul>
+  <li><b>Anderer Port:</b> <code>ASSETLOTSE_PORT=8080</code> eintragen und <code>docker compose up -d</code> ausführen. Der Wert gilt außen und innen im Container; erlaubt sind 1024–65535.</li>
+  <li><code>ASSETLOTSE_BIND=127.0.0.1</code> macht AssetLotse <b>nur auf dem Server selbst</b> erreichbar – gedacht für einen Reverse-Proxy auf demselben Rechner.</li>
+</ul>
+<h3>Update</h3>
+<p>Die <code>docker-compose.yml</code> folgt dem Tag <code>latest</code> – der neuesten Version einschließlich der monatlichen Sicherheitsupdates. Aktualisiert wird, wie man es von Docker kennt:</p>
+<ul>
+  <li><b>Mit einer Container-Verwaltung</b> wie Dockhand, Watchtower oder Tugtainer – am besten nachts, wenn niemand ausleiht.</li>
+  <li><b>Von Hand:</b> <code>docker compose pull &amp;&amp; docker compose up -d</code></li>
+  <li><b>Mit <code>./update.sh</code></b> (liegt im Release): lädt die neue Version, startet sie, wartet auf den Gesundheitscheck und bietet bei einem Fehlstart an, die vorige wieder zu starten (<code>./update.sh --rollback</code>).</li>
+</ul>
+<p><b>Abgesichert ist jeder Weg:</b> Startet eine neue Version zum ersten Mal, sichert AssetLotse die Datenbank, <b>bevor</b> es sie anpasst (<code>…-vor-&lt;Version&gt;.db</code>). Die drei neuesten dieser Sicherungen bleiben 30 Tage lang zusätzlich erhalten.</p>
+<figure><img src="img/update_notice.jpg" alt=""><figcaption>Der Hinweis auf eine neue Version (nur für Administratoren) und die Update-Karte auf der Diagnose-Seite.</figcaption></figure>
+<p><b>Hinweis auf neue Versionen:</b> Einmal am Tag fragt AssetLotse bei GitHub nach der neuesten veröffentlichten Version. Gibt es eine neuere, sehen Administratoren oben eine kurze Zeile mit <span class="ui">So aktualisieren Sie</span>; sie lässt sich bis zur nächsten Version <span class="ui">Ausblenden</span>. Unter <span class="ui">Administration → Diagnose</span> stehen der Link auf die Änderungen, der passende Update-Befehl und <span class="ui">Jetzt prüfen</span>. Über die Installation wird nichts gesendet. Abschalten unter <i>Einstellungen → Allgemein → Updates</i> oder ganz mit <code>ASSETLOTSE_UPDATE_CHECK=0</code> in der <code>.env</code> (z. B. für Server ohne Internet).</p>
+<h3>Bestimmte Version festlegen und zurückgehen</h3>
+<p>In der <code>.env</code> z. B. <code>ASSETLOTSE_TAG=2.9.1</code> eintragen und <code>docker compose pull &amp;&amp; docker compose up -d</code> ausführen; Container-Verwaltungen lassen eine feste Version in Ruhe. Eine ältere Version startet nicht auf einer Datenbank, die eine neuere schon angepasst hat – sie nennt dann die Sicherung, die zurückzuspielen ist (siehe <a href="#sicherung">Datensicherung</a>).</p>
+<p><b>Ohne Internet:</b> Am Release hängen die Images als Dateien (<code>…-amd64.tar.gz</code>, <code>…-arm64.tar.gz</code>). Datei und <code>update.sh</code> auf den Server kopieren und <code>./update.sh --offline DATEI</code> ausführen.</p>
+
+<h2 id="erste-schritte">Erste Schritte nach der Installation</h2>
+<p>Eine sinnvolle Reihenfolge für die Einrichtung:</p>
+<ol class="steps">
+  <li><b>Einstellungen → Allgemein:</b> Name der Einrichtung (erscheint in E-Mails und in der Seitenleiste) und Standardsprache. <b>Bestand &amp; Ausgabe:</b> Sichtbarkeit des Bestands, Leihdauer, Fußzeile der Etiketten.</li>
+  <li><b>Gruppen</b> anlegen, z. B. „IT“, „Verwaltung“, „Physik“.</li>
+  <li><b>Active Directory</b> verbinden (Kapitel <a href="#ad">Active Directory</a>) – oder lokale Benutzer anlegen.</li>
+  <li><b>E-Mail</b> einrichten und eine Testmail senden.</li>
+  <li><b>Standorte</b> festlegen (Räume, Schränke).</li>
+  <li><b>HTTPS</b> über einen Reverse-Proxy einrichten – nötig für Passkeys und Sicherheitsschlüssel.</li>
+  <li><b>Zwei-Faktor-Regeln</b> festlegen – mindestens für Verwalter und Administratoren, wenn BitLocker-Schlüssel hinterlegt werden.</li>
+  <li><b>Erscheinungsbild:</b> Logo, Farben, Begrüßungstext. <b>Rechtliches:</b> Links zu Impressum und Datenschutzerklärung.</li>
+  <li>Erste <b>Gegenstände</b> erfassen und <b>Etiketten</b> drucken.</li>
+  <li>Unter <b>Diagnose</b> prüfen, ob alles grün ist, und die Sicherungen zusätzlich an einen anderen Ort kopieren.</li>
+</ol>
+
+<h2 id="benutzer">Benutzer, Rollen und Gruppen</h2>
+<figure><img src="img/users.jpg" alt=""><figcaption>Die Benutzerverwaltung mit Filtern nach Quelle, Rolle und Status.</figcaption></figure>
+<p>Unter <span class="ui">Benutzer</span> legen Sie <b>lokale Konten</b> an (Benutzername, Name, E-Mail, Rolle, Passwort mit mindestens 10 Zeichen) und bearbeiten alle Konten. Konten aus dem Active Directory entstehen automatisch bei der ersten Anmeldung, an der Ausgabetheke oder durch den Abgleich; ihre Rolle bestimmen die AD-Regeln.</p>
+<ul>
+  <li><b>Gruppen</b> ordnen Sie beim Konto zu – oder automatisch über eine verknüpfte AD-Gruppe (siehe unten). Ein Verwalter verwaltet den <b>gesamten</b> Bestand nur mit dem Haken <span class="ui">Verwaltet den gesamten Bestand</span>.</li>
+  <li><b>Konto aktiv</b> abhaken sperrt die Anmeldung und meldet die Person sofort überall ab; Ausleihen bleiben erhalten.</li>
+  <li><b>Anmeldung und Sicherheit:</b> Zwei-Faktor-Anmeldung zurücksetzen (Handy verloren – entfernt auch Passkeys), Anmeldesperre nach Fehlversuchen aufheben.</li>
+  <li><b>Löschen</b> geht nur, wenn die Person nichts mehr ausgeliehen hat; ihr Ausleihverlauf wird dabei entfernt.</li>
+  <li>Es muss immer mindestens ein aktiver Administrator bleiben; sich selbst können Sie die Administratorrechte nicht entziehen.</li>
+</ul>
+<p>Unter <span class="ui">Gruppen</span> legen Sie Gruppen an. Tragen Sie bei einer Gruppe den Namen einer <b>AD-Gruppe</b> ein (z. B. <code>Abt-Physik</code>), werden deren Mitglieder automatisch Mitglied der AssetLotse-Gruppe; Mitglieder verschachtelter Gruppen zählen mit.</p>
+
+<h2 id="einstellungen">Einstellungen</h2>
+<figure><img src="img/settings.jpg" alt=""><figcaption>Administration → Einstellungen mit den Reitern Allgemein, Bestand &amp; Ausgabe, Konten, Sicherheit und Datenschutz.</figcaption></figure>
+<p>Die Einstellungen sind auf fünf Reiter verteilt; unten <span class="ui">Speichern</span> nicht vergessen. Ein Reiter mit noch nicht gespeicherten Änderungen trägt einen Punkt, und wer die Seite vorher verlassen will, wird gefragt.</p>
+<table class="grid">
+  <thead><tr><th style="width:30%">Einstellung</th><th>Bedeutung</th></tr></thead>
+  <tbody>
+    <tr><td colspan="2"><b>Allgemein</b></td></tr>
+    <tr><td>Name</td><td>Name der Einrichtung bzw. des Programms – in E-Mails, in der Seitenleiste und (ohne eigene Fußzeile) auf Etiketten.</td></tr>
+    <tr><td>Standardsprache</td><td>gilt für alle, die nicht selbst eine Sprache gewählt haben, auch auf der Anmeldeseite und in E-Mails; die Sprache des Browsers zählt nicht. Darunter steht, wie viele Konten eine eigene Sprache gewählt haben.</td></tr>
+    <tr><td>Updates</td><td>einmal am Tag nach neuen Versionen fragen (siehe <a href="#installation">Update</a>).</td></tr>
+    <tr><td colspan="2"><b>Bestand &amp; Ausgabe</b></td></tr>
+    <tr><td>Sichtbarkeit des Bestands</td><td><i>nur eigene Gegenstände</i> (Standard), <i>Gegenstände der eigenen Gruppen und allgemeine</i> oder <i>gesamter Bestand</i>. Verwalter und Administratoren sehen den Bestand immer.</td></tr>
+    <tr><td>Etiketten – Fußzeile</td><td>klein unten rechts auf jedem Etikett, höchstens 80 Zeichen; leer = keine.</td></tr>
+    <tr><td>Standard-Leihdauer</td><td><code>0</code> = unbefristet (Standard). Mit einer Zahl bekommt jede Ausgabe automatisch dieses Rückgabedatum.</td></tr>
+    <tr><td>Verlängerung, Höchstzahl</td><td>Standard 14 Tage, höchstens 2-mal; max. Gegenstände pro Person (<code>0</code> = unbegrenzt).</td></tr>
+    <tr><td>Selbstausleihe, -verlängerung, -rückgabe</td><td>Standard: nur Verlängern an. Selbstausleihe setzt voraus, dass Mitarbeitende den Bestand sehen.</td></tr>
+    <tr><td colspan="2"><b>Konten</b></td></tr>
+    <tr><td>Selbstregistrierung</td><td>aus (Standard), mit Freigabe durch einen Administrator oder sofort aktiv; optional E-Mail-Bestätigung, erlaubte Domains und Gruppe für neue Konten.</td></tr>
+    <tr><td colspan="2"><b>Sicherheit</b></td></tr>
+    <tr><td>Zwei-Faktor-Anmeldung</td><td>Pflicht für niemanden, Administratoren, Verwalter + Administratoren oder alle; Regeln für das interne Netz; Anmeldung mit Passkey erlauben – siehe <a href="#zwei-faktor">Zwei-Faktor-Regeln</a>.</td></tr>
+    <tr><td>Automatische Abmeldung</td><td>Stunden ohne Aktivität (Standard 12, <code>0</code> = aus), optional kürzer für Administratoren und für Zugriffe von außen; Hinweis 2 Minuten vorher; <i>Beim Schließen des Browsers abmelden</i>.</td></tr>
+    <tr><td colspan="2"><b>Datenschutz</b></td></tr>
+    <tr><td>Rechtliches</td><td>Adressen von Impressum und Datenschutzerklärung (Anmeldeseite, Seitenleiste, E-Mails).</td></tr>
+    <tr><td>Aufbewahrung</td><td>wie lange abgeschlossene Ausleihen gespeichert bleiben (Standard 12 Monate) – siehe <a href="#datenschutz">Datenschutz</a>.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="ad">Active Directory</h2>
+<figure><img src="img/ldap_top.jpg" alt=""><figcaption>Administration → Active Directory.</figcaption></figure>
+<p>Unter <span class="ui">Active Directory</span> verbinden Sie AssetLotse mit Windows-AD, Samba-AD oder OpenLDAP – für jedes gibt es einen Vorlagen-Knopf.</p>
+<ol class="steps">
+  <li><b>Server:</b> z. B. <code>ldaps://dc1.institut.local</code> (mehrere DCs mit Komma trennen). Am besten den DNS-Namen eintragen, so wie er im Zertifikat steht.</li>
+  <li><b>Basis-DN:</b> z. B. <code>DC=institut,DC=local</code> – oder enger eine OU.</li>
+  <li><b>Dienstkonto</b> (nur Leserechte), z. B. <code>CN=svc-assetlotse,OU=Dienstkonten,DC=institut,DC=local</code>. Ohne Dienstkonto geht die Anmeldung auch direkt per UPN-Suffix – dann aber ohne Personensuche an der Theke, ohne Abgleich, ohne Passkeys für AD-Konten und ohne regelmäßige Nachprüfung der Anmeldungen.</li>
+  <li><b>TLS-Zertifikat:</b> <span class="ui">Zertifikat vom DC abrufen</span>, Fingerabdruck prüfen, <span class="ui">Vertrauen &amp; speichern</span>. AssetLotse holt dabei möglichst die Stamm-CA, damit es auch nach einer Erneuerung des DC-Zertifikats weiter funktioniert.</li>
+  <li><b>Wer darf was?</b> Pro Rolle die AD-Gruppen (oder OUs) eintragen, eine pro Zeile – z. B. Administratoren <code>IT-Admins</code>, Verwalter <code>AssetLotse-Verwalter</code>, Mitarbeiter <code>Domänen-Benutzer</code>. <span class="ui">Gruppen laden</span> zeigt die Gruppen aus dem AD zum Anklicken. Die höchste passende Rolle gewinnt; wer zu keiner Regel passt, kann sich nicht anmelden.</li>
+  <li><b>Testen:</b> <span class="ui">Verbindung testen</span> und <span class="ui">Login testen</span> zeigen DN, alle Gruppen – jeweils markiert als <i>direkt</i>, <i>primär</i> (z. B. Domänen-Benutzer) oder <i>verschachtelt</i> – und die Rolle, auch ohne vorher zu speichern. Dann <span class="ui">Speichern</span>.</li>
+</ol>
+<div class="note">Windows-DCs und Samba lehnen einfache Anmeldungen über unverschlüsseltes LDAP meist ab – nutzen Sie <b>LDAPS</b> (Port 636) oder <b>StartTLS</b>. Lokale Konten haben immer Vorrang; das lokale Admin-Konto funktioniert auch bei AD-Ausfall. Wer mit einem AD-Konto angemeldet ist, kann keine Einstellungen speichern, nach denen er selbst kein Administrator mehr wäre.</div>
+<h3>Abgleich im Hintergrund</h3>
+<figure class="half-right"><img src="img/ldap_sync.jpg" alt=""><figcaption>Abschnitt „Abgleich im Hintergrund“ mit Status und „Jetzt abgleichen“.</figcaption></figure>
+<p>Mit Dienstkonto gleicht AssetLotse sich regelmäßig mit dem AD ab (Standard: stündlich; wählbar bis einmal täglich):</p>
+<ul>
+  <li><b>Personen ohne Konto</b> werden mit Benutzername, Name und E-Mail zwischengespeichert – die Ausgabetheke findet sie sofort.</li>
+  <li><b>Vorhandene Konten</b> bleiben aktuell: Name, E-Mail, Gruppen, Umbenennungen im AD (erkannt an der festen AD-Kennung). Die Rolle wird nur bei Konten angepasst, die sich schon selbst angemeldet haben.</li>
+  <li><b>Im AD deaktiviert, gelöscht oder nicht mehr berechtigt:</b> Die Person fliegt aus dem Zwischenspeicher, ihr Konto wird deaktiviert (Ausleihen bleiben sichtbar) und automatisch wieder aktiv, wenn sie zurückkommt.</li>
+</ul>
+<div class="warn"><b>Einmal bestätigen:</b> Beim ersten Abgleich – und immer, wenn auffällig viele Konten betroffen wären (mehr als 20 %), alle Konten, ein Administrator oder der letzte Administrator – deaktiviert AssetLotse niemanden automatisch. Die AD-Seite listet dann die betroffenen Benutzernamen; prüfen Sie sie und bestätigen Sie mit <span class="ui">Diese Konten deaktivieren</span>. Bei einer falschen Einstellung (Basis-DN, Filter, Regeln) erst diese korrigieren.</div>
+<p>Wird ein Benutzername im AD an eine <b>andere Person</b> neu vergeben, bekommt sie nie das alte Konto samt Verlauf – auch ein alter Passkey gilt dann nicht mehr. Benennen Sie das alte Konto unter <span class="ui">Benutzer</span> um (z. B. in „anna-alt“).</p>
+<div class="clear"></div>
+
+<h2 id="email">E-Mail-Benachrichtigungen</h2>
+<figure><img src="img/email.jpg" alt=""><figcaption>Administration → E-Mail.</figcaption></figure>
+<p>Tragen Sie SMTP-Server, Port, Verschlüsselung, Zugangsdaten und Absender ein und klicken Sie <span class="ui">Testmail senden</span>. Die <b>Adresse von AssetLotse</b> (z. B. <code>https://assets.institut.de</code>) wird für Links in den Mails gebraucht.</p>
+<table class="grid">
+  <thead><tr><th style="width:32%">Benachrichtigung</th><th>Wann</th></tr></thead>
+  <tbody>
+    <tr><td>Bestätigung bei Ausgabe</td><td>sofort, mit Bezeichnung und Rückgabedatum bzw. „unbefristet“</td></tr>
+    <tr><td>Bestätigung bei Rückgabe</td><td>sofort (Standard aus)</td></tr>
+    <tr><td>Erinnerung</td><td>einige Tage vor Fälligkeit – nur bei befristeten Ausgaben</td></tr>
+    <tr><td>Mahnung</td><td>ab dem ersten Tag der Überfälligkeit, mit einstellbarer Wiederholung</td></tr>
+    <tr><td>Übersicht an Verwalter</td><td>täglich, nur wenn es in ihren Gruppen Überfälliges gibt (Standard aus)</td></tr>
+  </tbody>
+</table>
+<p>Erinnerungen und Mahnungen laufen einmal täglich ab der eingestellten Uhrzeit; mehrere Gegenstände einer Person stehen in einer Mail. Unbefristete Ausgaben bekommen nie Erinnerungen. Typische Server: Microsoft 365 <code>smtp.office365.com:587 STARTTLS</code>, interner Mailserver <code>mail.institut.local:25</code>.</p>
+
+<h2 id="zwei-faktor">Zwei-Faktor-Regeln, Passkeys und internes Netz</h2>
+<p>Unter <span class="ui">Einstellungen → Sicherheit</span> legen Sie fest, für wen die Zwei-Faktor-Anmeldung bei <b>Zugriff von außen</b> Pflicht ist: niemanden (Standard), Administratoren, Verwalter und Administratoren oder alle. Betroffene werden nach der Anmeldung zur Einrichtung geführt. Wer BitLocker-Schlüssel hinterlegt, sollte sie mindestens für Verwalter und Administratoren verlangen.</p>
+<p>Für das <b>interne Netz</b> können Sie es lockerer handhaben: <i>wie von außen</i>, <i>keine Pflicht</i> (wer 2FA hat, wird trotzdem gefragt) oder <i>keine Zwei-Faktor-Abfrage</i>. Was „intern“ ist, tragen Sie als Netze ein (z. B. <code>192.168.10.0/24</code>); die Seite zeigt, wie Ihre aktuelle Verbindung eingestuft wird. Eine im LAN ohne zweiten Faktor begonnene Anmeldung gilt nur intern.</p>
+<p><b>Passkeys</b> (Anmeldung ohne Passwort, siehe <a href="#profil">Kapitel 4</a>) zählen als zwei Faktoren und erfüllen damit auch eine 2FA-Pflicht. Sie brauchen HTTPS; bei Active-Directory-Konten zusätzlich das Dienstkonto, denn AssetLotse fragt bei jeder Passkey-Anmeldung im AD nach, ob das Konto noch aktiv und berechtigt ist. Abschalten lässt sich das mit <span class="ui">Anmeldung mit Passkey erlauben</span>.</p>
+<div class="note"><b>Hinter einem Reverse-Proxy</b> zählt die echte Adresse des Besuchers (<code>X-Forwarded-For</code>). Veröffentlichen Sie den Port von AssetLotse dann nur für den Proxy (z. B. <code>ASSETLOTSE_BIND=127.0.0.1</code>) oder tragen Sie dessen Adresse in <code>ASSETLOTSE_TRUSTED_PROXIES</code> ein – sonst könnte sich ein Rechner im LAN als „intern“ ausgeben.</div>
+
+<h2 id="erscheinungsbild">Erscheinungsbild</h2>
+<figure><img src="img/branding.jpg" alt=""><figcaption>Logo, Hintergrundbild, Farben und Texte mit Vorschau.</figcaption></figure>
+<p>Unter <span class="ui">Erscheinungsbild</span> passen Sie AssetLotse an Ihr Corporate Design an: <b>Logo</b> (PNG mit transparentem Hintergrund oder SVG; erscheint auch in E-Mails und als Browser-Symbol), <b>Hintergrundbild</b> der Anmeldeseite, <b>Farben</b> (Hauptfarbe, Akzent, Seitenleiste – Schriftfarben werden automatisch lesbar gewählt) und die <b>Texte</b> der Anmeldeseite. Alles ist sofort in der Vorschau zu sehen; <span class="ui">Alles zurücksetzen</span> stellt den Auslieferungszustand wieder her. Logo und Hintergrund sind öffentlich abrufbar – nichts Vertrauliches verwenden.</p>
+
+<h2 id="sicherung">Datensicherung und Wiederherstellung</h2>
+<figure><img src="img/backups.jpg" alt=""><figcaption>Administration → Datensicherung.</figcaption></figure>
+<p>Die Datenbank wird <b>jeden Tag automatisch gesichert</b> (Standard ab 2 Uhr nachts), im laufenden Betrieb, und jede Sicherung wird auf Beschädigung geprüft. Aufbewahrt werden die neuesten 10 (einstellbar). Dazu kommen die Sicherungen <b>vor einem Update</b>: Die drei neuesten bleiben 30 Tage lang zusätzlich erhalten, danach zählen sie wie alle anderen. <span class="ui">Jetzt sichern</span> legt sofort eine an – sinnvoll vor größeren Änderungen. Schlägt eine Sicherung fehl, erscheint ein Warnzeichen am Menüpunkt, und Administratoren bekommen eine E-Mail.</p>
+<ul>
+  <li><b>Ablage:</b> <code>./data/backups</code>; mit <code>ASSETLOTSE_BACKUP_DIR</code> z. B. auf einem eingebundenen NAS-Laufwerk.</li>
+  <li>Gesichert wird die Datenbank (nur SQLite; bei MySQL/MariaDB oder PostgreSQL selbst sichern). Fotos, Logo und die Datei <code>secret_key</code> liegen in <code>./data</code> – für einen Umzug den ganzen Ordner mitnehmen.</li>
+  <li>Sicherungen auf demselben Server schützen vor Bedienfehlern, nicht vor einem Festplattenausfall: den Ordner regelmäßig an einen anderen Ort kopieren.</li>
+</ul>
+<div class="warn"><b>Die Datei secret_key gehört zur Datenbank.</b> Mit ihr sind die BitLocker-Schlüssel, 2FA-Geheimnisse und gespeicherten Passwörter verschlüsselt. Geht sie verloren, sind die vertraulichen Angaben unwiederbringlich weg. Sichern Sie sie getrennt und gut geschützt, und spielen Sie eine Datenbank immer zusammen mit ihrer secret_key zurück. Passt der Schlüssel nicht zur Datenbank, startet AssetLotse absichtlich nicht.</div>
+<h3>Wiederherstellen</h3>
+<p>Der aktuelle Stand wird vorher automatisch gesichert. Die Befehle funktionieren auch, wenn AssetLotse nicht mehr startet:</p>
+<pre>docker compose stop assetlotse
+docker compose run --rm assetlotse backups
+docker compose run --rm assetlotse restore DATEINAME.db
+docker compose start assetlotse</pre>
+
+<h2 id="diagnose">Diagnose und Diagnosepaket</h2>
+<figure><img src="img/diagnose.jpg" alt=""><figcaption>Administration → Diagnose: Update-Stand, Auffälligkeiten mit Link zur passenden Seite, Diagnosepaket.</figcaption></figure>
+<p><span class="ui">Administration → Diagnose</span> prüft die Installation und zeigt <b>Auffälligkeiten</b> – etwa eine fehlende oder alte Sicherung, Fehler beim E-Mail-Versand oder im Active Directory, einen Aufruf ohne HTTPS, Administratoren ohne zweiten Faktor oder Fehler im Programmprotokoll. Jede Auffälligkeit verlinkt die Seite, auf der Sie sie beheben.</p>
+<p><span class="ui">Diagnosepaket herunterladen</span> erzeugt eine ZIP-Datei zum Weitergeben, wenn Sie Hilfe brauchen. Sie ist <b>anonym</b>: keine Datensätze, nur Anzahlen; Namen, Benutzernamen, E-Mail- und IP-Adressen, Rechnernamen und AD-Pfade werden durch Platzhalter ersetzt; Passwörter, Schlüssel, 2FA-Daten und vertrauliche Angaben werden nie gelesen. Startet die Weboberfläche nicht, legt <code>docker compose run --rm assetlotse diagnose</code> das Paket unter <code>./data/diagnose/</code> ab.</p>
+
+<h2 id="sicherheit">Sicherheit und Betrieb im Internet</h2>
+<ul>
+  <li><b>HTTPS:</b> Betreiben Sie AssetLotse hinter einem Reverse-Proxy mit Zertifikat (z. B. Caddy, Nginx Proxy Manager, Synology). AssetLotse erkennt den Proxy automatisch und leitet HTTP über den Proxy selbst auf HTTPS um, sobald es einmal HTTPS gesehen hat. Passkeys und Sicherheitsschlüssel funktionieren nur über HTTPS. Für das Internet am Router nur den Proxy freigeben, nie den Port von AssetLotse direkt.</li>
+  <li><b>Anmeldungen verwaltet der Server:</b> Jede Anmeldung wird auf dem Server geführt. Abmelden, „auf allen anderen Geräten abmelden“, ein neues Passwort, ein gesperrtes Konto und die automatische Abmeldung beenden sie dort – kopierte Cookies sind danach wertlos. Eine Anmeldung gilt höchstens 14 Tage.</li>
+  <li><b>Anmeldesperre:</b> Nach 8 Fehlversuchen ist die Anmeldung 5 Minuten gesperrt, zusätzlich gibt es eine Grenze je Benutzername über alle Adressen.</li>
+  <li><b>AD-Anmeldungen</b> werden alle 4 Stunden nachgeprüft: Wer im AD gesperrt oder aus der berechtigten Gruppe genommen wurde, wird abgemeldet.</li>
+  <li><b>Keine fremden Server:</b> Schriften und Skripte liegen im Programm, es gibt kein Tracking und nur technisch notwendige Cookies. Einzige Verbindung nach außen ist die abschaltbare Update-Prüfung bei GitHub.</li>
+  <li><b>Strenge Browser-Schutzregeln</b> (Content-Security-Policy, Schutz vor Einbettung, CSRF-Schutz); Seiten mit angezeigten Schlüsseln werden nicht im Browser-Cache abgelegt.</li>
+</ul>
+
+<h2 id="datenschutz">Datenschutz</h2>
+<p>In Ihre Datenschutzerklärung bzw. das Verzeichnis der Verarbeitungstätigkeiten gehört, was AssetLotse speichert:</p>
+<ul>
+  <li>Name, Benutzername, E-Mail-Adresse und Gruppen der Benutzer,</li>
+  <li>Ausgaben und Rückgaben mit Datum (wer hatte wann was, wer hat ausgegeben),</li>
+  <li>das Zugriffsprotokoll der vertraulichen Angaben und das E-Mail-Protokoll,</li>
+  <li>bei Zwei-Faktor-Anmeldung die registrierten Schlüssel und Passkeys, dazu die laufenden Anmeldungen (Zeitpunkt, nie das Passwort),</li>
+  <li>mit dem <b>AD-Abgleich</b> zusätzlich Benutzername, Name und E-Mail aller Personen, die sich anmelden dürften – auch wenn sie AssetLotse nie benutzen (abschaltbar auf der AD-Seite).</li>
+</ul>
+<p><b>Aufbewahrung</b> (Standard 12 Monate): Abgeschlossene Ausleihen, E-Mail-Protokoll und Zugriffsprotokoll werden nach dieser Frist automatisch gelöscht; pro Gegenstand bleibt nur die Anzahl der Ausleihen. Laufende und überfällige Ausgaben werden nie gelöscht. Sicherungen enthalten die Daten entsprechend länger (bei 10 täglichen Sicherungen bis zu 10 Tage, Sicherungen vor einem Update höchstens 30 Tage). Beziehen Sie bei der Einführung Personal- bzw. Betriebsrat und Datenschutzbeauftragte ein.</p>
+
+<!-- ====================================================================== -->
+<h1 id="teil-d" class="part"><span class="part-no">Teil D</span>Hilfe bei Problemen</h1>
+<p class="part-lead">Die häufigsten Stolpersteine und wie Sie sie lösen – plus die Befehle für den Notfall.</p>
+
+<h2 id="probleme">Fehlerbehebung</h2>
+<dl class="faq">
+  <dt>Die Seite wird nicht angezeigt.</dt>
+  <dd>Steht in der <code>.env</code> <code>ASSETLOTSE_BIND=127.0.0.1</code>, ist AssetLotse nur auf dem Server selbst erreichbar – Zeile auskommentieren und <code>docker compose up -d</code>. Sonst den Port prüfen (Standard 9343, <code>ASSETLOTSE_PORT</code>) und die Firewall des Servers (z. B. <code>sudo ufw allow 9343/tcp</code>). <code>docker compose ps</code> zeigt, ob der Container läuft; <code>docker compose logs --tail 50</code> zeigt die letzten Meldungen.</dd>
+  <dt>Jemand kann sich nicht anmelden.</dt>
+  <dd>Unter <span class="ui">Benutzer</span> prüfen, ob das Konto aktiv ist und ob eine Anmeldesperre besteht (Filter „Anmeldesperre“, dann <span class="ui">Anmeldesperre aufheben</span>). Bei AD-Konten auf der AD-Seite <span class="ui">Login testen</span>: Passt keine Regel, fehlt die Person in der berechtigten Gruppe.</dd>
+  <dt>Nach dem Update müssen sich alle neu anmelden.</dt>
+  <dd>Das ist einmalig nach dem Update auf 2.10.0 so gewollt: Seitdem verwaltet der Server die Anmeldungen selbst, ältere Anmeldungen gelten nicht mehr.</dd>
+  <dt>Die Oberfläche erscheint in der falschen Sprache.</dt>
+  <dd>Unter <span class="ui">Mein Profil → Sprache</span> nachsehen: Steht dort eine feste Sprache, wurde einmal <span class="ui">DE</span>/<span class="ui">EN</span> geklickt. <span class="ui">Standard der Einrichtung</span> wählen und speichern.</dd>
+  <dt>Handy mit der Authenticator-App verloren.</dt>
+  <dd>Mit einem Wiederherstellungscode anmelden. Ohne Code: Ein Administrator setzt unter <span class="ui">Benutzer → Anmeldung und Sicherheit</span> die Zwei-Faktor-Anmeldung zurück.</dd>
+  <dt>Der Knopf „Mit Passkey anmelden“ fehlt.</dt>
+  <dd>Passkeys gehen nur über HTTPS mit dem Domainnamen, nicht über <code>http://IP:9343</code>. Bei AD-Konten muss zusätzlich das Dienstkonto eingerichtet sein.</dd>
+  <dt>AD: „Zertifikat nicht vertrauenswürdig“.</dt>
+  <dd>Auf der AD-Seite <span class="ui">Zertifikat vom DC abrufen</span> und <span class="ui">Vertrauen &amp; speichern</span>. Wird der DC per IP-Adresse angesprochen, „Hostname prüfen“ abschalten.</dd>
+  <dt>AD: Die Ausgabetheke findet eine neue Kollegin nicht.</dt>
+  <dd>Neue Personen erscheinen nach dem nächsten Abgleich – oder sofort nach <span class="ui">Jetzt abgleichen</span> auf der AD-Seite. Findet der Zwischenspeicher niemanden, sucht die Theke zusätzlich live im AD.</dd>
+  <dt>Der Barcodescanner tippt falsche Zeichen oder sendet kein Enter.</dt>
+  <dd>Den Scanner laut seiner Anleitung auf das deutsche Tastaturlayout und „Enter/CR als Suffix“ stellen.</dd>
+  <dt>Das Etikett wird zu klein oder verzerrt gedruckt.</dt>
+  <dd>Im Druckdialog „Tatsächliche Größe“ bzw. 100 % wählen, nicht „An Seite anpassen“; Etikettengröße 62 × 29 mm einstellen.</dd>
+  <dt>„Inventarnummer ist bereits vergeben“.</dt>
+  <dd>Jede Nummer gibt es nur einmal. Der Hinweis unter dem Feld verlinkt den Gegenstand mit dieser Nummer und schlägt die nächste freie vor.</dd>
+  <dt>Nach einem Update startet AssetLotse nicht.</dt>
+  <dd><code>docker compose logs --tail 50</code> lesen. Meldet es, dass der Schlüssel nicht zur Datenbank passt, fehlt die richtige <code>data/secret_key</code>. Sonst mit <code>./update.sh --rollback</code> die vorige Version starten oder sie in der <code>.env</code> festlegen. Für Hilfe das Diagnosepaket mit <code>docker compose run --rm assetlotse diagnose</code> erzeugen.</dd>
+</dl>
+
+<h2 id="notfall">Befehle für den Notfall</h2>
+<p>Auf dem Server im Programmordner, jeweils mit <code>docker compose exec assetlotse docker-entrypoint.sh</code> davor (so laufen sie mit den richtigen Rechten; in der Konsole von Dockhand entfällt <code>docker compose exec assetlotse</code>):</p>
+<table class="grid mono-first">
+  <tbody>
+    <tr><td>flask --app wsgi reset-password admin</td><td>Passwort eines lokalen Kontos neu setzen (aktiviert das Konto, hebt die Sperre auf)</td></tr>
+    <tr><td>flask --app wsgi reset-2fa admin</td><td>Zwei-Faktor-Anmeldung zurücksetzen</td></tr>
+    <tr><td>flask --app wsgi make-admin NAME</td><td>einem Konto die Administratorrolle zurückgeben</td></tr>
+    <tr><td>flask --app wsgi unlock admin</td><td>Anmeldesperre sofort aufheben</td></tr>
+    <tr><td>flask --app wsgi list-admins</td><td>alle Administratorkonten anzeigen</td></tr>
+    <tr><td>flask --app wsgi create-admin notfall</td><td>zusätzliches lokales Administratorkonto anlegen</td></tr>
+    <tr><td>flask --app wsgi backup</td><td>sofort sichern</td></tr>
+    <tr><td>flask --app wsgi send-reminders</td><td>Erinnerungen sofort versenden</td></tr>
+    <tr><td>flask --app wsgi apply-retention</td><td>Aufbewahrungsfrist sofort anwenden</td></tr>
+  </tbody>
+</table>
+<p>Beispiel: <code>docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi reset-password admin</code>. Sicherungen anzeigen und zurückspielen: siehe <a href="#sicherung">Datensicherung</a>.</p>
+
+<h2 id="anhang-env">Anhang: Einstellungen in der Datei .env</h2>
+<table class="grid mono-first small">
+  <thead><tr><th style="width:32%">Variable</th><th>Bedeutung</th></tr></thead>
+  <tbody>
+    <tr><td>ASSETLOTSE_TAG</td><td>Version des Images: <code>latest</code> (Standard) oder fest, z. B. <code>2.10.0</code>.</td></tr>
+    <tr><td>ASSETLOTSE_PORT</td><td>Port (Standard 9343, erlaubt 1024–65535) – gilt auf dem Server und im Container.</td></tr>
+    <tr><td>ASSETLOTSE_BIND</td><td>Adresse, auf der der Port veröffentlicht wird (Standard alle). <code>127.0.0.1</code> nur für einen Reverse-Proxy auf demselben Rechner.</td></tr>
+    <tr><td>TZ</td><td>Zeitzone (Standard Europe/Berlin).</td></tr>
+    <tr><td>PUID / PGID</td><td>Benutzer und Gruppe für <code>./data</code> (Standard 1000).</td></tr>
+    <tr><td>DATABASE_URL</td><td>andere Datenbank statt SQLite, z. B. MySQL/MariaDB.</td></tr>
+    <tr><td>ASSETLOTSE_SECRET_KEY</td><td>Verschlüsselungsschlüssel; ohne Angabe wird er einmalig erzeugt und in <code>data/secret_key</code> gespeichert (empfohlen). Nie nachträglich ändern.</td></tr>
+    <tr><td>ASSETLOTSE_ACCEPT_NEW_KEY</td><td><code>1</code> = einen geänderten Schlüssel bewusst übernehmen (einmalig).</td></tr>
+    <tr><td>ASSETLOTSE_TRUSTED_PROXIES</td><td>von wem Proxy-Angaben akzeptiert werden: <code>private</code> (Standard), <code>none</code> oder eine Liste von Adressen/Netzen.</td></tr>
+    <tr><td>ASSETLOTSE_SECURE_COOKIES</td><td><code>auto</code> (Standard: bei HTTPS), <code>1</code> oder <code>0</code>.</td></tr>
+    <tr><td>ASSETLOTSE_FORCE_HTTPS</td><td><code>auto</code> (Standard: umleiten, sobald HTTPS über den Proxy gesehen wurde), <code>1</code> oder <code>0</code>.</td></tr>
+    <tr><td>ASSETLOTSE_SESSION_HOURS</td><td>Startwert der automatischen Abmeldung in Stunden (Standard 12, <code>0</code> = aus).</td></tr>
+    <tr><td>ASSETLOTSE_BACKUP_DIR</td><td>Ordner für die Sicherungen, z. B. ein NAS-Laufwerk (als Volume einbinden).</td></tr>
+    <tr><td>ASSETLOTSE_UPDATE_CHECK</td><td><code>0</code> = nie bei GitHub nach neuen Versionen fragen.</td></tr>
+    <tr><td>ASSETLOTSE_LOGLEVEL</td><td><code>INFO</code> (Standard), <code>DEBUG</code> für die AD-Fehlersuche.</td></tr>
+    <tr><td>ASSETLOTSE_SCHEDULER</td><td><code>0</code> = keine zeitgesteuerten Läufe in diesem Prozess (bei mehreren App-Servern).</td></tr>
+    <tr><td>ASSETLOTSE_SOURCE_URL</td><td>Link zum Quellcode auf der Seite „Über dieses Programm“ (bei einer veränderten Fassung).</td></tr>
+  </tbody>
+</table>
+<p>Alles andere stellen Sie in der Oberfläche ein.</p>
+
+<h2 id="lizenz">Lizenz</h2>
+<p>AssetLotse ist freie Software unter der <b>GNU Affero General Public License, Version 3 oder später</b> (AGPL-3.0-or-later). Jeder darf das Programm nutzen, weitergeben und verändern. Wer eine veränderte Fassung weitergibt oder im Netz für andere betreibt, muss deren Quellcode unter derselben Lizenz zugänglich machen. AssetLotse wird ohne Gewährleistung bereitgestellt. Version, Lizenz und Quellcode-Link stehen nach der Anmeldung unter <span class="ui">Über dieses Programm</span> (Klick auf die Versionsnummer unten in der Seitenleiste). Mitgelieferte Schrift: Inter (SIL Open Font License 1.1).</p>

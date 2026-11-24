@@ -9,7 +9,7 @@
 <nav class="tabs" data-settings-tabs aria-label="{{ _('Topics') }}">
   {% for id, label in tabs %}<a href="#{{ id }}" data-tab="{{ id }}"{% if loop.first %} class="on"{% endif %}>{{ label }}</a>{% endfor %}
 </nav>
-<form method="post" data-settings-form>
+<form method="post" data-settings-form data-warn-unsaved>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <input type="hidden" name="tab" value="allgemein" data-settings-tab-input>
 
@@ -21,7 +21,10 @@
         <select id="f-default-language" name="default_language">
           {% for code, label in LANGUAGES.items() %}<option value="{{ code }}" {{ 'selected' if s('default_language') == code }}>{{ label }}</option>{% endfor %}
         </select>
-        <small class="muted">{{ _("For visitors whose browser prefers neither language, and for emails to users who haven't chosen one. Everyone can switch the language themselves at the top right.") }}</small></div>
+        <small class="muted">{{ _("Applies to everyone who has not chosen a language themselves (also on the sign-in page and in emails) – the browser language does not count. Everyone can switch the language at the top right; when signed in, the choice is saved in the profile.") }}
+        {% if own_languages %}{% set total = own_languages.values()|sum %}<br>{{ _n("{n} account has chosen its own language:", "{n} accounts have chosen their own language:", total) }}
+          {% for code, n in own_languages|dictsort %}{{ LANGUAGES.get(code, code) }} {{ n }}{{ ", " if not loop.last }}{% endfor %}.
+          {{ _("They change it in their profile or with DE / EN at the top right.") }}{% endif %}</small></div>
     </section>
     <section class="card card-pad">
       <h2 class="u-mb-16">{{ _("Updates") }}</h2>

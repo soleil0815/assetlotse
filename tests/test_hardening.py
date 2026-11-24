@@ -16,6 +16,7 @@ os.environ.setdefault("ASSETLOTSE_DATA_DIR", tempfile.mkdtemp(prefix="assetlotse
 from PIL import Image  # noqa: E402
 
 from assetlotse import LDAP_RECHECK_SECONDS, create_app, mailer  # noqa: E402
+from assetlotse.sessions import issue as issue_session
 from assetlotse.ldap_auth import LDAPError, LDAPUser  # noqa: E402
 from assetlotse.models import Asset, Group, Loan, Setting, User, db, get_setting, set_setting  # noqa: E402
 from assetlotse.views import safe_next  # noqa: E402
@@ -89,10 +90,16 @@ class SessionTests(Base):
         self.c.post(f"/admin/benutzer/{self.leser.id}/2fa-zuruecksetzen")
         self.assertFalse(self.logged_in(other))
 
-    def test_legacy_session_id_still_accepted(self):
+    def test_legacy_session_ids_are_no_longer_accepted(self):
+        """2.10.0: without a server-side session (cookie from before 2.10.0, or forged) nobody is signed in –
+        everyone signs in once after the update."""
+        for legacy in (str(self.leser.id), f"{self.leser.id}:{self.leser.auth_epoch or 0}"):
+            with self.c.session_transaction() as s:
+                s["_user_id"] = legacy
+                s["_fresh"] = True
+            self.assertFalse(self.logged_in())
         with self.c.session_transaction() as s:
-            s["_user_id"] = str(self.leser.id)
-            s["_fresh"] = True
+            s["_user_id"] = issue_session(self.leser)
         self.assertTrue(self.logged_in())
 
     def test_min_password_length(self):
@@ -281,7 +288,7 @@ class LdapRecheckTests(Base):
         db.session.commit()
         from flask_login import login_user  # noqa: F401
         with self.c.session_transaction() as s:
-            s["_user_id"] = f"{self.ad.id}:{self.ad.auth_epoch or 0}"
+            s["_user_id"] = issue_session(self.ad)
             s["_fresh"] = True
 
     def directory(self, **kw):

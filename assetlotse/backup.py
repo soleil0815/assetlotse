@@ -3,7 +3,8 @@
 - daily at the configured hour (default 2 am), only once even with several server processes
 - while running, via SQLite's online backup API (consistent, without stopping)
 - every backup is checked with PRAGMA integrity_check; only then is it considered complete
-- the newest N backups are kept (default 10), older ones are deleted
+- the newest N backups are kept (default 10), older ones are deleted; the newest three "before update" backups
+  are kept in addition, for at most 30 days
 - location: <data directory>/backups or ASSETLOTSE_BACKUP_DIR (e.g. a NAS drive)
 
 With MySQL/MariaDB or PostgreSQL, better back up with the database server's own tools.
@@ -19,7 +20,7 @@ import os
 import re
 import sqlite3
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from flask import current_app
@@ -34,7 +35,9 @@ NAME_RE = re.compile(r"^assetlotse-(\d{4}-\d{2}-\d{2})_(\d{6})(-vor-\d+\.\d+\.\d
 PART_MAX_AGE = 3600   # delete unfinished *.part files as leftovers of aborted runs only after 1 hour
 KIND_LABELS = {"": "automatic", "-manuell": "manual", "-vor-wiederherstellung": "before restore",
                "-vor-update": "before update"}
-KEEP_UPGRADE = 3      # "before <version>" backups: the newest three don't count – needed by anyone going back
+KEEP_UPGRADE = 3      # "before <version>" backups: the newest three don't count – needed by anyone going back …
+UPGRADE_MAX_DAYS = 30  # … but only for 30 days (2.10.0): afterwards they rotate like the others – deleted data
+                       # must not stay in old update backups for ever
 KEEP_MIN, KEEP_MAX = 1, 100
 
 
@@ -184,11 +187,12 @@ def list_backups() -> list[dict]:
     return items
 
 
-def rotate(keep: int | None = None) -> int:
+def rotate(keep: int | None = None, now: datetime | None = None) -> int:
     keep = keep_count() if keep is None else keep
     removed = 0
     items = list_backups()
-    protected = {i["name"] for i in [i for i in items if i["upgrade"]][:KEEP_UPGRADE]}
+    young = (now or datetime.now()) - timedelta(days=UPGRADE_MAX_DAYS)
+    protected = {i["name"] for i in [i for i in items if i["upgrade"]][:KEEP_UPGRADE] if i["created"] >= young}
     for item in [i for i in items if i["name"] not in protected][keep:]:
         try:
             item["path"].unlink()

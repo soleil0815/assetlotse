@@ -15,7 +15,7 @@ from test_app import BaseCase
 
 from assetlotse import applog, diagnose
 from assetlotse.models import (DEFAULT_SETTINGS, Asset, DirectoryPerson, Group, Loan, Location, LoginAttempt, MailLog,
-                               SecretAccess, WebAuthnCredential, db, set_setting)
+                               SecretAccess, UserSession, WebAuthnCredential, db, set_setting)
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = [*sorted((ROOT / "assetlotse").rglob("*.py")), ROOT / "gunicorn.conf.py", ROOT / "wsgi.py"]
@@ -92,7 +92,7 @@ class AnonymityTests(BaseCase):
         db.session.add_all([Loan(asset_id=asset.id, user_id=reader.id),
                             SecretAccess(asset_id=asset.id, user_id=admin.id),
                             WebAuthnCredential(user_id=reader.id, rp_id="x", credential_id="c", credential_data="d"),
-                            MailLog(kind="test")])
+                            MailLog(kind="test"), UserSession(user_id=reader.id, token_hash="t" * 64)])
         db.session.commit()
         markers: list[str] = []
         self.secret_markers: list[str] = []      # never read for the package (and never logged by the program)
@@ -265,10 +265,42 @@ class PageTests(BaseCase):
         import json as _json
         de = _json.loads((ROOT / "assetlotse" / "translations" / "de.json").read_text(encoding="utf-8"))
         for code, text in diagnose._TEXTS.items():
-            with self.subTest(code=code):
-                self.assertIn(text, de)
+            for one in (text if isinstance(text, tuple) else (text,)):
+                with self.subTest(code=code):
+                    self.assertIn(one, de)
         for code in set(re.findall(r'add\("([a-z0-9_]+)", "(?:error|warning|info)"', (ROOT / "assetlotse" / "diagnose.py").read_text())):
             self.assertIn(code, diagnose._TEXTS)
+
+    def test_plural_texts(self):
+        one = {"code": "admins_without_2fa", "level": "warning", "params": {"n": 1}}
+        two = {"code": "admins_without_2fa", "level": "warning", "params": {"n": 2}}
+        self.assertEqual(diagnose.finding_text(one), "1 administrator without a second factor.")
+        self.assertEqual(diagnose.finding_text(two), "2 administrators without a second factor.")
+        from assetlotse.i18n import _, force_locale
+        with force_locale("de"):
+            self.assertEqual(diagnose.finding_text(one, _), "1 Administrator ohne zweiten Faktor.")
+            self.assertEqual(diagnose.finding_text(two, _), "2 Administratoren ohne zweiten Faktor.")
+
+    def test_every_link_target_exists(self):
+        from flask import url_for
+        with self.app.test_request_context():
+            for code, (endpoint, args, _page) in diagnose._LINKS.items():
+                with self.subTest(code=code):
+                    self.assertIn(code, diagnose._TEXTS)
+                    url_for(endpoint, **args)
+
+    def test_findings_link_to_the_page_and_update_error_is_translated(self):
+        from assetlotse.models import set_setting
+        set_setting("update_error", "GitHub answered HTTP 403")
+        set_setting("update_checked_at", "2026-11-24T02:17:05")
+        db.session.commit()
+        self.make_user("chefin", role="admin")
+        self.login("chefin")
+        html = self.c.get("/admin/diagnose").get_data(as_text=True)
+        self.assertIn('<a href="/admin/benutzer?rolle=admin">Benutzer →</a>', html)
+        self.assertIn("GitHub begrenzt gerade die Anfragen (HTTP 403)", html)
+        self.assertNotIn("GitHub answered", html)
+        self.assertIn("Zuletzt geprüft: 24.11.2026 02:17.", html)
 
     def test_cli(self):
         result = self.app.test_cli_runner().invoke(args=["diagnose"])

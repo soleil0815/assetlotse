@@ -124,10 +124,16 @@ class LanguageTests(Base):
         self.assertIn('<html lang="de">', html)
         self.assertIn("Anmelden", html)
 
-    def test_browser_language(self):
+    def test_browser_language_does_not_count(self):
+        # 2.10.0: an English browser gets the default language of the installation …
         html = self.c.get("/login", headers={"Accept-Language": "en-GB,en;q=0.9"}).get_data(as_text=True)
-        self.assertIn('<html lang="en">', html)
-        self.assertNotIn(">Anmelden<", html)
+        self.assertIn('<html lang="de">', html)
+        self.login("leser")
+        html = self.c.get("/", headers={"Accept-Language": "en"}).get_data(as_text=True)
+        self.assertIn('<html lang="de">', html)
+        # … until the person chooses English themselves
+        self.c.post("/sprache/en", data={"next": "/"})
+        self.assertIn('<html lang="en">', self.c.get("/", headers={"Accept-Language": "de"}).get_data(as_text=True))
 
     def test_admin_default_language(self):
         set_setting("default_language", "en")
@@ -146,6 +152,26 @@ class LanguageTests(Base):
         other = self.app.test_client()
         other.post("/login", data={"username": "leser", "password": PW})
         self.assertIn('<html lang="en">', other.get("/").get_data(as_text=True))
+
+    def test_profile_shows_saved_language_and_goes_back_to_default(self):
+        self.login("admin")
+        self.c.post("/sprache/en", data={"next": "/"})                   # clicked EN once …
+        html = self.c.get("/profil").get_data(as_text=True)
+        self.assertIn('<option value="en" lang="en" selected>', html)    # … and the profile shows it
+        html = self.c.get("/admin/einstellungen").get_data(as_text=True)
+        self.assertIn("1 account has chosen its own language:", html)
+        self.assertIn("English 1.", html)
+        r = self.c.post("/profil", data={"action": "language", "language": ""}, follow_redirects=True)
+        html = r.get_data(as_text=True)
+        self.assertIn('<html lang="de">', html)                          # session click no longer overrides
+        self.assertIn("Sprache gespeichert.", html)
+        self.assertIn("Standard der Einrichtung (derzeit Deutsch)", html)
+        db.session.refresh(self.users["admin"])
+        self.assertEqual(self.users["admin"].language, "")
+        self.assertNotIn("eigene Sprache gewählt", self.c.get("/admin/einstellungen").get_data(as_text=True))
+        self.c.post("/profil", data={"action": "language", "language": "xx"})
+        db.session.refresh(self.users["admin"])
+        self.assertEqual(self.users["admin"].language, "")
 
     def test_switch_rejects_foreign_redirect_and_unknown_language(self):
         r = self.c.post("/sprache/en", data={"next": "https://evil.example/"})

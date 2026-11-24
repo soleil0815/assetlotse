@@ -1,0 +1,456 @@
+<!-- Manual content (English). h1 = part, h2 = chapter (numbered, in the table of contents), h3 = section.
+     Images: img/<name>.png – made by docs/manual/screenshots.py. Build: docs/manual/build.py -->
+
+<h1 id="teil-a" class="part"><span class="part-no">Part A</span>For everyone</h1>
+<p class="part-lead">What everyone who receives equipment from AssetLotse needs to know: signing in, keeping track of your own items, extending, returning and – if enabled – looking up the BitLocker key of your own device.</p>
+
+<h2 id="ueberblick">AssetLotse at a glance</h2>
+<p>AssetLotse manages your organisation’s equipment that is issued and returned: laptops, USB sticks, external hard drives, headsets, projectors, keys, work phones, cables and the like. Consumables do not belong in it. The program runs in the browser – on PC, tablet and phone; there is nothing to install.</p>
+<p>Every person has one of three <b>roles</b>:</p>
+<table class="grid">
+  <thead><tr><th style="width:24%">Role</th><th>Can</th></tr></thead>
+  <tbody>
+    <tr><td><b>Staff member</b></td><td>see their own items, extend loans with a return date (if allowed), set notifications, language and security. Depending on the settings, also view the inventory and check out or return items themselves.</td></tr>
+    <tr><td><b>Manager</b></td><td>add, edit and delete items, issue and check them in, use the issue desk, print labels, export the inventory – for the items of their own groups and all “general” items.</td></tr>
+    <tr><td><b>Administrator</b></td><td>everything, plus users, groups, settings, Active Directory, email, branding, backup and diagnostics.</td></tr>
+  </tbody>
+</table>
+<p><b>Groups</b> are, for example, departments or teams. Every item either belongs to a group or is <b>general</b>. General items can be issued to anyone, group items only to members of that group.</p>
+<div class="note"><b>How this manual is organised:</b> Part A is for everyone, Part B for managers, Part C for administrators, Part D helps with problems. The program itself also has a <span class="ui">Help</span> section that adapts to your organisation’s settings.</div>
+
+<h2 id="anmelden">Signing in, language and help</h2>
+<figure class="half-right"><img src="img/login.jpg" alt=""><figcaption>The sign-in page (your administrator can customise the logo, colours and texts).</figcaption></figure>
+<p>Open the address your IT team gave you (for example <code>https://assets.example.org</code>) and sign in with your <b>username and password</b>. If AssetLotse is connected to Active Directory, this is your normal Windows account – the same name and password as on your PC. With <span class="ui">Stay signed in</span> you do not have to sign in again on this device for a while (if your administrator offers it).</p>
+<p>After several wrong passwords, sign-in is locked for a few minutes. Wait a moment or ask an administrator to lift the lock.</p>
+<h3>Signing in with a passkey</h3>
+<p>If you have set up a <b>passkey</b> (see <a href="#profil">Profile and security</a>), tap <span class="ui">Sign in with passkey</span> and confirm with Face ID, fingerprint or the device PIN – no username or password needed. No second factor is asked for afterwards.</p>
+<h3>Two-factor authentication</h3>
+<p>If you have set up two-factor authentication (or it is mandatory for you), AssetLotse asks, after your password, for a code from your authenticator app or for your security key.</p>
+<div class="clear"></div>
+<h3>Automatic sign-out</h3>
+<p>Anyone who does nothing in AssetLotse for a while is signed out automatically (default: after 12 hours; your administrator can change this). Shortly before, the notice <i>“You will be signed out in 2 minutes – continue working?”</i> appears. Every page you open and also filling in a form counts as activity – so a long form is not lost. <span class="ui">Sign out</span> ends the sign-in immediately and on the server: even a copy of the sign-in data from this browser is worthless afterwards.</p>
+<h3>Language</h3>
+<p>At the top right, <span class="ui">DE</span> / <span class="ui">EN</span> switches between German and English. Your choice is saved in your profile and applies on every device and to emails sent to you. Without a choice of your own, your organisation’s default language applies – the browser language plays no part. Under <span class="ui">My profile → Language</span> you see what is saved, and <span class="ui">Default of the installation</span> takes you back to the default language.</p>
+<h3>Help and news</h3>
+<p>Under <span class="ui">Help</span> you will find explanations of all pages you are allowed to use. The <span class="ui">?</span> at the top right jumps straight to the help for the page you are on. The help texts adapt to your organisation’s settings – for example, they state the actual loan period. If something is new after an update, a small dot appears next to the version number at the bottom left; it leads to the <span class="ui">News</span>.</p>
+
+<h2 id="meine-gegenstaende">My items</h2>
+<figure><img src="img/staff_dashboard.jpg" alt=""><figcaption>A staff member’s overview: what is currently issued to her, with status.</figcaption></figure>
+<p>The <span class="ui">Overview</span> and the page <span class="ui">My items</span> show everything currently issued to you – with inventory number, issue date and status. The tabs <span class="ui">Overdue</span> and <span class="ui">History</span> show only overdue or already returned items.</p>
+<table class="grid">
+  <thead><tr><th style="width:30%">Status</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge accent">open-ended</span></td><td>You keep the item until you return it (default, e.g. for a work laptop). It is never overdue and there are no reminders.</td></tr>
+    <tr><td><span class="badge ok">until 14 Nov 2026</span></td><td>A return date was agreed; there is still enough time.</td></tr>
+    <tr><td><span class="badge warn">due in 2 days</span></td><td>Return or extend soon.</td></tr>
+    <tr><td><span class="badge danger">4 days overdue</span></td><td>The return date has passed.</td></tr>
+  </tbody>
+</table>
+<p>Clicking an item opens its <b>detail page</b> with inventory and serial number, location and accessories.</p>
+<div class="note"><b>No “Inventory” in the menu?</b> That is normal: by default, staff members only see their own items. Items are issued by the managers or at the issue desk. If your administrator opens the inventory, the menu item <span class="ui">Inventory</span> appears with a search.</div>
+<h3>Extending</h3>
+<p>If an item has a return date and self-extension is allowed, <span class="ui">Extend</span> moves the date (default: by 14 days, at most twice per loan). It counts from the later date: today or the current return date. Once the maximum is reached, the button disappears – then only a manager can extend. Open-ended loans need no extension.</p>
+<h3>Returning</h3>
+<p>Bring the item with its accessories to the managers or the issue desk, where the return is recorded. Only then does it disappear from your items. If self-return is switched on, there is also a <span class="ui">Return</span> button – take the item back to its location afterwards.</p>
+<h3>Email reminders</h3>
+<p>For items with a return date, AssetLotse can remind you shortly before and send overdue notices. Several items are listed in one email. You can switch this off in your <span class="ui">Profile</span>.</p>
+
+<h2 id="schluessel">BitLocker key of your own device</h2>
+<figure class="half-right"><img src="img/staff_detail_secret.jpg" alt=""><figcaption>On the detail page of the issued drive: showing the key after entering the password.</figcaption></figure>
+<p>For encrypted devices (e.g. an external drive with BitLocker), the managers can store the <b>recovery key</b> in AssetLotse. If they have enabled it for your device, you can look it up yourself if you have forgotten it:</p>
+<ol class="steps">
+  <li>Open the device under <span class="ui">My items</span>.</li>
+  <li>Under <span class="ui">Confidential details</span>, enter your password and click <span class="ui">Reveal</span>.</li>
+  <li>The key appears with a <span class="ui">Copy</span> button. <span class="ui">Hide</span> hides it again.</li>
+</ol>
+<p>This only works while the device is issued to you – access ends with the return. Every viewing is logged. Other staff members never see your key. If you signed in without a second factor (e.g. on the internal network), you have to confirm it first.</p>
+<div class="clear"></div>
+
+<h2 id="profil">Profile and security</h2>
+<p>Under <span class="ui">My profile</span> you choose the <b>language</b> (<span class="ui">Default of the installation</span>, Deutsch or English), store your <b>email address</b> (for Active Directory accounts it comes from there automatically) and switch <b>email notifications</b> on or off. Local accounts can also <b>change their password</b> here (at least 10 characters). Below is your loan history.</p>
+<figure><img src="img/security.jpg" alt=""><figcaption>Security: passkey, authenticator app, security keys and signed-in devices.</figcaption></figure>
+<p>Under <span class="ui">Security</span> you set up how you sign in:</p>
+<ul>
+  <li><b>Passkey – sign-in without a password:</b> open AssetLotse on the device (e.g. Safari on the iPhone), enter a device name and tap <span class="ui">Create passkey</span>. On an iPhone, the passkey is stored in the iCloud keychain and is then also available on Mac and iPad. Anyone signing in with a password on a phone sees the notice <i>“Sign in faster with a passkey”</i> once per sign-in. Passkeys only work over HTTPS.</li>
+  <li><b>Authenticator app</b> (Microsoft or Google Authenticator, Aegis, 2FAS, Bitwarden …): scan the QR code, enter the code shown, done.</li>
+  <li><b>Security key</b> (YubiKey, FIDO2): insert, touch – works only over HTTPS. Best register a spare key right away.</li>
+  <li><b>Recovery codes:</b> during setup, ten one-time codes are shown – only once. Print them or keep them safe; with them you can sign in without your phone or key.</li>
+</ul>
+<p>Under <span class="ui">Signed-in devices</span> you see whether you are still signed in elsewhere. <span class="ui">Sign out on all other devices</span> ends those sign-ins immediately – useful if you signed in on someone else’s computer. This also happens automatically when you change your password.</p>
+
+<!-- ====================================================================== -->
+<h1 id="teil-b" class="part"><span class="part-no">Part B</span>For managers</h1>
+<p class="part-lead">Recording, issuing and checking in items – at the issue desk often with a single scan. Managers work with the items of their groups and all general items; the whole inventory is managed by those for whom the administrator has ticked <i>Manages the entire inventory</i>.</p>
+
+<h2 id="kennzahlen">Overview with key figures</h2>
+<figure><img src="img/dashboard.jpg" alt=""><figcaption>The start page for managers and administrators.</figcaption></figure>
+<p>At the top are the key figures: <b>Inventory</b> (pieces and entries), <b>Available</b>, <b>Issued</b> with utilisation, <b>Overdue</b> (with those due within 7 days) and <b>Confidential</b> (items with a stored key). Clicking a tile opens the matching filtered list. Below: <b>Inventory by category</b> with utilisation bars, the <b>latest movements</b>, <b>overdue</b> items and what is <b>due back soon</b>.</p>
+
+<h2 id="bestand">Inventory: search, filter, view</h2>
+<figure><img src="img/catalog.jpg" alt=""><figcaption>The inventory as a table with filters, labels and CSV export.</figcaption></figure>
+<p>The <span class="ui">Inventory</span> shows all items you may manage – by default as a table with the column <span class="ui">Issued to</span>; on the right you switch to tiles with photos. You can filter by <b>category, group, location</b> and <b>status</b> (available/issued) and sort by name, category, inventory number or date added.</p>
+<figure class="half-right"><img src="img/search_suggest.jpg" alt=""><figcaption>The search at the top shows matching items while you type.</figcaption></figure>
+<p>The <b>search field at the top</b> shows matching items with inventory and serial number and whether they are available while you type. A click (or <span class="kbd">↓</span> and <span class="kbd">Enter</span>) opens the device, <span class="kbd">Enter</span> alone or <span class="ui">Show all results</span> the whole list. It searches name, category, manufacturer, model, inventory and serial number. You can also scan an inventory number from the label with the barcode scanner.</p>
+<div class="clear"></div>
+<h3>The detail page</h3>
+<figure><img src="img/detail_manager.jpg" alt=""><figcaption>Detail page of an issued drive with confidential details and history.</figcaption></figure>
+<p>It shows all details, the current status and the history. At the top you find <span class="ui">Edit</span>, <span class="ui">Label</span>, <span class="ui">Add similar</span> and <span class="ui">Delete</span> (only possible if the item is not issued). Under <span class="ui">Issue to …</span> you issue it; next to it are the confidential details and the history of all loans.</p>
+
+<h2 id="anlegen">Adding and editing items</h2>
+<figure><img src="img/form_new.jpg" alt=""><figcaption>While you type the inventory number, AssetLotse shows existing numbers and the next free one.</figcaption></figure>
+<p>Click <span class="ui">+ Item</span> at the top. Only the <b>name</b> is required (e.g. “Laptop Dell Latitude 5440”). You can add everything else later:</p>
+<table class="grid">
+  <thead><tr><th style="width:26%">Field</th><th>Note</th></tr></thead>
+  <tbody>
+    <tr><td><b>Category</b></td><td>free text, e.g. “Laptop”, “USB stick”, “Key”. Existing categories are suggested; a new one is created simply by typing it.</td></tr>
+    <tr><td>Manufacturer, model</td><td>free text</td></tr>
+    <tr><td><b>Inventory number</b></td><td>e.g. from the label, also by barcode scanner. While you type, the field shows <span class="ui">Available</span> or <span class="ui">Already in use</span> (with a link to the device), similar existing numbers and the <span class="ui">Next free:</span> – a click takes it over (e.g. <code>IT-0044</code> after <code>IT-0043</code>).</td></tr>
+    <tr><td><b>Serial number</b></td><td>also checked for “available/in use”.</td></tr>
+    <tr><td>Description / accessories</td><td>e.g. “with power supply and bag; warranty until 2028”</td></tr>
+    <tr><td><b>Group</b></td><td><span class="ui">General – for everyone</span> or a group; group items are only issued to its members.</td></tr>
+    <tr><td><b>Quantity</b></td><td><code>1</code> for single items with their own number. More only for identical things without a number, e.g. 20 HDMI cables – they are then issued piece by piece.</td></tr>
+    <tr><td>Location</td><td>from the list of locations (see <a href="#standorte">Locations</a>).</td></tr>
+    <tr><td>Photo</td><td>JPG, PNG, WEBP or GIF; reduced in size and stored without metadata.</td></tr>
+  </tbody>
+</table>
+<div class="warn"><b>Every number exists only once.</b> An inventory or serial number that is already used by another item is rejected on saving – regardless of upper or lower case. Your entries stay in the form. This way no duplicates can arise from typos or copying.</div>
+<h3>Recording many identical devices</h3>
+<ul>
+  <li><span class="ui">Save &amp; next</span> opens a new form with the same details right after saving – without numbers, photo and confidential details. For ten identical laptops you then only scan inventory and serial number.</li>
+  <li><span class="ui">Add similar</span> on the detail page does the same, starting from an existing item.</li>
+</ul>
+<p>After clicking <span class="ui">Save</span>, the button shows that the form is being sent; a second click during that time is ignored – so no item is created twice, even on a slow connection.</p>
+
+<h2 id="vertraulich">Confidential details (e.g. BitLocker keys)</h2>
+<figure class="half-right"><img src="img/form_secret.jpg" alt=""><figcaption>The “Confidential details” box in the form.</figcaption></figure>
+<p>In the <span class="ui">Confidential details</span> box you store e.g. the <b>BitLocker recovery key</b>, a PIN or a password. These details</p>
+<ul>
+  <li>are stored <b>encrypted</b> and never exported or sent by email,</li>
+  <li>are visible only to <b>administrators</b> and to <b>managers who are members of the item’s group</b> – for “General” items only to administrators. Tip: assign devices with keys to a group such as “IT”.</li>
+  <li>appear only after clicking <span class="ui">Reveal</span>; every viewing, change and deletion is listed with name and time in the <span class="ui">Log</span> on the detail page.</li>
+</ul>
+<p>When editing, the field stays empty – fill it in only to <b>replace</b> the details. The box <span class="ui">Delete confidential details</span> removes them. For accounts with two-factor authentication, viewing and changing always require the second factor in the current sign-in.</p>
+<h3>Sharing with the person who has the device</h3>
+<p>With the box <span class="ui">The person this item is issued to may view the details themselves</span>, someone can, for example, look up the BitLocker key of their drive themselves (see <a href="#schluessel">Chapter 4</a>). So that nobody can “borrow” a key, this applies</p>
+<ul>
+  <li>only to <b>single items</b> (quantity 1),</li>
+  <li>only if the device was issued by someone who <b>may see the details themselves</b> (administrator or manager of the group) – not for self-checkout,</li>
+  <li>only after entering one’s own password again and only while the device is issued.</li>
+</ul>
+<div class="clear"></div>
+
+<h2 id="ausgeben">Issuing and checking in</h2>
+<p>You handle single loans directly on the <b>detail page</b> under <span class="ui">Issue to …</span>: choose the person (only people who may receive the item appear), either <span class="ui">Return by</span> a date or <span class="ui">open-ended</span>, optionally a note such as “with power supply”. You check items in from the history on the same page or under <span class="ui">All loans</span>.</p>
+<p>AssetLotse automatically checks whether the account is active, the person may receive the item (group), a piece is still available, they do not already have it and – if set – whether their maximum number of items has been reached. If email is set up, the person receives a confirmation.</p>
+<p>For many loans in a row – for example when new colleagues receive their equipment – the <b>issue desk</b> is faster.</p>
+
+<h2 id="theke">The issue desk</h2>
+<p><span class="ui">Issue desk</span> in the sidebar has two tabs: <b>Issue</b> and <b>Return</b>. It is made for keyboard and barcode scanner – the input field stays active, you simply scan one label after another.</p>
+<h3>1. Choose the person</h3>
+<figure class="half-right"><img src="img/desk_people.jpg" alt=""><figcaption>Matching accounts appear while you type.</figcaption></figure>
+<p>Type a username or name. Matching accounts appear while you type; a click selects the person. If Active Directory is set up with a service account, people who have <b>never signed in</b> also appear – marked <span class="badge accent">AD – no account yet</span>. A click creates their account (AssetLotse checks the person directly in AD once more) and selects them. Only people who could sign in according to your AD rules are found.</p>
+<p>On the right you see what the person already has. <span class="ui">Change</span> starts with the next person.</p>
+<div class="clear"></div>
+<h3>2. Scan or search for the item</h3>
+<figure><img src="img/desk_items.jpg" alt=""><figcaption>While you type, items that the selected person may receive appear – with “x of y free”.</figcaption></figure>
+<p>Scan the label or type the inventory number, serial number or name. While you type (e.g. “Laptop”), matching items that this person may receive appear; a click (or <span class="kbd">↓</span> and <span class="kbd">Enter</span>) issues immediately. Items the person may not receive or that are out of stock are marked accordingly.</p>
+<ul>
+  <li><b>Issue immediately if there is exactly one match</b> (preset): if exactly one item matches, it is issued without another click, and the field is ready for the next one. This only happens for exact matches (inventory number, serial number, <code>#number</code>), never for a search by name.</li>
+  <li><code>#12</code> always stands for <b>internal number</b> 12 – this is how it is encoded on labels of items without an inventory number.</li>
+  <li><b>Search the inventory</b> (below the scan line): search text and/or category, by default only available items you may issue – with <span class="ui">Issue</span> directly in the result list.</li>
+</ul>
+<div class="tip"><b>Barcode scanner:</b> a USB or Bluetooth scanner “types” the number and presses Enter – this works without setup. The suggestion list does not get in the way: Enter without a selected suggestion always searches for the scanned number. If no Enter arrives, set the scanner to “Enter/CR suffix” according to its manual. Wrong characters (e.g. <code>ß</code> instead of <code>-</code>) point to a different keyboard layout in the scanner.</div>
+<h3>Return</h3>
+<figure class="half-right"><img src="img/desk_return.jpg" alt=""><figcaption>The Return tab.</figcaption></figure>
+<p>In the <span class="ui">Return</span> tab you scan the label. With <span class="ui">Return immediately if there is exactly one match</span>, the loan is closed directly if there is exactly one open loan. For several pieces (e.g. cables), choose the matching loan and click <span class="ui">Check in</span>. Briefly check the accessories according to the note.</p>
+<div class="clear"></div>
+
+<h2 id="etiketten">Printing labels</h2>
+<figure class="half-right narrow"><img src="img/label.jpg" alt="" class="framed"><figcaption>Label 62 × 29 mm with Code 128 barcode and footer.</figcaption></figure>
+<p>AssetLotse creates a <b>label as a PDF in the 62 × 29 mm format</b> for every item – suitable e.g. for Brother QL printers with DK-11209 labels or 62 mm continuous tape. It shows the name, category/model, serial number, a <b>barcode</b> with the inventory number and, small at the bottom right, a <b>footer</b>, e.g. “Company Ltd – IT · 0123 456789”.</p>
+<ul>
+  <li><b>Single:</b> detail page → <span class="ui">Label</span>.</li>
+  <li><b>Many at once:</b> filter the inventory (e.g. category “Laptop”) → <span class="ui">Labels</span>.</li>
+  <li>Without an inventory number – or if it contains umlauts – the barcode encodes <code>#&lt;internal number&gt;</code>. The issue desk finds both.</li>
+</ul>
+<div class="clear"></div>
+<figure class="half-right"><img src="img/label_dialog.jpg" alt=""><figcaption>The print dialog for a selection: footer, copies and the total number of labels.</figcaption></figure>
+<p>Both first open a small <b>print dialog</b>:</p>
+<ul>
+  <li><span class="ui">Footer</span> – prefilled from the settings (administrators set it for everyone under <i>Settings → Inventory &amp; issuing → Labels</i>); changed here, it applies to this print only.</li>
+  <li><b>Number</b> – up to 50 identical labels for a single item, up to 10 per item for a selection. The dialog shows how many items the selection has and how many labels that makes; more than <b>500 labels</b> per print run are not possible – then narrow the selection with the filters.</li>
+  <li><span class="ui">Create PDF</span> opens the PDF in a new tab.</li>
+</ul>
+<p><b>Printing:</b> in the browser’s print dialog choose the label size 62 × 29 mm and <b>“Actual size” or 100 %</b> – not “Fit to page”. For continuous tape, set the length to 29 mm in the Brother driver. For heavily used devices, plastic labels (e.g. Brother DK-22113) last much longer than paper.</p>
+<div class="clear"></div>
+
+<h2 id="ausleihen">All loans, reminders and export</h2>
+<figure><img src="img/all_loans.jpg" alt=""><figcaption>All loans with extend, remind and check-in.</figcaption></figure>
+<p><span class="ui">All loans</span> shows the current loans of your groups, the <span class="ui">Overdue</span> tab only overdue ones and <span class="ui">History</span> completed ones. Per row you can <span class="ui">Extend</span>, send an <b>email reminder</b> with the envelope and <span class="ui">Check in</span> the item. Managers may always extend, even beyond the maximum.</p>
+<h3>CSV export</h3>
+<p>In the <span class="ui">Inventory</span>, <span class="ui">CSV</span> downloads the current selection as a table (semicolon, UTF-8 – opens directly in Excel): ID, name, category, manufacturer, model, serial number, inventory number, location, group, quantity, available and <b>issued to</b>. Confidential details are never exported.</p>
+
+<h2 id="standorte">Locations</h2>
+<figure><img src="img/locations.jpg" alt=""><figcaption>Defining locations – when recording items, you then choose instead of typing.</figcaption></figure>
+<p>Under <span class="ui">Locations</span> you define rooms, cabinets or shelves once – also several at a time, one per line. After that, the location is <b>chosen from a list</b> when adding and editing; so no spelling variants arise.</p>
+<ul>
+  <li><b>Renaming</b> changes the location for all affected items. <b>Deleting</b> is only possible once no item is there any more.</li>
+  <li>Locations typed freely earlier appear under <span class="ui">In the inventory, but not defined</span>. You can adopt them or replace them with a defined location – for a similar spelling the matching one is preselected.</li>
+  <li>Renaming and replacing that affects items of other groups is reserved for administrators and managers of the entire inventory.</li>
+</ul>
+
+<!-- ====================================================================== -->
+<h1 id="teil-c" class="part"><span class="part-no">Part C</span>For administrators</h1>
+<p class="part-lead">Installation, setup and operation: updates, users and groups, settings, Active Directory, email, two-factor rules, backup, diagnostics, security and privacy.</p>
+
+<h2 id="installation">Installation and updates</h2>
+<p>AssetLotse runs as a <b>Docker container</b>. The program is entirely in the ready-made image; on the server there are only the <code>docker-compose.yml</code>, the <code>.env</code> (your settings) and the <code>data</code> folder (database, photos, keys, backups). Nothing is built or unpacked on the server. You need Docker with Compose (the <code>docker compose</code> plugin or the older <code>docker-compose</code>).</p>
+<h3>Installation</h3>
+<ol class="steps">
+  <li>Create a folder, e.g. <code>/opt/assetlotse</code> (on a Synology e.g. <code>/volume1/docker/assetlotse</code>).</li>
+  <li>From the latest release on GitHub, put the <code>docker-compose.yml</code> and the <code>env.example</code> there, save <code>env.example</code> as <code>.env</code> and adjust it as needed (port, time zone …). Without entries, the defaults apply.</li>
+  <li>Start: <code>docker compose up -d</code> – no GitHub sign-in is needed, the image is public.</li>
+  <li>Open <code>http://SERVER:9343</code> in the browser and create the <b>local administrator account</b> – this only works from the internal network. This account always works, even if Active Directory is unreachable.</li>
+</ol>
+<p>The container does not run as root but as user <code>1000:1000</code> (changeable with <code>PUID</code>/<code>PGID</code>); <code>./data</code> is readable only by this user.</p>
+<h3>Your own settings: the .env file</h3>
+<p>Port, time zone etc. belong in the <code>.env</code> – not in the <code>docker-compose.yml</code>, which is replaced by a new one when needed. Additional folders or services (e.g. a backup drive) go into a separate <code>docker-compose.override.yml</code>; no update touches it. All options are in the <a href="#anhang-env">appendix</a>. Important to start with:</p>
+<ul>
+  <li><b>Different port:</b> enter <code>ASSETLOTSE_PORT=8080</code> and run <code>docker compose up -d</code>. The value applies outside and inside the container; 1024–65535 are allowed.</li>
+  <li><code>ASSETLOTSE_BIND=127.0.0.1</code> makes AssetLotse reachable <b>only on the server itself</b> – meant for a reverse proxy on the same machine.</li>
+</ul>
+<h3>Updates</h3>
+<p>The <code>docker-compose.yml</code> follows the <code>latest</code> tag – the newest version including the monthly security updates. You update the way you know from Docker:</p>
+<ul>
+  <li><b>With a container manager</b> such as Dockhand, Watchtower or Tugtainer – ideally at night, when nobody borrows anything.</li>
+  <li><b>By hand:</b> <code>docker compose pull &amp;&amp; docker compose up -d</code></li>
+  <li><b>With <code>./update.sh</code></b> (part of the release): pulls the new version, starts it, waits for the health check and, if the start fails, offers to start the previous one again (<code>./update.sh --rollback</code>).</li>
+</ul>
+<p><b>Every way is safeguarded:</b> when a new version starts for the first time, AssetLotse backs up the database <b>before</b> changing it (<code>…-vor-&lt;version&gt;.db</code>). The three newest of these backups are kept for 30 days in addition.</p>
+<figure><img src="img/update_notice.jpg" alt=""><figcaption>The notice about a new version (administrators only) and the update card on the diagnostics page.</figcaption></figure>
+<p><b>Notice about new versions:</b> once a day AssetLotse asks GitHub for the newest published version. If there is a newer one, administrators see a short line at the top with <span class="ui">How to update</span>; it can be hidden with <span class="ui">Hide</span> until the next version. <span class="ui">Administration → Diagnostics</span> has the link to the release notes, the matching update command and <span class="ui">Check now</span>. Nothing about the installation is sent. Switch it off under <i>Settings → General → Updates</i>, or completely with <code>ASSETLOTSE_UPDATE_CHECK=0</code> in the <code>.env</code> (e.g. for servers without internet access).</p>
+<h3>Pinning a version and going back</h3>
+<p>Enter e.g. <code>ASSETLOTSE_TAG=2.9.1</code> in the <code>.env</code> and run <code>docker compose pull &amp;&amp; docker compose up -d</code>; container managers leave a pinned version alone. An older version does not start on a database that a newer one has already changed – it then names the backup to restore (see <a href="#sicherung">Backup</a>).</p>
+<p><b>Without internet:</b> the images are attached to the release as files (<code>…-amd64.tar.gz</code>, <code>…-arm64.tar.gz</code>). Copy the file and <code>update.sh</code> to the server and run <code>./update.sh --offline FILE</code>.</p>
+
+<h2 id="erste-schritte">First steps after installation</h2>
+<p>A sensible order for the setup:</p>
+<ol class="steps">
+  <li><b>Settings → General:</b> name of the organisation (appears in emails and in the sidebar) and default language. <b>Inventory &amp; issuing:</b> visibility of the inventory, loan period, label footer.</li>
+  <li>Create <b>groups</b>, e.g. “IT”, “Administration”, “Physics”.</li>
+  <li>Connect <b>Active Directory</b> (chapter <a href="#ad">Active Directory</a>) – or create local users.</li>
+  <li>Set up <b>email</b> and send a test email.</li>
+  <li>Define <b>locations</b> (rooms, cabinets).</li>
+  <li>Set up <b>HTTPS</b> through a reverse proxy – needed for passkeys and security keys.</li>
+  <li>Define <b>two-factor rules</b> – at least for managers and administrators if BitLocker keys are stored.</li>
+  <li><b>Branding:</b> logo, colours, welcome text. <b>Legal:</b> links to the legal notice and privacy policy.</li>
+  <li>Record the first <b>items</b> and print <b>labels</b>.</li>
+  <li>Check under <b>Diagnostics</b> that everything is fine, and copy the backups to another place as well.</li>
+</ol>
+
+<h2 id="benutzer">Users, roles and groups</h2>
+<figure><img src="img/users.jpg" alt=""><figcaption>User management with filters by source, role and status.</figcaption></figure>
+<p>Under <span class="ui">Users</span> you create <b>local accounts</b> (username, name, email, role, password with at least 10 characters) and edit all accounts. Accounts from Active Directory are created automatically at the first sign-in, at the issue desk or by the synchronisation; their role is determined by the AD rules.</p>
+<ul>
+  <li>You assign <b>groups</b> on the account – or automatically through a linked AD group (see below). A manager manages the <b>entire</b> inventory only with the box <span class="ui">Manages the entire inventory (all groups)</span>.</li>
+  <li>Unticking <b>Account active</b> blocks sign-in and signs the person out everywhere immediately; loans are kept.</li>
+  <li><b>Sign-in and security:</b> reset two-factor authentication (lost phone – also removes passkeys), lift the sign-in lock after failed attempts.</li>
+  <li><b>Deleting</b> is only possible if the person has nothing on loan; their loan history is removed.</li>
+  <li>There must always be at least one active administrator; you cannot take administrator rights away from yourself.</li>
+</ul>
+<p>Under <span class="ui">Groups</span> you create groups. If you enter the name of an <b>AD group</b> for a group (e.g. <code>Dept-Physics</code>), its members automatically become members of the AssetLotse group; members of nested groups count too.</p>
+
+<h2 id="einstellungen">Settings</h2>
+<figure><img src="img/settings.jpg" alt=""><figcaption>Administration → Settings with the tabs General, Inventory &amp; issuing, Accounts, Security and Privacy.</figcaption></figure>
+<p>The settings are spread across five tabs; don’t forget <span class="ui">Save</span> at the bottom. A tab with unsaved changes carries a dot, and leaving the page before saving asks first.</p>
+<table class="grid">
+  <thead><tr><th style="width:30%">Setting</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td colspan="2"><b>General</b></td></tr>
+    <tr><td>Name</td><td>name of the organisation or program – in emails, in the sidebar and (without a footer of its own) on labels.</td></tr>
+    <tr><td>Default language</td><td>applies to everyone who has not chosen a language themselves, also on the sign-in page and in emails; the browser language does not count. Below it you see how many accounts have chosen their own language.</td></tr>
+    <tr><td>Updates</td><td>ask for new versions once a day (see <a href="#installation">Updates</a>).</td></tr>
+    <tr><td colspan="2"><b>Inventory &amp; issuing</b></td></tr>
+    <tr><td>Visibility of the inventory</td><td><i>own items only</i> (default), <i>items of their own groups and general ones</i> or <i>entire inventory</i>. Managers and administrators always see the inventory.</td></tr>
+    <tr><td>Labels – footer</td><td>small at the bottom right of every label, at most 80 characters; empty = none.</td></tr>
+    <tr><td>Default loan period</td><td><code>0</code> = open-ended (default). With a number, every loan automatically gets this return date.</td></tr>
+    <tr><td>Extension, maximum</td><td>default 14 days, at most twice; max. items per person (<code>0</code> = unlimited).</td></tr>
+    <tr><td>Self-checkout, -extension, -return</td><td>default: only extension on. Self-checkout requires staff members to see the inventory.</td></tr>
+    <tr><td colspan="2"><b>Accounts</b></td></tr>
+    <tr><td>Self-registration</td><td>off (default), with approval by an administrator or active immediately; optionally email confirmation, allowed domains and a group for new accounts.</td></tr>
+    <tr><td colspan="2"><b>Security</b></td></tr>
+    <tr><td>Two-factor authentication</td><td>mandatory for nobody, administrators, managers + administrators or everyone; rules for the internal network; allow signing in with a passkey – see <a href="#zwei-faktor">Two-factor rules</a>.</td></tr>
+    <tr><td>Automatic sign-out</td><td>hours without activity (default 12, <code>0</code> = off), optionally shorter for administrators and for access from outside; notice 2 minutes before; <i>Sign out when the browser is closed</i>.</td></tr>
+    <tr><td colspan="2"><b>Privacy</b></td></tr>
+    <tr><td>Legal</td><td>addresses of the legal notice and privacy policy (sign-in page, sidebar, emails).</td></tr>
+    <tr><td>Retention</td><td>how long completed loans are kept (default 12 months) – see <a href="#datenschutz">Privacy</a>.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="ad">Active Directory</h2>
+<figure><img src="img/ldap_top.jpg" alt=""><figcaption>Administration → Active Directory.</figcaption></figure>
+<p>Under <span class="ui">Active Directory</span> you connect AssetLotse to Windows AD, Samba AD or OpenLDAP – there is a template button for each.</p>
+<ol class="steps">
+  <li><b>Server:</b> e.g. <code>ldaps://dc1.example.local</code> (separate several DCs with commas). Best enter the DNS name as it appears in the certificate.</li>
+  <li><b>Base DN:</b> e.g. <code>DC=example,DC=local</code> – or more narrowly an OU.</li>
+  <li><b>Service account</b> (read rights only), e.g. <code>CN=svc-assetlotse,OU=Service accounts,DC=example,DC=local</code>. Without a service account, sign-in also works directly via a UPN suffix – but then without the person search at the desk, without synchronisation, without passkeys for AD accounts and without regular re-checks of sign-ins.</li>
+  <li><b>TLS certificate:</b> <span class="ui">Fetch certificate from DC</span>, check the fingerprint, <span class="ui">Trust &amp; save</span>. AssetLotse fetches the root CA where possible, so that it keeps working after the DC certificate is renewed.</li>
+  <li><b>Who may do what?</b> Enter the AD groups (or OUs) per role, one per line – e.g. administrators <code>IT-Admins</code>, managers <code>AssetLotse-Managers</code>, staff members <code>Domain Users</code>. <span class="ui">Load groups</span> shows the groups from AD to click on. The highest matching role wins; anyone who matches no rule cannot sign in.</li>
+  <li><b>Test:</b> <span class="ui">Test connection</span> and <span class="ui">Test sign-in</span> show the DN, all groups – each marked as <i>direct</i>, <i>primary</i> (e.g. Domain Users) or <i>nested</i> – and the role, even without saving first. Then <span class="ui">Save</span>.</li>
+</ol>
+<div class="note">Windows DCs and Samba usually reject simple binds over unencrypted LDAP – use <b>LDAPS</b> (port 636) or <b>StartTLS</b>. Local accounts always take precedence; the local admin account also works when AD is down. Anyone signed in with an AD account cannot save settings under which they would no longer be an administrator.</div>
+<h3>Background synchronisation</h3>
+<figure class="half-right"><img src="img/ldap_sync.jpg" alt=""><figcaption>The section “Background synchronisation” with status and “Synchronise now”.</figcaption></figure>
+<p>With a service account, AssetLotse synchronises with AD regularly (default: hourly; selectable up to once a day):</p>
+<ul>
+  <li><b>People without an account</b> are cached with username, name and email – the issue desk finds them immediately.</li>
+  <li><b>Existing accounts</b> stay up to date: name, email, groups, renames in AD (recognised by the fixed AD identifier). The role is only adjusted for accounts that have already signed in themselves.</li>
+  <li><b>Disabled, deleted or no longer authorised in AD:</b> the person is removed from the cache, their account is deactivated (loans remain visible) and becomes active again automatically when they return.</li>
+</ul>
+<div class="warn"><b>Confirm once:</b> on the first synchronisation – and whenever a conspicuously large number of accounts would be affected (more than 20 %), all accounts, an administrator or the last administrator – AssetLotse does not deactivate anyone automatically. The AD page then lists the affected usernames; check them and confirm with <span class="ui">Deactivate these accounts</span>. If a setting is wrong (base DN, filter, rules), correct it first.</div>
+<p>If a username is reassigned to a <b>different person</b> in AD, they never get the old account with its history – an old passkey no longer works either. Rename the old account under <span class="ui">Users</span> (e.g. to “anna-old”).</p>
+<div class="clear"></div>
+
+<h2 id="email">Email notifications</h2>
+<figure><img src="img/email.jpg" alt=""><figcaption>Administration → Email.</figcaption></figure>
+<p>Enter the SMTP server, port, encryption, credentials and sender and click <span class="ui">Send test email</span>. The <b>address of AssetLotse</b> (e.g. <code>https://assets.example.org</code>) is needed for links in the emails.</p>
+<table class="grid">
+  <thead><tr><th style="width:32%">Notification</th><th>When</th></tr></thead>
+  <tbody>
+    <tr><td>Confirmation on issue</td><td>immediately, with name and return date or “open-ended”</td></tr>
+    <tr><td>Confirmation on return</td><td>immediately (default off)</td></tr>
+    <tr><td>Reminder</td><td>a few days before the due date – only for loans with a return date</td></tr>
+    <tr><td>Overdue notice</td><td>from the first overdue day, with adjustable repetition</td></tr>
+    <tr><td>Summary for managers</td><td>daily, only if there is something overdue in their groups (default off)</td></tr>
+  </tbody>
+</table>
+<p>Reminders and overdue notices run once a day from the set time; several items of one person are in one email. Open-ended loans never get reminders. Typical servers: Microsoft 365 <code>smtp.office365.com:587 STARTTLS</code>, internal mail server <code>mail.example.local:25</code>.</p>
+
+<h2 id="zwei-faktor">Two-factor rules, passkeys and internal network</h2>
+<p>Under <span class="ui">Settings → Security</span> you define for whom two-factor authentication is mandatory for <b>access from outside</b>: nobody (default), administrators, managers and administrators, or everyone. Those affected are guided to the setup after signing in. If you store BitLocker keys, require it at least for managers and administrators.</p>
+<p>For the <b>internal network</b> you can be more relaxed: <i>same as from outside</i>, <i>not mandatory</i> (anyone with 2FA is still asked) or <i>no two-factor prompt</i>. You enter what counts as “internal” as networks (e.g. <code>192.168.10.0/24</code>); the page shows how your current connection is classified. A sign-in started on the LAN without a second factor only applies internally.</p>
+<p><b>Passkeys</b> (sign-in without a password, see <a href="#profil">Chapter 5</a>) count as two factors and thus also satisfy a 2FA requirement. They need HTTPS; for Active Directory accounts also the service account, because AssetLotse asks AD at every passkey sign-in whether the account is still active and authorised. You can switch this off with <span class="ui">Allow signing in with a passkey</span>.</p>
+<div class="note"><b>Behind a reverse proxy</b>, the visitor’s real address counts (<code>X-Forwarded-For</code>). Then publish AssetLotse’s port only for the proxy (e.g. <code>ASSETLOTSE_BIND=127.0.0.1</code>) or enter its address in <code>ASSETLOTSE_TRUSTED_PROXIES</code> – otherwise a computer on the LAN could pretend to be “internal”.</div>
+
+<h2 id="erscheinungsbild">Branding</h2>
+<figure><img src="img/branding.jpg" alt=""><figcaption>Logo, background image, colours and texts with preview.</figcaption></figure>
+<p>Under <span class="ui">Branding</span> you adapt AssetLotse to your corporate design: <b>logo</b> (PNG with a transparent background or SVG; also appears in emails and as the browser icon), <b>background image</b> of the sign-in page, <b>colours</b> (main colour, accent, sidebar – text colours are chosen automatically for readability) and the <b>texts</b> of the sign-in page. Everything is visible immediately in the preview; <span class="ui">Reset everything</span> restores the original state. Logo and background are publicly accessible – don’t use anything confidential.</p>
+
+<h2 id="sicherung">Backup and restore</h2>
+<figure><img src="img/backups.jpg" alt=""><figcaption>Administration → Backup.</figcaption></figure>
+<p>The database is <b>backed up automatically every day</b> (default from 2 am), during operation, and every backup is checked for damage. The newest 10 are kept (adjustable). In addition there are the backups <b>before an update</b>: the three newest are kept for 30 days on top, after that they count like all others. <span class="ui">Back up now</span> creates one immediately – useful before larger changes. If a backup fails, a warning sign appears at the menu item and administrators receive an email.</p>
+<ul>
+  <li><b>Location:</b> <code>./data/backups</code>; with <code>ASSETLOTSE_BACKUP_DIR</code> e.g. on a mounted NAS drive.</li>
+  <li>The database is backed up (SQLite only; back up MySQL/MariaDB or PostgreSQL yourself). Photos, logo and the file <code>secret_key</code> are in <code>./data</code> – take the whole folder when moving.</li>
+  <li>Backups on the same server protect against operating errors, not against a disk failure: copy the folder to another place regularly.</li>
+</ul>
+<div class="warn"><b>The secret_key file belongs to the database.</b> It encrypts the BitLocker keys, 2FA secrets and stored passwords. If it is lost, the confidential details are gone for good. Back it up separately and well protected, and always restore a database together with its secret_key. If the key does not match the database, AssetLotse deliberately does not start.</div>
+<h3>Restoring</h3>
+<p>The current state is backed up automatically first. The commands also work when AssetLotse no longer starts:</p>
+<pre>docker compose stop assetlotse
+docker compose run --rm assetlotse backups
+docker compose run --rm assetlotse restore FILENAME.db
+docker compose start assetlotse</pre>
+
+<h2 id="diagnose">Diagnostics and diagnostic package</h2>
+<figure><img src="img/diagnose.jpg" alt=""><figcaption>Administration → Diagnostics: update status, findings with a link to the matching page, diagnostic package.</figcaption></figure>
+<p><span class="ui">Administration → Diagnostics</span> checks the installation and shows <b>findings</b> – such as a missing or old backup, errors in email delivery or Active Directory, access without HTTPS, administrators without a second factor or errors in the program log. Every finding links to the page where you fix it.</p>
+<p><span class="ui">Download diagnostic package</span> creates a ZIP file to pass on when you need help. It is <b>anonymous</b>: no records, only counts; names, usernames, email and IP addresses, host names and AD paths are replaced by placeholders; passwords, keys, 2FA data and confidential details are never read. If the web interface does not start, <code>docker compose run --rm assetlotse diagnose</code> puts the package in <code>./data/diagnose/</code>.</p>
+
+<h2 id="sicherheit">Security and operation on the internet</h2>
+<ul>
+  <li><b>HTTPS:</b> run AssetLotse behind a reverse proxy with a certificate (e.g. Caddy, Nginx Proxy Manager, Synology). AssetLotse detects the proxy automatically and itself redirects HTTP via the proxy to HTTPS once it has seen HTTPS. Passkeys and security keys only work over HTTPS. For the internet, open only the proxy on the router, never AssetLotse’s port directly.</li>
+  <li><b>The server keeps the sign-ins:</b> every sign-in is recorded on the server. Signing out, “sign out on all other devices”, a new password, a deactivated account and the automatic sign-out end it there – copied cookies are worthless afterwards. A sign-in is valid for at most 14 days.</li>
+  <li><b>Sign-in lock:</b> after 8 failed attempts, sign-in is locked for 5 minutes; there is also a limit per username across all addresses.</li>
+  <li><b>AD sign-ins</b> are re-checked every 4 hours: anyone who has been disabled in AD or removed from the authorised group is signed out.</li>
+  <li><b>No third-party servers:</b> fonts and scripts are part of the program, there is no tracking and only technically necessary cookies. The only outgoing connection is the update check at GitHub, which can be switched off.</li>
+  <li><b>Strict browser protection</b> (Content Security Policy, protection against framing, CSRF protection); pages with revealed keys are not stored in the browser cache.</li>
+</ul>
+
+<h2 id="datenschutz">Privacy</h2>
+<p>Your privacy policy or record of processing activities should state what AssetLotse stores:</p>
+<ul>
+  <li>name, username, email address and groups of the users,</li>
+  <li>issues and returns with dates (who had what when, who issued it),</li>
+  <li>the access log of the confidential details and the email log,</li>
+  <li>with two-factor authentication the registered keys and passkeys, plus the current sign-ins (time, never the password),</li>
+  <li>with <b>AD synchronisation</b> additionally username, name and email of all people who could sign in – even if they never use AssetLotse (can be switched off on the AD page).</li>
+</ul>
+<p><b>Retention</b> (default 12 months): completed loans, email log and access log are deleted automatically after this period; per item only the number of loans is kept. Current and overdue loans are never deleted. Backups contain the data correspondingly longer (with 10 daily backups up to 10 days, backups before an update at most 30 days). Involve the staff council and data protection officer when introducing AssetLotse.</p>
+
+<!-- ====================================================================== -->
+<h1 id="teil-d" class="part"><span class="part-no">Part D</span>Help with problems</h1>
+<p class="part-lead">The most common pitfalls and how to solve them – plus the commands for emergencies.</p>
+
+<h2 id="probleme">Troubleshooting</h2>
+<dl class="faq">
+  <dt>The page is not displayed.</dt>
+  <dd>If the <code>.env</code> contains <code>ASSETLOTSE_BIND=127.0.0.1</code>, AssetLotse is only reachable on the server itself – comment the line out and run <code>docker compose up -d</code>. Otherwise check the port (default 9343, <code>ASSETLOTSE_PORT</code>) and the server’s firewall (e.g. <code>sudo ufw allow 9343/tcp</code>). <code>docker compose ps</code> shows whether the container is running; <code>docker compose logs --tail 50</code> shows the latest messages.</dd>
+  <dt>Someone cannot sign in.</dt>
+  <dd>Under <span class="ui">Users</span>, check whether the account is active and whether there is a sign-in lock (filter “Sign-in lock”, then <span class="ui">Lift lock</span>). For AD accounts, use <span class="ui">Test sign-in</span> on the AD page: if no rule matches, the person is missing from the authorised group.</dd>
+  <dt>After the update everyone has to sign in again.</dt>
+  <dd>That is intended, once, after the update to 2.10.0: since then the server keeps the sign-ins itself, and older sign-ins no longer apply.</dd>
+  <dt>The interface appears in the wrong language.</dt>
+  <dd>Look under <span class="ui">My profile → Language</span>: if a fixed language is shown there, <span class="ui">DE</span>/<span class="ui">EN</span> was clicked at some point. Choose <span class="ui">Default of the installation</span> and save.</dd>
+  <dt>Lost the phone with the authenticator app.</dt>
+  <dd>Sign in with a recovery code. Without a code: an administrator resets two-factor authentication under <span class="ui">User → Sign-in and security</span>.</dd>
+  <dt>The button “Sign in with passkey” is missing.</dt>
+  <dd>Passkeys only work over HTTPS with the domain name, not via <code>http://IP:9343</code>. For AD accounts, the service account must also be set up.</dd>
+  <dt>AD: “certificate not trusted”.</dt>
+  <dd>On the AD page, <span class="ui">Fetch certificate from DC</span> and <span class="ui">Trust &amp; save</span>. If the DC is addressed by IP address, switch off “Check hostname”.</dd>
+  <dt>AD: the issue desk does not find a new colleague.</dt>
+  <dd>New people appear after the next synchronisation – or immediately after <span class="ui">Synchronise now</span> on the AD page. If the cache finds nobody, the desk also searches AD live.</dd>
+  <dt>The barcode scanner types wrong characters or sends no Enter.</dt>
+  <dd>Set the scanner to your keyboard layout and “Enter/CR suffix” according to its manual.</dd>
+  <dt>The label prints too small or distorted.</dt>
+  <dd>In the print dialog choose “Actual size” or 100 %, not “Fit to page”; set the label size to 62 × 29 mm.</dd>
+  <dt>“Inventory number is already in use”.</dt>
+  <dd>Every number exists only once. The note below the field links the item with this number and suggests the next free one.</dd>
+  <dt>AssetLotse does not start after an update.</dt>
+  <dd>Read <code>docker compose logs --tail 50</code>. If it reports that the key does not match the database, the correct <code>data/secret_key</code> is missing. Otherwise start the previous version with <code>./update.sh --rollback</code> or pin it in the <code>.env</code>. For help, create the diagnostic package with <code>docker compose run --rm assetlotse diagnose</code>.</dd>
+</dl>
+
+<h2 id="notfall">Emergency commands</h2>
+<p>On the server in the program folder, each preceded by <code>docker compose exec assetlotse docker-entrypoint.sh</code> (so they run with the right permissions; in the Dockhand console, <code>docker compose exec assetlotse</code> is not needed):</p>
+<table class="grid mono-first">
+  <tbody>
+    <tr><td>flask --app wsgi reset-password admin</td><td>set a new password for a local account (activates the account, lifts the lock)</td></tr>
+    <tr><td>flask --app wsgi reset-2fa admin</td><td>reset two-factor authentication</td></tr>
+    <tr><td>flask --app wsgi make-admin NAME</td><td>give an account the administrator role back</td></tr>
+    <tr><td>flask --app wsgi unlock admin</td><td>lift the sign-in lock immediately</td></tr>
+    <tr><td>flask --app wsgi list-admins</td><td>show all administrator accounts</td></tr>
+    <tr><td>flask --app wsgi create-admin emergency</td><td>create an additional local administrator account</td></tr>
+    <tr><td>flask --app wsgi backup</td><td>back up now</td></tr>
+    <tr><td>flask --app wsgi send-reminders</td><td>send reminders now</td></tr>
+    <tr><td>flask --app wsgi apply-retention</td><td>apply the retention period now</td></tr>
+  </tbody>
+</table>
+<p>Example: <code>docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi reset-password admin</code>. Showing and restoring backups: see <a href="#sicherung">Backup</a>.</p>
+
+<h2 id="anhang-env">Appendix: settings in the .env file</h2>
+<table class="grid mono-first small">
+  <thead><tr><th style="width:32%">Variable</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td>ASSETLOTSE_TAG</td><td>image version: <code>latest</code> (default) or fixed, e.g. <code>2.10.0</code>.</td></tr>
+    <tr><td>ASSETLOTSE_PORT</td><td>port (default 9343, allowed 1024–65535) – applies on the server and in the container.</td></tr>
+    <tr><td>ASSETLOTSE_BIND</td><td>address on which the port is published (default all). <code>127.0.0.1</code> only for a reverse proxy on the same machine.</td></tr>
+    <tr><td>TZ</td><td>time zone (default Europe/Berlin).</td></tr>
+    <tr><td>PUID / PGID</td><td>user and group for <code>./data</code> (default 1000).</td></tr>
+    <tr><td>DATABASE_URL</td><td>another database instead of SQLite, e.g. MySQL/MariaDB.</td></tr>
+    <tr><td>ASSETLOTSE_SECRET_KEY</td><td>encryption key; if not set, it is generated once and stored in <code>data/secret_key</code> (recommended). Never change it afterwards.</td></tr>
+    <tr><td>ASSETLOTSE_ACCEPT_NEW_KEY</td><td><code>1</code> = deliberately accept a changed key (once).</td></tr>
+    <tr><td>ASSETLOTSE_TRUSTED_PROXIES</td><td>whose proxy headers are accepted: <code>private</code> (default), <code>none</code> or a list of addresses/networks.</td></tr>
+    <tr><td>ASSETLOTSE_SECURE_COOKIES</td><td><code>auto</code> (default: with HTTPS), <code>1</code> or <code>0</code>.</td></tr>
+    <tr><td>ASSETLOTSE_FORCE_HTTPS</td><td><code>auto</code> (default: redirect once HTTPS has been seen via the proxy), <code>1</code> or <code>0</code>.</td></tr>
+    <tr><td>ASSETLOTSE_SESSION_HOURS</td><td>start value of the automatic sign-out in hours (default 12, <code>0</code> = off).</td></tr>
+    <tr><td>ASSETLOTSE_BACKUP_DIR</td><td>folder for the backups, e.g. a NAS drive (mount it as a volume).</td></tr>
+    <tr><td>ASSETLOTSE_UPDATE_CHECK</td><td><code>0</code> = never ask GitHub for new versions.</td></tr>
+    <tr><td>ASSETLOTSE_LOGLEVEL</td><td><code>INFO</code> (default), <code>DEBUG</code> for AD troubleshooting.</td></tr>
+    <tr><td>ASSETLOTSE_SCHEDULER</td><td><code>0</code> = no scheduled runs in this process (with several app servers).</td></tr>
+    <tr><td>ASSETLOTSE_SOURCE_URL</td><td>link to the source code on the page “About this program” (for a modified version).</td></tr>
+  </tbody>
+</table>
+<p>Everything else is set in the interface.</p>
+
+<h2 id="lizenz">Licence</h2>
+<p>AssetLotse is free software under the <b>GNU Affero General Public License, version 3 or later</b> (AGPL-3.0-or-later). Anyone may use, share and modify the program. Anyone who passes on a modified version or runs it on the network for others must make its source code available under the same licence. AssetLotse is provided without warranty. Version, licence and source code link are shown after signing in under <span class="ui">About this program</span> (click the version number at the bottom of the sidebar). Included font: Inter (SIL Open Font License 1.1).</p>

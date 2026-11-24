@@ -1,9 +1,9 @@
 <p>Unter <span class="ui">Administration → Einstellungen</span> legen Sie fest, wie AssetLotse bei Ihnen arbeitet. Unten <span class="ui">Speichern</span> nicht vergessen.</p>
-<p>Die Seite ist in fünf Reiter gegliedert. Der zuletzt geöffnete bleibt nach dem Speichern offen.</p>
+<p>Die Seite ist in fünf Reiter gegliedert. Der zuletzt geöffnete bleibt nach dem Speichern offen. Ein Reiter mit noch nicht gespeicherten Änderungen trägt einen Punkt, und wer die Seite vor dem Speichern verlassen will, wird vorher gefragt.</p>
 <ul>
   <li><b>Allgemein</b>
     <ul>
-    <li><span class="ui">Name (Einrichtung oder Programm)</span> – erscheint überall, Standard ist „AssetLotse“; <span class="ui">Standardsprache</span> (derzeit {{ f.languages.get(f.default_language, f.default_language) }}) – gilt für Besucher, deren Browser weder Deutsch noch Englisch bevorzugt, und für E-Mails an Benutzer ohne eigene Wahl.</li>
+    <li><span class="ui">Name (Einrichtung oder Programm)</span> – erscheint überall, Standard ist „AssetLotse“; <span class="ui">Standardsprache</span> (derzeit {{ f.languages.get(f.default_language, f.default_language) }}) – gilt für alle, die nicht selbst eine Sprache gewählt haben (auch auf der Anmeldeseite und in E-Mails); die Sprache des Browsers zählt nicht. Darunter steht, wie viele Konten eine eigene Sprache gewählt haben – für sie gilt der Standard nicht; sie ändern das im Profil.</li>
     <li><span class="ui">Updates → Nach neuen Versionen suchen</span> – einmal am Tag bei GitHub nachfragen und Administratoren auf eine neue Version hinweisen (Standard: an; über die Installation wird nichts gesendet). Mit <code>ASSETLOTSE_UPDATE_CHECK=0</code> in der <code>.env</code> ganz aus.</li>
     </ul></li>
   <li><b>Bestand &amp; Ausgabe</b>

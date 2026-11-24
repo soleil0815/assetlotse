@@ -2,6 +2,62 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.10.0",
+      "date": "2026-11-24",
+      "kind": "security",
+      "audience": "all",
+      "de": {
+        "title": "Abmelden wirkt jetzt sofort überall",
+        "text": "Anmeldungen werden jetzt auf dem Server geführt: Wer sich abmeldet, das Passwort ändert oder „auf allen anderen Geräten abmelden“ wählt, beendet die Anmeldung wirklich – auch eine Kopie aus dem Browser gilt danach nicht mehr. Deshalb müssen sich nach diesem Update alle einmal neu anmelden. Unter Profil → Sicherheit sehen Sie, ob Sie noch woanders angemeldet sind."
+      },
+      "en": {
+        "title": "Signing out now takes effect everywhere at once",
+        "text": "Sign-ins are now kept on the server: signing out, changing the password or choosing “sign out on all other devices” really ends the sign-in – even a copy from the browser no longer works afterwards. That is why everyone has to sign in once more after this update. Profile → Security shows whether you are still signed in elsewhere."
+      }
+    },
+    {
+      "version": "2.10.0",
+      "date": "2026-11-24",
+      "kind": "feature",
+      "audience": "all",
+      "de": {
+        "title": "Sprache, Formulare und Handbuch",
+        "text": "Im Profil sehen Sie jetzt, welche Sprache für Sie gespeichert ist, und können zum Standard der Einrichtung zurückkehren; die Sprache des Browsers zählt nicht mehr. Formulare lassen sich nicht mehr versehentlich doppelt absenden, und das Ausfüllen eines Formulars zählt als Aktivität für die automatische Abmeldung. Das Handbuch (PDF) ist auf dem neuesten Stand."
+      },
+      "en": {
+        "title": "Language, forms and manual",
+        "text": "Your profile now shows which language is saved for you and lets you go back to your organisation's default; the browser language no longer counts. Forms can no longer be sent twice by accident, and filling in a form counts as activity for the automatic sign-out. The manual (PDF) is up to date."
+      }
+    },
+    {
+      "version": "2.10.0",
+      "date": "2026-11-24",
+      "kind": "feature",
+      "audience": "manager",
+      "de": {
+        "title": "Etiketten für eine Auswahl",
+        "text": "Der Druckdialog zeigt, wie viele Gegenstände die Auswahl hat und wie viele Etiketten es insgesamt werden – und sagt rechtzeitig, wenn es mehr als 500 wären."
+      },
+      "en": {
+        "title": "Labels for a selection",
+        "text": "The print dialog shows how many items the selection has and how many labels that makes in total – and tells you in time if it would be more than 500."
+      }
+    },
+    {
+      "version": "2.10.0",
+      "date": "2026-11-24",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Update-Hinweis, Diagnose und Einstellungen",
+        "text": "Der Hinweis auf eine neue Version ist jetzt eine kurze Zeile; Befehle und Änderungen stehen auf der Diagnose-Seite. Jede Auffälligkeit dort verlinkt die passende Seite, Fehler der Update-Prüfung sind übersetzt. Die Einstellungen markieren Reiter mit ungespeicherten Änderungen und fragen vor dem Verlassen; unter Allgemein steht, wie viele Konten eine eigene Sprache gewählt haben. Sicherungen vor einem Update bleiben höchstens 30 Tage zusätzlich erhalten."
+      },
+      "en": {
+        "title": "Update notice, diagnostics and settings",
+        "text": "The notice about a new version is now one short line; commands and release notes are on the diagnostics page. Every finding there links to the matching page, and errors of the update check are translated. The settings mark tabs with unsaved changes and ask before leaving; General shows how many accounts have chosen their own language. Backups before an update are kept at most 30 days in addition."
+      }
+    },
+    {
       "version": "2.9.1",
       "date": "2026-11-24",
       "kind": "security",

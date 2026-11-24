@@ -29,7 +29,7 @@ from .models import MIN_PASSWORD_LENGTH, ROLE_ADMIN, ROLES, Loan, User, db, get_
 from .models import get_int as get_int_setting
 from .i18n import gettext as _
 
-__version__ = "2.9.1"
+__version__ = "2.10.0"
 APP_NAME = "AssetLotse"
 LICENSE_NAME = "GNU AGPL v3 or later"
 # Where to find the source code (AGPL section 13): the public repository. Anyone running a modified AssetLotse
@@ -379,18 +379,11 @@ def create_app(test_config: dict | None = None) -> Flask:
     login_manager.localize_callback = _gettext
     login_manager.login_message_category = "info"
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        uid, _, epoch = str(user_id).partition(":")
-        if not uid.isdigit():
-            return None
-        user = db.session.get(User, int(uid))
-        if user is None or not user.active:
-            return None
-        # Session from an older "generation" (password changed, signed out everywhere …) -> invalid
-        if str(user.auth_epoch or 0) != (epoch or "0"):
-            return None
-        return user
+    # Server-side sessions (2.10.0): the cookie holds "<id>:<epoch>:<token>", valid only while the session row
+    # exists – signing out, "sign out everywhere", a new password … delete it (assetlotse/sessions.py)
+    from . import sessions as _sessions
+    login_manager.user_loader(_sessions.load)
+    _sessions.install(app)
 
     # Automatic sign-out after inactivity – before the blueprints, so it runs before their per-request checks
     from .idle import install as install_idle
@@ -425,6 +418,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         from .labels import default_footer
         return default_footer()
     app.jinja_env.globals["label_footer"] = _label_footer
+    from . import labels as _labels
+    app.jinja_env.globals["label_limits"] = {"labels": _labels.MAX_LABELS, "copies": _labels.MAX_COPIES,
+                                             "copies_one": _labels.MAX_COPIES_ONE}
     from .twofa import passkey_login_enabled
     app.jinja_env.globals["passkey_login_enabled"] = passkey_login_enabled
     from .views.security import passkey_hint_due
@@ -579,9 +575,6 @@ def create_app(test_config: dict | None = None) -> Flask:
             ctx["compose_outdated"] = app.config.get("COMPOSE_OUTDATED", "")
             from . import updatecheck
             ctx["update_available"] = updatecheck.available()
-            if ctx["update_available"]:
-                ctx["update_url"] = updatecheck.release_url(ctx["update_available"])
-                ctx["update_pinned"] = updatecheck.pinned_tag()
         if has_request_context() and current_user.is_authenticated and current_user.is_manager:
             from .models import Asset, manageable_assets_query
             ctx["overdue_count"] = Loan.query.filter(

@@ -8,7 +8,7 @@
   <div class="actions"><a class="btn" href="{{ url_for('admin.branding_preview') }}" target="_blank" rel="noopener">{{ icon("image") }} {{ _("View sign-in page") }}</a></div>
 </div>
 
-<form method="post" enctype="multipart/form-data" data-branding-form>
+<form method="post" enctype="multipart/form-data" data-branding-form data-warn-unsaved>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <button type="submit" name="action" value="save" class="offscreen" tabindex="-1" aria-hidden="true"></button>
 

@@ -119,6 +119,7 @@ COLUMNS = {
     "secret_access.asset_label": "item", "secret_access.user_label": "person", "secret_access.action": "plain",
     "mail_log.kind": "plain", "mail_log.status": "plain", "mail_log.to_addr": "email", "mail_log.subject": "text",
     "mail_log.error": "text",
+    "user_sessions.token_hash": "secret",
 }
 
 # ---------------------------------------------------------------- anonymizer
@@ -829,26 +830,65 @@ _TEXTS = {
     "secret_short": "ASSETLOTSE_SECRET_KEY is shorter than 32 characters.",
     "no_admin": "There is no active administrator.",
     "one_admin": "Only one active administrator – a second one helps if you lock yourself out.",
-    "admins_without_2fa": "{n} administrator(s) without a second factor.",
+    "admins_without_2fa": ("{n} administrator without a second factor.",
+                           "{n} administrators without a second factor."),
     "no_https": "This page was not opened over HTTPS – passkeys and secure cookies need HTTPS.",
     "mail_no_host": "Email is switched on, but no SMTP server is entered.",
-    "mail_errors": "{n} email(s) failed in the last 7 days.",
+    "mail_errors": ("{n} email failed in the last 7 days.", "{n} emails failed in the last 7 days."),
     "ldap_no_verify": "The Active Directory certificate is not checked.",
     "ldap_no_service_account": "Active Directory without service account – AD accounts cannot use passkeys and "
                                "people cannot be searched at the desk.",
     "ldap_cache_error": "Active Directory sync reports an error: {error}",
-    "log_errors": "{n} error(s) in the program log in the last 24 hours.",
+    "log_errors": ("{n} error in the program log in the last 24 hours.",
+                   "{n} errors in the program log in the last 24 hours."),
     "section_failed": "Part \"{section}\" could not be read: {error}",
 }
 
 
 def finding_text(finding: dict, translate=None) -> str:
-    """Text of a finding – English, or translated with ``translate`` (i18n._) for the page."""
+    """Text of a finding – English (package, CLI), or translated with ``translate`` (i18n._) for the page."""
     text = _TEXTS.get(finding["code"], finding["code"])
     params = {k: ("–" if v in (None, "") else v) for k, v in finding.get("params", {}).items()}
+    if isinstance(text, tuple):                       # singular / plural, chosen by {n}
+        n = params.pop("n", 0)
+        n = n if isinstance(n, int) else 0
+        if translate is not None:
+            from .i18n import ngettext
+            return ngettext(text[0], text[1], n, **params)
+        return (text[0] if n == 1 else text[1]).format(n=n, **params)
     if translate is not None:
+        if finding["code"] == "update_error" and isinstance(params.get("error"), str):
+            from .updatecheck import error_text
+            params["error"] = error_text(params["error"])
         return translate(text, **params)
     return text.format(**params)
+
+
+# where a finding is dealt with – the diagnostics page links there: code → (endpoint, URL arguments, page)
+_LINKS = {
+    "update_available": ("help.index", {"thema": "maintenance"}, "help_maintenance"),
+    "compose_outdated": ("help.index", {"thema": "maintenance"}, "help_maintenance"),
+    "disk_low": ("admin.backups", {}, "backups"),
+    "backup_off": ("admin.backups", {}, "backups"),
+    "backup_none": ("admin.backups", {}, "backups"),
+    "backup_old": ("admin.backups", {}, "backups"),
+    "backup_error": ("admin.backups", {}, "backups"),
+    "backup_same_disk": ("help.index", {"thema": "backups"}, "help_backups"),
+    "no_admin": ("admin.users", {}, "users"),
+    "one_admin": ("admin.users", {}, "users"),
+    "admins_without_2fa": ("admin.users", {"rolle": "admin"}, "users"),
+    "no_https": ("help.index", {"thema": "security"}, "help_security"),
+    "mail_no_host": ("admin.email", {}, "email"),
+    "mail_errors": ("admin.email", {}, "email"),
+    "ldap_no_verify": ("admin.ldap", {}, "ldap"),
+    "ldap_no_service_account": ("admin.ldap", {}, "ldap"),
+    "ldap_cache_error": ("admin.ldap", {}, "ldap"),
+}
+
+
+def finding_link(finding: dict) -> tuple[str, dict, str] | None:
+    """(endpoint, URL arguments, page) of the page where the finding is dealt with – or None."""
+    return _LINKS.get(finding["code"])
 
 
 # ---------------------------------------------------------------- package

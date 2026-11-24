@@ -34,6 +34,15 @@
     const close = e.target.closest("[data-dialog-close]");
     if (close) { const dlg = close.closest("dialog"); if (dlg) dlg.close(); }
   });
+  // label dialog for a selection: total = items × copies, never more than the limit
+  $$("input[data-label-items]").forEach((input) => {
+    const out = input.form && input.form.querySelector("[data-label-total]");
+    const items = parseInt(input.dataset.labelItems, 10) || 0;
+    if (out) input.addEventListener("input", () => {
+      const copies = Math.max(1, parseInt(input.value, 10) || 1);
+      out.textContent = String(items * copies);
+    });
+  });
   /* The PDF opens in a new tab – close the dialog right after sending. */
   $$("form[data-dialog-submit]").forEach((f) => f.addEventListener("submit", () => {
     const dlg = f.closest("dialog");
@@ -91,6 +100,73 @@
     if (t.hasAttribute("data-print")) window.print();
     if (t.hasAttribute("data-fill-previous") && t.previousElementSibling) t.previousElementSibling.value = t.dataset.fillPrevious;
   }, true);
+  /* ------------------------------------------------------------ No double submit
+     A second click while the page is still loading (slow server, impatient double click at the desk) would
+     send the form again. After a form really leaves (no other handler stopped it), its buttons show a busy
+     state and further submits are ignored. Buttons are not disabled – their name/value must still be sent.
+     Forms that open in a new tab, GET forms (search, filters) and data-no-lock are left alone; the lock ends
+     after a few seconds anyway (downloads keep the page) and when the browser shows the page again (back). */
+  const LOCK_MS = 8000;
+  const unlock = (form) => {
+    delete form.dataset.busy;
+    $$(".is-busy", form).forEach((b) => { b.classList.remove("is-busy"); b.removeAttribute("aria-busy"); });
+    form.classList.remove("is-busy");
+  };
+  document.addEventListener("submit", (e) => {
+    if (e.target.dataset && e.target.dataset.busy) e.preventDefault();
+  }, true);
+  document.addEventListener("submit", (e) => {
+    const form = e.target;
+    const submitter = e.submitter;
+    const method = ((submitter && submitter.getAttribute("formmethod")) || form.getAttribute("method") || "get").toLowerCase();
+    const target = (submitter && submitter.getAttribute("formtarget")) || form.getAttribute("target") || "";
+    if (method !== "post" || (target && target !== "_self") || form.hasAttribute("data-no-lock")) return;
+    setTimeout(() => {               // after all other handlers: only forms that really leave
+      if (e.defaultPrevented) return;
+      form.dataset.busy = "1";
+      form.classList.add("is-busy");
+      if (submitter && submitter.classList.contains("btn")) {
+        submitter.classList.add("is-busy");
+        submitter.setAttribute("aria-busy", "true");
+      }
+      setTimeout(() => unlock(form), LOCK_MS);
+    }, 0);
+  });
+  window.addEventListener("pageshow", () => $$("form[data-busy]").forEach(unlock));
+
+  /* ------------------------------------------------------------ Unsaved changes
+     Forms with data-warn-unsaved (settings, email, Active Directory, branding): leaving the page after a change
+     asks first, and on the settings page the tab with the change gets a mark. Saving clears it; data-warn-unsaved
+     ="dirty" (page shown again after a test button) starts with unsaved changes. */
+  $$("form[data-warn-unsaved]").forEach((form) => {
+    let dirty = form.dataset.warnUnsaved === "dirty";   // shown again after a test button, still not saved
+    const mark = (el) => {
+      dirty = true;
+      const panel = el && el.closest && el.closest("[data-tab-panel]");
+      const tab = panel && document.querySelector(`[data-tab="${panel.id}"]`);
+      if (tab && !tab.classList.contains("dirty")) {
+        tab.classList.add("dirty");
+        tab.setAttribute("title", T("Unsaved changes"));
+      }
+    };
+    form.addEventListener("input", (e) => mark(e.target));
+    form.addEventListener("change", (e) => mark(e.target));
+    form.addEventListener("submit", (e) => {
+      // a button with its own target (e.g. "Synchronise now") does not save this form
+      if (dirty && e.submitter && e.submitter.hasAttribute("formaction")
+          && !window.confirm(T("Your changes have not been saved and will be lost. Continue?"))) {
+        e.preventDefault();
+        return;
+      }
+      dirty = false;
+    });
+    window.addEventListener("beforeunload", (e) => {
+      if (!dirty || form.dataset.busy) return;
+      e.preventDefault();
+      e.returnValue = "";          // the browser shows its own question
+    });
+  });
+
   $$("[data-enter-clicks-next]").forEach((el) => el.addEventListener("keydown", (e) => {
     if (e.key === "Enter") { e.preventDefault(); if (el.nextElementSibling) el.nextElementSibling.click(); }
   }));
@@ -519,6 +595,21 @@
         idleBox.hidden = true;
       }
     };
+    // typing and choosing in forms counts as activity, also when the notice is switched off: otherwise a long
+    // form (new item, settings) could be lost on saving. At most one keepalive every two minutes.
+    let typed = false;
+    let lastPing = Date.now();
+    const typing = () => {
+      typed = true;
+      if (Date.now() - lastPing > 120000 || !idleBox.hidden) {
+        typed = false;
+        lastPing = Date.now();
+        ask(idleBox.dataset.idleKeepalive, { method: "POST" }).then(() => tick());
+      }
+    };
+    document.addEventListener("input", typing, { passive: true });
+    document.addEventListener("change", typing, { passive: true });
+    setInterval(() => { if (typed) typing(); }, 30000);
     $("[data-idle-continue]", idleBox).addEventListener("click", () => {
       ask(idleBox.dataset.idleKeepalive, { method: "POST" }).then(() => { idleBox.hidden = true; tick(); });
     });

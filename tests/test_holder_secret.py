@@ -5,6 +5,7 @@ from unittest import mock
 from test_assetlotse import KEY, PW, Base
 
 from assetlotse.models import Asset, Loan, LoginAttempt, SecretAccess, User, db
+from assetlotse.sessions import issue as issue_session
 
 
 class HolderSecretTests(Base):
@@ -126,7 +127,7 @@ class HolderSecretTests(Base):
         db.session.commit()
         self.give(a, ad)
         with self.c.session_transaction() as s:
-            s["_user_id"] = ad.get_id()
+            s["_user_id"] = issue_session(ad)
             s["_fresh"] = True
         info = mock.Mock(role="reader", dn="cn=anna, ou=staff, dc=x", username="anna")
         with mock.patch("assetlotse.ldap_auth.ldap_enabled", return_value=True), \
@@ -203,7 +204,7 @@ class HolderSecretTests(Base):
         db.session.commit()
         self.login("admin")   # irrelevant – mia does not sign in again from here
         with self.c.session_transaction() as s:
-            s["_user_id"] = self.mia.get_id()
+            s["_user_id"] = issue_session(self.mia)
         r = self.c.post(self.url(a), data={"password": PW}, follow_redirects=True)
         self.assertNotIn(KEY, r.get_data(as_text=True))
         from assetlotse import lockout

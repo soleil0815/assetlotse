@@ -219,8 +219,10 @@ def index():
     else:
         groups = sorted(current_user.groups, key=lambda g: g.name.lower())
     from .locations import names as location_names
+    # the label dialog says how many labels the selection gives (only items this person manages get one)
+    label_items = _label_items(f) if current_user.is_manager else 0
     return render_template("assets/index.html", assets=assets, q=q, group=group, status=status,
-                           sort=sort, page=page, pages=pages, total=total, groups=groups,
+                           sort=sort, page=page, pages=pages, total=total, groups=groups, label_items=label_items,
                            category=category, categories=category_names(visible_assets_query(current_user)),
                            location=location, location_names=location_names())
 
@@ -832,6 +834,11 @@ def label(asset_id):
     n = min(MAX_COPIES_ONE, max(1, request.args.get("anzahl", 1, type=int) or 1))
     name = "label" if get_locale() == "en" else "etikett"
     return _labels_response([asset] * n, f"{name}-{asset.id}.pdf")
+
+
+def _label_items(f: dict) -> int:
+    """How many items of the selection get a label – the same query as labels() below."""
+    return _apply_filters(manageable_assets_query(current_user), f).order_by(None).count()
 
 
 @bp.route("/gegenstaende/etiketten.pdf")

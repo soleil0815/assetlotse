@@ -39,7 +39,7 @@
 </section>
 {% endif %}
 
-<form method="post" autocomplete="off">
+<form method="post" autocomplete="off" data-warn-unsaved{% if unsaved %}="dirty"{% endif %}>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   {# Default action on Enter = Save #}
   <button type="submit" name="action" value="save" class="offscreen" tabindex="-1" aria-hidden="true"></button>
