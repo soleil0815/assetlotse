@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import icon, thumb, due_badge, role_badge, group_badge, lang_switch %}
+{% from "_macros.html" import icon, thumb, due_badge, role_badge, group_badge %}
 {% block title %}{{ _("Profile") }}{% endblock %}
 {% block content %}
 <div class="page-head">
@@ -52,11 +52,19 @@
       {% endif %}
     </section>
     <section class="card card-pad">
-      <div class="actions u-jc-between">
-        <h3>{{ icon("globe") }} {{ _("Language") }}</h3>
-        {{ lang_switch() }}
-      </div>
-      <p class="muted u-fs-13 u-m-8-0-0">{{ _("Applies to the interface and to emails sent to you.") }}</p>
+      <h3 class="u-mb-14">{{ icon("globe") }} {{ _("Language") }}</h3>
+      {# shows what is saved – clicking DE / EN at the top right saves a language as well #}
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="language">
+        <div class="field"><label for="f-language" class="sr-only">{{ _("Language") }}</label>
+          <select id="f-language" name="language">
+            <option value="" {{ 'selected' if not own_language }}>{{ _("Default of the installation (currently {language})", language=LANGUAGES[default_language]) }}</option>
+            {% for code, label in LANGUAGES.items() %}<option value="{{ code }}" lang="{{ code }}" {{ 'selected' if own_language == code }}>{{ label }}</option>{% endfor %}
+          </select>
+          <small class="muted">{{ _("Applies to the interface on every device and to emails sent to you.") }}</small></div>
+        <button class="btn">{{ icon("check") }} {{ _("Save") }}</button>
+      </form>
     </section>
     <section class="card card-pad">
       <div class="actions u-jc-between">

@@ -626,7 +626,11 @@ def settings():
     from .. import idle
     from ..labels import default_footer
     from ..updatecheck import disabled_by_env as update_check_locked
+    # accounts with a language of their own (DE / EN clicked or chosen in the profile): the default does not apply to them
+    own_languages = dict(db.session.query(User.language, func.count(User.id))
+                         .filter(User.language != "").group_by(User.language).all())
     return render_template("admin/settings.html", s=get_setting, label_footer=default_footer(),
+                           own_languages=own_languages,
                            update_check_locked=update_check_locked(),
                            idle_hours=get_setting("session_idle_hours", idle.env_default()),
                            idle_default=idle.env_default(),

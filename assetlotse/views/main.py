@@ -341,6 +341,16 @@ def profile():
         db.session.commit()
         flash(_("Notifications saved."), "success")
         return redirect(url_for("main.profile"))
+    if request.method == "POST" and request.form.get("action") == "language":
+        from flask import g
+
+        from ..i18n import normalize
+        current_user.language = normalize(request.form.get("language")) or ""     # "": default of the installation
+        session.pop("lang", None)          # an earlier DE / EN click in this browser no longer overrides it
+        g.pop("_assetlotse_locale", None)  # the confirmation already in the chosen language
+        db.session.commit()
+        flash(_("Language saved."), "success")
+        return redirect(url_for("main.profile"))
     if request.method == "POST" and request.form.get("action") == "data":
         # only local (e.g. self-registered) accounts change name and email – for AD accounts they come from AD
         if current_user.auth_source != "local":
@@ -414,7 +424,9 @@ def profile():
             return redirect(url_for("main.profile"))
     history = (Loan.query.filter_by(user_id=current_user.id)
                .order_by(Loan.loaned_at.desc()).limit(50).all())
-    return render_template("profile.html", history=history,
+    from ..i18n import default_language, normalize
+    return render_template("profile.html", history=history, own_language=normalize(current_user.language),
+                           default_language=default_language(),
                            self_extend=get_bool("self_extend"), mail_on=get_bool("mail_enabled"),
                            max_ext=int(get_setting("max_extensions") or 0))
 

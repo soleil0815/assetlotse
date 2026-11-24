@@ -269,7 +269,7 @@ Under *Inventory*, managers can download the inventory of their groups as **CSV*
 
 ## Language and help
 
-**German and English.** Everyone switches with **DE / EN** at the top right (also on the sign-in page). When signed in, the choice is saved in the profile – it then applies on every device and to the e-mails sent to that person. Without a choice, the **default language** from *Settings → General* applies (default: German) – the browser language does not count. Dates follow the language (20.10.2026 / 20 Oct 2026). Data such as item names, categories, group and location names stay as entered.
+**German and English.** Everyone switches with **DE / EN** at the top right (also on the sign-in page). When signed in, the choice is saved in the profile – it then applies on every device and to the e-mails sent to that person. Without a choice, the **default language** from *Settings → General* applies (default: German) – the browser language does not count. The profile shows which language is saved, with “Default of the installation” to go back; the settings show how many accounts have chosen their own language. Dates follow the language (20.10.2026 / 20 Oct 2026). Data such as item names, categories, group and location names stay as entered.
 
 **Built-in help** (*Help* in the sidebar or **?** at the top right):
 - Everyone sees only the topics for their role – staff members 7 (“For everyone”), managers 6 more (“Management”), administrators all 24 (11 more under “Administration”).

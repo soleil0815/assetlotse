@@ -153,6 +153,26 @@ class LanguageTests(Base):
         other.post("/login", data={"username": "leser", "password": PW})
         self.assertIn('<html lang="en">', other.get("/").get_data(as_text=True))
 
+    def test_profile_shows_saved_language_and_goes_back_to_default(self):
+        self.login("admin")
+        self.c.post("/sprache/en", data={"next": "/"})                   # clicked EN once …
+        html = self.c.get("/profil").get_data(as_text=True)
+        self.assertIn('<option value="en" lang="en" selected>', html)    # … and the profile shows it
+        html = self.c.get("/admin/einstellungen").get_data(as_text=True)
+        self.assertIn("1 account has chosen its own language:", html)
+        self.assertIn("English 1.", html)
+        r = self.c.post("/profil", data={"action": "language", "language": ""}, follow_redirects=True)
+        html = r.get_data(as_text=True)
+        self.assertIn('<html lang="de">', html)                          # session click no longer overrides
+        self.assertIn("Sprache gespeichert.", html)
+        self.assertIn("Standard der Einrichtung (derzeit Deutsch)", html)
+        db.session.refresh(self.users["admin"])
+        self.assertEqual(self.users["admin"].language, "")
+        self.assertNotIn("eigene Sprache gewählt", self.c.get("/admin/einstellungen").get_data(as_text=True))
+        self.c.post("/profil", data={"action": "language", "language": "xx"})
+        db.session.refresh(self.users["admin"])
+        self.assertEqual(self.users["admin"].language, "")
+
     def test_switch_rejects_foreign_redirect_and_unknown_language(self):
         r = self.c.post("/sprache/en", data={"next": "https://evil.example/"})
         self.assertNotIn("evil", r.headers["Location"])

@@ -98,7 +98,7 @@ class User(UserMixin, db.Model):
     recovery_codes = db.Column(db.Text, default="")       # JSON list of hashed one-time codes
     # Incremented to invalidate all existing sessions and "Stay signed in" cookies
     auth_epoch = db.Column(db.Integer, default=0, nullable=False)
-    # Language of the UI and of emails ("" = browser or default language)
+    # Language of the UI and of emails ("" = default language of the installation)
     language = db.Column(db.String(5), default="", nullable=False)
     # News: read up to this program version ("" = never opened)
     news_seen = db.Column(db.String(20), default="", nullable=False)

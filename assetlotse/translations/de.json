@@ -101,7 +101,6 @@
  "App needs to be set up again": "App muss neu eingerichtet werden",
  "Appears in the sidebar, on the sign-in page, in emails and as the browser icon. Ideally a PNG with transparent background or an SVG, landscape or square.": "Erscheint in der Seitenleiste, auf der Anmeldeseite, in E-Mails und als Browser-Symbol. Am besten PNG mit transparentem Hintergrund oder SVG, quer- oder quadratisch.",
  "Applies only to single items and only to issues made by someone who may see the details themselves – not to self-checkout.": "Gilt nur für Einzelstücke und nur für Ausgaben durch jemanden, der die Angaben selbst sehen darf – nicht für „Selbst ausleihen“.",
- "Applies to the interface and to emails sent to you.": "Gilt für die Oberfläche und für E-Mails an Sie.",
  "Apply": "Ausführen",
  "Approve": "Freigeben",
  "As administrators": "Als Administratoren",
@@ -1382,5 +1381,11 @@
  "The server cannot reach GitHub ({reason}). Without internet access, switch the check off with ASSETLOTSE_UPDATE_CHECK=0 in .env.": "Der Server erreicht GitHub nicht ({reason}). Ohne Internetzugang schalten Sie die Prüfung mit ASSETLOTSE_UPDATE_CHECK=0 in der .env ab.",
  "GitHub sent an unexpected answer – the next check tries again.": "GitHub hat unerwartet geantwortet – die nächste Prüfung versucht es erneut.",
  "Applies to everyone who has not chosen a language themselves (also on the sign-in page and in emails) – the browser language does not count. Everyone can switch the language at the top right; when signed in, the choice is saved in the profile.": "Gilt für alle, die nicht selbst eine Sprache gewählt haben (auch auf der Anmeldeseite und in E-Mails) – die Sprache des Browsers zählt nicht. Jede Person kann oben rechts umschalten; angemeldet wird die Wahl im Profil gespeichert.",
- "AssetLotse {new} is available.": "AssetLotse {new} ist verfügbar."
+ "AssetLotse {new} is available.": "AssetLotse {new} ist verfügbar.",
+ "Default of the installation (currently {language})": "Standard der Einrichtung (derzeit {language})",
+ "Applies to the interface on every device and to emails sent to you.": "Gilt für die Oberfläche auf allen Geräten und für E-Mails an Sie.",
+ "Language saved.": "Sprache gespeichert.",
+ "{n} account has chosen its own language:": "{n} Konto hat eine eigene Sprache gewählt:",
+ "{n} accounts have chosen their own language:": "{n} Konten haben eine eigene Sprache gewählt:",
+ "They change it in their profile or with DE / EN at the top right.": "Ändern lässt sie sich im Profil oder mit DE / EN oben rechts."
 }
