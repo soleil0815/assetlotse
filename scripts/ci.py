@@ -3,7 +3,7 @@
 
   mode               what a run does (release, check, security update, relock, daily scan, EOL check)
                      – a push to main or a pull request only checks; a release is published by hand
-                     (Run workflow → release), the weekly security update by itself
+                     (Run workflow → release), the security update by itself on the patch day (second Tuesday)
   plan-release       image tags of a new program version (latest only for the highest version)
   plan-security      next security-update number <version>-s<n> and its tags
   changelog          changelog entry of a security update with the changed packages

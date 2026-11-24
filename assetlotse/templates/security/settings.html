@@ -6,7 +6,7 @@
 <a href="{{ url_for('main.profile') }}" class="btn ghost sm u-mb-14">{{ icon("arrow-left") }} {{ _("Profile") }}</a>
 <div class="page-head">
   <div><div class="eyebrow">{{ _("Profile") }}</div><h1>{{ _("Secure your sign-in") }}</h1>
-    <p>{{ _("Two-factor authentication: after entering your password, you confirm with an authenticator app or a security key (e.g. YubiKey).") }}</p></div>
+    <p>{% if passkeys_offered %}{{ _("Easiest: a passkey – sign in with Face ID, fingerprint or the device PIN, no password needed.") }} {% endif %}{{ _("Two-factor authentication: after entering your password, you confirm with an authenticator app or a security key (e.g. YubiKey).") }}</p></div>
   <div class="actions">
     {% if current_user.has_2fa %}<span class="badge ok">{{ icon("shield") }} {{ _("active") }}</span>
     {% else %}<span class="badge {{ 'danger' if required else '' }}">{{ _("required") if required else _("not active") }}</span>{% endif %}
@@ -34,7 +34,7 @@
     {% for c in codes %}<div class="u-p-8-12 u-b-1-dashed-line-2 u-br-8 u-ta-center">{{ c }}</div>{% endfor %}
   </div>
   <div class="actions">
-    <button type="button" class="btn" data-copy-codes>{{ icon("download") }} {{ _("Copy") }}</button>
+    <button type="button" class="btn" data-copy-codes>{{ icon("copy") }} {{ _("Copy") }}</button>
     <button type="button" class="btn" data-print>{{ _("Print") }}</button>
   </div>
 </section>
@@ -48,7 +48,7 @@
     <h2>{{ icon("key") }} {{ _("Passkey – sign in without a password") }}</h2>
     {% if passkeys %}<span class="badge ok">{{ _("{n} registered", n=passkeys|length) }}</span>{% endif %}
   </div>
-  <p class="muted u-fs-13_5">{{ _("Sign in on this phone or computer with Face ID, fingerprint or the device PIN – no user name, no password, no extra code. The passkey stays on the device (on an iPhone in the iCloud keychain, so it is also available on your other Apple devices).") }}
+  <p class="muted u-fs-13_5">{{ _("Sign in on this phone or computer with Face ID, fingerprint or the device PIN – no username, no password, no extra code. The passkey stays on the device (on an iPhone in the iCloud keychain, so it is also available on your other Apple devices).") }}
     {{ _("Only works over HTTPS and is bound to the address <code>{rp_id}</code>.", rp_id=rp_id) }}</p>
   {% if current_user.auth_source == "ldap" %}<p class="muted u-fs-13">{{ _("At every sign-in with the passkey, AssetLotse checks in the Active Directory that your account is still active and authorized.") }}</p>{% endif %}
   {% if not passkey_login %}<div class="notice warn u-mt-10">{{ _("Signing in with a passkey is currently switched off by the administration.") }}</div>{% endif %}
@@ -72,7 +72,7 @@
       <input type="text" id="f-passkey-name" maxlength="100" data-webauthn-name placeholder="{{ _('e.g. iPhone') }}">
       <button type="button" class="btn primary" data-webauthn-register>{{ icon("plus") }} {{ _("Create passkey") }}</button>
     </div>
-    <p class="muted u-fs-13 u-mt-8" data-webauthn-status>{{ _("Best done on the device you want to sign in with – it then asks for Face ID, fingerprint or the device PIN.") }}</p>
+    <p class="muted u-fs-13 u-mt-8" role="status" aria-live="polite" data-webauthn-status>{{ _("Best done on the device you want to sign in with – it then asks for Face ID, fingerprint or the device PIN.") }}</p>
   </div>
   {% endif %}
 </section>
@@ -158,7 +158,7 @@
         <input type="text" id="f-key-name" maxlength="100" data-webauthn-name placeholder="{{ _('e.g. blue YubiKey') }}" value="{{ 'YubiKey' if not plain_keys else '' }}">
         <button type="button" class="btn primary" data-webauthn-register>{{ icon("plus") }} {{ _("Add") }}</button>
       </div>
-      <p class="muted u-fs-13 u-mt-8" data-webauthn-status>{{ _("After clicking, insert your key and touch it.") }}</p>
+      <p class="muted u-fs-13 u-mt-8" role="status" aria-live="polite" data-webauthn-status>{{ _("After clicking, insert your key and touch it.") }}</p>
     </div>
   </section>
 </div>

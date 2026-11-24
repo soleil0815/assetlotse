@@ -11,6 +11,7 @@ from sqlalchemy import func, or_, update
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import contains_eager
 
+from ..applog import personal
 from ..i18n import _, format_day
 from ..models import (ROLE_READER, Asset, Loan, User, count_active_loans, db, default_due_date, number_key, get_bool, get_int, get_setting,
                       catalog_hidden, lendable_clause, manageable_assets_query)
@@ -288,7 +289,7 @@ def _find_people(query: str):
         ad_people = ad_people[:10]
     if ad_search_available() and len(query) >= 2 and not ad_people:
         from ..ldap_auth import Directory, LDAPError
-        log.info("AD people search at the desk by %s: %r", current_user.username, query)
+        log.info("AD people search at the desk by %s: \"%s\"", personal(current_user.username), personal(query, "text"))
         try:
             known = {u for (u,) in db.session.query(User.username).all()}
             ad_people, ad_more = Directory().search_users(query, exclude=known)
@@ -363,12 +364,12 @@ def desk_ad_account():
                 name=username), "error")
         return redirect(back)
     except LDAPError as exc:
-        log.warning("AD account takeover %s failed: %s", username, exc)
+        log.warning("AD account takeover %s failed: %s", personal(username), exc)
         flash(_("Active Directory: {error}", error=str(exc)) if current_user.is_admin
               else _("Active Directory cannot be reached right now."), "error")
         return redirect(back)
     except Exception as exc:  # noqa: BLE001 – e.g. network error from ldap3: notice instead of error page
-        log.exception("AD account takeover %s failed", username)
+        log.exception("AD account takeover %s failed", personal(username))
         flash(_("Active Directory: {error}", error=str(exc)) if current_user.is_admin
               else _("Active Directory cannot be reached right now."), "error")
         return redirect(back)
@@ -419,8 +420,8 @@ def desk_ad_account():
     from .. import ad_cache
     ad_cache.forget(user.username)         # now has an account – no longer belongs in the cache
     db.session.commit()
-    log.info("AD account %s taken over at the issue desk by %s (role %s)", user.username,
-             current_user.username, user.role)
+    log.info("AD account %s taken over at the issue desk by %s (role %s)", personal(user.username),
+             personal(current_user.username), user.role)
     if existing is None:
         flash(_("{name} taken over from Active Directory.", name=user.name), "success")
     return redirect(url_for("loans.desk", modus="ausgabe", benutzer=user.username, gegenstand=preset))

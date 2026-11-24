@@ -60,7 +60,7 @@
 
       <section class="card card-pad">
         <h2 class="u-mb-6">{{ _("Address of AssetLotse") }}</h2>
-        <p class="muted u-fs-13_5">{{ _("For links in the e-mails (“My items”, “Extend”).") }}</p>
+        <p class="muted u-fs-13_5">{{ _("For links in the emails (“My items”, “Extend”).") }}</p>
         <div class="input-group">
           <input class="mono" type="url" name="app_base_url" aria-label="{{ _("Address of AssetLotse") }}" value="{{ v.app_base_url }}" placeholder="{{ suggested_url }}">
           <button type="button" class="btn" data-fill-previous="{{ suggested_url }}">{{ _("Use current") }}</button>
@@ -97,7 +97,7 @@
           <div class="field span-3"><label for="f-mail-hour">{{ _("Send reminders from") }}</label>
             <select id="f-mail-hour" name="mail_hour">{% for h in range(0, 24) %}<option value="{{ h }}" {{ 'selected' if v.mail_hour|string == h|string }}>{{ _("{time}", time="%02d:00"|format(h)) }}</option>{% endfor %}</select></div>
         </div>
-        <p class="muted u-fs-13">{{ _("Once a day, several items of one person in one e-mail. Reminders are never sent twice.") }}
+        <p class="muted u-fs-13">{{ _("Once a day, several items of one person in one email. Reminders are never sent twice.") }}
           {% if v.mail_last_result %}<br><b>{{ _("Last run:") }}</b> {{ v.mail_last_result }}{% endif %}</p>
         <button class="btn" name="action" value="run_now" formnovalidate
                 data-confirm-click="{{ _('Save settings and send due reminders now?') }}">{{ icon("send") }} {{ _("Send now") }}</button>

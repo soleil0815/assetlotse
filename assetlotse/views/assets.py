@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from werkzeug.utils import secure_filename
 
+from ..applog import personal
 from ..i18n import _, _p, get_locale
 from ..models import (Asset, Group, Loan, SecretAccess, User, db, get_bool, get_int, get_setting,
                       catalog_hidden, manageable_assets_query, visible_assets_query)
@@ -271,7 +272,7 @@ def reveal_secret(asset_id):
     if secret:
         SecretAccess.record(asset, current_user, "view")
         db.session.commit()
-        log.info("Confidential details of item %s shown to %s", asset.id, current_user.username)
+        log.info("Confidential details of item %s shown to %s", asset.id, personal(current_user.username))
     resp = make_response(_render_detail(asset, secret=secret))
     resp.headers["Cache-Control"] = "no-store"
     return resp
@@ -291,7 +292,7 @@ def _confirm_password(user: User, password: str) -> bool:
     try:
         info = authenticate(user.username, password)
     except LDAPError as exc:
-        log.info("Password confirmation (AD) for %s failed: %s", user.username, exc)
+        log.info("Password confirmation (AD) for %s failed: %s", personal(user.username), exc)
         return False
     except Exception:  # noqa: BLE001 – never send details to the client
         log.exception("Unexpected error during password confirmation (AD)")
@@ -327,7 +328,7 @@ def reveal_own_secret(asset_id):
         return back
     if not _confirm_password(current_user, request.form.get("password") or ""):
         lockout.fail(key, current_user.username)
-        log.warning("Confidential details of item %s: wrong password from %s", asset.id, current_user.username)
+        log.warning("Confidential details of item %s: wrong password from %s", asset.id, personal(current_user.username))
         flash(_("The password is incorrect."), "error")
         return back
     lockout.clear(key)
@@ -341,7 +342,7 @@ def reveal_own_secret(asset_id):
         return back
     SecretAccess.record(asset, current_user, "holder")
     db.session.commit()
-    log.info("Confidential details of item %s shown to borrower %s", asset.id, current_user.username)
+    log.info("Confidential details of item %s shown to borrower %s", asset.id, personal(current_user.username))
     resp = make_response(_render_detail(asset, own_secret=secret))
     resp.headers["Cache-Control"] = "no-store"
     return resp

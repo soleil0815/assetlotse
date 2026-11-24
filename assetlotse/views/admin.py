@@ -4,10 +4,11 @@ from __future__ import annotations
 import logging
 import os
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, send_file, session, url_for
 from flask_login import current_user
 from sqlalchemy import func, or_
 
+from ..applog import personal
 from ..i18n import _, _n
 from ..ldap_auth import Directory, LDAPError, group_cn, parse_rules
 from ..models import (MIN_PASSWORD_LENGTH, DEFAULT_SETTINGS, ROLE_ADMIN, ROLE_MANAGER, ROLES, Asset, Group, Loan, User, db, get_bool,
@@ -128,7 +129,7 @@ def _save_user(user: User, is_new: bool):
             return _("The password must be at least {n} characters long.", n=MIN_PASSWORD_LENGTH)
     if user.username != username:
         if not is_new and user.auth_source == "ldap":
-            log.info("AD account %s renamed by %s to %s", user.username, current_user.username, username)
+            log.info("AD account %s renamed by %s to %s", personal(user.username), personal(current_user.username), personal(username))
         user.username = username      # AD accounts too: e.g. move an old account aside when the name has been reassigned
     from ..mailer import valid_email
     email = form_str("email", 200)
@@ -243,7 +244,7 @@ def user_reset_2fa(user_id):
     user = db.session.get(User, user_id) or abort(404)
     reset_2fa(user)
     lockout.unlock_user(user.username)
-    log.info("2FA of %s reset by %s", user.username, current_user.username)
+    log.info("2FA of %s reset by %s", personal(user.username), personal(current_user.username))
     hint = " " + _("Setup will be required at the next sign-in.") if required_for(user) else ""
     flash(_("Two-factor authentication of {name} reset – sign-in now only with password.", name=user.username) + hint,
           "success")
@@ -256,7 +257,7 @@ def user_unlock(user_id):
     from .. import lockout
     user = db.session.get(User, user_id) or abort(404)
     lockout.unlock_user(user.username)
-    log.info("Sign-in lock of %s lifted by %s", user.username, current_user.username)
+    log.info("Sign-in lock of %s lifted by %s", personal(user.username), personal(current_user.username))
     flash(_("Sign-in lock of {name} lifted.", name=user.username), "success")
     return redirect(safe_next(request.form.get("next")) or url_for("admin.user_edit", user_id=user.id))
 
@@ -374,7 +375,7 @@ def backup_download(name):
     path = find_backup(name)
     if path is None:
         abort(404)
-    log.info("Backup %s downloaded by %s", name, current_user.username)
+    log.info("Backup %s downloaded by %s", name, personal(current_user.username))
     resp = send_file(path, as_attachment=True, download_name=name, mimetype="application/vnd.sqlite3", max_age=0)
     resp.headers["Cache-Control"] = "private, no-store"
     return resp
@@ -432,7 +433,7 @@ def update_dismiss():
     if updatecheck.parse_version(version):
         set_setting("update_dismissed", ".".join(str(x) for x in updatecheck.parse_version(version)))
         db.session.commit()
-        log.info("Update notice for version %s hidden by %s", version, current_user.username)
+        log.info("Update notice for version %s hidden by %s", version, personal(current_user.username))
     return redirect(safe_next(request.form.get("next")) or url_for("main.dashboard"))
 
 
@@ -443,7 +444,7 @@ def diagnose_download():
 
     from ..diagnose import build_zip
     data, name = build_zip(current_app._get_current_object(), request)
-    log.info("Diagnostic package created by %s", current_user.username)
+    log.info("Diagnostic package created by %s", personal(current_user.username))
     resp = send_file(io.BytesIO(data), as_attachment=True, download_name=name, mimetype="application/zip", max_age=0)
     resp.headers["Cache-Control"] = "private, no-store"
     return resp
@@ -547,14 +548,20 @@ def settings():
             set_setting("update_check", form_bool("update_check"))
         if "label_footer" in request.form:
             from ..labels import clean_footer
-            set_setting("label_footer", clean_footer(request.form.get("label_footer")))
+            from ..models import Setting
+            footer = clean_footer(request.form.get("label_footer"))
+            # not set yet = it follows the organization name: saving other settings with the prefilled, unchanged
+            # footer must not freeze the name (or the old one when the name is changed in the same step)
+            if db.session.get(Setting, "label_footer") is not None \
+                    or footer != clean_footer(request.form.get("label_footer_shown")):
+                set_setting("label_footer", footer)
         reg = request.form.get("registration_mode")
         set_setting("registration_mode", reg if reg in ("off", "approval", "open") else "off")
         if get_setting("registration_mode") != "off" and not get_setting("app_base_url"):
             # never build links in registration emails from a stranger's request: pin the address the
             # admin is currently using (can be changed under Email)
             set_setting("app_base_url", request.host_url.rstrip("/"))
-            flash(_("Address for links in e-mails set to {url}. Please check under E-mail that AssetLotse is reachable from outside at this address.",
+            flash(_("Address for links in emails set to {url}. Please check under Email that AssetLotse is reachable from outside at this address.",
                     url=request.host_url.rstrip("/")), "info")
         set_setting("registration_verify_email", form_bool("registration_verify_email"))
         set_setting("registration_notify_admins", form_bool("registration_notify_admins"))
@@ -593,7 +600,10 @@ def settings():
             flash(_("Note: self-checkout only works if staff members can see the inventory "
                     "– with “own items only” they have no checkout button."), "warning")
         db.session.commit()
-        flash(_("Settings saved."), "success")
+        if any(category == "error" for category, _msg in session.get("_flashes", [])):
+            flash(_("The other settings were saved – please check the fields named above."), "warning")
+        else:
+            flash(_("Settings saved."), "success")
         tab = request.form.get("tab", "")
         return redirect(url_for("admin.settings") + (f"#{tab}" if tab in SETTINGS_TABS else ""))
     from ..mailer import mail_active

@@ -5,7 +5,7 @@ messages also go to <data folder>/logs/assetlotse.log: messages of AssetLotse fr
 (libraries, web server) from WARNING up, including tracebacks.
 
 * Small: at most ~1 MB per file, one older file (assetlotse.log.1) – about 2 MB in total, the oldest part is
-  dropped automatically. So the log never fills the disk and personal data in it (user names, addresses) does
+  dropped automatically. So the log never fills the disk and personal data in it (usernames, addresses) does
   not pile up – like the container output, it stays on the server.
 * Several workers write at the same time: every line is appended in one write (O_APPEND) under a file lock,
   the switch to the older file happens under the same lock.
@@ -21,6 +21,28 @@ from pathlib import Path
 
 MAX_BYTES = 1_000_000
 LOG_NAME = "assetlotse.log"
+
+# Personal values in log messages (usernames, typed search text …) are written to the data log between these two
+# invisible characters (Unicode "first strong isolate" / "pop directional isolate"). The diagnostic package then
+# replaces everything in between by a placeholder – also values that are not (or no longer) in the database:
+# a deleted account, a name typed at the desk, a password typed into the username field.
+MARK_START, MARK_END = "\u2068", "\u2069"
+
+
+class Personal(str):
+    """A personal value in a log message: log.info("Sign-in of %s", personal(user.username))."""
+    category = "user"
+
+
+class PersonalText(Personal):
+    category = "text"
+
+
+def personal(value: object, category: str = "user") -> str:
+    """Mark a log argument as personal (see MARK_START). Other log outputs show it unchanged."""
+    if value is None:
+        return "None"
+    return (PersonalText if category == "text" else Personal)(str(value))
 
 
 def log_dir(instance: Path) -> Path:
@@ -38,13 +60,24 @@ class _Filter(logging.Filter):
         return record.levelno >= logging.WARNING or record.name == "assetlotse" or record.name.startswith("assetlotse.")
 
 
+class _MarkingFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        args = record.args
+        if isinstance(args, tuple) and any(isinstance(a, Personal) for a in args):
+            record = logging.makeLogRecord(record.__dict__)
+            record.args = tuple(f"{MARK_START}{'t:' if isinstance(a, PersonalText) else ''}"
+                                f"{a.replace(MARK_START, '').replace(MARK_END, '')}{MARK_END}"
+                                if isinstance(a, Personal) else a for a in args)
+        return super().format(record)
+
+
 class DataLogHandler(logging.Handler):
     def __init__(self, path: Path, max_bytes: int = MAX_BYTES) -> None:
         super().__init__(logging.INFO)
         self.path = path
         self.max_bytes = max_bytes
         self.addFilter(_Filter())
-        self.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        self.setFormatter(_MarkingFormatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
 
     def emit(self, record: logging.LogRecord) -> None:
         try:

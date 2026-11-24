@@ -16,9 +16,17 @@ INFORMAL = re.compile(r"\b(du|dich|dir|dein|deine|deinen|deinem|deiner|deines|eu
 INFORMAL_PLURAL = re.compile(r"\b([a-zäöüß]+t ihr|ihr ([a-zäöüß]+t|habt|seid|könnt|müsst|dürft|wollt|sollt))\b")
 
 
+# imperatives without a pronoun (audit 2026-11): "Bitte versuch es …", "trag dort …", "Kopiert den Ordner …"
+INFORMAL_IMPERATIVE = re.compile(
+    r"\b(versuch|trag|lass|gib|nimm|klick|öffne|prüf|schau|melde|richte|wähle) (es|dort|bitte|den|die|das|dich)\b"
+    r"|(?:^|[.:!?–]\s+|\*\*\s*)(Kopiert|Bewahrt|Veröffentlicht|Setzt|Legt|Tragt|Lasst|Gebt|Nehmt|Öffnet|Prüft|Klickt"
+    r"|Wählt|Richtet|Ändert) (den|die|das|sie|es|ihn)\b")
+
+
 def offending(text):
     plain = re.sub(r"<[^>]+>|\{%.*?%\}|\{\{.*?\}\}", " ", text)          # markup and Jinja are not German text
-    return INFORMAL.findall(plain) + [m[0] for m in INFORMAL_PLURAL.findall(plain)]
+    return (INFORMAL.findall(plain) + [m[0] for m in INFORMAL_PLURAL.findall(plain)]
+            + [" ".join(p for p in m if p) for m in INFORMAL_IMPERATIVE.findall(plain)])
 
 
 class FormalGermanTests(unittest.TestCase):
@@ -43,12 +51,15 @@ class FormalGermanTests(unittest.TestCase):
 
     def test_mail_greeting_is_formal(self):
         de = json.loads((ROOT / "assetlotse" / "translations" / "de.json").read_text())
-        self.assertEqual(de["Hallo {name},"], "Guten Tag {name},")
-        self.assertEqual(de["Hallo,"], "Guten Tag,")
+        self.assertEqual(de["Hello {name},"], "Guten Tag {name},")
+        self.assertEqual(de["Hello,"], "Guten Tag,")
 
     def test_detector_finds_informal_address(self):
         self.assertTrue(offending("Bitte melde dich an."))
         self.assertTrue(offending("Hier legt ihr Räume an, dann braucht ihr nichts weiter."))
+        self.assertTrue(offending("Bitte versuch es gleich noch einmal."))
+        self.assertTrue(offending("Wichtig: Kopiert den Ordner regelmäßig."))
+        self.assertTrue(offending("Er wurde entfernt – trag dort bitte die richtige ein."))
         self.assertFalse(offending("Bitte melden Sie sich an. Vor dem Anzeigen muss sie ihr Passwort eingeben."))
 
 

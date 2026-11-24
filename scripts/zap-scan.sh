@@ -18,7 +18,6 @@ READY_PATH=/login       # answers once the program is up
 NET="zap-net-$$"
 APP="assetlotse-zap-app"
 HOST_PORT=18090
-DATA="$(mktemp -d)"
 
 cleanup() {
   docker rm -f "$APP" >/dev/null 2>&1 || true
@@ -33,11 +32,11 @@ fail() {
 
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"   # absolute: docker -v would take a relative name for a named volume
-chmod 777 "$OUT" "$DATA"    # ZAP and the program write as their own users
+chmod 777 "$OUT"            # ZAP writes as its own user
 [ ! -f .zap/rules.tsv ] || cp .zap/rules.tsv "$OUT/rules.tsv"
 docker network create "$NET" >/dev/null
 docker run -d --name "$APP" --network "$NET" -p "127.0.0.1:$HOST_PORT:$APP_PORT" \
-  --security-opt no-new-privileges:true "$IMG" >/dev/null || fail "docker run"
+  -e ASSETLOTSE_UPDATE_CHECK=0 --security-opt no-new-privileges:true "$IMG" >/dev/null || fail "docker run"
 
 # Wait until the program answers (HTTPS with its own certificate or HTTP)
 scheme=""

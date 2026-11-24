@@ -47,7 +47,7 @@
         <small class="muted">{{ _("Default: own items only – sensible if items are only issued at the desk. Managers and administrators always see the inventory. For self-checkout, staff members must be able to see the inventory.") }}</small></div>
       <h3 class="u-mt-22 u-mb-10">{{ icon("tag") }} {{ _("Labels") }}</h3>
       <div class="field"><label for="f-label-footer">{{ _("Footer") }}</label>
-        <input id="f-label-footer" type="text" name="label_footer" maxlength="80" value="{{ label_footer }}" placeholder="{{ _('e.g. Company Ltd – IT · 0123 456789') }}">
+        <input id="f-label-footer" type="text" name="label_footer" maxlength="80" value="{{ label_footer }}" placeholder="{{ _('e.g. Company Ltd – IT · 0123 456789') }}"><input type="hidden" name="label_footer_shown" value="{{ label_footer }}">
         <div class="hint">{{ _("Printed small at the bottom right of every label and prefilled in the print dialog for everyone; it can be changed there for a single print. At most 80 characters, empty = no footer.") }}</div></div>
     </section>
     <section class="card card-pad">
@@ -119,7 +119,7 @@
         <div class="hint">{{ _("A session started internally without a second factor is not valid from outside: anyone using it from outside (e.g. a laptop at home) has to sign in again. “Stay signed in” does not apply then.") }}</div></div>
       <label class="check"><input type="checkbox" name="passkey_login" value="1" {{ 'checked' if s('passkey_login') == '1' }}>
         {{ _("Allow signing in with a passkey") }}</label>
-      <div class="hint u-mb-12">{{ _("Without user name and password, with Face ID, fingerprint or the device PIN – counts as two factors. Everyone creates their passkey under Profile → Security. For Active Directory accounts only with a service account: at every passkey sign-in the account is checked in AD.") }}</div>
+      <div class="hint u-mb-12">{{ _("Without username and password, with Face ID, fingerprint or the device PIN – counts as two factors. Everyone creates their passkey under Profile → Security. For Active Directory accounts only with a service account: at every passkey sign-in the account is checked in AD.") }}</div>
       <p class="muted u-fs-12_5">{{ _('Problems with the second factor? Under <a href="{url}">Users</a> → open the account → “Reset two-factor authentication” or “Lift sign-in lock”.', url=url_for('admin.users')) }}</p>
     </section>
     <section class="card card-pad" id="abmeldung">
@@ -173,7 +173,7 @@
     </section>
     <section class="card card-pad" id="aufbewahrung">
       <h2 class="u-mb-6">{{ icon("clock") }} {{ _("Retention") }}</h2>
-      <p class="muted u-fs-13_5">{{ _("Completed loans and the e-mail log are deleted automatically once the period has passed (GDPR: keep data only as long as necessary). For each item, only the number of loans is kept. Current and overdue loans are never deleted.") }}</p>
+      <p class="muted u-fs-13_5">{{ _("Completed loans and the email log are deleted automatically once the period has passed (GDPR: keep data only as long as necessary). For each item, only the number of loans is kept. Current and overdue loans are never deleted.") }}</p>
       <div class="field"><label for="f-retention-months">{{ _("Delete completed loans after") }}</label>
         <select id="f-retention-months" name="retention_months">
           {% for m, label in [("3", _("3 months")), ("6", _("6 months")), ("12", _("12 months (recommended)")), ("24", _("2 years")), ("36", _("3 years")), ("0", _("never (not recommended)"))] %}
@@ -189,7 +189,8 @@
     <button class="btn primary lg">{{ icon("check") }} {{ _("Save") }}</button>
   </div>
 </form>
+{% set saved_months = s('retention_months')|int(0) %}
 <form id="retention-now" method="post" action="{{ url_for('admin.retention_run') }}"
-      data-confirm="{{ _('Permanently delete old loans and log entries now?') }}">
+      data-confirm="{% if saved_months %}{{ _('Permanently delete completed loans and log entries older than {n} months (the saved setting) now? Unsaved changes on this page are lost.', n=saved_months) }}{% else %}{{ _('Permanently delete old loans and log entries now?') }}{% endif %}">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
 {% endblock %}

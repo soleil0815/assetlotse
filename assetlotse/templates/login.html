@@ -33,7 +33,7 @@
 <div class="passkey-login" data-passkey-login data-next="{{ request.args.get('next', '') }}" hidden>
   <div class="or-line"><span>{{ _("or") }}</span></div>
   <button type="button" class="btn lg block" data-passkey-button>{{ icon("key") }} {{ _("Sign in with a passkey") }}</button>
-  <p class="muted u-fs-13 u-ta-center u-mt-8" data-passkey-status></p>
+  <p class="muted u-fs-13 u-ta-center u-mt-8" role="status" aria-live="polite" data-passkey-status></p>
 </div>
 {% endif %}
 {% if registration_open %}

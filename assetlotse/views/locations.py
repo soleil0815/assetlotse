@@ -147,7 +147,7 @@ def rename(loc_id):
                 new=new, old=loc.name), "error")
     elif not _can_change_all(loc.name):
         flash(_("“{name}” is also used by items of other groups – only administrators "
-                "or managers without a group can rename it.", name=loc.name), "error")
+                "or managers of the entire inventory can rename it.", name=loc.name), "error")
     else:
         old = loc.name
         n = _move_assets(old, new)
@@ -190,7 +190,7 @@ def adopt():
         flash(_("This entry no longer occurs in the inventory."), "info")
     elif target == "__neu__" and not _can_change_all(old):
         flash(_("“{name}” is also used by items of other groups – only administrators "
-                "or managers without a group can replace it.", name=old), "error")
+                "or managers of the entire inventory can replace it.", name=old), "error")
     elif target == "__neu__":
         clean = re.sub(r"\s+", " ", old).strip()
         if canonical(clean) is None:
@@ -205,7 +205,7 @@ def adopt():
             flash(_("Please choose a location."), "error")
         elif not _can_change_all(old):
             flash(_("“{name}” is also used by items of other groups – only administrators "
-                    "or managers without a group can replace it.", name=old), "error")
+                    "or managers of the entire inventory can replace it.", name=old), "error")
         else:
             n = _move_assets(old, loc.name)
             db.session.commit()

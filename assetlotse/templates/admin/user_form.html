@@ -76,12 +76,12 @@
 
   <div class="list-row u-p-14-0">
     <div class="grow"><b>{{ _("Two-factor authentication") }}</b>
-      <small>{% if user.has_2fa %}{{ _("Active:") }} {% if user.totp_enabled %}{{ _("Authenticator app") }}{% endif %}{% if user.totp_enabled and user.webauthn_credentials %} + {% endif %}{% if user.webauthn_credentials %}{% set nk = user.webauthn_credentials|length %}{{ _("{n} security key", n=nk) if nk == 1 else _p("plural", "{n} security keys", n=nk) }}{% endif %}
+      <small>{% if user.has_2fa %}{{ _("Active:") }} {% if user.totp_enabled %}{{ _("Authenticator app") }}{% endif %}{% set nk = user.webauthn_credentials|rejectattr("passkey")|list|length %}{% set npk = user.webauthn_credentials|selectattr("passkey")|list|length %}{% if user.totp_enabled and nk %} + {% endif %}{% if nk %}{{ _("{n} security key", n=nk) if nk == 1 else _p("plural", "{n} security keys", n=nk) }}{% endif %}{% if npk %}{% if user.totp_enabled or nk %} + {% endif %}{{ _("{n} passkey", n=npk) if npk == 1 else _p("plural", "{n} passkeys", n=npk) }}{% endif %}
         {%- if totp_broken %} · <span class="u-c-danger">{{ _("App needs to be set up again") }}</span>{% endif %}
         {% else %}{% if required %}{{ _("Not set up – mandatory under the policy, will be required at the next sign-in from outside.") }}{% else %}{{ _("Not set up.") }}{% endif %}{% endif %}</small></div>
     {% if user.has_2fa %}
     <form method="post" action="{{ url_for('admin.user_reset_2fa', user_id=user.id) }}"
-          data-confirm="{{ _('Reset the second factor of {name}? App and security keys will be removed, and signing in will then only require the password again.', name=user.username) }}{% if required %} {{ _('Setting it up again will be required afterwards.') }}{% endif %}">
+          data-confirm="{{ _('Reset the second factor of {name}? App, security keys and passkeys will be removed, and signing in will then only require the password again.', name=user.username) }}{% if required %} {{ _('Setting it up again will be required afterwards.') }}{% endif %}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn danger">{{ icon("extend") }} {{ _("Reset") }}</button>
     </form>

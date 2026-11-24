@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, or_, update
 from sqlalchemy.orm import selectinload
 
+from .applog import personal
 from .i18n import _
 from .models import DirectoryPerson, Setting, User, db, get_bool, get_int, get_setting, set_setting
 
@@ -259,7 +260,7 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
                 if other is not main:
                     stats["duplicates"].append(other.username)
                     log.warning("AD sync: accounts %s and %s belong to the same AD person – %s stays unchanged",
-                                main.username, other.username, other.username)
+                                personal(main.username), personal(other.username), personal(other.username))
             user = main
             if not user.active and not user.ldap_guid and person.guid:
                 if user.deactivated_by_sync:                   # locked legacy account without ID: do not touch
@@ -270,7 +271,7 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
             if person.username.lower() != user.username.lower():
                 if person.username.lower() in taken_names:
                     log.warning("AD sync: %s is now called %s in AD – that name already exists in AssetLotse, "
-                                "not renamed", user.username, person.username)
+                                "not renamed", personal(user.username), personal(person.username))
                     keep_name = user.username
                 else:
                     stats["renamed"] += 1
@@ -327,13 +328,13 @@ def update_accounts(people, complete: bool, now: datetime | None = None) -> tupl
         if hold:
             stats["pending"] = [[u.id, u.username] for u in hold]
             log.warning("AD sync: %s accounts missing in AD – awaiting confirmation: %s",
-                        len(hold), ", ".join(u.username for u in hold[:50]))
+                        len(hold), personal(", ".join(u.username for u in hold[:50])))
     db.session.flush()
     return stats, set(claims)
 
 
 def deactivate(user: User) -> None:
-    log.info("AD sync: account %s deactivated (disabled, deleted or no longer authorized in AD)", user.username)
+    log.info("AD sync: account %s deactivated (disabled, deleted or no longer authorized in AD)", personal(user.username))
     user.active, user.deactivated_by_sync = False, True
     user.end_all_sessions()
 

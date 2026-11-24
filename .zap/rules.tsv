@@ -1,3 +1,10 @@
 # Known false positives for the ZAP scan (zap-scan.sh): one line per rule, TAB separated:
 # <rule id>	IGNORE	<why it is not a problem here>
 # Only the code audit adds lines here, each with a reason – never to silence a real finding.
+10106	IGNORE	By design: the app speaks plain HTTP on port 9343 and TLS is terminated by the reverse proxy; behind it assetlotse/proxy.py redirects HTTP to HTTPS and sends HSTS (trusted proxies only), direct requests without proxy headers (health check, LAN IP, this scan) are intentionally never redirected (audit 2026-11)
+90027	IGNORE	Flagged URLs are intentionally public (branding CSS/logo for the sign-in page) or 404 (robots.txt, sitemap.xml); /setup is only open on an empty database from the internal network; protected routes require the session (audit 2026-11)
+90004	IGNORE	Flagged files are public static assets (CSS, favicon, logo) without protected data; the session cookie is SameSite=Lax and the logo must stay loadable cross-origin for webmail clients (logo in emails), so CORP same-origin would break it (audit 2026-11)
+10027	IGNORE	The flagged comments in static/js/app.js only describe UI behaviour (keywords such as "user"); no credentials, hosts, debug switches or bypasses (audit 2026-11)
+10112	IGNORE	Informational: anonymous pages set only the signed session cookie for the CSRF token and language (HttpOnly, SameSite=Lax, Secure over HTTPS); sign-in re-issues it with the user id, the old cookie stays anonymous (audit 2026-11)
+10049	IGNORE	Informational: signed-in responses carry Cache-Control: private, no-store; anonymous pages hold no private data, static files are public (audit 2026-11)
+10104	IGNORE	Informational: access and content do not depend on the User-Agent (it is only shown on the admin-only diagnostics page) (audit 2026-11)

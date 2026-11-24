@@ -319,7 +319,7 @@
     });
   });
 
-  /* Sign-in with a passkey: a button, and on phones also the suggestion in the user name field
+  /* Sign-in with a passkey: a button, and on phones also the suggestion in the username field
      (autocomplete="username webauthn", "conditional mediation") – tapping it signs in straight away. */
   const passkeyBox = $("[data-passkey-login]");
   if (passkeyBox && webauthnOk()) {
@@ -328,6 +328,7 @@
     const status = $("[data-passkey-status]", passkeyBox);
     let autofill = null;                       // pending conditional request – one request at a time
     let verifying = false;                     // the device has answered (Face ID/PIN done), the server checks
+    let answered = false;                      // … and stays true if the server then rejected the passkey
     const loginForm = ($('input[name="password"]') || {}).form;
     if (loginForm) loginForm.addEventListener("submit", (e) => {
       // The password manager submitted the form while the passkey answer is being checked: the passkey is two
@@ -344,6 +345,7 @@
       const cred = await navigator.credentials.get(opts);
       if (!cred) return;
       verifying = true;
+      answered = true;
       const remember = $('input[name="remember"]');
       let done;
       try {
@@ -354,12 +356,18 @@
       window.location.href = done.redirect;
     };
     const startAutofill = async () => {
+      answered = false;
       try {
         if (!PublicKeyCredential.isConditionalMediationAvailable || !(await PublicKeyCredential.isConditionalMediationAvailable())) return;
         await signIn(true);
       } catch (err) {
-        // Background request nobody asked for: never show its errors (the button took over, the browser
-        // cannot offer passkeys in the field, …) – the button still works and reports its own errors.
+        // Background request nobody asked for: its errors stay quiet (the button took over, the browser cannot
+        // offer passkeys in the field, …) – unless the person did pick a passkey and confirmed it: then the server's
+        // answer is shown (e.g. sign-in expired, account waiting for approval) and the suggestion is offered again.
+        if (answered) {
+          status.textContent = webauthnError(err);
+          startAutofill();
+        }
       }
     };
     btn.addEventListener("click", async () => {
@@ -416,7 +424,9 @@
 
   $$("[data-copy-codes]").forEach((btn) => btn.addEventListener("click", async () => {
     const text = $$("[data-codes] > div").map((d) => d.textContent.trim()).join("\n");
+    const label = btn.innerHTML;
     try { await navigator.clipboard.writeText(text); btn.textContent = T("✓ Copied"); } catch (e) { window.prompt(T("Codes:"), text); }
+    setTimeout(() => { btn.innerHTML = label; }, 2500);
   }));
 
   /* ------------------------------------------------------------ Settings: topics as tabs
@@ -440,7 +450,9 @@
       if (focus) { const t = document.getElementById(focus); if (t && t !== panel) t.scrollIntoView(); }
     };
     const fromHash = () => {
-      const target = location.hash ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+      let id = null;
+      try { id = location.hash ? decodeURIComponent(location.hash.slice(1)) : null; } catch (e) { id = null; }  // "#%E0"
+      const target = id ? document.getElementById(id) : null;
       const panel = target && target.closest("[data-tab-panel]");
       show(panel ? panel.id : panels[0].id, target && panel && target !== panel ? target.id : null);
     };

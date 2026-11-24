@@ -15,7 +15,7 @@ from assetlotse.views.admin import SETTINGS_TABS  # noqa: E402
 # which field lives in which tab
 EXPECTED = {
     "allgemein": ["org_name", "default_language", "update_check", "update_check_shown"],
-    "ausgabe": ["catalog_visibility", "label_footer", "loan_days", "extension_days", "max_extensions", "max_loans",
+    "ausgabe": ["catalog_visibility", "label_footer", "label_footer_shown", "loan_days", "extension_days", "max_extensions", "max_loans",
                 "self_checkout", "self_extend", "self_return"],
     "konten": ["registration_mode", "registration_verify_email", "registration_notify_admins",
                "registration_domains", "registration_group_id"],
