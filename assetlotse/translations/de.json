@@ -1394,6 +1394,6 @@
  "Labels in total:": "Etiketten insgesamt:",
  "(at most {max})": "(höchstens {max})",
  "Your changes have not been saved and will be lost. Continue?": "Ihre Änderungen sind nicht gespeichert und gehen verloren. Trotzdem fortfahren?",
- "Daily backups · default 10, that is 10 days. Manual backups do not count: the newest 5 stay for 30 days.": "Tägliche Sicherungen · Standard 10, also 10 Tage. Sicherungen von Hand zählen nicht mit: Die neuesten 5 bleiben 30 Tage.",
- "Number of daily backups to keep": "Anzahl aufbewahrter täglicher Sicherungen"
+ "Number of daily backups to keep": "Anzahl aufbewahrter täglicher Sicherungen",
+ "Daily backups · default 10, that is 10 days. Manual and before-restore backups do not count: the newest 5 stay, at most 30 days.": "Tägliche Sicherungen · Standard 10, also 10 Tage. Sicherungen von Hand und vor einer Wiederherstellung zählen nicht mit: Die neuesten 5 bleiben, höchstens 30 Tage."
 }

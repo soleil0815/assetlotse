@@ -123,12 +123,12 @@ class BackupOrderTests(unittest.TestCase):
             db.session.commit()
             with mock.patch.dict(os.environ, {"ASSETLOTSE_BACKUP_DIR": str(d / "b")}):
                 now = datetime(2026, 10, 22, 10, 0, 0)
-                ok1, _m = backup.run_now("-manuell", now)
-                ok2, _m = backup.run_now("-manuell", now)
+                ok1, _m = backup.run_now("", now)
+                ok2, _m = backup.run_now("", now)
                 names = [b["name"] for b in backup.list_backups()]
         self.assertTrue(ok1 and ok2)
         self.assertEqual(len(names), 1)
-        self.assertTrue(names[0].endswith("-manuell-1.db"), names)   # the newer one stays
+        self.assertTrue(names[0].endswith("_100000-1.db"), names)   # the newer one stays
 
 
 class StartupTests(unittest.TestCase):

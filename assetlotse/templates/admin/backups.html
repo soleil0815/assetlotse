@@ -30,7 +30,7 @@
       <div class="form-grid">
         <div class="field span-3"><label for="f-backup-keep">{{ _("Number of daily backups to keep") }}</label>
           <input id="f-backup-keep" type="number" name="backup_keep" value="{{ keep }}" min="1" max="100">
-          <div class="hint">{{ _("Daily backups · default 10, that is 10 days. Manual backups do not count: the newest 5 stay for 30 days.") }}</div></div>
+          <div class="hint">{{ _("Daily backups · default 10, that is 10 days. Manual and before-restore backups do not count: the newest 5 stay, at most 30 days.") }}</div></div>
         <div class="field span-3"><label for="f-backup-hour">{{ _p("clock", "Time") }}</label>
           <select id="f-backup-hour" name="backup_hour">
             {% for h in range(24) %}<option value="{{ h }}" {{ 'selected' if s('backup_hour') == h|string }}>{{ _("from {time}", time='%02d:00' % h) }}</option>{% endfor %}

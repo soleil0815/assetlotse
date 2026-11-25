@@ -103,6 +103,16 @@ class BackupTests(unittest.TestCase):
         backup.rotate(now=later)
         self.assertEqual([i["kind"] for i in backup.list_backups()], ["automatic"])
 
+    def test_without_automatic_backups_the_number_applies_to_manual_ones(self):
+        set_setting("backup_enabled", "0")
+        set_setting("backup_keep", "3")
+        db.session.commit()
+        for m in range(6):
+            backup.create_backup("-manuell", T0 + timedelta(days=30 * m))   # monthly, by hand
+        names = [i["name"] for i in backup.list_backups()]
+        self.assertEqual(len(names), 3)                                    # no age limit: the newest three
+        self.assertTrue(names[-1].startswith("assetlotse-2027-01-17"))
+
     def test_default_is_ten(self):
         self.assertEqual(backup.keep_count(), 10)
         self.assertEqual(get_setting("backup_enabled"), "1")

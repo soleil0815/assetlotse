@@ -9,8 +9,11 @@ The current version is shown at the bottom left of the sidebar after signing in.
   before a restore counted as well – a few clicks on "Back up now" deleted days of daily backups (with 5: three manual
   backups left only two days). Now: the newest *N* automatic backups (setting, default 10 = 10 days); in addition the
   newest 5 manual / before-restore and the newest 3 before-update backups, each for at most 30 days. The newest backup
-  of all is never deleted automatically (e.g. with automatic backups switched off). Hint on the backup page, help,
-  README and manuals updated.
+  of all is never deleted automatically. With automatic backups switched off, the manual backups are the only ones:
+  then the number to keep applies to them (no age limit). Old backups deleted by a rotation are logged.
+  **Note:** with automatic backups switched on, manual and before-restore backups older than 30 days are deleted at
+  the first start of 2.10.1 – download any you want to keep before updating. Hint on the backup page, help, README
+  and manuals updated.
 
 ## 2.10.0 – 2026-11-24
 
