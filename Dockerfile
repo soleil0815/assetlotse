@@ -1,7 +1,7 @@
 # Base image: Python 3.13 on Debian 13 (trixie) – exact patch release AND digest, so every build starts
 # from exactly the same image. scripts/lock.py sets new values, but only ever within Python 3.13 and
 # Debian trixie; another Python line or Debian release is a deliberate change (see README, "Base").
-ARG PYTHON_IMAGE=python:3.13.18-slim-trixie@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
+ARG PYTHON_IMAGE=python:3.13.18-slim-trixie@sha256:7249d5587b78209a006dc4a3b5340678f84ea729239193aa559962cd8c1fce50
 FROM ${PYTHON_IMAGE}
 
 LABEL org.opencontainers.image.title="AssetLotse" \
