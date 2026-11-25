@@ -570,24 +570,29 @@ class VersionPlanTests(unittest.TestCase):
     def test_trivy_grace(self):
         today = dt.date(2026, 11, 25)
         report = {"Results": [
-            {"Target": "debian", "Vulnerabilities": [
+            {"Target": "debian", "Class": "os-pkgs", "Vulnerabilities": [
                 {"VulnerabilityID": "CVE-1", "PkgName": "libzstd1", "InstalledVersion": "1.5.7+dfsg-1"},
-                {"VulnerabilityID": "CVE-2", "PkgName": "openssl", "InstalledVersion": "3.5.9-1"}]},
-            {"Target": "Python", "Vulnerabilities": [
+                {"VulnerabilityID": "CVE-2", "PkgName": "openssl", "InstalledVersion": "3.5.9-1"},
+                {"VulnerabilityID": "CVE-4", "PkgName": "sqlalchemy", "InstalledVersion": "2.1.8"}]},
+            {"Target": "Python", "Class": "lang-pkgs", "Vulnerabilities": [
                 {"VulnerabilityID": "CVE-3", "PkgName": "SQLAlchemy", "InstalledVersion": "2.1.8"}]},
-            {"Target": "secrets", "Secrets": [{"RuleID": "x"}]}]}
-        pub = ci.published_versions("# snapshot: x\nlibzstd1 1.5.7+dfsg-1\nopenssl 3.5.7-1\n",
-                                    "sqlalchemy==2.1.8 ; python_version >= '3'\n")
-        out, tol, until = ci.trivy_grace(report, pub, dt.date(2026, 11, 24), today)
+            {"Target": "secrets", "Class": "secret", "Secrets": [{"RuleID": "x"}]}]}
+        versions = ci.published_versions("# snapshot: x\nlibzstd1 1.5.7+dfsg-1\nopenssl 3.5.7-1\n",
+                                         "sqlalchemy==2.1.8 ; python_version >= '3'\n")
+        newer = ci.published_versions("libzstd1 1.5.7+dfsg-1\nopenssl 3.5.7-1\n", "sqlalchemy==2.1.8\n")
+        rel = [{"tag": "v2.10.1", "date": dt.date(2026, 11, 24), "versions": versions},
+               {"tag": "v2.10.0", "date": dt.date(2026, 11, 10), "versions": newer},
+               {"tag": "v2.9.0", "date": dt.date(2026, 9, 1), "versions": ci.published_versions("", "")}]
+        out, tol = ci.trivy_grace(report, rel, today)
         self.assertEqual([t["id"] for t in tol], ["CVE-1", "CVE-3"])          # same version as published
-        self.assertEqual([v["VulnerabilityID"] for v in out["Results"][0]["Vulnerabilities"]], ["CVE-2"])  # newer
+        self.assertEqual(tol[0]["until"], "2026-12-15")                       # 35 days from v2.10.0 (first with it)
+        self.assertEqual([v["VulnerabilityID"] for v in out["Results"][0]["Vulnerabilities"]],
+                         ["CVE-2", "CVE-4"])   # newer version; a Python name does not match a Debian package
         self.assertEqual(out["Results"][2]["Secrets"], [{"RuleID": "x"}])     # secrets are never let through
-        self.assertEqual(until, "2026-12-29")
-        self.assertEqual(len(report["Results"][0]["Vulnerabilities"]), 2)     # the input stays unchanged
-        out, tol, _ = ci.trivy_grace(report, pub, today - dt.timedelta(days=ci.GRACE_DAYS + 1), today)
-        self.assertEqual(tol, [])                                            # release too old: no exception
-        out, tol, until = ci.trivy_grace(report, pub, None, today)
-        self.assertEqual((tol, until), ([], ""))
+        self.assertEqual(len(report["Results"][0]["Vulnerabilities"]), 3)     # the input stays unchanged
+        late = today + dt.timedelta(days=21)                                  # 35 days after v2.10.0 passed
+        self.assertEqual(ci.trivy_grace(report, rel, late)[1], [])
+        self.assertEqual(ci.trivy_grace(report, [], today)[1], [])            # nothing published: strict
 
     def test_trivyignore_needs_reason_and_expiry(self):
         today = dt.date(2026, 10, 25)
@@ -638,7 +643,7 @@ echo "$@" >> "$FAKE_LOG"
 out=""; prev=""
 for a in "$@"; do [ "$prev" = --output ] && out="$a"; prev="$a"; done
 if [ -n "${FAKE_FINDING:-}" ]; then
-  printf '{"Results":[{"Target":"Python","Vulnerabilities":[{"Severity":"HIGH","VulnerabilityID":"CVE-2026-9","PkgName":"urllib3","InstalledVersion":"2.7.0","FixedVersion":"2.8.0"}]}]}' > "$out"
+  printf '{"Results":[{"Target":"Python","Class":"lang-pkgs","Vulnerabilities":[{"Severity":"HIGH","VulnerabilityID":"CVE-2026-9","PkgName":"urllib3","InstalledVersion":"2.7.0","FixedVersion":"2.8.0"}]}]}' > "$out"
 else
   printf '{"Results":[{"Target":"Python"}]}' > "$out"
 fi
@@ -684,13 +689,17 @@ class TrivyFlowTests(unittest.TestCase):
         self.assertIn("::warning title=HIGH CVE-2026-9::urllib3 2.7.0 → fixed in 2.8.0", r.stdout)
         self.assertIn("| HIGH | CVE-2026-9 | urllib3 | 2.7.0 | 2.8.0 | Python |", (self.tmp / "summary.md").read_text())
 
-    def grace(self, lock_line="", req_line="urllib3==2.7.0", days_ago=10):
+    def grace(self, releases=(("urllib3==2.7.0", 10),)):
+        """Saved published releases, newest first: (requirements line, days ago)."""
         d = self.tmp / "published"
-        d.mkdir(exist_ok=True)
-        (d / "debian-packages.lock").write_text("# snapshot: x\n" + lock_line + "\n")
-        (d / "requirements.txt").write_text(req_line + "\n")
-        (d / "published").write_text("v2.10.0")
-        (d / "published-date").write_text((dt.date.today() - dt.timedelta(days=days_ago)).isoformat() + "T08:00:00Z")
+        shutil.rmtree(d, ignore_errors=True)
+        for n, (req, days_ago) in enumerate(releases):
+            r = d / str(n)
+            r.mkdir(parents=True)
+            (r / "debian-packages.lock").write_text("# snapshot: x\nzlib1g 1\n")
+            (r / "requirements.txt").write_text(req + "\n")
+            (r / "tag").write_text(f"v2.10.{9 - n}")
+            (r / "date").write_text((dt.date.today() - dt.timedelta(days=days_ago)).isoformat() + "T08:00:00Z")
         return str(d)
 
     @unittest.skipUnless(shutil.which("jq"), "needs jq (on the GitHub runner)")
@@ -699,17 +708,18 @@ class TrivyFlowTests(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("::warning title=Temporary exception HIGH CVE-2026-9::urllib3 2.7.0", r.stdout)
         summary = (self.tmp / "summary.md").read_text()
-        self.assertIn("Temporary exceptions (automatic, until", summary)
+        self.assertIn("Temporary exceptions (automatic)", summary)
         self.assertIn("| HIGH | CVE-2026-9 | urllib3 | 2.7.0 | 2.8.0 |", summary)
+        self.assertIn("1 temporary exception(s) above", summary)
 
     @unittest.skipUnless(shutil.which("jq"), "needs jq (on the GitHub runner)")
-    def test_no_exception_for_a_new_version_or_an_old_release(self):
-        r = self.scan(FAKE_FINDING="1", GRACE_DIR=self.grace(req_line="urllib3==2.6.0"))   # published was older
+    def test_no_exception_for_a_new_version_or_an_old_finding(self):
+        r = self.scan(FAKE_FINDING="1", GRACE_DIR=self.grace((("urllib3==2.6.0", 3),)))   # published was older
         self.assertEqual(r.returncode, 1)
-        (self.tmp / "summary.md").unlink()
-        r = self.scan(FAKE_FINDING="1", GRACE_DIR=self.grace(days_ago=ci.GRACE_DAYS + 1))  # updates stopped
+        # a newer release does not start the period again: counted from the first release with this version
+        old = ci.GRACE_DAYS + 5
+        r = self.scan(FAKE_FINDING="1", GRACE_DIR=self.grace((("urllib3==2.7.0", 2), ("urllib3==2.7.0", old))))
         self.assertEqual(r.returncode, 1)
-        self.assertIn("older than", r.stdout)
         r = self.scan(FAKE_FINDING="1")                                                    # daily scan: strict
         self.assertEqual(r.returncode, 1)
 

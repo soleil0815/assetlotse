@@ -452,25 +452,36 @@ jobs:
           .github/install-trivy.sh "${RUNNER_TEMP}/trivy"
           echo "${RUNNER_TEMP}/trivy" >> "$GITHUB_PATH"
 
-      # for the automatic, time-limited exception: package versions of the newest published release
-      - name: Versions of the published release
+      # for the automatic, time-limited exception: package versions of the published releases (newest first) –
+      # read through the API with the token; if anything is missing, there is simply no exception (strict scan)
+      - name: Versions of the published releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ARCH: ${{ matrix.arch }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           d="${RUNNER_TEMP}/published"; mkdir -p "$d"
-          if ! rel="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name + " " + .published_at')"; then
-            echo "::notice title=Temporary exceptions::no published release found – none"; exit 0
-          fi
-          tag="${rel%% *}"; when="${rel#* }"
-          case "$tag" in v[0-9]*) ;; *) echo "::warning::unexpected release tag ${tag} – no temporary exceptions"; exit 0;; esac
-          git fetch -q --depth=1 origin "refs/tags/${tag}:refs/tags/${tag}"
           lock=build/debian-packages.lock; [ "$ARCH" = amd64 ] || lock="build/debian-packages.${ARCH}.lock"
-          git show "${tag}:${lock}" > "$d/debian-packages.lock"
-          git show "${tag}:requirements.txt" > "$d/requirements.txt"
-          printf '%s' "$tag" > "$d/published"; printf '%s' "$when" > "$d/published-date"
-          echo "Published: ${tag} (${when})"
+          if ! list="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=30" \
+                --jq '.[] | select((.draft or .prerelease) | not) | .tag_name + " " + .published_at')"; then
+            echo "::warning title=Temporary exceptions::the list of releases could not be read (GitHub API) – strict scan"
+            exit 0
+          fi
+          n=0
+          printf '%s\n' "$list" | sort -k2 -r | while read -r tag when; do
+            case "$tag" in v[0-9]*) ;; *) continue;; esac
+            mkdir -p "$d/$n"
+            if gh api -H "Accept: application/vnd.github.raw" "repos/${GITHUB_REPOSITORY}/contents/${lock}?ref=${tag}" > "$d/$n/$(basename "$lock")" \
+               && gh api -H "Accept: application/vnd.github.raw" "repos/${GITHUB_REPOSITORY}/contents/requirements.txt?ref=${tag}" > "$d/$n/requirements.txt"; then
+              printf '%s' "$tag" > "$d/$n/tag"; printf '%s' "$when" > "$d/$n/date"
+              echo "${n}: ${tag} (${when})"
+              n=$((n + 1))
+            else
+              echo "::warning title=Temporary exceptions::${tag}: package lists could not be read – older releases are not counted"
+              rm -rf "${d:?}/$n"; break
+            fi
+          done
+          exit 0
 
       - name: Trivy scan
         env:

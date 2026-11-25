@@ -19,9 +19,8 @@ if [ "$rc" != 0 ] || [ ! -s trivy.json ]; then
 fi
 # automatic, time-limited exception (pull requests, releases, security updates – not the daily scan): what the
 # published image has in exactly the same version does not stop the run (scripts/ci.py trivy-grace)
-if [ -n "${GRACE_DIR:-}" ] && [ -f "${GRACE_DIR}/published" ]; then
-  python3 "$root/scripts/ci.py" trivy-grace trivy.json --lock "${GRACE_DIR}/debian-packages.lock" \
-    --requirements "${GRACE_DIR}/requirements.txt" --published "$(cat "${GRACE_DIR}/published")" \
-    --published-date "$(cat "${GRACE_DIR}/published-date")"
+rm -f trivy-grace.count
+if [ -n "${GRACE_DIR:-}" ]; then
+  python3 "$root/scripts/ci.py" trivy-grace trivy.json --releases "$GRACE_DIR" --arch "${ARCH:-amd64}"
 fi
-HEADING="$heading" "$here/trivy-report.sh" trivy.json
+GRACE_COUNT="$(cat trivy-grace.count 2>/dev/null || echo 0)" HEADING="$heading" "$here/trivy-report.sh" trivy.json
