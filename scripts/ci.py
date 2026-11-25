@@ -583,11 +583,11 @@ def _main(argv: list[str] | None = None) -> int:
             print("::notice title=Temporary exceptions::no published release could be read – none this time")
             return 0
         rows = []
-        for t in tolerated:
-            print(f"::warning title=Temporary exception {t['severity']} {t['id']}::{t['pkg']} {t['installed']} – fix "
-                  f"{t['fixed']} not locked yet; the published image {releases[0]['tag']} has the same version. "
-                  f"Allowed until {t['until']} – the next security update (or relock) brings the fix.")
-            rows.append(f"| {t['severity']} | {t['id']} | {t['pkg']} | {t['installed']} | {t['fixed']} | {t['until']} |")
+        for hit in tolerated:
+            print(f"::warning title=Temporary exception {hit['severity']} {hit['id']}::{hit['pkg']} {hit['installed']} – fix "
+                  f"{hit['fixed']} not locked yet; the published image {releases[0]['tag']} has the same version. "
+                  f"Allowed until {hit['until']} – the next security update (or relock) brings the fix.")
+            rows.append(f"| {hit['severity']} | {hit['id']} | {hit['pkg']} | {hit['installed']} | {hit['fixed']} | {hit['until']} |")
         if rows:
             text = ("### Temporary exceptions (automatic)\n"
                     f"{len(rows)} finding(s) with the same version as in the published image {releases[0]['tag']} – "
