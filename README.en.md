@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.10.0** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
+**Version 2.10.1** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.md) · Developed by [helfi.space](https://helfi.space)
 
 Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
@@ -523,7 +523,7 @@ Please report security problems **privately**, not as an issue – see [SECURITY
 
 ## Backups
 
-*Administration → Backups.* The database is **backed up automatically every day** (default from 2 a.m.) – while running, without downtime. Every backup is checked for corruption after writing. The **newest 10 backups** are kept (configurable 1–100); older ones are deleted automatically. In addition, every new version backs up on its first start (`…-vor-<version>.db`); the three newest of these are kept for 30 days in addition – you need them to go back to an older version. After that they count like all others, so deleted data does not stay in old backups indefinitely.
+*Administration → Backups.* The database is **backed up automatically every day** (default from 2 a.m.) – while running, without downtime. Every backup is checked for corruption after writing. The **newest 10 daily backups** are kept (configurable 1–100) – that is 10 days; older ones are deleted automatically. Manual backups (*Back up now*) and those before a restore do not count: of them, the newest 5 are kept. In addition, every new version backs up on its first start (`…-vor-<version>.db`); the three newest of these are kept – you need them to go back to an older version. Manual, before-restore and before-update backups are deleted after 30 days, so deleted data does not stay in old backups indefinitely; the newest backup always stays, though.
 
 - **Location:** `./data/backups` on the server. `ASSETLOTSE_BACKUP_DIR` sets a different folder, e.g. a mounted NAS share (add it as an extra volume in `docker-compose.override.yml`, e.g. `/mnt/nas/assetlotse:/backup`).
 - **“Back up now”** creates a backup immediately (useful before bigger changes). Single backups can be downloaded or deleted.

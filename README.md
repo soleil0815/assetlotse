@@ -1,6 +1,6 @@
 # AssetLotse
 
-**Version 2.10.0** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.10.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
 
 Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
 
@@ -523,7 +523,7 @@ Sicherheitslücken bitte nicht als Issue, sondern **vertraulich** melden – sie
 
 ## Datensicherung
 
-*Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 Sicherungen** (einstellbar 1–100), ältere werden automatisch gelöscht. Zusätzlich sichert jede neue Version beim ersten Start (`…-vor-<Version>.db`); die drei neuesten dieser Sicherungen bleiben 30 Tage lang zusätzlich erhalten – sie braucht, wer auf eine ältere Version zurückgeht. Danach zählen sie wie alle anderen, damit gelöschte Daten nicht unbegrenzt in alten Sicherungen bleiben.
+*Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 täglichen Sicherungen** (einstellbar 1–100) – also 10 Tage, ältere werden automatisch gelöscht. Sicherungen von Hand (*Jetzt sichern*) und vor einer Wiederherstellung zählen nicht mit: Von ihnen bleiben die neuesten 5 erhalten. Zusätzlich sichert jede neue Version beim ersten Start (`…-vor-<Version>.db`); die drei neuesten davon bleiben erhalten – sie braucht, wer auf eine ältere Version zurückgeht. Sicherungen von Hand, vor einer Wiederherstellung und vor einem Update werden nach 30 Tagen gelöscht, damit gelöschte Daten nicht unbegrenzt in alten Sicherungen bleiben; die neueste Sicherung bleibt aber immer.
 
 - **Ablage:** `./data/backups` auf dem Server. Mit `ASSETLOTSE_BACKUP_DIR` lässt sich ein anderer Ordner einstellen, z. B. ein eingebundenes NAS-Laufwerk (in `docker-compose.override.yml` als zusätzliches Volume einbinden, z. B. `/mnt/nas/assetlotse:/backup`).
 - **„Jetzt sichern“** legt sofort eine Sicherung an (auch vor größeren Änderungen sinnvoll). Einzelne Sicherungen lassen sich herunterladen oder löschen.

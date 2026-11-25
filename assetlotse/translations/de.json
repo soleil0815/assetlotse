@@ -213,7 +213,6 @@
  "Days before": "Tage vorher",
  "Deactivate these accounts": "Diese Konten deaktivieren",
  "Default": "Standard",
- "Default 10 · with daily backups that means 10 days": "Standard 10 · bei täglicher Sicherung also 10 Tage",
  "Default language": "Standardsprache",
  "Default loan period (days)": "Standard-Leihdauer (Tage)",
  "Default: own items only – sensible if items are only issued at the desk. Managers and administrators always see the inventory. For self-checkout, staff members must be able to see the inventory.": "Standard: nur eigene Gegenstände – sinnvoll, wenn nur an der Ausgabetheke ausgegeben wird. Verwalter und Administratoren sehen den Bestand immer. Für die Selbstausleihe müssen Mitarbeiter den Bestand sehen.",
@@ -602,7 +601,6 @@
  "Notifications saved.": "Benachrichtigungen gespeichert.",
  "Notify administrators of new registrations by email": "Administratoren per E-Mail über neue Registrierungen informieren",
  "Now choose the person below – then just confirm.": "Jetzt unten die Person wählen – danach nur noch bestätigen.",
- "Number of backups to keep": "Anzahl aufbewahrter Sicherungen",
  "of {n} available": "von {n} Stück verfügbar",
  "off (default)": "aus (Standard)",
  "Off – the issue desk searches AD directly.": "Ausgeschaltet – an der Ausgabetheke wird direkt im AD gesucht.",
@@ -1395,5 +1393,7 @@
  "{n} items in this selection": "{n} Gegenstände in dieser Auswahl",
  "Labels in total:": "Etiketten insgesamt:",
  "(at most {max})": "(höchstens {max})",
- "Your changes have not been saved and will be lost. Continue?": "Ihre Änderungen sind nicht gespeichert und gehen verloren. Trotzdem fortfahren?"
+ "Your changes have not been saved and will be lost. Continue?": "Ihre Änderungen sind nicht gespeichert und gehen verloren. Trotzdem fortfahren?",
+ "Daily backups · default 10, that is 10 days. Manual backups do not count: the newest 5 stay for 30 days.": "Tägliche Sicherungen · Standard 10, also 10 Tage. Sicherungen von Hand zählen nicht mit: Die neuesten 5 bleiben 30 Tage.",
+ "Number of daily backups to keep": "Anzahl aufbewahrter täglicher Sicherungen"
 }

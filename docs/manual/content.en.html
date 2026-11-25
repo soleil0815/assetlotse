@@ -338,7 +338,7 @@
 
 <h2 id="sicherung">Backup and restore</h2>
 <figure><img src="img/backups.jpg" alt=""><figcaption>Administration → Backup.</figcaption></figure>
-<p>The database is <b>backed up automatically every day</b> (default from 2 am), during operation, and every backup is checked for damage. The newest 10 are kept (adjustable). In addition there are the backups <b>before an update</b>: the three newest are kept for 30 days on top, after that they count like all others. <span class="ui">Back up now</span> creates one immediately – useful before larger changes. If a backup fails, a warning sign appears at the menu item and administrators receive an email.</p>
+<p>The database is <b>backed up automatically every day</b> (default from 2 am), during operation, and every backup is checked for damage. The newest 10 daily backups are kept (adjustable) – that is 10 days. Manual and before-restore backups do not count: of them the newest 5 are kept, of the backups <b>before an update</b> the newest 3 – each for at most 30 days. The newest backup is never deleted automatically. <span class="ui">Back up now</span> creates one immediately – useful before larger changes. If a backup fails, a warning sign appears at the menu item and administrators receive an email.</p>
 <ul>
   <li><b>Location:</b> <code>./data/backups</code>; with <code>ASSETLOTSE_BACKUP_DIR</code> e.g. on a mounted NAS drive.</li>
   <li>The database is backed up (SQLite only; back up MySQL/MariaDB or PostgreSQL yourself). Photos, logo and the file <code>secret_key</code> are in <code>./data</code> – take the whole folder when moving.</li>
@@ -376,7 +376,7 @@ docker compose start assetlotse</pre>
   <li>with two-factor authentication the registered keys and passkeys, plus the current sign-ins (time, never the password),</li>
   <li>with <b>AD synchronisation</b> additionally username, name and email of all people who could sign in – even if they never use AssetLotse (can be switched off on the AD page).</li>
 </ul>
-<p><b>Retention</b> (default 12 months): completed loans, email log and access log are deleted automatically after this period; per item only the number of loans is kept. Current and overdue loans are never deleted. Backups contain the data correspondingly longer (with 10 daily backups up to 10 days, backups before an update at most 30 days). Involve the staff council and data protection officer when introducing AssetLotse.</p>
+<p><b>Retention</b> (default 12 months): completed loans, email log and access log are deleted automatically after this period; per item only the number of loans is kept. Current and overdue loans are never deleted. Backups contain the data correspondingly longer (with 10 daily backups up to 10 days, manual, before-restore and before-update backups at most 30 days). Involve the staff council and data protection officer when introducing AssetLotse.</p>
 
 <!-- ====================================================================== -->
 <h1 id="teil-d" class="part"><span class="part-no">Part D</span>Help with problems</h1>

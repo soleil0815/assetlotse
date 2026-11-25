@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.10.1",
+      "date": "2026-11-25",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Sicherungen von Hand kosten keine Tage mehr",
+        "text": "Die eingestellte Anzahl unter Datensicherung zählt jetzt nur noch die täglichen Sicherungen – 10 heißt also wirklich 10 Tage. Von den Sicherungen von Hand und vor einer Wiederherstellung bleiben zusätzlich die neuesten 5, von denen vor einem Update die neuesten 3, jeweils höchstens 30 Tage. Die neueste Sicherung wird nie automatisch gelöscht."
+      },
+      "en": {
+        "title": "Manual backups no longer cost days",
+        "text": "The number set under Backup now counts the daily backups only – so 10 really means 10 days. In addition, the newest 5 manual and before-restore backups and the newest 3 before-update backups are kept, each for at most 30 days. The newest backup is never deleted automatically."
+      }
+    },
+    {
       "version": "2.10.0",
       "date": "2026-11-24",
       "kind": "security",

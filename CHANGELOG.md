@@ -2,6 +2,16 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.10.1 – 2026-11-25
+
+**Changed**
+- **Backups: the number to keep counts the daily backups only.** Until now, manual backups ("Back up now") and those
+  before a restore counted as well – a few clicks on "Back up now" deleted days of daily backups (with 5: three manual
+  backups left only two days). Now: the newest *N* automatic backups (setting, default 10 = 10 days); in addition the
+  newest 5 manual / before-restore and the newest 3 before-update backups, each for at most 30 days. The newest backup
+  of all is never deleted automatically (e.g. with automatic backups switched off). Hint on the backup page, help,
+  README and manuals updated.
+
 ## 2.10.0 – 2026-11-24
 
 **After the update everyone signs in once more** – sign-ins of earlier versions are no longer accepted.

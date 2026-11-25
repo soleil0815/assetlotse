@@ -192,7 +192,7 @@ class BackupTests(Base):
 
     def test_no_wal_leftovers_and_collisions_listed(self):
         from assetlotse import backup
-        now = datetime(2026, 10, 22, 2, 0, 0)
+        now = datetime.now().replace(microsecond=0) - timedelta(days=1)   # recent: manual backups stay 30 days
         backup.create_backup("-manuell", now)
         p2 = backup.create_backup("-manuell", now)
         p3 = backup.create_backup("", now)
@@ -204,7 +204,7 @@ class BackupTests(Base):
             self.assertIn(p.name, names)
             self.assertIsNotNone(backup.find_backup(p.name))
         self.assertEqual({i["kind"] for i in backup.list_backups() if i["name"] == p4.name}, {"automatic"})
-        self.assertEqual(backup.rotate(1), 3)
+        self.assertEqual(backup.rotate(1), 1)                # one of two automatic; manual ones count separately
 
     def test_rotate_keeps_fresh_part_files(self):
         from assetlotse import backup
