@@ -452,11 +452,32 @@ jobs:
           .github/install-trivy.sh "${RUNNER_TEMP}/trivy"
           echo "${RUNNER_TEMP}/trivy" >> "$GITHUB_PATH"
 
+      # for the automatic, time-limited exception: package versions of the newest published release
+      - name: Versions of the published release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          d="${RUNNER_TEMP}/published"; mkdir -p "$d"
+          if ! rel="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name + " " + .published_at')"; then
+            echo "::notice title=Temporary exceptions::no published release found – none"; exit 0
+          fi
+          tag="${rel%% *}"; when="${rel#* }"
+          case "$tag" in v[0-9]*) ;; *) echo "::warning::unexpected release tag ${tag} – no temporary exceptions"; exit 0;; esac
+          git fetch -q --depth=1 origin "refs/tags/${tag}:refs/tags/${tag}"
+          lock=build/debian-packages.lock; [ "$ARCH" = amd64 ] || lock="build/debian-packages.${ARCH}.lock"
+          git show "${tag}:${lock}" > "$d/debian-packages.lock"
+          git show "${tag}:requirements.txt" > "$d/requirements.txt"
+          printf '%s' "$tag" > "$d/published"; printf '%s' "$when" > "$d/published-date"
+          echo "Published: ${tag} (${when})"
+
       - name: Trivy scan
         env:
           CONSEQUENCE: nothing is published
           NAME: ${{ needs.prepare.outputs.name }}
           ARCH: ${{ matrix.arch }}
+          GRACE_DIR: ${{ runner.temp }}/published
         run: |
           .github/trivy-scan.sh "${RUNNER_TEMP}/image-${ARCH}.tar" "Trivy – ${NAME} ${ARCH} (HIGH/CRITICAL with a fix)"
 

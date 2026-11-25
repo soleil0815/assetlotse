@@ -567,6 +567,28 @@ class VersionPlanTests(unittest.TestCase):
         version = re.search(r'__version__ = "(.*?)"', (ROOT / "assetlotse" / "__init__.py").read_text()).group(1)
         ci.release_notes((ROOT / "CHANGELOG.md").read_text(), version, "i")    # the current version has a section
 
+    def test_trivy_grace(self):
+        today = dt.date(2026, 11, 25)
+        report = {"Results": [
+            {"Target": "debian", "Vulnerabilities": [
+                {"VulnerabilityID": "CVE-1", "PkgName": "libzstd1", "InstalledVersion": "1.5.7+dfsg-1"},
+                {"VulnerabilityID": "CVE-2", "PkgName": "openssl", "InstalledVersion": "3.5.9-1"}]},
+            {"Target": "Python", "Vulnerabilities": [
+                {"VulnerabilityID": "CVE-3", "PkgName": "SQLAlchemy", "InstalledVersion": "2.1.8"}]},
+            {"Target": "secrets", "Secrets": [{"RuleID": "x"}]}]}
+        pub = ci.published_versions("# snapshot: x\nlibzstd1 1.5.7+dfsg-1\nopenssl 3.5.7-1\n",
+                                    "sqlalchemy==2.1.8 ; python_version >= '3'\n")
+        out, tol, until = ci.trivy_grace(report, pub, dt.date(2026, 11, 24), today)
+        self.assertEqual([t["id"] for t in tol], ["CVE-1", "CVE-3"])          # same version as published
+        self.assertEqual([v["VulnerabilityID"] for v in out["Results"][0]["Vulnerabilities"]], ["CVE-2"])  # newer
+        self.assertEqual(out["Results"][2]["Secrets"], [{"RuleID": "x"}])     # secrets are never let through
+        self.assertEqual(until, "2026-12-29")
+        self.assertEqual(len(report["Results"][0]["Vulnerabilities"]), 2)     # the input stays unchanged
+        out, tol, _ = ci.trivy_grace(report, pub, today - dt.timedelta(days=ci.GRACE_DAYS + 1), today)
+        self.assertEqual(tol, [])                                            # release too old: no exception
+        out, tol, until = ci.trivy_grace(report, pub, None, today)
+        self.assertEqual((tol, until), ([], ""))
+
     def test_trivyignore_needs_reason_and_expiry(self):
         today = dt.date(2026, 10, 25)
         ok = "# reason: only the XYZ parser, never called\nCVE-2026-1 exp:2027-01-31\n"
@@ -661,6 +683,35 @@ class TrivyFlowTests(unittest.TestCase):
         self.assertIn("::error title=Trivy::1 finding(s) – nothing is published", r.stdout)
         self.assertIn("::warning title=HIGH CVE-2026-9::urllib3 2.7.0 → fixed in 2.8.0", r.stdout)
         self.assertIn("| HIGH | CVE-2026-9 | urllib3 | 2.7.0 | 2.8.0 | Python |", (self.tmp / "summary.md").read_text())
+
+    def grace(self, lock_line="", req_line="urllib3==2.7.0", days_ago=10):
+        d = self.tmp / "published"
+        d.mkdir(exist_ok=True)
+        (d / "debian-packages.lock").write_text("# snapshot: x\n" + lock_line + "\n")
+        (d / "requirements.txt").write_text(req_line + "\n")
+        (d / "published").write_text("v2.10.0")
+        (d / "published-date").write_text((dt.date.today() - dt.timedelta(days=days_ago)).isoformat() + "T08:00:00Z")
+        return str(d)
+
+    @unittest.skipUnless(shutil.which("jq"), "needs jq (on the GitHub runner)")
+    def test_same_version_as_published_passes_for_a_limited_time(self):
+        r = self.scan(FAKE_FINDING="1", GRACE_DIR=self.grace())
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("::warning title=Temporary exception HIGH CVE-2026-9::urllib3 2.7.0", r.stdout)
+        summary = (self.tmp / "summary.md").read_text()
+        self.assertIn("Temporary exceptions (automatic, until", summary)
+        self.assertIn("| HIGH | CVE-2026-9 | urllib3 | 2.7.0 | 2.8.0 |", summary)
+
+    @unittest.skipUnless(shutil.which("jq"), "needs jq (on the GitHub runner)")
+    def test_no_exception_for_a_new_version_or_an_old_release(self):
+        r = self.scan(FAKE_FINDING="1", GRACE_DIR=self.grace(req_line="urllib3==2.6.0"))   # published was older
+        self.assertEqual(r.returncode, 1)
+        (self.tmp / "summary.md").unlink()
+        r = self.scan(FAKE_FINDING="1", GRACE_DIR=self.grace(days_ago=ci.GRACE_DAYS + 1))  # updates stopped
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("older than", r.stdout)
+        r = self.scan(FAKE_FINDING="1")                                                    # daily scan: strict
+        self.assertEqual(r.returncode, 1)
 
     def test_scanner_failure_is_red(self):
         r = self.scan(FAKE_FAIL="1")

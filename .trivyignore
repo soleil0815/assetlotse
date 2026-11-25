@@ -1,4 +1,5 @@
-# Exceptions for the Trivy scan (.github/trivy-scan.sh). Allowed only
+# Exceptions for the Trivy scan (.github/trivy-scan.sh). A finding the published image has in the same version
+# needs no entry here: it passes automatically for a limited time (scripts/ci.py trivy-grace). Allowed only
 #   a) for findings that were checked and provably cannot be exploited in AssetLotse, or
 #   b) for a short time, when Debian has published the fix but snapshot.debian.org cannot deliver it yet,
 #      and the image that is already published contains the same vulnerable version (the new release is

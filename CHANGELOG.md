@@ -4,6 +4,14 @@ The current version is shown at the bottom left of the sidebar after signing in.
 
 ## 2.10.1 – 2026-11-25
 
+**Build and release**
+- **Automatic, time-limited exception in the Trivy scan** of pull requests, releases and security updates: a finding
+  that the newest published image has in exactly the same package version no longer stops the run – the new image is
+  not worse, the fix is just not locked yet (e.g. Debian published it the same day). Shown as a warning and in the run
+  summary; only while the published release is at most 35 days old. Newer package versions with a vulnerability and
+  secrets never pass; the daily scan of the published image stays strict (`scripts/ci.py trivy-grace`).
+- Packages re-locked: security fixes for libzstd1, OpenSSL and the C library; certifi, charset-normalizer, SQLAlchemy.
+
 **Changed**
 - **Backups: the number to keep counts the daily backups only.** Until now, manual backups ("Back up now") and those
   before a restore counted as well – a few clicks on "Back up now" deleted days of daily backups (with 5: three manual
