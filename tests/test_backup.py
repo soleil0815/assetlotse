@@ -76,6 +76,43 @@ class BackupTests(unittest.TestCase):
         backup.rotate()
         self.assertEqual(len(backup.list_backups()), 3)
 
+    def test_manual_backups_do_not_cost_daily_ones(self):
+        """2.10.1: the number to keep counts the daily backups only – "Back up now" a few times keeps all days."""
+        set_setting("backup_keep", "5")
+        db.session.commit()
+        start = datetime.now().replace(microsecond=0) - timedelta(days=8)   # recent: the 30 days must not interfere
+        for d in range(7):
+            backup.create_backup("", start + timedelta(days=d))
+        for m in range(8):
+            backup.create_backup("-manuell", start + timedelta(days=6, hours=1, minutes=m))
+        items = backup.list_backups()
+        self.assertEqual(len([i for i in items if i["kind"] == "automatic"]), 5)   # still five days
+        manual = [i for i in items if i["kind"] == "manual"]
+        self.assertEqual(len(manual), 5)                                           # the newest five
+        self.assertEqual(manual[0]["created"], start + timedelta(days=6, hours=1, minutes=7))
+
+    def test_manual_backups_go_after_30_days_but_the_newest_stays(self):
+        later = T0 + timedelta(days=45)
+        for m in range(3):
+            backup.create_backup("-manuell", T0 + timedelta(minutes=m))
+        backup.rotate(now=later)
+        names = [i["name"] for i in backup.list_backups()]
+        self.assertEqual(len(names), 1)                       # older than 30 days – but the newest of all stays
+        self.assertIn("02320", names[0])
+        backup.create_backup("", later)
+        backup.rotate(now=later)
+        self.assertEqual([i["kind"] for i in backup.list_backups()], ["automatic"])
+
+    def test_without_automatic_backups_the_number_applies_to_manual_ones(self):
+        set_setting("backup_enabled", "0")
+        set_setting("backup_keep", "3")
+        db.session.commit()
+        for m in range(6):
+            backup.create_backup("-manuell", T0 + timedelta(days=30 * m))   # monthly, by hand
+        names = [i["name"] for i in backup.list_backups()]
+        self.assertEqual(len(names), 3)                                    # no age limit: the newest three
+        self.assertTrue(names[-1].startswith("assetlotse-2027-01-17"))
+
     def test_default_is_ten(self):
         self.assertEqual(backup.keep_count(), 10)
         self.assertEqual(get_setting("backup_enabled"), "1")

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Scans an image (saved with "docker save") with Trivy: vulnerabilities HIGH/CRITICAL that already have a
-# fix, plus secrets. Exceptions: .trivyignore (each with reason and expiry date – checked first).
+# fix, plus secrets. Exceptions: .trivyignore (each with reason and expiry date – checked first) and, with
+# GRACE_DIR set, the automatic, time-limited one for findings the published image has as well.
 # Shows the findings in the run summary and as annotations; exit code 1 if there are any.
 #   trivy-scan.sh <image.tar> <heading>        (trivy must be on PATH: .github/install-trivy.sh)
 set -euo pipefail
@@ -16,4 +17,10 @@ if [ "$rc" != 0 ] || [ ! -s trivy.json ]; then
   echo "::error title=Trivy::the scan itself failed (exit code ${rc}) – often a temporary download problem of the vulnerability database: run the workflow again"
   exit 1
 fi
-HEADING="$heading" "$here/trivy-report.sh" trivy.json
+# automatic, time-limited exception (pull requests, releases, security updates – not the daily scan): what the
+# published image has in exactly the same version does not stop the run (scripts/ci.py trivy-grace)
+rm -f trivy-grace.count
+if [ -n "${GRACE_DIR:-}" ]; then
+  python3 "$root/scripts/ci.py" trivy-grace trivy.json --releases "$GRACE_DIR" --arch "${ARCH:-amd64}"
+fi
+GRACE_COUNT="$(cat trivy-grace.count 2>/dev/null || echo 0)" HEADING="$heading" "$here/trivy-report.sh" trivy.json

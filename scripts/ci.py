@@ -8,6 +8,7 @@
   plan-security      next security-update number <version>-s<n> and its tags
   changelog          changelog entry of a security update with the changed packages
   check-trivyignore  every exception in .trivyignore needs a reason and an expiry date
+  trivy-grace        automatic, time-limited exception: a finding the published image has as well (same version)
   registry-state     what is published in ghcr.io (fails closed: an error is never "does not exist")
   registry-platforms the image config of every architecture of a published tag (or "missing")
   check-changes      a security update / relock may only change the lock files (checked before writing)
@@ -351,6 +352,88 @@ def check_trivyignore(text: str, today: dt.date) -> tuple[list[str], list[str]]:
     return errors, warnings
 
 
+# ---------------------------------------------------------------- automatic, time-limited exception
+GRACE_DAYS = 35   # a month plus a week: the security update of the next patch day brings the fix
+
+
+def _pyname(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def published_versions(lock_text: str, requirements_text: str) -> dict[str, dict[str, str]]:
+    """Package versions of a published image, kept apart: "os" from the Debian lock ("name version"),
+    "python" from requirements.txt ("name==x", names normalised)."""
+    os_pkgs: dict[str, str] = {}
+    py_pkgs: dict[str, str] = {}
+    for line in lock_text.splitlines():
+        parts = line.split()
+        if len(parts) == 2 and not line.startswith("#"):
+            os_pkgs[parts[0]] = parts[1]
+    for line in requirements_text.splitlines():
+        m = re.match(r"^([A-Za-z0-9._-]+)==([^\s;]+)", line.strip())
+        if m:
+            py_pkgs[_pyname(m.group(1))] = m.group(2)
+    return {"os": os_pkgs, "python": py_pkgs}
+
+
+def _since(releases: list[dict], kind: str, name: str, version: str) -> dt.date | None:
+    """Since when the published images have this version without a break: the oldest of the newest releases
+    (newest first) that all contain it. None if the newest release does not have it."""
+    since = None
+    for rel in releases:
+        if rel["versions"][kind].get(name) != version:
+            break
+        since = rel["date"]
+    return since
+
+
+def trivy_grace(report: dict, releases: list[dict], today: dt.date,
+                days: int = GRACE_DAYS) -> tuple[dict, list[dict]]:
+    """Automatic, time-limited exception: a vulnerability does not stop the run if the newest published image has
+    exactly the same package version – the new image is not worse, the fix is just not locked yet (Debian published
+    it today, or snapshot.debian.org cannot deliver it yet); the security update of the next patch day brings it.
+    Limited per finding: at most ``days`` after the first published release that already had this version (counted
+    over the releases without a break – a new release does not start the period again). Newer package versions with
+    a vulnerability and secrets never pass; the daily scan of the published image stays strict.
+    ``releases``: newest first, each {"tag", "date", "versions": published_versions(...)}.
+    Returns the report without the tolerated findings and the tolerated ones (with the date they are allowed until)."""
+    report = json.loads(json.dumps(report))
+    tolerated: list[dict] = []
+    for result in report.get("Results") or []:
+        kind = {"os-pkgs": "os", "lang-pkgs": "python"}.get(result.get("Class", ""))
+        keep = []
+        for v in result.get("Vulnerabilities") or []:
+            name = v.get("PkgName", "")
+            since = None
+            if kind and releases:
+                since = _since(releases, kind, name if kind == "os" else _pyname(name), v.get("InstalledVersion"))
+            until = since + dt.timedelta(days=days) if since else None
+            if until and today <= until:
+                tolerated.append({"id": v.get("VulnerabilityID", ""), "pkg": name, "severity": v.get("Severity", ""),
+                                  "installed": v.get("InstalledVersion", ""), "fixed": v.get("FixedVersion", "-"),
+                                  "until": until.isoformat()})
+            else:
+                keep.append(v)
+        if "Vulnerabilities" in result:
+            result["Vulnerabilities"] = keep
+    return report, tolerated
+
+
+def load_releases(folder: Path, arch: str) -> list[dict]:
+    """The published releases the workflow saved: <folder>/<n>/{tag,date,debian-packages*.lock,requirements.txt},
+    n = 0 for the newest."""
+    out = []
+    lock_name = "debian-packages.lock" if arch == "amd64" else f"debian-packages.{arch}.lock"
+    for d in sorted((p for p in folder.iterdir() if p.is_dir() and p.name.isdigit()), key=lambda p: int(p.name)):
+        try:
+            date = dt.date.fromisoformat((d / "date").read_text().strip()[:10])
+            versions = published_versions((d / lock_name).read_text(), (d / "requirements.txt").read_text())
+        except (OSError, ValueError):
+            break                       # a gap ends the chain: older releases do not count
+        out.append({"tag": (d / "tag").read_text().strip(), "date": date, "versions": versions})
+    return out
+
+
 # ---------------------------------------------------------------- CLI
 def _out(values: dict) -> None:
     path = os.environ.get("GITHUB_OUTPUT")
@@ -414,6 +497,10 @@ def _main(argv: list[str] | None = None) -> int:
     c.add_argument("--date", default=dt.date.today().isoformat())
     t = sub.add_parser("check-trivyignore")
     t.add_argument("file", nargs="?", default=".trivyignore")
+    tg = sub.add_parser("trivy-grace")
+    tg.add_argument("report")
+    tg.add_argument("--releases", required=True, help="folder with the saved published releases (load_releases)")
+    tg.add_argument("--arch", required=True)
     g = sub.add_parser("registry-state")
     g.add_argument("--image", required=True)
     g.add_argument("--version", required=True)
@@ -485,6 +572,34 @@ def _main(argv: list[str] | None = None) -> int:
         return 1 if errors else 0
     elif a.cmd == "release-notes":
         sys.stdout.write(release_notes(Path(a.file).read_text(), a.name, a.image))
+    elif a.cmd == "trivy-grace":
+        f = Path(a.report)
+        folder = Path(a.releases)
+        releases = load_releases(folder, a.arch) if folder.is_dir() else []
+        report, tolerated = trivy_grace(json.loads(f.read_text()), releases, dt.date.today())
+        f.write_text(json.dumps(report))
+        f.with_name("trivy-grace.count").write_text(str(len(tolerated)))
+        if not releases:
+            print("::notice title=Temporary exceptions::no published release could be read – none this time")
+            return 0
+        rows = []
+        for hit in tolerated:
+            print(f"::warning title=Temporary exception {hit['severity']} {hit['id']}::{hit['pkg']} {hit['installed']} – fix "
+                  f"{hit['fixed']} not locked yet; the published image {releases[0]['tag']} has the same version. "
+                  f"Allowed until {hit['until']} – the next security update (or relock) brings the fix.")
+            rows.append(f"| {hit['severity']} | {hit['id']} | {hit['pkg']} | {hit['installed']} | {hit['fixed']} | {hit['until']} |")
+        if rows:
+            text = ("### Temporary exceptions (automatic)\n"
+                    f"{len(rows)} finding(s) with the same version as in the published image {releases[0]['tag']} – "
+                    "not worse; the fix is not locked yet. The next security update brings it.\n\n"
+                    "| Severity | ID | Package | Installed | Fixed in | Allowed until |\n|---|---|---|---|---|---|\n"
+                    + "\n".join(rows) + "\n")
+            summary = os.environ.get("GITHUB_STEP_SUMMARY")
+            if summary:
+                with open(summary, "a") as fh:
+                    fh.write(text)
+            else:
+                sys.stdout.write(text)
     elif a.cmd == "check-trivyignore":
         f = Path(a.file)
         errors, warnings = check_trivyignore(f.read_text() if f.exists() else "", dt.date.today())

@@ -3,8 +3,9 @@
 - daily at the configured hour (default 2 am), only once even with several server processes
 - while running, via SQLite's online backup API (consistent, without stopping)
 - every backup is checked with PRAGMA integrity_check; only then is it considered complete
-- the newest N backups are kept (default 10), older ones are deleted; the newest three "before update" backups
-  are kept in addition, for at most 30 days
+- the newest N automatic backups are kept (default 10); in addition the newest five manual / "before restore"
+  and the newest three "before update" backups, each for at most 30 days (see rotate; with automatic backups
+  switched off, N applies to the manual ones)
 - location: <data directory>/backups or ASSETLOTSE_BACKUP_DIR (e.g. a NAS drive)
 
 With MySQL/MariaDB or PostgreSQL, better back up with the database server's own tools.
@@ -35,9 +36,12 @@ NAME_RE = re.compile(r"^assetlotse-(\d{4}-\d{2}-\d{2})_(\d{6})(-vor-\d+\.\d+\.\d
 PART_MAX_AGE = 3600   # delete unfinished *.part files as leftovers of aborted runs only after 1 hour
 KIND_LABELS = {"": "automatic", "-manuell": "manual", "-vor-wiederherstellung": "before restore",
                "-vor-update": "before update"}
-KEEP_UPGRADE = 3      # "before <version>" backups: the newest three don't count – needed by anyone going back …
-UPGRADE_MAX_DAYS = 30  # … but only for 30 days (2.10.0): afterwards they rotate like the others – deleted data
-                       # must not stay in old update backups for ever
+# What is kept (2.10.1) – the setting "backup_keep" counts the automatic daily backups only, so that a few clicks on
+# "Back up now" never cost days of daily backups:
+KEEP_UPGRADE = 3       # "before <version>": the newest three – needed by anyone going back to an older version …
+KEEP_OTHER = 5         # manual and "before restore": the newest five …
+OTHER_MAX_DAYS = 30    # … each at most 30 days: deleted data must not stay in old backups for ever
+UPGRADE_MAX_DAYS = OTHER_MAX_DAYS
 KEEP_MIN, KEEP_MAX = 1, 100
 
 
@@ -156,7 +160,7 @@ def create_backup(kind: str = "", now: datetime | None = None, *, rotate_after: 
         pass
     os.replace(part, final)
     if rotate_after:
-        rotate()
+        rotate(now=now)
     return final
 
 
@@ -188,17 +192,37 @@ def list_backups() -> list[dict]:
 
 
 def rotate(keep: int | None = None, now: datetime | None = None) -> int:
+    """Delete what is no longer kept: automatic backups beyond the newest ``keep``; manual, "before restore" and
+    "before update" backups beyond their own number or older than 30 days. With the automatic backups switched off,
+    the manual ones are the only backups: then ``keep`` applies to them instead (no age limit). The newest backup of
+    all always stays."""
+    from .models import get_bool
     keep = keep_count() if keep is None else keep
-    removed = 0
+    young = (now or datetime.now()) - timedelta(days=OTHER_MAX_DAYS)
     items = list_backups()
-    young = (now or datetime.now()) - timedelta(days=UPGRADE_MAX_DAYS)
-    protected = {i["name"] for i in [i for i in items if i["upgrade"]][:KEEP_UPGRADE] if i["created"] >= young}
-    for item in [i for i in items if i["name"] not in protected][keep:]:
+    auto = [i for i in items if i["kind"] == KIND_LABELS[""]]
+    upgrade = [i for i in items if i["upgrade"]]
+    other = [i for i in items if i["kind"] != KIND_LABELS[""] and not i["upgrade"]]
+    kept = {i["name"] for i in auto[:keep]}
+    kept |= {i["name"] for i in upgrade[:KEEP_UPGRADE] if i["created"] >= young}
+    if get_bool("backup_enabled"):
+        kept |= {i["name"] for i in other[:KEEP_OTHER] if i["created"] >= young}
+    else:
+        kept |= {i["name"] for i in other[:keep]}
+    if items:
+        kept.add(items[0]["name"])
+    removed = 0
+    for item in items:
+        if item["name"] in kept:
+            continue
         try:
             item["path"].unlink()
             removed += 1
         except OSError as exc:
             log.warning("Old backup %s could not be deleted: %s", item["name"], exc)
+    if removed:
+        log.info("Backups: %d old backup(s) deleted (keep %d daily; manual/before restore: newest %d, before update: "
+                 "newest %d, each at most %d days)", removed, keep, KEEP_OTHER, KEEP_UPGRADE, OTHER_MAX_DAYS)
     # Leftovers of aborted runs – but not what another process is still writing
     limit = time.time() - PART_MAX_AGE
     for stale in backup_dir().glob(f"{PREFIX}*.part*"):

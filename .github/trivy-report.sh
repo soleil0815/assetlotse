@@ -12,7 +12,11 @@ n=0; [ -z "$rows" ] || n="$(printf '%s\n' "$rows" | wc -l)"
 {
   echo "### ${HEADING:-Trivy}"
   if [ "$n" -eq 0 ]; then
-    echo "No HIGH/CRITICAL findings with a fix."
+    if [ "${GRACE_COUNT:-0}" -gt 0 ]; then
+      echo "No further HIGH/CRITICAL findings with a fix (${GRACE_COUNT} temporary exception(s) above)."
+    else
+      echo "No HIGH/CRITICAL findings with a fix."
+    fi
   else
     echo "| Severity | ID | Package | Installed | Fixed in | Where |"
     echo "|---|---|---|---|---|---|"

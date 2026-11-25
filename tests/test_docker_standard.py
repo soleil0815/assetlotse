@@ -495,7 +495,7 @@ class DatabaseVersionTests(AppBase):
         self.assertIn("newer version 99.0.0", r.stderr)
 
     def test_upgrade_backups_protected_for_30_days_only(self):
-        """2.10.0: "before update" backups no longer stay for ever – after 30 days they rotate like the others."""
+        """2.10.0: "before update" backups no longer stay for ever – after 30 days they are deleted."""
         from assetlotse import backup
         app = self.app()
         self.set_version(app, "1.0.0")

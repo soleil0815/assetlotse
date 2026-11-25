@@ -2,6 +2,28 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.10.1 – 2026-11-25
+
+**Build and release**
+- **Automatic, time-limited exception in the Trivy scan** of pull requests, releases and security updates: a finding
+  that the newest published image has in exactly the same package version no longer stops the run – the new image is
+  not worse, the fix is just not locked yet (e.g. Debian published it the same day). Shown as a warning and in the run
+  summary. Limited per finding: at most 35 days from the first published release that already had this version (a
+  new release does not extend it). Newer package versions with a vulnerability and secrets never pass; the daily scan
+  of the published image stays strict (`scripts/ci.py trivy-grace`). Expired `.trivyignore` entries removed.
+- Packages re-locked: security fixes for libzstd1, OpenSSL and the C library; certifi, charset-normalizer, SQLAlchemy.
+
+**Changed**
+- **Backups: the number to keep counts the daily backups only.** Until now, manual backups ("Back up now") and those
+  before a restore counted as well – a few clicks on "Back up now" deleted days of daily backups (with 5: three manual
+  backups left only two days). Now: the newest *N* automatic backups (setting, default 10 = 10 days); in addition the
+  newest 5 manual / before-restore and the newest 3 before-update backups, each for at most 30 days. The newest backup
+  of all is never deleted automatically. With automatic backups switched off, the manual backups are the only ones:
+  then the number to keep applies to them (no age limit). Old backups deleted by a rotation are logged.
+  **Note:** with automatic backups switched on, manual and before-restore backups older than 30 days are deleted at
+  the first start of 2.10.1 – download any you want to keep before updating. Hint on the backup page, help, README
+  and manuals updated.
+
 ## 2.10.0 – 2026-11-24
 
 **After the update everyone signs in once more** – sign-ins of earlier versions are no longer accepted.
