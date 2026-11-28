@@ -2,6 +2,20 @@
   "_info": "Neuigkeiten in der App (Seite /neuigkeiten). Pro Version kurze Einträge für die Menschen, die AssetLotse benutzen – nicht das technische CHANGELOG. kind: feature | security | fix. audience: all | manager | admin (wer es sieht; Admins sehen alles). Neueste zuerst.",
   "entries": [
     {
+      "version": "2.10.2",
+      "date": "2026-11-28",
+      "kind": "feature",
+      "audience": "admin",
+      "de": {
+        "title": "Projektseite auf GitHub jetzt englisch",
+        "text": "Die Beschreibung auf GitHub erscheint jetzt zuerst auf Englisch; die deutsche Fassung ist dort weiterhin verlinkt. Am Programm selbst ändert sich nichts."
+      },
+      "en": {
+        "title": "Project page on GitHub now in English",
+        "text": "The description on GitHub now appears in English first; the German version is still linked there. The program itself is unchanged."
+      }
+    },
+    {
       "version": "2.10.1",
       "date": "2026-11-25",
       "kind": "feature",

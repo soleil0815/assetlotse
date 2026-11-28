@@ -1,539 +1,539 @@
 # AssetLotse
 
-**Version 2.10.1** – Änderungen siehe [CHANGELOG.md](CHANGELOG.md) (englisch). · [English version](README.en.md) · Entwickelt von [helfi.space](https://helfi.space)
+**Version 2.10.2** – see [CHANGELOG.md](CHANGELOG.md) for changes. · [Deutsche Version](README.de.md) · Developed by [helfi.space](https://helfi.space)
 
-Webbasierte Ausgabe und Rücknahme von Arbeitsmitteln in Institut und Büro: Laptops, USB-Sticks, externe Festplatten, Headsets, Beamer, Schlüssel, Diensthandys, Kabel … – alles, was ausgegeben und wieder zurückgegeben wird (kein Verbrauchsmaterial). Ziel: so einfach wie möglich. Anmeldung lokal oder über Active Directory (Windows Server oder Samba).
+Web-based issuing and returning of equipment in institutes and offices: laptops, USB sticks, external drives, headsets, projectors, keys, work phones, cables … – everything that is handed out and comes back (no consumables). The goal: as simple as possible. Sign-in with local accounts or via Active Directory (Windows Server or Samba).
 
-> **Für den eigenen Einsatz gebaut – Nutzung in eigener Verantwortung.** Ich habe AssetLotse in erster Linie für mich selbst entwickelt, weil ich genau so ein Programm in meiner eigenen Umgebung einsetzen wollte. Ich nutze es selbst im Betrieb; Fehler fallen mir dadurch meist schnell auf und werden zügig behoben. Wenn Sie AssetLotse ebenfalls einsetzen möchten: gern – aber in eigener Verantwortung. Es gibt keine Gewährleistung und keine Haftung (Abschnitte 15 und 16 der [Lizenz](LICENSE)). Probieren Sie es zuerst in einer Testumgebung aus und legen Sie Sicherungen an. Fehlerberichte und Verbesserungsvorschläge sind willkommen – am besten als [Issue](https://github.com/soleil0815/assetlotse/issues); Sicherheitslücken bitte nicht öffentlich, sondern wie in [SECURITY.md](SECURITY.md) beschrieben melden. Support oder feste Antwortzeiten kann ich nicht zusagen.
+> **Built for my own use – use at your own responsibility.** I built AssetLotse primarily for myself, because I wanted exactly this kind of program for my own environment. I run it in production myself, so I usually notice bugs quickly and fix them promptly. If you would like to use AssetLotse too: you are welcome to – at your own responsibility. There is no warranty and no liability (sections 15 and 16 of the [license](LICENSE)). Try it in a test environment first and keep backups. Bug reports and suggestions for improvement are welcome – preferably as an [issue](https://github.com/soleil0815/assetlotse/issues); please report security vulnerabilities privately, as described in [SECURITY.md](SECURITY.md). I cannot promise support or response times.
 
-- **Bestand** – Gegenstände mit Bezeichnung, **Kategorie** (legt der Verwalter einfach durch Eintippen an; vorhandene Kategorien werden vorgeschlagen), Hersteller, Modell, **Seriennummer**, **Inventarnummer**, Beschreibung/Zubehör, Standort, Gruppe, **Anzahl** und **Foto**.
-- **Vertrauliche Angaben** je Gegenstand (z. B. BitLocker-Wiederherstellungsschlüssel, PIN, Kennwort) – verschlüsselt gespeichert, nur für Administratoren und Verwalter der jeweiligen Gruppe sichtbar (auf Wunsch auch für die Person, die das Gerät gerade hat – nach erneuter Passworteingabe), jeder Abruf wird protokolliert, nie im Export.
-- **Ausgabe** – an eine Person, mit Rückgabedatum oder **unbefristet** (Standard). Rückgabe, Verlängerung, Überfälligkeiten, Höchstzahl an Ausleihen.
-- **Ausgabetheke** – Person wählen, Etikett scannen, fertig. USB-/Bluetooth-Barcodescanner funktionieren ohne Einrichtung.
-- **Schnell erfassen** – „Ähnlichen anlegen“ und „Speichern & nächsten“ für viele gleichartige Geräte; jede Inventar- und Seriennummer gibt es nur einmal; beim Tippen sehen Sie, ob sie frei ist, und die nächste freie Nummer.
-- **Standorte** – feste Liste der Räume und Schränke; beim Erfassen wird ausgewählt statt getippt.
-- **Gruppen** – z. B. Abteilungen; Gegenstände einer Gruppe bekommen nur deren Mitglieder (plus „allgemeine“ Gegenstände).
-- **Rollen** – Mitarbeiter, Verwalter, Administrator. Lokales Admin-Konto funktioniert immer.
-- **Etiketten mit Barcode** (62 × 29 mm, PDF) – einzeln oder für eine ganze Auswahl, z. B. für Brother-QL-Drucker.
-- **Übersicht mit Kennzahlen** – Bestand, verfügbar, ausgegeben, überfällig, Auslastung je Kategorie.
-- **CSV-Export** des Bestands (Excel-kompatibel) mit Spalte „Ausgegeben an“.
-- **Selbstregistrierung** (optional, standardmäßig aus) – mit Freigabe durch Admins, E-Mail-Bestätigung und Domain-Beschränkung.
-- **Eigenes Erscheinungsbild** – Logo, Hintergrundbild der Anmeldeseite, Farben und Begrüßungstexte.
-- **Zwei-Faktor-Anmeldung** mit Authenticator-App (TOTP) oder Sicherheitsschlüssel (YubiKey/FIDO2), Wiederherstellungscodes und einstellbarer Pflicht je Rolle.
-- **Anmelden mit Passkey** – z. B. am iPhone mit Face ID, ohne Benutzername und Passwort; auch für Active-Directory-Konten (mit Dienstkonto, Prüfung bei jeder Anmeldung).
-- **E-Mail-Benachrichtigungen** per SMTP – Ausgabe- und Rückgabebestätigung, Erinnerung vor Fälligkeit, Mahnungen, tägliche Übersicht für Verwalter.
-- **Active Directory / LDAP** – frei definierbar, welche OUs oder AD-Gruppen sich anmelden, verwalten oder administrieren dürfen. AD-Gruppen lassen sich AssetLotse-Gruppen zuordnen.
-- **Automatische Datensicherung** – täglich, die letzten 10 Sicherungen werden aufbewahrt (einstellbar).
-- **Diagnose** – Auffälligkeiten der Installation auf einen Blick und ein **anonymisiertes Diagnosepaket** zum Weitergeben, wenn Sie Hilfe brauchen.
-- Deutsch und Englisch, responsives Design mit Hell-/Dunkelmodus. Daten in **SQLite** (Standard), optional MySQL/MariaDB oder PostgreSQL.
+- **Inventory** – items with name, **category** (a manager creates one simply by typing it; existing categories are suggested), manufacturer, model, **serial number**, **inventory number**, description/accessories, location, group, **quantity** and **photo**.
+- **Confidential details** per item (e.g. BitLocker recovery key, PIN, password) – stored encrypted, visible only to administrators and managers of the item's group (optionally also to the current borrower after re-entering their password), every reveal is logged, never exported.
+- **Issuing** – to a person, with a return date or **open-ended** (the default). Returns, extensions, overdue tracking, loan limits.
+- **Issue desk** – pick the person, scan the label, done. USB/Bluetooth barcode scanners work without setup.
+- **Fast data entry** – “Add similar” and “Save & next” for many identical devices; each inventory and serial number exists only once; while typing you see whether it is free and the next free number.
+- **Locations** – fixed list of rooms and cupboards; picked from a list instead of typed.
+- **Groups** – e.g. departments; items of a group are only issued to its members (plus “general” items).
+- **Roles** – staff member, manager, administrator. The local admin account always works.
+- **Barcode labels** (62 × 29 mm, PDF) – single or for a whole selection, e.g. for Brother QL printers.
+- **Overview with key figures** – inventory, available, issued, overdue, utilisation per category.
+- **CSV export** of the inventory (Excel-compatible) with an “Issued to” column.
+- **Self-registration** (optional, off by default) – with admin approval, e-mail verification and domain restrictions.
+- **Custom branding** – logo, login background image, colours and welcome texts.
+- **Two-factor authentication** with an authenticator app (TOTP) or security keys (YubiKey/FIDO2), recovery codes and a per-role policy.
+- **Sign in with a passkey** – e.g. on an iPhone with Face ID, without username and password; also for Active Directory accounts (with a service account, checked at every sign-in).
+- **E-mail notifications** via SMTP – issue and return confirmations, due-date reminders, overdue notices, daily digest for managers.
+- **Active Directory / LDAP** – freely define which AD groups (or OUs) may sign in, manage or administer. AD groups can be mapped to AssetLotse groups.
+- **Automatic backups** – daily, the last 10 backups are kept (configurable).
+- **Diagnostics** – findings about the installation at a glance and an **anonymized diagnostic package** to pass on when you need help.
+- German and English, responsive design with light and dark mode. Data stored in **SQLite** (default), optionally MySQL/MariaDB or PostgreSQL.
 
 <p align="center">
-  <img src=".github/readme/dashboard-de.png" alt="Übersicht mit Kennzahlen" width="100%"><br>
-  <sub>Übersicht mit Kennzahlen</sub>
+  <img src=".github/readme/dashboard-en.png" alt="Overview with key figures" width="100%"><br>
+  <sub>Overview with key figures</sub>
 </p>
 
 <table>
   <tr>
-    <td width="50%"><img src=".github/readme/inventory-de.png" alt="Bestand – „Ausgeben“ direkt in der Liste"><br><sub>Bestand – „Ausgeben“ direkt in der Liste</sub></td>
-    <td width="50%"><img src=".github/readme/desk-de.png" alt="Ausgabetheke – Person wählen, Etikett scannen, fertig"><br><sub>Ausgabetheke – Person wählen, Etikett scannen, fertig</sub></td>
+    <td width="50%"><img src=".github/readme/inventory-en.png" alt="Inventory – “Issue” right in the list"><br><sub>Inventory – “Issue” right in the list</sub></td>
+    <td width="50%"><img src=".github/readme/desk-en.png" alt="Issue desk – pick the person, scan the label, done"><br><sub>Issue desk – pick the person, scan the label, done</sub></td>
   </tr>
 </table>
 
 ---
 
-## Installation und Update
+## Installation and updates
 
-AssetLotse läuft als Docker-Container. Das Programm steckt komplett im fertigen Image; auf dem Server liegen nur **`docker-compose.yml`**, **`.env`** (Ihre Einstellungen) und der Ordner **`data`** (Datenbank, Fotos, Schlüssel, Sicherungen). Nichts wird auf dem Server gebaut oder entpackt. Voraussetzung: Docker mit Compose (Plugin `docker compose` oder das ältere `docker-compose`).
+AssetLotse runs as a Docker container. The whole program is inside the ready-made image; the server only holds **`docker-compose.yml`**, **`.env`** (your settings) and the folder **`data`** (database, photos, keys, backups). Nothing is built or unpacked on the server. Requirement: Docker with Compose (the `docker compose` plugin or the older `docker-compose`).
 
 ### Installation
 
-1. Einen Ordner anlegen, z. B. `/opt/assetlotse` (auf einer Synology z. B. `/volume1/docker/assetlotse`).
-2. Aus dem neuesten [Release](https://github.com/soleil0815/assetlotse/releases/latest) **`docker-compose.yml`** und **`env.example`** dort ablegen, `env.example` als **`.env`** speichern und nach Bedarf anpassen (Port, Zeitzone, …). Ohne Einträge gelten die Vorgaben.
-3. Starten – eine Anmeldung bei GitHub ist nicht nötig, das Image ist öffentlich:
+1. Create a folder, e.g. `/opt/assetlotse` (on a Synology e.g. `/volume1/docker/assetlotse`).
+2. Put **`docker-compose.yml`** and **`env.example`** from the newest [release](https://github.com/soleil0815/assetlotse/releases/latest) there, save `env.example` as **`.env`** and adjust it as needed (port, time zone, …). Without entries the defaults apply.
+3. Start – no GitHub login needed, the image is public:
    ```bash
    docker compose up -d
    ```
 
-Dann `http://SERVER:9343` öffnen (z. B. `http://assetlotse.firma.local:9343`). Beim ersten Aufruf legen Sie das lokale Administratorkonto an – das geht nur direkt aus dem internen Netz (sonst auf dem Server mit `create-admin`, siehe [Wartung](#wartung)).
+Then open `http://SERVER:9343` (e.g. `http://assetlotse.firma.local:9343`). On the first visit you create the local administrator account – only directly from the internal network (otherwise on the server with `create-admin`, see [Maintenance](#maintenance)).
 
-Der Container setzt beim Start selbst die Rechte an `./data` und läuft danach als Benutzer `PUID:PGID` (Standard `1000:1000`) – nicht als root (`PUID`/`PGID` `0` werden abgelehnt). `./data` ist nur für diesen Benutzer lesbar, neue Dateien darin ebenso. Liest auf dem Server ein anderer Benutzer die Sicherungen (z. B. ein eigenes Kopierskript), lassen Sie es als root oder als `PUID` laufen.
+The container sets the permissions of `./data` itself at start-up and then runs as user `PUID:PGID` (default `1000:1000`) – not as root (`PUID`/`PGID` `0` are refused). `./data` is readable only for this user, and so are new files in it. If another user on the server reads the backups (e.g. your own copy script), run it as root or as `PUID`.
 
-**Eigene Einstellungen gehören in die `.env`**, nicht in die `docker-compose.yml` – die bleibt unverändert und wird bei Bedarf durch eine neue ersetzt. Zusätzliche Ordner oder Dienste (z. B. ein Sicherungslaufwerk oder eine MariaDB) kommen in eine eigene `docker-compose.override.yml`; die berührt kein Update.
+**Your own settings belong in `.env`**, not in `docker-compose.yml` – that file stays unchanged and is replaced by a new one when needed. Extra folders or services (e.g. a backup drive or a MariaDB) go into your own `docker-compose.override.yml`; no update touches it.
 
-**Anderer Port:** in der `.env` z. B. `ASSETLOTSE_PORT=8080` eintragen und `docker compose up -d` ausführen – fertig. Der Wert gilt außen auf dem Server und innen im Container. Erlaubt sind 1024–65535. Wird die Seite nicht angezeigt: Steht in der `.env` `ASSETLOTSE_BIND=127.0.0.1`, ist AssetLotse nur auf dem Server selbst erreichbar (gedacht für einen Reverse-Proxy auf demselben Rechner) – Zeile auskommentieren für den Zugriff aus dem Netz. Ansonsten Firewall des Servers prüfen (z. B. `sudo ufw allow 9343/tcp`).
+**Another port:** put e.g. `ASSETLOTSE_PORT=8080` into `.env` and run `docker compose up -d` – done. The value applies outside on the server and inside the container. Allowed: 1024–65535. If the page does not show: with `ASSETLOTSE_BIND=127.0.0.1` in `.env` AssetLotse is only reachable on the server itself (meant for a reverse proxy on the same machine) – comment the line out for access from the network. Otherwise check the server's firewall (e.g. `sudo ufw allow 9343/tcp`).
 
-### Update
+### Updates
 
-Die `docker-compose.yml` folgt dem Tag **`latest`** – der neuesten Version einschließlich der monatlichen Sicherheitsupdates (Patchday). Updates gehen deshalb so, wie man es von Docker kennt:
+`docker-compose.yml` follows the tag **`latest`** – the newest version including the monthly security updates (patch day). So updates work the way you know from Docker:
 
-- **Mit einer Container-Verwaltung** wie Dockhand, Watchtower oder Tugtainer – am besten mit einer Update-Zeit **nachts**, wenn niemand ausleiht.
-- **Von Hand:**
+- **With a container manager** such as Dockhand, Watchtower or Tugtainer – preferably with an update time **at night**, when nobody borrows anything.
+- **By hand:**
   ```bash
   docker compose pull && docker compose up -d
   ```
-- **Mit `./update.sh`** (liegt im Release; optional): merkt sich das laufende Image als `previous`, lädt die neue Version, startet sie und wartet auf den Gesundheitscheck. Startet die neue Version nicht, bietet es an, die vorige wieder zu starten (mit `-y` ohne Rückfrage). Bringt das Image eine neuere `docker-compose.yml` mit, legt es sie ab und behält die alte als `docker-compose.yml.alt`. Läuft mit `/bin/sh` (auch auf einem NAS wie Synology); als root oder Mitglied der Gruppe `docker` ausführen.
+- **With `./update.sh`** (in the release; optional): remembers the running image as `previous`, pulls the new version, starts it and waits for the health check. If the new version does not start, it offers to start the previous one again (with `-y` without asking). If the image brings a newer `docker-compose.yml`, it puts it in place and keeps the old one as `docker-compose.yml.alt`. Runs with `/bin/sh` (also on a NAS such as Synology); run it as root or as a member of the `docker` group.
   ```bash
-  ./update.sh                 # neueste Version
-  ./update.sh --rollback      # das Image von vor dem letzten Update wieder starten
-  ./update.sh --help          # alle Möglichkeiten
+  ./update.sh                 # newest version
+  ./update.sh --rollback      # start the image from before the last update again
+  ./update.sh --help          # everything it can do
   ```
 
-**Abgesichert ist jeder Weg:** Startet eine neue Version zum ersten Mal, sichert AssetLotse **vor** jeder Änderung an der Datenbank selbst (`…-vor-<Version>.db`, unter *Administration → Datensicherung*; die drei neuesten solcher Sicherungen bleiben 30 Tage lang erhalten, auch über die normale Anzahl hinaus; nur SQLite – bei MySQL/PostgreSQL vorher selbst sichern). Erst danach passt es die Datenbank an.
+**Every way is safe:** when a new version starts for the first time, AssetLotse backs up the database itself **before** changing anything (`…-vor-<version>.db`, under *Administration → Backups*; the three newest of these backups are kept for 30 days, even beyond the normal number; SQLite only – with MySQL/PostgreSQL back up yourself first). Only then does it adapt the database.
 
-**Hinweis auf neue Versionen:** Wer nicht automatisch aktualisiert, erfährt es trotzdem: Einmal am Tag fragt AssetLotse bei GitHub nach der neuesten veröffentlichten Version. Gibt es eine neuere, sehen **Administratoren** oben einen Hinweis mit Link auf die Änderungen und dem Update-Befehl (bei festgelegter Version in der `.env`: dort die neue Nummer eintragen); er lässt sich bis zur nächsten Version ausblenden. *Administration → Diagnose* zeigt den Stand und hat **Jetzt prüfen**. Gemeldet werden nur neue Programmversionen, nicht die monatlichen Sicherheits-Images (`2.9.0-s1`) – die kommen über `latest` ohnehin. Über die Installation wird nichts gesendet; GitHub sieht nur die IP-Adresse des Servers, wie bei jedem `docker pull`. Abschalten unter *Einstellungen → Allgemein → Updates* oder ganz – ohne jede Verbindung zu GitHub – mit `ASSETLOTSE_UPDATE_CHECK=0` in der `.env` (z. B. für Server ohne Internet).
+**Notice of new versions:** if you do not update automatically, you still find out: once a day AssetLotse asks GitHub for the newest published version. If there is a newer one, **administrators** see a notice at the top with a link to the changes and the update command (with a version pinned in `.env`: enter the new number there); it can be hidden until the next version. *Administration → Diagnostics* shows the state and has **Check now**. Only new program versions are announced, not the monthly security images (`2.9.0-s1`) – they arrive through `latest` anyway. Nothing about the installation is sent; GitHub only sees the server's IP address, as with every `docker pull`. Switch it off under *Settings → General → Updates*, or completely – without any connection to GitHub – with `ASSETLOTSE_UPDATE_CHECK=0` in `.env` (e.g. for servers without internet).
 
-**Neue `docker-compose.yml`:** Die Datei trägt eine Versionsnummer (`ASSETLOTSE_COMPOSE_VERSION`). Braucht eine neue Version eine neuere Datei, sagt AssetLotse es selbst – im Protokoll und als Hinweis für Administratoren. Dann `./update.sh` ausführen (legt die neue Datei ab, die alte bleibt als `.alt`) oder die `docker-compose.yml` aus dem Release übernehmen und `docker compose up -d`.
+**New `docker-compose.yml`:** the file carries a version number (`ASSETLOTSE_COMPOSE_VERSION`). If a new version needs a newer file, AssetLotse says so itself – in the log and as a notice for administrators. Then run `./update.sh` (puts the new file in place, the old one stays as `.alt`) or take `docker-compose.yml` from the release and run `docker compose up -d`.
 
-### Bestimmte Version festlegen und zurückgehen
+### Pinning a version and going back
 
-In der `.env` die Version eintragen und neu starten – Container-Verwaltungen lassen eine feste Version in Ruhe:
+Put the version into `.env` and restart – container managers leave a fixed version alone:
 ```bash
-ASSETLOTSE_TAG=2.0.0        # oder ein bestimmtes Sicherheitsupdate, z. B. 2.0.0-s3
+ASSETLOTSE_TAG=2.0.0        # or one particular security update, e.g. 2.0.0-s3
 docker compose pull && docker compose up -d
 ```
-Oder kurz: `./update.sh --version 2.0.0`. Zurück zur neuesten Version: die Zeile entfernen (bzw. `ASSETLOTSE_TAG=latest`) oder `./update.sh`.
+Or short: `./update.sh --version 2.0.0`. Back to the newest version: remove the line (or `ASSETLOTSE_TAG=latest`) or run `./update.sh`.
 
-**Zurück auf eine ältere Version:** Eine ältere Version startet nicht auf einer Datenbank, die schon eine neuere Version angepasst hat – sie bricht mit einer klaren Meldung ab und nennt die Sicherung, die zurückzuspielen ist. Also:
+**Going back to an older version:** an older version does not start on a database that a newer version has already adapted – it stops with a clear message that names the backup to restore. So:
 ```bash
 docker compose stop assetlotse
-docker compose run --rm assetlotse backups                              # Sicherungen anzeigen
+docker compose run --rm assetlotse backups                              # list the backups
 docker compose run --rm assetlotse restore assetlotse-2026-11-02_031500-vor-2.1.0.db
-# in der .env die ältere Version eintragen, z. B. ASSETLOTSE_TAG=2.0.0
+# put the older version into .env, e.g. ASSETLOTSE_TAG=2.0.0
 docker compose up -d
 ```
-Die Sicherung `…-vor-2.1.0.db` ist der Stand unmittelbar vor dem Update auf 2.1.0. Was seitdem eingetragen wurde, geht dabei verloren (der aktuelle Stand wird vorher noch als `…-vor-wiederherstellung.db` gesichert).
+The backup `…-vor-2.1.0.db` is the state right before the update to 2.1.0. Whatever was entered since then is lost (the current state is backed up first as `…-vor-wiederherstellung.db`).
 
-### Ohne Internet
+### Without internet
 
-Am Release hängen die Images als Dateien: `assetlotse-<Version>-amd64.tar.gz` (übliche Server und PCs) bzw. `…-arm64.tar.gz` (z. B. Raspberry Pi, ARM-NAS), jeweils mit `.sha256`. Datei und `update.sh` auf den Server kopieren, dann:
+The release carries the images as files: `assetlotse-<version>-amd64.tar.gz` (usual servers and PCs) or `…-arm64.tar.gz` (e.g. Raspberry Pi, ARM NAS), each with a `.sha256`. Copy the file and `update.sh` to the server, then:
 ```bash
 ./update.sh --offline assetlotse-2.0.0-amd64.tar.gz
 ```
-Das Skript prüft die Prüfsumme (wenn die `.sha256` daneben liegt), lädt das Image (`docker load`) und startet es; die Version wird in der `.env` festgelegt. Ohne `update.sh`: `docker load -i assetlotse-2.0.0-amd64.tar.gz`, in der `.env` `ASSETLOTSE_TAG=2.0.0` eintragen, `docker compose up -d`.
+The script checks the checksum (if the `.sha256` is next to it), loads the image (`docker load`) and starts it; the version is fixed in `.env`. Without `update.sh`: `docker load -i assetlotse-2.0.0-amd64.tar.gz`, put `ASSETLOTSE_TAG=2.0.0` into `.env`, `docker compose up -d`.
 
-### Umstieg von einer Installation vor 2.0.0
+### Switching from an installation before 2.0.0
 
-Bis 1.12 lagen auch die Programmdateien auf dem Server (Zip-Pakete, lokaler Bau). Der Umstieg einmalig, im bisherigen Ordner:
+Up to 1.12 the program files were on the server too (zip packages, local builds). The switch, once, in the existing folder:
 
-1. `./update.sh --pull` – das bisherige Skript holt die neueste Version und übergibt an das neue `update.sh`; die neue `docker-compose.yml` wird abgelegt und der Container gestartet. (Wurde bisher lokal gebaut, ist das genau der Wechsel auf das fertige Image.)
-2. `./update.sh --cleanup` – zeigt die nicht mehr gebrauchten Programmdateien (z. B. `assetlotse/`, `Dockerfile`, `requirements.txt`, alte Zips, `packages/`, Reste abgebrochener Updates, alte lokal gebaute Images), fragt nach und löscht nur diese. **Nie** angefasst werden `data`, Sicherungen, `.env`, `docker-compose.yml`, `docker-compose.override.yml`, Links, eingehängte Laufwerke (Mountpunkte) und alle Ordner, die ein Container oder die `docker-compose.yml`/`docker-compose.override.yml` einbindet – auch nicht über Links. Im Ordner bleiben danach nur noch `docker-compose.yml` (und `.alt`), `.env`, `.env.example`, `update.sh` und `data`.
+1. `./update.sh --pull` – the existing script pulls the newest version and hands over to the new `update.sh`; the new `docker-compose.yml` is put in place and the container started. (If you built locally so far, this is exactly the switch to the ready-made image.)
+2. `./update.sh --cleanup` – lists the program files that are no longer needed (e.g. `assetlotse/`, `Dockerfile`, `requirements.txt`, old zips, `packages/`, leftovers of aborted updates, old locally built images), asks, and deletes only these. **Never** touched: `data`, backups, `.env`, `docker-compose.yml`, `docker-compose.override.yml`, links, mounted drives (mount points) and every folder a container or `docker-compose.yml`/`docker-compose.override.yml` mounts – also not through links. Afterwards the folder only holds `docker-compose.yml` (and `.alt`), `.env`, `.env.example`, `update.sh` and `data`.
 
-Wer AssetLotse über eine Container-Verwaltung aktualisiert, ersetzt dort einfach die `docker-compose.yml` durch die neue aus dem Release.
+If a container manager updates AssetLotse, just replace `docker-compose.yml` there with the new one from the release.
 
-## Bauen und Veröffentlichen (GitHub)
+## Building and publishing (GitHub)
 
-Der Workflow `.github/workflows/docker.yml` baut die Images auf GitHub – für **amd64 und arm64**, jeweils auf einem eigenen Rechner dieser Architektur, dort auch getestet – und legt sie unter **`ghcr.io/soleil0815/assetlotse`** ab (Tags z. B. `2.0.0`, `2.0` und `latest`; Sicherheitsupdates als `2.0.0-s1` usw.; dazu je Architektur `2.0.0-amd64` und `2.0.0-arm64`).
+The workflow `.github/workflows/docker.yml` builds the images on GitHub – for **amd64 and arm64**, each on a machine of that architecture and tested there – and puts them under **`ghcr.io/soleil0815/assetlotse`** (tags e.g. `2.0.0`, `2.0` and `latest`; security updates as `2.0.0-s1` and so on; plus `2.0.0-amd64` and `2.0.0-arm64` per architecture).
 
-- **Jeder Push auf `main` und jeder Pull Request** wird geprüft: bauen, Tests im Image, Trivy – **veröffentlicht wird nichts**.
-- **Veröffentlicht wird nur von Hand:** *Actions → Docker image → Run workflow → release* (auf `main`). Gibt es die Versionsnummer noch nicht, wird gebaut, getestet, geprüft und nur bei Erfolg veröffentlicht – `latest` nur für die höchste Version. Dazu kommen der Tag `v<Version>` und ein Release auf GitHub mit dem Text aus dem CHANGELOG und den Installationsdateien (`docker-compose.yml`, `env.example`, `update.sh`, Image-Dateien für den Weg ohne Internet). Eine veröffentlichte Version wird nie neu gebaut oder überschrieben.
-- **Neue Version:** Versionsnummer in `assetlotse/__init__.py` und `Dockerfile` erhöhen, CHANGELOG-Eintrag schreiben, per Pull Request auf `main` bringen, dann *Run workflow → release*.
+- **Every push to `main` and every pull request** is checked: build, tests in the image, Trivy – **nothing is published**.
+- **Publishing is by hand only:** *Actions → Docker image → Run workflow → release* (on `main`). If the version number does not exist yet, it is built, tested, scanned and published only on success – `latest` only for the highest version. Plus the tag `v<version>` and a GitHub release with the text from the CHANGELOG and the installation files (`docker-compose.yml`, `env.example`, `update.sh`, image files for installing without internet). A published version is never rebuilt or overwritten.
+- **New version:** raise the version number in `assetlotse/__init__.py` and `Dockerfile`, write a CHANGELOG entry, bring it to `main` by pull request, then *Run workflow → release*.
 
-### Sicherheit und Aktualität des Images
+### Security and freshness of the image
 
-Ziel: Das Image bleibt von selbst sicher und aktuell, **ohne Versionssprünge**. Alles läuft auf GitHub im Workflow `.github/workflows/docker.yml`; wer ihn ändert, ändert, was auf den Servern landet.
+Goal: the image stays secure and up to date by itself, **without version jumps**. Everything runs on GitHub in the workflow `.github/workflows/docker.yml`; whoever changes it changes what ends up on the servers.
 
-**Reproduzierbarer Bau.** Jeder Bau aus demselben Stand ergibt dasselbe Image:
-- **Basis-Image** mit fester Version **und** Prüfsumme: `ARG PYTHON_IMAGE=python:3.13.<n>-slim-trixie@sha256:…` im `Dockerfile`.
-- **Alle Debian-Pakete** des Images – auch die des Basis-Images – stehen mit exakter Version in `build/debian-packages.lock`. Installiert wird aus einem festen Stand des Debian-Archivs (`snapshot.debian.org`, Zeitpunkt in der Datei); weicht ein Paket ab, bricht der Bau ab.
-- **Alle Python-Pakete** einschließlich aller Unterabhängigkeiten stehen exakt in `requirements.txt`, `pip` selbst als `ARG PIP_VERSION` im `Dockerfile`. Installiert wird mit `--no-deps` und `--only-binary`, danach prüft `pip check`.
-- **Was zur Laufzeit nicht gebraucht wird, ist nicht im Image:** die Paketverwaltungen `pip`, `ensurepip` und `apt` werden nach der Installation entfernt. Ebenso das Werkzeug `openssl` und `openssl-provider-legacy` (veraltete Verfahren wie MD4) – Python braucht nur die Bibliothek `libssl3t64`, die bleibt. (`dpkg` mit seiner Paketliste bleibt: Es gehört zum Grundsystem, und die Schwachstellenprüfung liest daraus die installierten Pakete.)
-- **Alle Debian-Pakete** stehen je Architektur fest: `build/debian-packages.lock` (amd64) und `build/debian-packages.arm64.lock` (arm64) – aus demselben Stand des Debian-Archivs; die Python-Pakete sind auf beiden Architekturen genau dieselben.
-- **Neu festlegen** – innerhalb der Grenzen unten – macht `scripts/lock.py`: auf GitHub *Actions → Docker image → Run workflow → relock* (löst auf je einem amd64- und arm64-Rechner auf und trägt das Ergebnis auf `main` ein; auf dem Zweig eines Pull Requests zeigt der Lauf die neuen Versionen im Protokoll, eintragen darf er dort wegen der geschützten Umgebung `release` nicht). Lokal: `scripts/lock.py refresh` (braucht Docker, für arm64 mit Emulation). `scripts/lock.py check` prüft die Dateien ohne Netz.
+**Reproducible build.** Every build from the same state gives the same image:
+- **Base image** with a fixed version **and** checksum: `ARG PYTHON_IMAGE=python:3.13.<n>-slim-trixie@sha256:…` in the `Dockerfile`.
+- **All Debian packages** of the image – including those of the base image – are listed with exact versions in `build/debian-packages.lock`. They are installed from one fixed state of the Debian archive (`snapshot.debian.org`, the timestamp is in the file); if any package differs, the build stops.
+- **All Python packages** including all sub-dependencies are pinned exactly in `requirements.txt`, `pip` itself as `ARG PIP_VERSION` in the `Dockerfile`. They are installed with `--no-deps` and `--only-binary`, then `pip check` runs.
+- **Nothing that is not needed at runtime stays in the image:** the package managers `pip`, `ensurepip` and `apt` are removed after the installation. So are the `openssl` tool and `openssl-provider-legacy` (old algorithms such as MD4) – Python only needs the library `libssl3t64`, which stays. (`dpkg` with its package list stays: it is part of the base system, and the vulnerability scan reads the installed packages from it.)
+- **All Debian packages** are pinned per architecture: `build/debian-packages.lock` (amd64) and `build/debian-packages.arm64.lock` (arm64) – from the same state of the Debian archive; the Python packages are exactly the same on both architectures.
+- **Setting new versions** – within the limits below – is done by `scripts/lock.py`: on GitHub *Actions → Docker image → Run workflow → relock* (resolves on one amd64 and one arm64 machine and commits the result to `main`; on the branch of a pull request the run shows the new versions in its log, but may not commit there because of the protected environment `release`). Locally: `scripts/lock.py refresh` (needs Docker, with emulation for arm64). `scripts/lock.py check` checks the files offline.
 
-**Grenzen („Unterbau“).** Automatisch angehoben wird nur **innerhalb** des Unterbaus:
-- gleiche Debian-Version (13 „trixie“ steht fest im Namen des Basis-Images – nie ein Tag, das still wechselt),
-- gleiche Python-Reihe (3.13; nur neuere 3.13.x),
-- jedes Python-Paket innerhalb seiner Hauptversion (vor 1.0: innerhalb der Unterversion), nie niedriger als bisher; die direkten Abhängigkeiten mit diesen Grenzen stehen in `requirements.in`,
-- ohne Grenze nur Kalenderversionen wie die Stammzertifikate (`certifi`) oder Zeitzonen-Daten.
+**Limits (the "base").** Automatic updates only happen **within** the base:
+- the same Debian release (13 "trixie" is fixed in the base image's name – never a tag that changes silently),
+- the same Python line (3.13; only newer 3.13.x),
+- every Python package within its major version (before 1.0: within its minor version), never lower than before; the direct dependencies with these limits are in `requirements.in`,
+- without a limit only calendar versions such as the root certificates (`certifi`) or time zone data.
 
-Einen neuen Unterbau (z. B. Python 3.14, Debian 14 oder eine neue Hauptversion eines Pakets) hebt niemand still an – das ist immer eine bewusste neue Programmversion.
+Nobody raises the base silently (e.g. Python 3.14, Debian 14 or a new major version of a package) – that is always a deliberate new program version.
 
-**Sicherheitsupdate am Patchday** (einmal im Monat am zweiten Dienstag – wie Microsofts Patchday –, 04:17 UTC; von Hand jederzeit: *Run workflow → security-update*): `scripts/lock.py` holt die neuesten Versionen innerhalb der Grenzen. Gibt es nichts Neues, passiert nichts. Sonst wird **ohne Zwischenspeicher** neu gebaut, die automatischen Tests laufen **im fertigen Image**, dann prüft Trivy. Nur wenn **alles** bestanden ist, wird das Image veröffentlicht – als `<Version>-s<Zähler>` (z. B. `1.10.0-s1`, `1.10.0-s2`: gleiches Programm, nur neue Pakete), außerdem als `latest` und `<Minor>`. Die neuen festen Versionen werden mit einem Eintrag im [CHANGELOG](CHANGELOG.md) (Liste der geänderten Pakete) auf `main` eingetragen und als `v<Version>-s<Zähler>` markiert. Eine neue Programmversion beginnt wieder bei `s1`. Server, die `latest` folgen, bekommen die Sicherheitsupdates von selbst; wer eine Version festgelegt hat (`ASSETLOTSE_TAG`), behält genau dieses Image. Sicherheitsupdates erscheinen weiter **automatisch**, auch ohne „release“. Liegen auf `main` noch unveröffentlichte Programmänderungen (gemergt, aber noch nicht veröffentlicht), gibt es kein Sicherheitsupdate, bis sie als neue Version veröffentlicht sind.
+**Security update on patch day** (once a month on the second Tuesday – like Microsoft's Patch Tuesday –, 04:17 UTC; by hand at any time: *Run workflow → security-update*): `scripts/lock.py` fetches the newest versions within the limits. If there is nothing new, nothing happens. Otherwise the image is built **without cache**, the automatic tests run **in the finished image**, then Trivy scans it. Only if **everything** passed is the image published – as `<version>-s<counter>` (e.g. `1.10.0-s1`, `1.10.0-s2`: same program, only new packages), and as `latest` and `<minor>`. The new pinned versions are committed to `main` with an entry in the [CHANGELOG](CHANGELOG.md) (list of the changed packages) and tagged `v<version>-s<counter>`. A new program version starts again at `s1`. Servers following `latest` get the security updates by themselves; a server with a fixed version (`ASSETLOTSE_TAG`) keeps exactly that image. Security updates keep coming **automatically**, also without "release". If `main` holds unreleased program changes (merged, but not released yet), there is no security update until they are released as a new version.
 
-**Schwachstellenprüfung (Trivy).** Jedes Image wird vor dem Veröffentlichen geprüft. Nur Schwachstellen der Stufe HOCH oder KRITISCH, für die es eine Korrektur gibt, stoppen das Release (dazu gefundene Geheimnisse wie Schlüssel). Trivy ist bewusst **keine** GitHub Action (trivy-action und setup-trivy wurden im März 2026 kompromittiert, CVE-2026-33634): `.github/install-trivy.sh` lädt eine feste Version und prüft ihre SHA-256-Prüfsumme, bevor sie läuft. Geprüfte, nicht ausnutzbare Befunde kommen mit Begründung (`# reason: …` in der Zeile darüber) und Ablaufdatum (`exp:JJJJ-MM-TT`) in `.trivyignore`; fehlt eines davon, bricht die Prüfung ab, nach dem Ablaufdatum wird der Befund wieder gemeldet. **Automatische, befristete Ausnahme:** Hat das zuletzt veröffentlichte Image dasselbe Paket in genau derselben Version, hält ein Befund Pull Requests, Releases und Sicherheitsupdates nicht auf – das neue Image ist nicht schlechter, die Korrektur ist nur noch nicht festgelegt (z. B. hat Debian sie gerade erst veröffentlicht). Sie steht als Warnung und in der Zusammenfassung des Laufs; das nächste Sicherheitsupdate bringt sie. Befristet je Befund: höchstens 35 Tage ab dem ersten veröffentlichten Release, das diese Version schon enthielt – ein neues Release verlängert die Frist nicht; danach stoppt der Befund wieder, bis die Korrektur festgelegt ist. Neuere Paketversionen mit einer Lücke und gefundene Geheimnisse kommen nie durch, und der tägliche Scan des veröffentlichten Images bleibt streng.
+**Vulnerability scan (Trivy).** Every image is scanned before it is published. Only vulnerabilities rated HIGH or CRITICAL that have a fix stop the release (plus secrets such as keys found in the image). Trivy is deliberately **not** a GitHub Action (trivy-action and setup-trivy were compromised in March 2026, CVE-2026-33634): `.github/install-trivy.sh` loads a fixed version and checks its SHA-256 checksum before it runs. Checked findings that cannot be exploited go into `.trivyignore` with a reason (`# reason: …` on the line above) and an expiry date (`exp:YYYY-MM-DD`); if either is missing, the scan stops; after the expiry date the finding is reported again. **Automatic, time-limited exception:** if the newest published image has the same package in exactly the same version, a finding does not stop pull requests, releases and security updates – the new image is not worse, the fix is just not locked yet (e.g. Debian has only just published it). It is shown as a warning and in the run summary; the next security update brings it. Time-limited per finding: at most 35 days from the first published release that already had this version – a new release does not extend it; after that the finding stops the run again until the fix is locked. Newer package versions with a vulnerability and found secrets never pass, and the daily scan of the published image stays strict.
 
-**Täglicher Scan.** Jeden Tag (05:43 UTC) wird das veröffentlichte `latest` (amd64 und arm64) erneut geprüft – für Schwachstellen, die erst nach dem Release bekannt werden.
+**Daily scan.** Every day (05:43 UTC) the published `latest` (amd64 and arm64) is scanned again – for vulnerabilities that only become known after the release.
 
-**ZAP-Scan im Code-Audit.** Einmal im Monat, eine Woche vor dem Patchday (Dienstag 01:29 UTC; von Hand jederzeit: *Actions → ZAP scan → Run workflow*), startet GitHub das Programm in einem Wegwerf-Container mit Testdaten und lässt [ZAP](https://www.zaproxy.org/) es ohne Anmeldung durchsuchen und angreifen (passiver und aktiver Scan, nie gegen echte Server). Der Code-Audit am Tag danach prüft jeden Fund am Code und behebt bestätigte Schwachstellen vor dem Patchday. Bei normalen Pull Requests läuft der Scan nicht.
+**ZAP scan in the code audit.** Once a month, one week before patch day (Tuesday 01:29 UTC; by hand at any time: *Actions → ZAP scan → Run workflow*), GitHub starts the program in a throwaway container with test data and lets [ZAP](https://www.zaproxy.org/) crawl and attack it without logging in (passive and active scan, never against real servers). The code audit the day after checks every finding against the code and fixes confirmed vulnerabilities before patch day. The scan does not run on normal pull requests.
 
-**Unterbau-Warnung.** Jeden Montag fragt der Workflow bei [endoflife.date](https://endoflife.date), wie lange Debian und die Python-Reihe noch Sicherheitsupdates bekommen: ab 12 Monaten vorher ein Hinweis (gelb), ab 6 Monaten ein roter Lauf.
+**Base warning.** Every Monday the workflow asks [endoflife.date](https://endoflife.date) how long Debian and the Python line still get security updates: from 12 months before a note (yellow), from 6 months a red run.
 
-**Sicherheit des Workflows.** Alle Actions sind auf Commit-Prüfsummen festgelegt; jeder Job hat nur die Rechte, die er braucht (Schreibrechte nur die Schritte, die veröffentlichen); Tests und Trivy laufen nie in einem Job mit Schreibrechten; Git-Anmeldedaten werden nicht gespeichert; veröffentlicht wird nur vom Zweig `main`, nie zwei Läufe gleichzeitig; eine veröffentlichte Version wird nie überschrieben, `latest` zeigt nur auf die höchste Version.
+**Security of the workflow.** All actions are pinned to commit checksums; every job has only the permissions it needs (write access only for the steps that publish); tests and Trivy never run in a job with write access; git credentials are not stored; publishing only from the branch `main`, never two runs at the same time; a published version is never overwritten, `latest` only points to the highest version.
 
-**Nur vom Zweig `main`:** Der Workflow veröffentlicht nur Läufe von `main` (Prüfung in `scripts/ci.py`). Die zusätzliche Sperre über die Umgebung `release` (*Settings → Environments → Deployment branches*) bietet GitHub für private Repositorys nur mit GitHub Pro, Team oder Enterprise an; ohne sie könnte ein auf einem anderen Zweig geänderter Workflow, von Hand gestartet, trotzdem veröffentlichen. Schreibrechte am Repository daher nur vertrauenswürdigen Personen geben.
+**Only from the branch `main`:** the workflow only publishes runs from `main` (checked in `scripts/ci.py`). GitHub offers the additional lock via the environment `release` (*Settings → Environments → Deployment branches*) for private repositories only with GitHub Pro, Team or Enterprise; without it, a workflow changed on another branch and started by hand could still publish. So only give trusted people write access to the repository.
 
-**Selbst bauen** (z. B. für eine eigene Anpassung): `docker build -t assetlotse:eigen .` im Repository – mit denselben festen Versionen, dafür braucht der Rechner HTTPS-Zugang zu `snapshot.debian.org`. In der `.env` dann `ASSETLOTSE_IMAGE=assetlotse` und `ASSETLOTSE_TAG=eigen`.
+**Building it yourself** (e.g. for your own changes): `docker build -t assetlotse:own .` in the repository – with the same pinned versions; the machine needs HTTPS access to `snapshot.debian.org`. Then set `ASSETLOTSE_IMAGE=assetlotse` and `ASSETLOTSE_TAG=own` in `.env`.
 
-**Wenn ein Lauf rot ist.** Rot vor dem Schritt *publish* heißt: **nichts wurde veröffentlicht**, die Server behalten die bisherige Version. Bricht ein Lauf erst beim Veröffentlichen ab (z. B. Netzwerkfehler), holt *Re-run failed jobs* oder der nächste Lauf das Fehlende nach – fehlende Tags (`latest`, `<Minor>`) und die Release-Seite werden ergänzt, nichts wird neu gebaut. GitHub schickt eine E-Mail; die Ursache steht kurz am Lauf (*Actions* → Lauf → Hinweise oben und Zusammenfassung).
+**When a run is red.** Red before the *publish* step means: **nothing was published**, the servers keep the previous version. If a run stops while publishing (e.g. a network error), *Re-run failed jobs* or the next run completes what is missing – missing tags (`latest`, `<minor>`) and the release page are added, nothing is rebuilt. GitHub sends an e-mail; the cause is shown briefly on the run (*Actions* → run → annotations at the top and summary).
 
-| Was am Lauf steht | Was zu tun ist |
+| What the run says | What to do |
 |---|---|
-| *Tests failed* | Ein neues Paket passt nicht zum Programm. Die betroffene Stelle anpassen und als neue Version veröffentlichen – oder bis dahin abwarten (der Lauf wiederholt sich am nächsten Patchday). |
-| *Trivy … finding(s)* beim Release oder Sicherheitsupdate | Für die Lücke gibt es eine Korrektur außerhalb der Grenzen (z. B. nur in einer neuen Hauptversion): bewusst anheben und als neue Version veröffentlichen. Ist der Befund nachweislich nicht ausnutzbar: Eintrag mit Begründung und Ablaufdatum in `.trivyignore`. |
-| *Trivy … finding(s)* beim täglichen Scan | Neu bekannte Lücke im veröffentlichten Image. Meist behebt sie das nächste Sicherheitsupdate; sofort: *Run workflow → security-update*. |
-| *Base ends soon* (rot) / *within a year* (gelb) | Debian oder Python bekommen bald keine Sicherheitsupdates mehr: den Wechsel auf den nächsten Unterbau als neue Version planen. |
-| *unreleased program changes* | Auf `main` liegen Änderungen, die noch nicht veröffentlicht sind: Versionsnummer erhöhen und *Run workflow → release*. |
-| *the scan itself failed*, Netzwerk- oder Download-Fehler | Meist vorübergehend: Lauf erneut starten (*Re-run jobs*). |
-| *exists already with another image* | Diese Versionsnummer ist schon mit einem anderen Image veröffentlicht – Versionsnummer erhöhen. |
-| *would ship OLDER packages* | Die neue Version hätte ältere Pakete als das zuletzt veröffentlichte Sicherheitsupdate (z. B. weil ein älterer Stand hochgeladen wurde): `git pull`, damit die neuesten festen Versionen und der CHANGELOG dabei sind, dann erneut hochladen. |
-| *no packages locked for arm64* | Die Paketliste für arm64 fehlt: *Run workflow → relock* auf dem Zweig starten. |
-| *resolved other Python packages than amd64* | Ein Python-Paket gibt es für arm64 (noch) nicht in derselben Version: Lauf später wiederholen oder die Grenze in `requirements.in` bewusst anpassen. |
-| *main changed while this run was going* | Während des Sicherheitsupdates kam etwas Neues auf `main` – nichts veröffentlicht; der nächste Lauf wiederholt es. |
+| *Tests failed* | A new package does not fit the program. Adapt the affected code and release a new version – or wait until then (the run repeats on the next patch day). |
+| *Trivy … finding(s)* for a release or security update | The fix lies outside the limits (e.g. only in a new major version): raise it deliberately and release a new version. If the finding provably cannot be exploited: entry with reason and expiry date in `.trivyignore`. |
+| *Trivy … finding(s)* in the daily scan | A newly known vulnerability in the published image. Usually the next security update fixes it; right away: *Run workflow → security-update*. |
+| *Base ends soon* (red) / *within a year* (yellow) | Debian or Python will soon stop getting security updates: plan the switch to the next base as a new version. |
+| *unreleased program changes* | `main` holds changes that are not released yet: raise the version number and *Run workflow → release*. |
+| *the scan itself failed*, network or download errors | Usually temporary: run it again (*Re-run jobs*). |
+| *exists already with another image* | This version number is already published with another image – raise the version number. |
+| *would ship OLDER packages* | The new version would have older packages than the last published security update (e.g. because an older copy was pushed): `git pull` so the newest pinned versions and the CHANGELOG are included, then push again. |
+| *no packages locked for arm64* | The package list for arm64 is missing: start *Run workflow → relock* on the branch. |
+| *resolved other Python packages than amd64* | A Python package is not (yet) available for arm64 in the same version: repeat the run later or adjust the limit in `requirements.in` deliberately. |
+| *main changed while this run was going* | Something new arrived on `main` during the security update – nothing published; the next run repeats it. |
 
 ---
 
-## Gegenstände und Bestand
+## Items and inventory
 
-*Bestand* zeigt alle Gegenstände, die jemand sehen darf – mit Suche (schon beim Tippen erscheinen oben passende Treffer, Klick öffnet das Gerät) (Bezeichnung, Kategorie, Hersteller, Modell, Serien- und Inventarnummer, Standort, Beschreibung) und Filtern nach **Kategorie, Gruppe, Standort** und **Status** (verfügbar / ausgegeben).
+*Inventory* lists every item a user may see – with search (name, category, manufacturer, model, serial and inventory number, location, description) and filters for **category, group, location** and **status** (available / issued).
 
-**Gegenstand anlegen** (Verwalter): Pflicht ist nur die **Bezeichnung**. Dazu kommen:
+**Add item** (managers): only the **name** is required. In addition:
 
-| Feld | Hinweis |
+| Field | Notes |
 |---|---|
-| **Kategorie** | frei, z. B. „Laptop“, „USB-Stick“, „Schlüssel“. Bereits verwendete Kategorien werden vorgeschlagen – eine neue entsteht einfach durch Eintippen. Eine eigene Kategorienverwaltung gibt es nicht. |
-| Hersteller, Modell | frei |
-| **Seriennummer**, **Inventarnummer** | z. B. vom Etikett. Jede Nummer gibt es **nur einmal** (Groß-/Kleinschreibung egal) – eine schon vergebene wird abgelehnt. Beim Tippen zeigt das Formular, ob die Nummer frei ist, ähnliche vorhandene Inventarnummern und die **nächste freie** (z. B. `IT-0044` nach `IT-0043`, per Klick übernehmen). Doppelte Nummern aus älteren Versionen bleiben erhalten (mit Warnung beim Speichern), bis sie korrigiert werden. |
-| Beschreibung / Zubehör | z. B. „mit Netzteil und Tasche“ |
-| Standort, Gruppe | siehe [Standorte](#standorte) und [Rollen und Gruppen](#rollen-und-gruppen) |
-| **Anzahl** | `1` = Einzelstück. Mehr für gleichartige Dinge ohne eigene Nummer, z. B. 20 HDMI-Kabel – dann wird stückweise ausgegeben. |
-| **Foto** | Upload (JPG, PNG, WEBP, GIF); wird verkleinert und neu als JPEG gespeichert. |
-| **Vertrauliche Angaben** | siehe unten |
+| **Category** | free text, e.g. “Laptop”, “USB stick”, “Key”. Categories already in use are suggested – a new one is created simply by typing it. There is no separate category management. |
+| Manufacturer, Model | free text |
+| **Serial number**, **Inventory number** | e.g. from the label. Each number exists **only once** (case-insensitive) – a number already in use is rejected. While typing, the form shows whether the number is free, similar existing inventory numbers and the **next free** one (e.g. `IT-0044` after `IT-0043`, take it over with a click). Duplicates from older versions are kept (with a warning when saving) until corrected. |
+| Description / accessories | e.g. “with charger and bag” |
+| Location, Group | see [Locations](#locations) and [Roles and groups](#roles-and-groups) |
+| **Quantity** | `1` = single item. More for identical things without their own number, e.g. 20 HDMI cables – they are then issued piece by piece. |
+| **Photo** | upload (JPG, PNG, WEBP, GIF); resized and re-saved as JPEG. |
+| **Confidential details** | see below |
 
-**Viele gleichartige Geräte erfassen:**
-- **„Speichern & nächsten“** beim Anlegen öffnet sofort ein neues Formular mit denselben Angaben als Vorlage.
-- **„Ähnlichen anlegen“** auf der Detailseite legt einen neuen Gegenstand mit denselben Angaben an – **ohne** Inventar-/Seriennummer, Foto und vertrauliche Angaben.
+**Adding many identical devices:**
+- **“Save & next”** when adding an item immediately opens a new form with the same details as a template.
+- **“Add similar”** on the detail page creates a new item with the same details – **without** inventory/serial number, photo and confidential details.
 
-Ein Gegenstand lässt sich erst löschen, wenn er nicht mehr ausgegeben ist.
+An item can only be deleted once it is no longer issued.
 
-### Vertrauliche Angaben
+### Confidential details
 
-Für Dinge wie den **BitLocker-Wiederherstellungsschlüssel** eines Laptops, eine PIN oder ein Kennwort:
+For things like a laptop's **BitLocker recovery key**, a PIN or a password:
 
-- **Verschlüsselt gespeichert** – Schlüssel ist die `secret_key` im Datenordner (siehe [Sicherheit](#sicherheit)).
-- **Sichtbar nur für Administratoren und für Verwalter, die Mitglied der Gruppe des Gegenstands sind** – und auch dann erst nach Klick auf **„Anzeigen“**. Bei Gegenständen ohne Gruppe („Allgemein“) sehen sie nur Administratoren; ein Verwalter ohne Gruppe verwaltet zwar den ganzen Bestand, sieht aber keine vertraulichen Angaben. Tipp: Geräte mit BitLocker-Schlüssel einer Gruppe wie „IT“ zuordnen und die IT-Verwalter dort aufnehmen. Mitarbeiter sehen den Abschnitt nicht (Ausnahme: die Freigabe für die ausleihende Person, siehe unten).
-- **Das Protokoll bleibt erhalten**, auch wenn der Gegenstand oder das Konto gelöscht wird (Bezeichnung und Name werden mitgespeichert); gelöscht wird es nur über die Aufbewahrungsfrist.
-- **Jedes Anzeigen, Ändern und Löschen wird protokolliert** (wer, wann); das Protokoll steht auf der Detailseite.
-- **Nie im CSV-Export**, nicht in E-Mails.
-- **Optional für die ausleihende Person:** Mit dem Haken *„Die Person, der der Gegenstand ausgegeben ist, darf die Angaben selbst ansehen“* (pro Gegenstand, Standard aus) kann z. B. jemand den BitLocker-Schlüssel seiner Festplatte selbst nachschauen. Nur die Person, die den Gegenstand **gerade** hat, nur **nach erneuter Eingabe ihres Passworts** (bei AD-Konten gegen das AD geprüft, Fehlversuche zählen zur Anmeldesperre), und mit der Rückgabe ist es vorbei. Jeder Abruf steht als „angezeigt (Ausleiher)“ im Protokoll, ebenso das Ein- und Ausschalten. Setzen dürfen den Haken nur, wer die Angaben selbst sehen darf. Damit sich niemand den Schlüssel „erleihen“ kann, gilt die Freigabe nur für **Einzelstücke** (Anzahl 1) und nur, wenn die **Ausgabe von jemandem stammt, der die Angaben selbst sehen darf** (Administrator bzw. Verwalter der Gruppe) – nicht bei „Selbst ausleihen“ und nicht bei Ausgaben durch andere Verwalter. Wer mit Zwei-Faktor-Anmeldung sich in dieser Sitzung ohne zweiten Faktor angemeldet hat (internes Netz), muss ihn vorher bestätigen.
-- Im Bearbeiten-Formular bleibt das Feld leer – nur ausfüllen, um die Angaben **zu ersetzen**. Zum Entfernen das Häkchen **„Vertrauliche Angaben löschen“** setzen.
+- **Stored encrypted** – the key is the `secret_key` in the data folder (see [Security](#security)).
+- **Visible only to administrators and to managers who are members of the item's group** – and only after clicking **“Reveal”**. For items without a group (“General”) only administrators can see them; a manager without any group manages the whole inventory but sees no confidential details. Tip: assign devices with a BitLocker key to a group such as “IT” and add the IT managers to it. Staff members do not see the section (exception: the borrower option below).
+- **The log is kept** even if the item or the account is deleted (name and person are stored with it); it is removed only by the retention period.
+- **Every reveal, change and deletion is logged** (who, when); the log is shown on the detail page.
+- **Never in the CSV export**, never in e-mails.
+- **Optional for the borrower:** with the box *“The person this item is issued to may view the details themselves”* (per item, off by default), someone can look up e.g. the BitLocker key of their drive. Only the person who has the item **right now**, only **after re-entering their password** (checked against AD for AD accounts; failed attempts count towards the login lockout), and it ends with the return. Every view is logged as “viewed (borrower)”, as is switching the option on or off. Only people who may see the details themselves can set the box. So that nobody can “borrow” their way to a key, the option applies only to **single items** (quantity 1) and only if the **item was issued by someone who may see the details themselves** (administrator or manager of the group) – not via self-checkout and not when issued by other managers. Users with two-factor sign-in who signed in without the second factor in this session (internal network) must confirm it first.
+- In the edit form the field stays empty – only fill it in to **replace** the details. To remove them, tick **“Delete confidential details”**.
 
-> **Wichtig:** Vertrauliche Angaben sind nur mit der passenden `secret_key` lesbar. Datenbank deshalb immer **zusammen mit ihrer `secret_key`** sichern, umziehen und zurückspielen.
+> **Important:** confidential details can only be read with the matching `secret_key`. Always back up, move and restore the database **together with its `secret_key`**.
 
-## Ausgabe und Rückgabe
+## Issuing and returning
 
-- **Ausgeben** macht ein Verwalter: auf der Detailseite **„Ausgeben an …“** (Person wählen, wahlweise **Rückgabe bis** ein Datum oder **unbefristet**) oder an der [Ausgabetheke](#ausgabetheke-und-barcodescanner).
-- **Standard-Leihdauer** unter *Administration → Einstellungen*: **`0` = unbefristet (Standard)**. Mit einer Zahl > 0 bekommt jede Ausgabe automatisch dieses Rückgabedatum, sofern der Verwalter nichts anderes wählt.
-- **Unbefristete Ausgaben** (z. B. der Dienstlaptop) sind nie überfällig, bekommen keine Erinnerungen oder Mahnungen und müssen nicht verlängert werden.
-- **Befristete Ausgaben** lassen sich verlängern (Dauer und Höchstzahl der Verlängerungen einstellbar; Verwalter dürfen immer).
-- **Mitarbeiter sehen standardmäßig keinen Bestand**, nur unter **„Meine Gegenstände“**, was ihnen gerade ausgegeben ist (samt Detailseite). Ausgegeben wird über Verwalter bzw. die Ausgabetheke. Unter *Einstellungen → Bestand & Ausgabe → Sichtbarkeit des Bestands* lässt sich das umstellen: „nur eigene Gegenstände“ (Standard), „Gegenstände der eigenen Gruppen und allgemeine“ oder „gesamter Bestand“. Verwalter und Administratoren sehen den Bestand immer.
-- **Selbstausleihe** ist standardmäßig **aus**. Administratoren können Selbstausleihe, Selbstrückgabe und Selbstverlängerung einschalten; die Selbstausleihe setzt voraus, dass Mitarbeiter den Bestand sehen.
-- **Alle Ausleihen** (Verwalter) zeigt laufende, überfällige und abgeschlossene Ausgaben ihrer Gruppen.
+- **Issuing** is done by a manager: on the detail page via **“Issue to …”** (pick the person, then either **Return by** a date or **open-ended**) or at the [issue desk](#issue-desk-and-barcode-scanner).
+- **Default loan period** under *Administration → Settings*: **`0` = open-ended (the default)**. With a number > 0, every issue automatically gets that return date unless the manager chooses otherwise.
+- **Open-ended loans** (e.g. a personal work laptop) are never overdue, get no reminders or overdue notices and never need to be extended.
+- **Loans with a return date** can be extended (period and maximum number of extensions are configurable; managers can always extend).
+- **By default staff members see no inventory**, only what is currently issued to them under **“My items”** (including the item page). Items are issued by managers or at the issue desk. This can be changed under *Settings → Inventory & issuing → Inventory visibility*: “own items only” (default), “items of their own groups and general items” or “whole inventory”. Managers and administrators always see the inventory.
+- **Self-service checkout** is **off** by default. Administrators can enable self-service checkout, self-return and self-extension; self-checkout requires staff members to see the inventory.
+- **All loans** (managers) shows active, overdue and completed loans of their groups.
 
-## Ausgabetheke und Barcodescanner
+## Issue desk and barcode scanner
 
-*Ausgabetheke* (Verwalter) mit zwei Tabs:
+*Issue desk* (managers) with two tabs:
 
-- **Ausgabe:** 1. Person wählen, 2. Gegenstand per Scan oder Eingabe. Beim Tippen erscheinen passende Gegenstände, die diese Person bekommen darf (mit „x von y frei“) – ein Klick gibt aus. `#Nummer` (z. B. `#12`) ist immer die interne Nummer; sonst wird der Reihe nach nach **Inventarnummer** (genau, ohne Groß/Klein), **Seriennummer** (genau) und **Bezeichnung** (Teil davon) gesucht.
-- **Rückgabe:** Gegenstand scannen – die passende Ausgabe wird angezeigt und zurückgenommen.
-- Option **„Bei eindeutigem Treffer sofort ausgeben/zurücknehmen“** – dann reicht ein Scan pro Gegenstand. Automatisch geht das nur bei genauen Treffern (Inventar-, Seriennummer, `#Nummer`), nie bei einer Suche nach der Bezeichnung.
-- **Im Bestand suchen:** Unter der Scan-Zeile lässt sich der Bestand nach Text und Kategorie durchsuchen (standardmäßig nur verfügbare Gegenstände, die der Verwalter ausgeben darf) und direkt aus der Trefferliste ausgeben.
-- **Personen aus dem Active Directory:** Ist AD mit Dienstkonto eingerichtet, findet die Personensuche auch Mitarbeitende, die sich noch nie bei AssetLotse angemeldet haben. Gefunden wird **nur, wer sich nach den AD-Regeln anmelden dürfte** – gleiche Basis-DN, gleicher Benutzerfilter, dieselben OUs/Gruppen für Mitarbeiter, Verwalter und Administratoren. Im AD deaktivierte oder abgelaufene Konten sowie Computer- und Gruppenobjekte erscheinen nicht. **„Konto übernehmen“** prüft die Person noch einmal direkt im AD und legt das Konto an – mit den Gruppen aus dem AD, aber zunächst als **Mitarbeiter**; die eigentliche Rolle (Verwalter/Administrator) bestimmt AssetLotse erst bei der ersten eigenen Anmeldung. Ein vorhandenes **lokales** Konto gleichen Namens wird nie mit dem AD verknüpft. Voraussetzungen: Dienstkonto (Bind-DN), das `memberOf`/`tokenGroups` lesen darf. Die Suche prüft höchstens 60 Kandidaten bzw. 5 Sekunden; passt mehr, erscheint „bitte genauer suchen“. Jede Suche wird mit Verwalter und Suchtext protokolliert. Unter OpenLDAP/klassischem Samba gibt es kein Ablaufdatum – dort zählt nur, ob die Regeln passen.
+- **Issuing:** 1. pick the person, 2. scan or type the item. `#number` (e.g. `#12`) always means the internal number; otherwise the lookup goes by **inventory number** (exact, ignoring case), **serial number** (exact) and **name** (partial match).
+- **Return:** scan the item – the matching loan is shown and checked in.
+- Option **“Issue/check in immediately on a unique match”** – then one scan per item is enough. This only happens for exact matches (inventory number, serial number, `#number`), never for a name search.
+- **Search the inventory:** below the scan line you can search the inventory by text and category (by default only available items the manager may issue) and issue straight from the result list.
+- **People from Active Directory:** with AD and a service account configured, the person search also finds staff who have never signed in to AssetLotse. **Only people who would be allowed to sign in under the AD rules are found** – same base DN, same user filter, same OUs/groups for staff, managers and administrators. Accounts disabled or expired in AD as well as computer and group objects are not shown. **“Take over”** checks the person again directly in AD and creates the account – with the groups from AD but initially as a **staff member**; the actual role (manager/administrator) is determined at the person's first own sign-in. An existing **local** account with the same name is never linked to AD. Requirements: a service account (bind DN) that may read `memberOf`/`tokenGroups`. The search checks at most 60 candidates or 5 seconds; if more match, “please search more precisely” appears. Every search is logged with manager and search text. OpenLDAP/classic Samba have no expiry date – there only the rules count.
 
-**USB-/Bluetooth-Barcodescanner** (Tastatur-Emulation) funktionieren ohne Einrichtung: Feld anklicken, Etikett scannen – der Scanner tippt die Nummer und drückt Enter. Kommt kein Enter, den Scanner laut Anleitung auf „Enter/CR als Suffix“ stellen; falsche Zeichen deuten auf ein abweichendes Tastaturlayout des Scanners hin. Auf den Etiketten sollte die **Inventarnummer** (oder Seriennummer) als Barcode stehen.
+**USB/Bluetooth barcode scanners** (keyboard emulation) work without setup: click into the field, scan the label – the scanner types the number and presses Enter. If no Enter arrives, configure the scanner for “Enter/CR suffix” according to its manual; wrong characters point to a different keyboard layout on the scanner. Labels should carry the **inventory number** (or serial number) as a barcode.
 
-## Etiketten drucken
+## Printing labels
 
-Für jeden Gegenstand erzeugt AssetLotse ein **Etikett als PDF im Format 62 × 29 mm** – passend z. B. für
-**Brother QL** (QL-820NWB, QL-700 …) mit DK-11209-Etiketten oder 62-mm-Endlosband. Auf dem Etikett stehen
-Bezeichnung, Kategorie/Modell und Seriennummer, ein **Barcode (Code 128)** mit der **Inventarnummer** und darunter
-die Nummer im Klartext; klein unten rechts eine **Fußzeile**, z. B. „Firma GmbH – IT · 0123 456789“.
+For each item AssetLotse generates a **PDF label in the 62 × 29 mm format** – suitable e.g. for **Brother QL**
+printers (QL-820NWB, QL-700 …) with DK-11209 labels or 62 mm continuous tape. The label shows the name,
+category/model and serial number, a **barcode (Code 128)** containing the **inventory number**, the number in plain
+text below it and, in small print at the bottom right, a **footer** such as “Company Ltd – IT · 0123 456789”.
 
-- **Fußzeile:** einmal für alle unter *Einstellungen → Bestand & Ausgabe → Etiketten* festlegen (höchstens 80 Zeichen,
-  leer = keine). Der Druckdialog ist damit vorausgefüllt; eine Änderung dort gilt nur für diesen Druck. Ist nichts
-  eingestellt, steht wie bisher der Name der Einrichtung dort.
-- **Einzeln:** Detailseite → **Etikett** – Fußzeile und Anzahl (bis 50 gleiche) wählen → **PDF erstellen**.
-- **Viele auf einmal:** Im **Bestand** filtern (z. B. Kategorie „Laptop“) → **Etiketten** – ein PDF mit einer Seite je
-  Gegenstand, auf Wunsch bis zu 10 je Gegenstand (höchstens 500 Etiketten).
-- Ohne Inventarnummer – oder wenn sie Umlaute enthält – codiert der Barcode `#<interne Nummer>`. Die Ausgabetheke
-  findet beides.
-- **Drucken:** Im Druckdialog die Etikettengröße 62 × 29 mm wählen und **„Tatsächliche Größe“ / 100 %** einstellen
-  (nicht „an Seite anpassen“). Bei Endlosband im Brother-Treiber die Länge 29 mm einstellen.
-- Für Laptops und andere viel genutzte Geräte halten **Kunststoff-Etiketten** (z. B. Brother DK-22113 Film oder
-  Zebra-Polyester) deutlich länger als Papier.
+- **Footer:** set it once for everyone under *Settings → Inventory & issuing → Labels* (80 characters at most, empty =
+  none). It prefills the print dialog; a change there applies to that print only. If nothing is set, the name of your
+  organisation is printed as before.
+- **Single label:** item page → **Label** – choose footer and number (up to 50 identical ones) → **Create PDF**.
+- **Many at once:** filter the **Inventory** (e.g. category “Laptop”) → **Labels** – one PDF with one page per item,
+  optionally up to 10 per item (500 labels at most).
+- Without an inventory number – or if it contains non-ASCII characters such as umlauts – the barcode contains
+  `#<internal number>`. The issue desk finds both.
+- **Printing:** choose the 62 × 29 mm label size in the print dialog and set **“Actual size” / 100 %** (not “fit to
+  page”). For continuous tape set a length of 29 mm in the Brother driver.
+- For laptops and other heavily used devices, **plastic labels** (e.g. Brother DK-22113 film or Zebra polyester)
+  last much longer than paper.
 
-## CSV-Export
+## CSV export
 
-Unter *Bestand* können Verwalter den Bestand ihrer Gruppen als **CSV** herunterladen (Semikolon, UTF-8 – öffnet direkt in Excel). Spalten: ID, Bezeichnung, Kategorie, Hersteller, Modell, Seriennummer, Inventarnummer, Standort, Gruppe, Anzahl, Verfügbar, **Ausgegeben an**. **Vertrauliche Angaben werden nie exportiert.** Zellen, die mit `=`, `+`, `-` oder `@` beginnen, werden markiert, damit Excel sie nicht als Formel ausführt.
+Under *Inventory*, managers can download the inventory of their groups as **CSV** (semicolon, UTF-8 – opens directly in Excel). Columns: ID, name, category, manufacturer, model, serial number, inventory number, location, group, quantity, available, **issued to**. **Confidential details are never exported.** Cells starting with `=`, `+`, `-` or `@` are marked so Excel does not run them as formulas.
 
 ---
 
-## Sprache und Hilfe
+## Language and help
 
-**Deutsch und Englisch.** Oben rechts (und auf der Anmeldeseite) schaltet jeder mit **DE / EN** um. Angemeldet wird die Wahl im Profil gespeichert – sie gilt dann auf allen Geräten und für die E-Mails an diese Person. Ohne eigene Wahl gilt die **Standardsprache** aus *Einstellungen → Allgemein* (Standard: Deutsch) – die Sprache des Browsers zählt nicht. Im Profil sieht jede Person, welche Sprache gespeichert ist, und kann zu „Standard der Einrichtung“ zurückkehren; die Einstellungen zeigen, wie viele Konten eine eigene Sprache gewählt haben. Datumsangaben folgen der Sprache (20.10.2026 / 20 Oct 2026). Eingaben wie Bezeichnungen, Kategorien, Gruppen- und Standortnamen bleiben, wie sie erfasst wurden.
+**German and English.** Everyone switches with **DE / EN** at the top right (also on the sign-in page). When signed in, the choice is saved in the profile – it then applies on every device and to the e-mails sent to that person. Without a choice, the **default language** from *Settings → General* applies (default: German) – the browser language does not count. The profile shows which language is saved, with “Default of the installation” to go back; the settings show how many accounts have chosen their own language. Dates follow the language (20.10.2026 / 20 Oct 2026). Data such as item names, categories, group and location names stay as entered.
 
-**Hilfe im Programm** (*Hilfe* in der Seitenleiste oder **?** oben rechts):
-- Jeder sieht nur die Themen seiner Rolle – Mitarbeiter 7 („Für alle“), Verwalter zusätzlich 6 („Verwaltung“), Administratoren alle 24 (zusätzlich 11 unter „Administration“).
-- Das **?** springt direkt zum Abschnitt der aktuellen Seite (z. B. von der Ausgabetheke zur Hilfe für die Theke).
-- Die Texte richten sich nach Ihren Einstellungen: Leihdauer, Verlängerungen, Selbstausleihe, E-Mail-Erinnerungen, Registrierung, Zwei-Faktor-Pflicht, AD-Konto oder lokales Konto …
-- Suchfeld über alle Themen.
+**Built-in help** (*Help* in the sidebar or **?** at the top right):
+- Everyone sees only the topics for their role – staff members 7 (“For everyone”), managers 6 more (“Management”), administrators all 24 (11 more under “Administration”).
+- The **?** jumps straight to the section for the current page (e.g. from the issue desk to the desk help).
+- The texts follow your settings: loan period, extensions, self-service checkout, e-mail reminders, registration, mandatory 2FA, AD or local account …
+- A search box covers all topics.
 
-**Neuigkeiten:** Gibt es nach einem Update etwas Neues, erscheint unten links neben der Versionsnummer ein kleiner Punkt. Er führt zu *Neuigkeiten*: kurze Hinweise zu neuen Funktionen, Sicherheitsupdates und Korrekturen – jede Person sieht nur, was ihre Rolle betrifft (Mitarbeiter, Verwalter, Administratoren). Nach dem Lesen verschwindet der Punkt bis zum nächsten Update. Die Einträge stehen in `assetlotse/news.json` (Deutsch und Englisch) und kommen mit jeder Version mit.
+**What's new:** if there is something new after an update, a small dot appears next to the version number at the bottom left. It leads to *What's new*: short notes on new features, security updates and fixes – everyone only sees what concerns their role (staff, managers, administrators). After reading, the dot disappears until the next update. The entries live in `assetlotse/news.json` (German and English) and ship with every version.
 
-**Handbuch als PDF:** `docs/Handbuch-AssetLotse.pdf` (Deutsch) und `docs/Manual-AssetLotse.pdf` (Englisch, mit Bildschirmfotos der englischen Oberfläche) – für Mitarbeitende, Verwalter und Administratoren, mit Fehlerbehebung und Notfallbefehlen. Die Hilfe im Programm verlinkt oben das Handbuch in der Sprache der Oberfläche (*Handbuch (PDF)*). Text, Bildschirmfotos und Bau-Skripte liegen in `docs/manual/` (siehe `docs/README.md`).
+**PDF manual:** `docs/Manual-AssetLotse.pdf` (English, with screenshots of the English interface) and `docs/Handbuch-AssetLotse.pdf` (German) – for staff, managers and administrators, including troubleshooting and emergency commands. The in-app help links the manual in the language of the interface at the top (*Manual (PDF)*). Text, screenshots and build scripts are in `docs/manual/` (see `docs/README.md`).
 
-**Übersetzungen pflegen:** Der englische Text ist zugleich der Schlüssel (`_("…")` in Templates und Python, `T("…")` in `app.js`; gleiches englisches Wort mit verschiedener deutscher Bedeutung: `_p("Kontext", "…")`); die deutschen Texte stehen in `assetlotse/translations/de.json`. Der Test `tests/test_i18n.py` meldet jeden Text ohne Übersetzung und deutsche Reste auf englischen Seiten. Code, Kommentare, Protokollmeldungen, CHANGELOG und Commit-Nachrichten sind englisch. Die Hilfetexte liegen je Sprache in `assetlotse/templates/help/de|en/`.
+**Maintaining translations:** The English text is also the key (`_("…")` in templates and Python, `T("…")` in `app.js`; the same English word with different German meanings: `_p("context", "…")`); the German texts live in `assetlotse/translations/de.json`. The test `tests/test_i18n.py` reports every text without a translation and German leftovers on English pages. Code, comments, log messages, the CHANGELOG and commit messages are in English. Help texts are stored per language in `assetlotse/templates/help/de|en/`.
 
-## Standorte
+## Locations
 
-*Verwaltung → Standorte* (Verwalter und Administratoren). Hier legen Sie Räume, Schränke oder Regale einmal fest – auch mehrere auf einmal, einer pro Zeile. Sobald es mindestens einen gibt, wird der Standort beim **Anlegen und Bearbeiten aus einer Liste gewählt** statt getippt. Groß-/Kleinschreibung und doppelte Leerzeichen werden dabei angeglichen.
+*Management → Locations* (managers and administrators). Define your rooms, cupboards or shelves once – several at a time, one per line. As soon as at least one exists, the location is **picked from a list when adding and editing items** instead of being typed. Upper/lower case and double spaces are normalised.
 
-- **Umbenennen** ändert den Standort bei allen betroffenen Gegenständen mit. **Löschen** geht erst, wenn dort kein Gegenstand mehr steht.
-- **Früher frei getippte Standorte** erscheinen unter *Im Bestand, aber nicht festgelegt*. Ihr könnt sie als Standort übernehmen oder durch einen festgelegten ersetzen – die Gegenstände werden mit umgestellt. Bei anderer Schreibweise („raum 2.14“) oder einem Tippfehler („Rau 2.14“) ist der passende Standort schon vorausgewählt.
-- Gruppen-Verwalter können Standorte anlegen; Umbenennen und Ersetzen, das Gegenstände anderer Gruppen betrifft, bleibt Administratoren und Verwaltern des gesamten Bestands vorbehalten.
-- Im **Bestand** lässt sich nach Standort filtern.
-- Ohne festgelegte Standorte bleibt das Feld ein freies Textfeld.
+- **Renaming** updates all affected items. **Deleting** is only possible once no item is located there.
+- **Locations typed freely earlier** appear under *In stock, but not defined*. Adopt them as a location or replace them with a defined one – the items are updated too. For a different spelling (“room 2.14”) or a typo (“rom 2.14”) the matching location is preselected.
+- Group managers can add locations; renaming and replacing that affects items of other groups is reserved for administrators and managers of the entire inventory.
+- The **inventory** can be filtered by location.
+- Without defined locations the field stays a free text field.
 
-## Rollen und Gruppen
+## Roles and groups
 
-| Rolle | Darf |
+| Role | Can |
 |---|---|
-| **Mitarbeiter** | „Meine Gegenstände“ (standardmäßig nur diese, kein Bestand); je nach Einstellung den Bestand ansehen und bei eingeschalteter Selbstausleihe selbst ausleihen, verlängern, zurückgeben |
-| **Verwalter** | Gegenstände anlegen/bearbeiten/löschen, ausgeben, zurücknehmen, Ausgabetheke, vertrauliche Angaben, Export – für die Gegenstände **seiner Gruppen** und allgemeine Gegenstände. Den **gesamten** Bestand verwaltet ein Verwalter nur mit dem Haken *Verwaltet den gesamten Bestand* im Benutzerkonto – nie nebenbei, z. B. weil ihm das AD alle Gruppen nimmt (beim Update auf 1.12.0 bekamen bisherige Verwalter ohne Gruppe den Haken automatisch). |
-| **Administrator** | Alles, dazu Benutzer, Gruppen, Einstellungen und Active Directory |
+| **Staff member** | “My items” (by default only these, no inventory); depending on the setting view the inventory and, with self-service checkout enabled, check out, extend and return items |
+| **Manager** | Add/edit/delete items, issue, check in, use the issue desk, confidential details, export – for the items of **their groups** and general items. A manager manages the **entire** inventory only with *Manages the entire inventory* ticked in the user account – never as a side effect, e.g. because AD removed all their groups (on the update to 1.12.0, existing managers without a group got the box ticked automatically). |
+| **Administrator** | Everything, plus users, groups, settings and Active Directory |
 
-**Gruppen** sind z. B. Abteilungen oder Arbeitsgruppen. Jeder Gegenstand gehört entweder zu einer Gruppe oder ist **allgemein**. Allgemeine Gegenstände kann jeder bekommen, Gruppengegenstände nur Mitglieder der Gruppe. Unter *Einstellungen → Bestand & Ausgabe → Sichtbarkeit des Bestands* legen Sie fest, ob Mitarbeiter nur ihre eigenen Gegenstände sehen (Standard), die Gegenstände ihrer Gruppen und allgemeine oder den ganzen Bestand (die Ausgabe bleibt trotzdem beschränkt).
+**Groups** are e.g. departments or teams. Every item either belongs to a group or is **general**. General items can be issued to everyone, group items only to members of that group. Under *Settings → Inventory & issuing → Inventory visibility* you decide whether staff members see only their own items (default), their groups' items and general items, or the whole inventory (issuing stays restricted either way).
 
 ---
 
-## Active Directory einrichten
+## Setting up Active Directory
 
-*Administration → Active Directory.* Für Windows AD, Samba AD und OpenLDAP gibt es Vorlagen-Buttons.
+*Administration → Active Directory.* Preset buttons are available for Windows AD, Samba AD and OpenLDAP.
 
-1. **Server**: `ldaps://dc1.institut.local` (mehrere DCs mit Komma trennen).
-2. **Basis-DN**: `DC=institut,DC=local`
-3. **Dienstkonto** (nur Leserechte nötig), z. B. `CN=svc-assetlotse,OU=Dienstkonten,DC=institut,DC=local` oder `svc-assetlotse@institut.local`.
-   Alternativ ohne Dienstkonto: Feld leer lassen und **UPN-Suffix** (`institut.local`) eintragen – dann meldet sich jeder Benutzer direkt an.
-4. **Rollen über AD-Gruppen** – pro Rolle die Namen der AD-Gruppen eintragen, eine pro Zeile:
+1. **Server**: `ldaps://dc1.institute.local` (separate multiple DCs with commas).
+2. **Base DN**: `DC=institute,DC=local`
+3. **Service account** (read access is sufficient), e.g. `CN=svc-assetlotse,OU=ServiceAccounts,DC=institute,DC=local` or `svc-assetlotse@institute.local`.
+   Without a service account: leave the field empty and enter a **UPN suffix** (`institute.local`) – every user then binds directly.
+4. **Roles via AD groups** – enter the names of the AD groups for each role, one per line:
 
    ```
-   Administratoren:  IT-Admins
-   Verwalter:        AssetLotse-Verwalter
-   Mitarbeiter:      Domänen-Benutzer
+   Administrators:  IT-Admins
+   Managers:        AssetLotse-Managers
+   Staff members:   Domain Users
    ```
 
-   Mit **„Gruppen laden“** zeigt AssetLotse die Gruppen aus dem AD an; ein Klick auf die Rolle übernimmt sie. Mitglieder verschachtelter Gruppen zählen mit. Die höchste passende Rolle gewinnt, wer in keiner Gruppe ist, wird abgewiesen. Rollen von AD-Benutzern werden bei jeder Anmeldung neu bestimmt – Änderungen im AD wirken also beim nächsten Login.
+   **“Load groups”** lists the groups from your AD; clicking a role adds them to it. Members of nested groups count as well. The highest matching role wins; anyone not in any of the groups is rejected. Roles of AD users are re-evaluated on every sign-in, so changes in AD take effect at the next login.
 
-   Statt des Namens geht auch der vollständige DN einer Gruppe (falls ein Name mehrfach vorkommt) oder eine OU (`OU=Mitarbeiter,DC=institut,DC=local` – dann zählen alle Benutzer darunter).
-5. **Login testen** zeigt DN, alle Gruppen und die Rolle, die der Benutzer bekäme – ohne vorher speichern zu müssen.
-6. **Gruppen automatisch zuordnen**: Bei einer Gruppe (Administration → Gruppen) den Namen einer AD-Gruppe eintragen, z. B. `Abt-Physik`. Mitglieder werden beim Login automatisch hinzugefügt bzw. entfernt. Manuell zugeordnete Gruppen ohne AD-Verknüpfung bleiben unangetastet.
+   Instead of a name you can also use the full DN of a group (if a name exists more than once) or an OU (`OU=Staff,DC=institute,DC=local` – then every user below it matches).
+5. **“Test login”** shows the DN, all groups (with their origin: direct, primary or nested) and the role the user would get – without saving first.
+6. **Map groups automatically**: for a group (*Administration → Groups*), enter the name of an AD group, e.g. `Dept-Physics`. Members are added or removed automatically at sign-in. Manually assigned groups without an AD link stay untouched.
 
-**Gruppenauflösung:** direkte Mitgliedschaften, die **primäre Gruppe** (z. B. *Domänen-Benutzer*, die das AD nicht in `memberOf` aufführt) und **verschachtelte Gruppen** – über `LDAP_MATCHING_RULE_IN_CHAIN` und `tokenGroups`, sodass es auch funktioniert, wenn eines von beiden nicht verfügbar ist.
+**Group resolution** covers direct memberships, the **primary group** (e.g. *Domain Users*, which AD does not list in `memberOf`) and **nested groups** – via `LDAP_MATCHING_RULE_IN_CHAIN` and `tokenGroups`, so it keeps working if one of the two is unavailable. Groups are searched from the domain root, also outside the user OU.
 
-**Verschlüsselung:** Windows-DCs (LDAP-Signing) und Samba (`ldap server require strong auth = yes`, Standard) lehnen einfache Anmeldungen über unverschlüsseltes LDAP häufig ab. Nutzen Sie daher **LDAPS** (Port 636) oder **StartTLS**.
+**Encryption:** Windows DCs (LDAP signing) and Samba (`ldap server require strong auth = yes`, the default) often reject simple binds over unencrypted LDAP. Use **LDAPS** (port 636) or **StartTLS**.
 
-**Zertifikat automatisch holen:** Unter *TLS-Zertifikat* auf **„Zertifikat vom DC abrufen“** klicken. AssetLotse liest die Zertifikate aller eingetragenen DCs aus und ergänzt die Stamm-CA automatisch – über die AIA-Adresse im Zertifikat (AD-Zertifikatsdienste) oder aus dem AD selbst (*Public Key Services*, mit Dienstkonto). Angezeigt werden Inhaber, Aussteller, Gültigkeit und SHA-256-Fingerabdruck; mit **„Vertrauen & speichern“** wird es übernommen. Gespeichert wird bevorzugt die Stamm-CA, damit die Verbindung auch nach einer Erneuerung des DC-Zertifikats weiter funktioniert. Wird keine Stamm-CA gefunden (z. B. bei Samba mit selbst erzeugtem Zertifikat), wird das Server-Zertifikat selbst vertraut – nach einer Erneuerung dann einfach erneut abrufen.
+**Fetch the certificate automatically:** under *TLS certificate*, click **“Fetch certificate from DC”**. AssetLotse reads the certificates of all configured DCs and adds the root CA automatically – via the AIA URL in the certificate (AD Certificate Services) or from AD itself (*Public Key Services*, requires the service account). Subject, issuer, validity and SHA-256 fingerprint are displayed; **“Trust & save”** stores them. The root CA is preferred so that the connection keeps working after the DC certificate is renewed. If no root CA can be found (e.g. Samba with a self-generated certificate), the server certificate itself is trusted – fetch it again after a renewal.
 
-Den Fingerabdruck können Sie zur Sicherheit auf dem DC vergleichen, z. B. Windows: `certutil -store My`, Samba: `openssl x509 -in /var/lib/samba/private/tls/cert.pem -noout -fingerprint -sha256`.
+To be safe, compare the fingerprint on the DC, e.g. Windows: `certutil -store My`, Samba: `openssl x509 -in /var/lib/samba/private/tls/cert.pem -noout -fingerprint -sha256`.
 
-Als Server am besten den **DNS-Namen** des DCs eintragen (so wie er im Zertifikat steht). Sprechen Sie den DC per IP-Adresse an, schalten Sie „Hostname prüfen“ ab.
+Use the DC's **DNS name** as server (as it appears in the certificate). If you address the DC by IP, disable “Check hostname”.
 
-Dienstkonto in Samba anlegen:
+Create a service account in Samba:
 
 ```bash
-samba-tool user create svc-assetlotse --random-password   # Passwort danach setzen:
+samba-tool user create svc-assetlotse --random-password   # then set a password:
 samba-tool user setpassword svc-assetlotse
 samba-tool user setexpiry svc-assetlotse --noexpiry
 ```
 
-Lokale Konten haben immer Vorrang. Das lokale Admin-Konto funktioniert daher auch, wenn das AD nicht erreichbar ist.
+Local accounts always take precedence, so the local admin account works even when AD is unreachable.
 
-### Abgleich im Hintergrund (mit Dienstkonto)
+### Background synchronisation (with service account)
 
-Unter *Abgleich im Hintergrund* (Standard: an, **stündlich**; wählbar 1, 2, 4, 8 Stunden oder täglich) liest AssetLotse regelmäßig alle Personen, die sich nach den Regeln anmelden dürften – mit zwei großen Abfragen (alle Gruppen, alle Personen) statt einer Abfrage pro Person, also auch bei einigen tausend Konten in Sekunden:
+Under *Background synchronisation* (default: on, **hourly**; 1, 2, 4, 8 hours or daily) AssetLotse regularly reads everyone who may sign in under the rules – with two large queries (all groups, all people) instead of one query per person, so even a few thousand accounts take seconds:
 
-- **Personen ohne AssetLotse-Konto** werden mit Benutzername, Name und E-Mail zwischengespeichert. Die Ausgabetheke findet sie dadurch **sofort** – schon beim Tippen. Nur wenn der Zwischenspeicher niemanden findet, wird zusätzlich live im AD gesucht. „Konto übernehmen“ prüft die Person immer noch einmal direkt im AD.
-- **Vorhandene AD-Konten** werden aktualisiert – auch von Personen, die sich lange nicht angemeldet haben: **Name** und **E-Mail** (z. B. nach einer Heirat), die **AssetLotse-Gruppen** (bei „Gruppen automatisch zuordnen“, wichtig für die Frage, wer welches Gerät bekommen darf) und **Umbenennungen** im AD (anderer Benutzername – erkannt an der festen AD-Kennung *objectGUID*, Ausleihen und Verlauf bleiben am Konto). Die **Rolle** wird nur bei Konten nachgezogen, die sich schon einmal selbst angemeldet haben; an der Theke übernommene Konten bleiben bis dahin Mitarbeiter.
-- **Im AD deaktiviert, abgelaufen, gelöscht oder nicht mehr berechtigt:** Die Person fliegt aus dem Zwischenspeicher, ihr AssetLotse-Konto wird **deaktiviert** und abgemeldet (Ausleihen bleiben sichtbar). Ist die Person später wieder berechtigt, wird das Konto **automatisch wieder aktiv** – beim nächsten Abgleich oder sofort bei ihrer nächsten Anmeldung; aber nur, wenn der Abgleich es deaktiviert hatte. Von Hand gesperrte Konten bleiben gesperrt. Hat sich jemand nach einer Umbenennung im AD schon mit dem neuen Namen angemeldet, erkennt AssetLotse das Konto an der objectGUID – es entsteht kein zweites Konto. Wird ein Benutzername im AD an eine **andere** Person neu vergeben, bekommt sie nicht das alte Konto samt Verlauf (Anmeldung abgelehnt, Hinweis im Protokoll – altes Konto umbenennen).
-- **Schutz der Administratoren:** AD-Administratoren werden **nie automatisch** deaktiviert (immer erst nach Bestätigung). Rollen werden nicht herabgestuft, wenn danach kein aktiver Administrator bliebe oder viele Konten auf einmal Rechte verlören (z. B. vertippte Admin-Regel) – stattdessen eine Warnung. Wer mit einem AD-Konto angemeldet ist, kann keine AD-Einstellungen speichern, nach denen er selbst kein Administrator mehr wäre, und das AD nicht abschalten.
-- **Altkonten ohne AD-Kennung** (vor 1.6 angelegt, beim ersten Abgleich schon nicht mehr im AD) werden nie automatisch wieder aktiv – ob dieselbe Person zurückkommt oder ihr Name neu vergeben wurde, entscheidet ein Administrator (Konto von Hand aktivieren bzw. umbenennen). Auch AD-Konten lassen sich dafür unter *Benutzer* umbenennen, z. B. in `anna-alt`.
-- **Erst bestätigen:** Bis zur ersten Bestätigung (z. B. direkt nach dem Update) und wenn auf einmal **mehr als 20 %** (ab 2 Konten) bzw. **alle** AD-Konten betroffen wären oder danach **kein aktiver Administrator** bliebe, wird niemand automatisch deaktiviert. Die AD-Seite zeigt dann die betroffenen Benutzernamen mit dem Knopf **„Diese Konten deaktivieren“** – das eigene Konto und der letzte Administrator bleiben dabei immer aktiv. Ist die Liste aus dem AD unvollständig (Größenlimit des Servers), wird gar nichts gelöscht oder deaktiviert; bricht das Lesen der Gruppen ab, läuft der Abgleich gar nicht (sonst wären Rollen falsch). Schlägt ein Abgleich fehl, bleibt der alte Stand; neuer Versuch nach 15 Minuten.
-- Status (letzter Abgleich, Zahlen, Fehler) und **„Jetzt abgleichen“** stehen auf der AD-Seite. Ausschalten löscht den Zwischenspeicher.
+- **People without an AssetLotse account** are cached with username, name and email. The issue desk finds them **instantly** – as you type. Only if the cache finds nobody is AD searched live as well. “Take over” always checks the person directly in AD again.
+- **Existing AD accounts** are updated – including people who have not signed in for a long time: **name** and **email** (e.g. after marriage), the **AssetLotse groups** (with “Assign groups automatically” – this decides who may receive which item) and **renames** in AD (different username – recognised by the fixed AD identifier *objectGUID*; loans and history stay with the account). The **role** is only updated for accounts that have signed in themselves before; accounts taken over at the desk stay staff members until then.
+- **Disabled, expired, deleted or no longer authorised in AD:** the person is removed from the cache, their AssetLotse account is **deactivated** and signed out (loans remain visible). If the person is authorised again later, the account is **reactivated automatically** – at the next run or immediately at their next sign-in; but only if the synchronisation deactivated it. Accounts locked by hand stay locked. If someone already signed in with a new name after a rename in AD, AssetLotse recognises the account by its objectGUID – no second account is created. If a username is reassigned in AD to a **different** person, they do not get the old account and its history (sign-in refused, note in the log – rename the old account).
+- **Protecting administrators:** AD administrators are **never deactivated automatically** (always only after confirmation). Roles are not downgraded if no active administrator would remain or many accounts would lose rights at once (e.g. a mistyped admin rule) – a warning is shown instead. Anyone signed in with an AD account cannot save AD settings under which they would no longer be an administrator, and cannot switch AD off.
+- **Old accounts without an AD identifier** (created before 1.6 and already gone from AD at the first run) are never reactivated automatically – an administrator decides whether the same person returned or the name was reassigned (activate or rename the account by hand). AD accounts can be renamed under *Users* for this, e.g. to `anna-old`.
+- **Confirm first:** until the first confirmation (e.g. right after the update) and whenever **more than 20 %** (2 accounts or more) or **all** AD accounts would be affected at once, or **no active administrator** would remain, nobody is deactivated automatically. The AD page then lists the affected usernames with the button **“Deactivate these accounts”** – your own account and the last administrator always stay active. If the list from AD is incomplete (server size limit), nothing is deleted or deactivated; if reading the groups is aborted, the run does not happen at all (roles would be wrong otherwise). If a run fails, the old state is kept; next attempt after 15 minutes.
+- Status (last run, numbers, errors) and **“Synchronise now”** are on the AD page. Switching off deletes the cache.
 
-**Datenschutz:** Zwischengespeichert werden Benutzername, Name und E-Mail aller berechtigten Personen, auch wenn sie AssetLotse nie benutzen – bitte in die Datenschutzdokumentation aufnehmen (oder den Abgleich ausschalten).
+**Privacy:** username, name and email of all authorised people are cached, even if they never use AssetLotse – please include this in your data protection documentation (or switch the synchronisation off).
 
 ---
 
-## Selbstregistrierung
+## Self-registration
 
-Standardmäßig **aus**. Unter *Administration → Einstellungen → Konten → Selbstregistrierung*:
+**Off** by default. Under *Administration → Settings → Accounts → Self-registration*:
 
-| Einstellung | Wirkung |
+| Setting | Effect |
 |---|---|
-| **aus** | Kein Registrierungslink, `/registrieren` existiert nicht. |
-| **Freigabe durch Administrator** | Konto wird angelegt, ist aber gesperrt, bis ein Admin es freigibt (*Benutzer → Warten auf Freigabe → Freigeben/Ablehnen*). |
-| **sofort aktiv** | Konto ist direkt nutzbar. |
+| **off** | No registration link; `/registrieren` does not exist. |
+| **admin approval** | The account is created but locked until an admin approves it (*Users → Awaiting approval → Approve/Reject*). |
+| **immediately active** | The account can be used right away. |
 
-Optionen: **E-Mail-Adresse bestätigen** (Link, 48 h gültig – nur mit eingerichtetem E-Mail-Versand und eingetragener *Adresse von AssetLotse*; die Links werden nie aus der Anfrage eines Besuchers gebaut. Schaltet ein Admin die Registrierung ein und die Adresse fehlt, übernimmt AssetLotse die Adresse, unter der er die Seite gerade aufruft), **Admins benachrichtigen**, **erlaubte E-Mail-Domains** (z. B. `institut.de`), **Gruppe für neue Konten**. Ist unter *Rechtliches* eine Datenschutzerklärung hinterlegt, muss sie bei der Registrierung bestätigt werden.
+Options: **verify e-mail address** (link valid for 48 h – only with e-mail sending configured and the *address of AssetLotse* filled in; links are never built from a visitor's request. If an admin switches registration on while the address is empty, AssetLotse takes the address the admin is using right now), **notify admins**, **allowed e-mail domains** (e.g. `institute.org`), **group for new accounts**. If a privacy policy is set under *Legal*, it must be accepted when registering.
 
-Neue Konten sind immer **Mitarbeiter**. Schutz für den Betrieb im Internet: unsichtbares Bot-Feld, Mindest-Ausfüllzeit, max. 5 Registrierungen und 30 Versuche pro Stunde und IP (bremst das Abfragen vorhandener Namen und Adressen), reservierte Namen (admin, root …), Benutzernamen aus dem Active Directory sind gesperrt, Passwort mind. 10 Zeichen. Nicht bestätigte Konten werden nach 7 Tagen automatisch gelöscht.
+New accounts are always **staff members**. Protection for internet-facing installations: invisible honeypot field, minimum fill-in time, max. 5 registrations and 30 attempts per hour and IP (slows down probing for existing names and addresses), reserved names (admin, root …), usernames that exist in Active Directory are blocked, passwords of at least 10 characters. Unverified accounts are deleted automatically after 7 days.
 
-## Erscheinungsbild (Corporate Design)
+## Branding (corporate design)
 
-*Administration → Erscheinungsbild.* Alle Änderungen sind sofort in einer Vorschau zu sehen; „Anmeldeseite ansehen“ zeigt das Ergebnis so, wie Besucher es sehen.
+*Administration → Branding.* All changes appear immediately in a live preview; “View login page” shows the result as visitors see it.
 
-- **Logo** (PNG mit transparentem Hintergrund oder SVG) – in Seitenleiste, Anmeldeseite, E-Mails und als Browser-Symbol (Favicon wird automatisch erzeugt). Optionen: Namen daneben ein/aus, Logo auf hellem Feld (für dunkle Logos).
-- **Hintergrundbild der Anmeldeseite** – wird automatisch verkleinert; Metadaten wie GPS-Position werden entfernt. Abdunkelung per Schieberegler, Regal-Grafik ein/aus.
-- **Farben** – Hauptfarbe (Knöpfe, Links), Akzentfarbe, Seitenleiste. Schriftfarben werden automatisch lesbar gewählt, auch im Dunkelmodus. E-Mails übernehmen Farben und Logo.
-- **Texte** – Name (Standard „AssetLotse“, z. B. durch den Namen des Instituts ersetzen), kleine Überschrift und Begrüßungstext der Anmeldeseite.
+- **Logo** (PNG with transparent background or SVG) – in the sidebar, on the login page, in e-mails and as browser icon (the favicon is generated automatically). Options: show the name next to it or not, place the logo on a light plate (for dark logos).
+- **Login background image** – resized automatically; metadata such as GPS location is removed. Darkening via slider, shelf graphic on/off.
+- **Colours** – primary colour (buttons, links), accent colour, sidebar. Text colours are chosen automatically for readability, including dark mode. E-mails use the colours and logo too.
+- **Texts** – name (default “AssetLotse”, e.g. replace it with your institute's name), small heading and welcome text on the login page.
 
-„Alles zurücksetzen“ stellt den Auslieferungszustand wieder her. Die Dateien liegen in `./data/branding` und bleiben bei Updates erhalten. SVG-Logos mit Skripten oder externen Verweisen werden aus Sicherheitsgründen abgelehnt. Logo und Hintergrund sind öffentlich abrufbar (sie werden auf der Anmeldeseite gebraucht) – nichts Vertrauliches verwenden.
+“Reset all” restores the defaults. Files are stored in `./data/branding` and survive updates. SVG logos containing scripts or external references are rejected for security reasons. Logo and background are publicly reachable (they are needed on the login page) – don't use anything confidential.
 
-## Zwei-Faktor-Anmeldung
+## Two-factor authentication
 
-Jeder Benutzer richtet sie unter **Profil → Sicherheit** (oder im Benutzermenü → *Sicherheit*) ein:
+Every user sets it up under **Profile → Security** (also reachable from the user menu):
 
-- **Authenticator-App (TOTP):** QR-Code scannen, Code bestätigen. Geht mit Microsoft/Google Authenticator, Aegis, 2FAS, Bitwarden, Yubico Authenticator … – und überall, auch per `http://IP:9343` im LAN.
-- **Sicherheitsschlüssel (WebAuthn/FIDO2):** YubiKey einstecken, berühren – fertig (als zweiter Faktor nach dem Passwort). Erfordert **HTTPS** und ist an die Adresse gebunden, unter der der Schlüssel registriert wurde (z. B. `assets.institut.de`). Mehrere Schlüssel pro Konto sind möglich – am besten einen Ersatzschlüssel registrieren.
-- **Wiederherstellungscodes:** Beim Einrichten werden 10 Einmal-Codes angezeigt (nur einmal!). Damit kommt man ohne Handy/Schlüssel noch herein.
+- **Authenticator app (TOTP):** scan the QR code, confirm with a code. Works with Microsoft/Google Authenticator, Aegis, 2FAS, Bitwarden, Yubico Authenticator … – and everywhere, including `http://IP:9343` on the LAN.
+- **Security key (WebAuthn/FIDO2):** insert the YubiKey, touch it – done (as the second factor after the password). Requires **HTTPS** and is bound to the address under which the key was registered (e.g. `assets.institute.org`). Several keys per account are possible – registering a spare key is a good idea.
+- **Recovery codes:** 10 one-time codes are shown once during setup. They let you in without phone or key.
 
-Unter **Administration → Einstellungen** legen Sie fest, für wen 2FA bei **Zugriff von außen Pflicht** ist (niemand – Standard, Administratoren, Verwalter + Admins, alle). Betroffene werden nach der nächsten Anmeldung zur Einrichtung geführt und können erst danach weiterarbeiten. Wer vertrauliche Angaben (BitLocker-Schlüssel) hinterlegt, sollte 2FA mindestens für Verwalter + Admins verlangen.
+Under **Administration → Settings** you decide for whom 2FA is **mandatory for access from outside** (nobody – the default, administrators, managers + admins, everyone). Affected users are guided through the setup at their next sign-in and can only continue afterwards. If you store confidential details (BitLocker keys), require 2FA at least for managers + admins.
 
-**Internes Netz anders behandeln** (*Im internen Netz*):
+**Treat the internal network differently** (*On the internal network*):
 
-| Einstellung | Wirkung im LAN |
+| Setting | Effect on the LAN |
 |---|---|
-| wie von außen (Standard) | gleiche Regeln wie aus dem Internet |
-| keine Pflicht | niemand muss 2FA einrichten; wer sie eingerichtet hat, wird trotzdem gefragt |
-| keine Zwei-Faktor-Abfrage | im LAN reicht das Passwort |
+| same as outside (default) | same rules as from the internet |
+| not mandatory | nobody has to set up 2FA; users who have it are still asked |
+| no 2FA prompt | the password is enough on the LAN |
 
-- **Was „intern“ ist**, legen Sie unter *Internes Netz* fest (ein Netz pro Zeile, z. B. `192.168.10.0/24`). Leer bedeutet `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` – **ohne** Loopback (darüber kommen Tunnel und Weiterleitungen ohne Besucher-Adresse; bei Bedarf `127.0.0.0/8` eintragen) und **ohne** `172.16.0.0/12`, weil Docker seine Netze dort anlegt (sonst sähe z. B. jeder über das Docker-Gateway ankommende Zugriff intern aus). Nutzt Ihr LAN 172.16–31.x, tragen Sie es ausdrücklich ein. Am besten ohnehin auf Ihr tatsächliches LAN eingrenzen.
-- Hinter dem Reverse-Proxy zählt die **echte Adresse des Besuchers**. Der Proxy muss dafür `X-Forwarded-For` mitschicken (Nginx Proxy Manager, Caddy und Traefik tun das von sich aus). Fehlt die Angabe, gilt der Zugriff aus Sicherheitsgründen als **extern**. Gefälschte Angaben aus dem Internet werden ignoriert.
-- **Wichtig – Port 9343 nur für den Proxy:** Standardmäßig gelten alle privaten Netze als vertrauenswürdige Proxys (`ASSETLOTSE_TRUSTED_PROXIES=private`). Jeder Rechner im LAN, der AssetLotse **direkt** auf Port 9343 erreicht, kann daher eine gefälschte `X-Forwarded-For`-Angabe mitschicken (z. B. um als „intern“ zu gelten oder die Anmeldesperre je Adresse zu umgehen). Veröffentlichen Sie den Port daher nur für den Proxy – in der `.env` z. B. `ASSETLOTSE_BIND=127.0.0.1` oder gar keinen Port und ein gemeinsames Docker-Netz mit dem Proxy – **oder** setzen Sie `ASSETLOTSE_TRUSTED_PROXIES` auf die Adresse des Proxys (z. B. `172.18.0.5` bzw. das Docker-Netz des Proxys). Das gilt auch für Zugriffe aus dem Internet: Erreicht jemand Port 9343 z. B. über **IPv6** und Docker leitet das intern weiter, kommt die Anfrage scheinbar vom Docker-Gateway (172.x.0.1) – und dem wird mit der Standardeinstellung vertraut.
-- Die Einstellungsseite zeigt, wie Ihre aktuelle Verbindung eingestuft wird. Zum Prüfen einmal vom Handy über mobile Daten aufrufen – dort muss „extern“ stehen.
-- Eine im LAN **ohne** zweiten Faktor begonnene Sitzung gilt nur intern: Wer damit von außen zugreift (Laptop zu Hause), muss sich neu anmelden. „Angemeldet bleiben“ wirkt in diesem Fall nicht.
-- Interne Geräte mit eigener öffentlicher IPv6-Adresse gelten als extern, solange ihr Präfix nicht eingetragen ist.
-- **Interne Rechner über die öffentliche Domain:** Rufen sie die Internet-Adresse auf, gibt der Router (z. B. FritzBox) sie oft mit Ihrer eigenen öffentlichen IP aus – dann sähen sie extern aus. Tragen Sie dafür unter *Eigener Internetanschluss* Ihre feste IP oder Ihren **DynDNS-Namen** ein; der Name wird alle 5 Minuten neu aufgelöst, eine wechselnde IP wird also mitverfolgt. **Achtung:** Auch das Gäste-WLAN und alle anderen Geräte hinter dem Router kommen mit dieser Adresse an und gelten dann als intern. Die sauberere Alternative ist ein interner DNS-Eintrag (Split-DNS), der die Domain im LAN auf die interne Adresse des Servers zeigen lässt.
+- **What counts as internal** is set under *Internal network* (one network per line, e.g. `192.168.10.0/24`). Empty means `10.0.0.0/8`, `192.168.0.0/16`, `fc00::/7` – **without** loopback (tunnels and forwarders without a visitor address come in that way; add `127.0.0.0/8` if needed) and **without** `172.16.0.0/12`, because Docker creates its networks there (otherwise e.g. every request arriving via the Docker gateway would look internal). If your LAN uses 172.16–31.x, enter it explicitly. Ideally narrow it down to your actual LAN anyway.
+- Behind the reverse proxy the **real visitor address** counts. The proxy must send `X-Forwarded-For` (Nginx Proxy Manager, Caddy and Traefik do so by default). If it is missing, the request is treated as **external** for safety. Forged headers from the internet are ignored.
+- **Important – port 9343 for the proxy only:** by default all private networks are trusted proxies (`ASSETLOTSE_TRUSTED_PROXIES=private`). Any LAN host that reaches AssetLotse **directly** on port 9343 can therefore send a forged `X-Forwarded-For` header (e.g. to count as “internal” or to evade the per-address login lockout). Publish the port only to the proxy – in `.env` e.g. `ASSETLOTSE_BIND=127.0.0.1`, or no published port and a shared Docker network with the proxy – **or** set `ASSETLOTSE_TRUSTED_PROXIES` to the proxy's address (e.g. `172.18.0.5` or the proxy's Docker network). This also matters for internet access: if someone reaches port 9343 e.g. via **IPv6** and Docker relays it internally, the request appears to come from the Docker gateway (172.x.0.1) – which the default setting trusts.
+- The settings page shows how your current connection is classified. To check, open it once from a phone on mobile data – it must say “external”.
+- A session started on the LAN **without** a second factor is only valid internally: using it from outside (laptop at home) requires a new sign-in. “Stay signed in” has no effect in this case.
+- Internal devices with their own public IPv6 address count as external unless their prefix is listed.
+- **Internal computers using the public domain:** when they call the internet address, the router (e.g. a FritzBox) often presents them with your own public IP – so they would look external. Enter your fixed IP or your **DynDNS name** under *Own internet connection*; the name is resolved again every 5 minutes, so a changing IP is followed. **Caution:** the guest Wi-Fi and every other device behind the router also arrive with this address and then count as internal. The cleaner alternative is an internal DNS entry (split DNS) that points the domain to the server's internal address on the LAN.
 
-**Probleme bei der Anmeldung – ohne Kommandozeile:** Unter *Benutzer* → Konto öffnen → *Anmeldung und Sicherheit*:
-- **Zwei-Faktor-Anmeldung zurücksetzen** – entfernt App, Sicherheitsschlüssel und Passkeys, die Anmeldung geht dann wieder mit dem Passwort (ist 2FA Pflicht, wird die Neueinrichtung verlangt).
-- **Anmeldesperre aufheben** – nach 8 Fehlversuchen ist die Anmeldung 5 Minuten gesperrt; gesperrte Konten sind in der Benutzerliste markiert (Filter „Anmeldesperre“).
+**Sign-in problems – without the command line:** under *Users* → open the account → *Sign-in and security*:
+- **Reset two-factor authentication** – removes app, security keys and passkeys; sign-in works with the password again (if 2FA is mandatory, setting it up again is required).
+- **Lift sign-in lock** – after 8 failed attempts sign-in is locked for 5 minutes; locked accounts are marked in the user list (filter “Sign-in lock”).
 
-Haben sich alle Admins ausgesperrt: Mit „keine Zwei-Faktor-Abfrage“ im internen Netz kommt ein Admin vom LAN aus ohne zweiten Faktor hinein. Sonst im Notfall auf dem Server:
+If all admins are locked out: with “no 2FA prompt” on the internal network, an admin can sign in from the LAN without a second factor. Otherwise, in an emergency on the server:
 
 ```bash
 docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi reset-2fa admin
 ```
 
-Technisch: TOTP nach RFC 6238 (Geheimnisse verschlüsselt gespeichert, Codes nicht wiederverwendbar), WebAuthn über die Yubico-Bibliothek `fido2` inkl. Signaturzähler-Prüfung, Sperre nach mehreren Fehlversuchen. Zusätzlich gilt je Benutzername eine Grenze über alle Adressen (40 Fehlversuche in 15 Minuten von außen, 100 im internen Netz); nach 10 falschen Codes beim zweiten Faktor muss das Passwort erneut eingegeben werden. Wer sich im LAN ohne zweiten Faktor angemeldet hat, muss ihn unter *Profil → Sicherheit* erst bestätigen, bevor er Faktoren oder Wiederherstellungscodes ändern kann (Ersteinrichtung ausgenommen).
+Technical details: TOTP according to RFC 6238 (secrets stored encrypted, codes cannot be reused), WebAuthn via Yubico's `fido2` library including signature-counter checks, lockout after repeated failures, the second step expires after 5 minutes. In addition there is a per-username limit across all addresses (40 failures in 15 minutes from outside, 100 on the internal network); after 10 wrong second-factor codes the password must be entered again. Anyone who signed in on the LAN without a second factor must confirm it under *Profile → Security* before changing factors or recovery codes (first-time setup excepted).
 
-### Anmelden mit Passkey (z. B. iPhone)
+### Signing in with a passkey (e.g. iPhone)
 
-Ab 2.6.0 geht die Anmeldung auch **ohne Benutzername und Passwort**: mit Face ID, Fingerabdruck oder Geräte-PIN.
+From 2.6.0 you can also sign in **without username and password**: with Face ID, fingerprint or the device PIN.
 
-- **Einrichten:** AssetLotse auf dem Gerät öffnen (z. B. Safari auf dem iPhone), normal anmelden, unter **Profil → Sicherheit → Passkey – Anmeldung ohne Passwort** einen Gerätenamen eingeben und *Passkey anlegen* tippen. Beim iPhone landet der Passkey im iCloud-Schlüsselbund und steht so auch auf Mac und iPad bereit.
-- **Hinweis am Handy:** Wer sich auf Handy oder Tablet mit Passwort anmeldet und dort noch keinen Passkey hat, sieht einmal pro Anmeldung den Hinweis *Schneller anmelden mit Passkey* (mit *Jetzt einrichten* und *Nicht mehr anzeigen*). Am PC erscheint er nicht.
-- **Anmelden:** Auf der Anmeldeseite *Mit Passkey anmelden* tippen – oder auf den Vorschlag, den Safari/Chrome direkt im Feld *Benutzername* anbietet. Ein zweiter Faktor wird danach nicht abgefragt: Der Passkey verlangt beim Anlegen und bei jeder Anmeldung die Bestätigung am Gerät (Face ID/PIN) und zählt deshalb als zwei Faktoren – auch wenn 2FA Pflicht ist.
-- **Voraussetzungen:** **HTTPS** über die Domain (z. B. Nginx Proxy Manager); per `http://IP:9343` gibt es keine Passkeys, die Schaltfläche erscheint dann nicht. Der Passkey ist an die Adresse gebunden, unter der er angelegt wurde.
-- **Active-Directory-Konten:** nur mit eingerichtetem **Dienstkonto** (Bind-DN unter *Administration → Active Directory*, siehe oben). Weil beim Passkey kein Passwort gegen das AD geprüft wird, fragt AssetLotse bei **jeder** Passkey-Anmeldung über das Dienstkonto im AD nach: Ist das Konto deaktiviert oder fällt es aus allen Gruppen-Regeln, wird die Anmeldung abgelehnt; Rolle und Gruppen werden wie bei der Passwort-Anmeldung abgeglichen. Außerdem muss die unveränderliche AD-Kennung (objectGUID/entryUUID) des Kontos passen – wird ein Benutzername im AD neu vergeben, gilt der alte Passkey nicht mehr (seit 2.9.1). Ist das AD nicht erreichbar oder liefert es keine Kennung, geht es nur mit dem Passwort weiter.
-- **Abschalten:** *Administration → Einstellungen → Sicherheit → Zwei-Faktor-Anmeldung → Anmeldung mit Passkey erlauben* (Standard: an). Angelegte Passkeys bleiben dann als Sicherheitsschlüssel für den zweiten Schritt nutzbar.
-- **Gerät verloren:** Passkey unter *Profil → Sicherheit* löschen, oder ein Admin setzt die Zwei-Faktor-Anmeldung des Kontos zurück (entfernt auch alle Passkeys).
-- Technisch: WebAuthn mit auffindbarem Schlüssel (*resident key*) und Pflicht zur Benutzerverifizierung, Signaturzähler-Prüfung, Sperre nach Fehlversuchen je Adresse. In der `.env` ist nichts einzutragen.
+- **Set up:** open AssetLotse on the device (e.g. Safari on the iPhone), sign in as usual, enter a device name under **Profile → Security → Passkey – sign in without a password** and tap *Create passkey*. On an iPhone the passkey goes into iCloud Keychain and is therefore also available on Mac and iPad.
+- **Hint on phones:** anyone who signs in with a password on a phone or tablet and has no passkey there yet sees the hint *Sign in faster with a passkey* once per sign-in (with *Set up now* and *Don't show again*). It does not appear on a PC.
+- **Sign in:** tap *Sign in with a passkey* on the sign-in page – or the suggestion Safari/Chrome offers right in the *Username* field. No second factor is asked for afterwards: the passkey requires confirmation on the device (Face ID/PIN) when it is created and at every sign-in, so it counts as two factors – also when 2FA is mandatory.
+- **Requirements:** **HTTPS** via the domain (e.g. Nginx Proxy Manager); via `http://IP:9343` there are no passkeys and the button does not appear. The passkey is bound to the address where it was created.
+- **Active Directory accounts:** only with a configured **service account** (bind DN under *Administration → Active Directory*, see above). Since no password is checked against AD with a passkey, AssetLotse asks AD through the service account at **every** passkey sign-in: if the account is disabled or no longer matches any group rule, sign-in is refused; role and groups are synchronized as with password sign-in. In addition the immutable AD identifier (objectGUID/entryUUID) of the account must match – if a username is reassigned in AD, the old passkey no longer works (since 2.9.1). If AD cannot be reached or delivers no identifier, only the password works.
+- **Switch off:** *Administration → Settings → Security → Two-factor authentication → Allow signing in with a passkey* (default: on). Existing passkeys can then still be used as a security key in the second step.
+- **Lost device:** delete the passkey under *Profile → Security*, or an admin resets the account's two-factor authentication (also removes all passkeys).
+- Technical: WebAuthn with a discoverable credential (*resident key*) and mandatory user verification, signature counter check, lockout after failed attempts per address. Nothing needs to be entered in `.env`.
 
-## E-Mail-Benachrichtigungen
+## E-mail notifications
 
-*Administration → E-Mail.* SMTP-Server, Verschlüsselung (STARTTLS / SSL/TLS / keine), Zugangsdaten und Absender eintragen, dann **Testmail senden**.
+*Administration → E-mail.* Enter SMTP server, encryption (STARTTLS / SSL/TLS / none), credentials and sender, then click **“Send test mail”**.
 
-| Benachrichtigung | Wann |
+| Notification | When |
 |---|---|
-| Bestätigung bei Ausgabe | sofort, mit Bezeichnung und Rückgabedatum (bzw. „unbefristet“) |
-| Bestätigung bei Rückgabe | sofort (standardmäßig aus) |
-| Erinnerung | X Tage vor Fälligkeit, einmal je Ausgabe – nur bei befristeten Ausgaben |
-| Mahnung | ab dem ersten Tag der Überfälligkeit, Wiederholung alle N Tage, höchstens M-mal |
-| Übersicht an Verwalter | täglich, nur wenn es Überfälliges in ihren Gruppen gibt (standardmäßig aus) |
-| Manuell | Briefumschlag-Symbol bei einer Ausgabe unter *Alle Ausleihen* |
+| Issue confirmation | immediately, with name and return date (or “open-ended”) |
+| Return confirmation | immediately (off by default) |
+| Reminder | X days before the return date, once per loan – only for loans with a return date |
+| Overdue notice | from the first overdue day, repeated every N days, at most M times |
+| Manager digest | daily, only if their groups have overdue loans (off by default) |
+| Manual | envelope icon next to a loan under *All loans* |
 
-- Erinnerungen und Mahnungen laufen **einmal täglich** ab der eingestellten Uhrzeit. Mehrere Gegenstände einer Person kommen in **einer** Mail. Das Versandprotokoll verhindert doppelte Mails – auch mit mehreren Server-Prozessen.
-- **Unbefristete Ausgaben** bekommen nie Erinnerungen oder Mahnungen. Bei der Standard-Leihdauer `0` verschickt AssetLotse also nur Bestätigungen.
-- **„Jetzt versenden“** startet den Lauf sofort. Alternativ per cron: `docker compose exec -T assetlotse docker-entrypoint.sh flask --app wsgi send-reminders`
-- Die **Adresse von AssetLotse** (z. B. `https://assets.institut.local`) wird für Links in den Mails gebraucht.
-- E-Mail-Adressen kommen bei AD-Benutzern aus dem Feld `mail`, bei lokalen Benutzern aus der Benutzerverwaltung. Jeder kann Benachrichtigungen im **Profil** abschalten.
-- Typische Einstellungen: Exchange/Microsoft 365 `smtp.office365.com:587 STARTTLS` · eigener Postfix intern `mail.institut.local:25 keine` · Gmail `smtp.gmail.com:587 STARTTLS` mit App-Passwort.
+- Reminders and overdue notices run **once a day** from the configured hour. Several items of one person go into **one** e-mail. The mail log prevents duplicates – even with several server processes.
+- **Open-ended loans** never get reminders or overdue notices. With the default loan period of `0`, AssetLotse therefore only sends confirmations.
+- **“Send now”** runs immediately. Alternatively via cron: `docker compose exec -T assetlotse docker-entrypoint.sh flask --app wsgi send-reminders`
+- The **address of AssetLotse** (e.g. `https://assets.institute.org`) is needed for links in e-mails.
+- E-mail addresses come from the AD attribute `mail` for AD users and from user management for local users. Everyone can switch notifications off in their profile.
+- Typical settings: Exchange/Microsoft 365 `smtp.office365.com:587 STARTTLS` · internal Postfix `mail.institute.local:25 none` · Gmail `smtp.gmail.com:587 STARTTLS` with an app password.
 
-## Reverse-Proxy und HTTPS
+## Reverse proxy and HTTPS
 
-Beispiel mit Caddy (holt Zertifikate automatisch bzw. nutzt intern `tls internal`):
+Example with Caddy (obtains certificates automatically, or uses `tls internal` on the LAN):
 
 ```
-assets.institut.local {
+assets.institute.local {
     tls internal
     reverse_proxy 127.0.0.1:9343
 }
 ```
 
-Mehr ist nicht nötig: AssetLotse erkennt den Reverse-Proxy automatisch. Die Weiterleitungs-Header (echte Besucher-IP, HTTPS) werden nur akzeptiert, wenn die Verbindung aus einem privaten Netz kommt – also vom Proxy, nicht direkt aus dem Internet. Cookies bekommen bei HTTPS automatisch das Secure-Flag; über `http://IP:9343` im LAN funktioniert die Anmeldung weiterhin. Für Sicherheitsschlüssel (WebAuthn) ist HTTPS Pflicht.
+Nothing else is required: AssetLotse detects the reverse proxy automatically. Forwarding headers (real visitor IP, HTTPS) are only accepted from private networks – i.e. from the proxy, never directly from the internet. Cookies automatically get the Secure flag over HTTPS; sign-in via `http://IP:9343` on the LAN keeps working. Security keys (WebAuthn) require HTTPS.
 
-**HTTPS erzwingen macht AssetLotse selbst** (seit 2.4.0, Regeln wie in Catalytix und Helfi.Space seit 2.4.2): Sobald eine Adresse einmal per HTTPS über den Proxy aufgerufen wurde, leitet AssetLotse für diese Adresse HTTP dauerhaft auf `https://<derselbe Name>/…` um (301, Formulare 308 – sie behalten ihre Daten). Die Adresse merkt es sich im Datenordner (`https-hosts.txt`), und zwar je Proxy-Adresse (seit 2.9.1 – ein anderer Rechner im LAN kann die Umstellung so nicht für alle auslösen); ein Proxy ganz ohne HTTPS wird dadurch nie ins Leere umgeleitet. HSTS (ein Jahr, nur dieser Hostname) sendet AssetLotse nur, wenn es selbst umleiten musste – ein Proxy, der selbst umleitet (NPM mit „Force SSL“), behält seinen eigenen HSTS-Header, es entsteht kein zweiter. Den Weg erkennt AssetLotse an `X-Forwarded-Proto`, ersatzweise an `X-Forwarded-Port` (80 = HTTP, 443 = HTTPS). Bei der Synology beide Regeln anlegen: `http://asset…` und `https://asset…` jeweils auf `http://IP:9343`. Der direkte Zugriff `http://IP:9343` im LAN und Aufrufe über eine IP-Adresse werden nie umgeleitet. `ASSETLOTSE_FORCE_HTTPS=1` gilt sofort (und sendet immer HSTS), `0` schaltet es ab.
+**AssetLotse enforces HTTPS itself** (since 2.4.0, same rules as Catalytix and Helfi.Space since 2.4.2): as soon as an address has been opened once over HTTPS through the proxy, AssetLotse permanently redirects HTTP for that address to `https://<same name>/…` (301, forms 308 – they keep their data). It remembers the address in the data folder (`https-hosts.txt`), per proxy address (since 2.9.1 – another computer on the LAN cannot switch it on for everyone); a proxy without any HTTPS is therefore never redirected into nothing. AssetLotse sends HSTS (one year, this host name only) only where it had to redirect itself – a proxy that redirects on its own (NPM with “Force SSL”) keeps its own HSTS header, no second one is added. AssetLotse recognises the way in from `X-Forwarded-Proto`, or else `X-Forwarded-Port` (80 = HTTP, 443 = HTTPS). On a Synology, create both rules: `http://asset…` and `https://asset…`, each to `http://IP:9343`. Direct access via `http://IP:9343` on the LAN and requests to an IP address are never redirected. `ASSETLOTSE_FORCE_HTTPS=1` applies right away (and always sends HSTS), `0` turns it off.
 
-Bei Freigabe ins Internet Port 9343 am Router nicht freigeben – von außen soll nur der Proxy erreichbar sein. Die Anmeldeseite verrät bewusst nichts über die Umgebung (keine Versionsnummer, kein AD-Hinweis, gleiche Fehlermeldung für unbekannte Benutzer, falsche Passwörter und gesperrte Konten).
+When publishing to the internet, do not forward port 9343 on your router – only the proxy should be reachable from outside. The login page deliberately reveals nothing about the setup (no version number, no AD hint, identical error messages for unknown users, wrong passwords and locked accounts).
 
-## Datenschutz und Betrieb im Internet
+## Privacy and running on the internet
 
-AssetLotse ist darauf ausgelegt, dass die Browser der Nutzer **nur mit Ihrem eigenen Server** sprechen:
+AssetLotse is built so that users' browsers **only talk to your own server**:
 
-- **Schriften** (Inter) liegen im Programm – keine Verbindung zu Google Fonts.
-- **Keine externen Dienste:** Es werden keine Daten von fremden Servern abgerufen und keine Skripte nachgeladen. Der Server selbst baut ausgehende Verbindungen nur zu Ihren eigenen Diensten auf (AD/LDAP, Mailserver) und – beim Abruf des DC-Zertifikats – ggf. zur AIA-Adresse Ihrer Zertifizierungsstelle. Dazu kommt einmal am Tag die [Update-Prüfung](#update) bei GitHub (`api.github.com`, ohne Angaben zur Installation; abschaltbar).
-- **Fotos** der Gegenstände sind nur nach der Anmeldung abrufbar.
-- **Cookies:** nur technisch notwendige (Anmeldung, Formularschutz) – kein Cookie-Banner nötig. Kein Tracking, keine Werbung.
+- **Fonts** (Inter) are bundled – no connection to Google Fonts.
+- **No external services:** nothing is fetched from third-party servers and no scripts are loaded from elsewhere. The server itself only connects to your own services (AD/LDAP, mail server) and – when fetching the DC certificate – possibly to the AIA address of your certificate authority. In addition, once a day, the [update check](#updates) asks GitHub (`api.github.com`, without details about the installation; can be switched off).
+- **Item photos** are only reachable after signing in.
+- **Cookies:** only strictly necessary ones (sign-in, form protection) – no cookie banner required. No tracking, no ads.
 
-**Impressum und Datenschutzerklärung** tragen Sie unter *Administration → Einstellungen → Datenschutz → Rechtliches* ein (Adressen der Seiten, z. B. auf der Website des Instituts). Die Links erscheinen auf der Anmeldeseite, in der Seitenleiste und in jeder E-Mail; bei der Selbstregistrierung muss die Datenschutzerklärung bestätigt werden.
+Enter the addresses of your **imprint and privacy policy** under *Administration → Settings → Privacy → Legal*, e.g. pages on the institute's website. The links appear on the login page, in the sidebar and in every e-mail; self-registration requires accepting the privacy policy.
 
-In die Datenschutzerklärung (bzw. das Verzeichnis der Verarbeitungstätigkeiten) gehört, was AssetLotse speichert: Name, Benutzername, E-Mail-Adresse, Gruppenzugehörigkeit, Ausgaben mit Datum (wer hat was bekommen, wer hat ausgegeben/zurückgenommen), Protokoll der versendeten E-Mails, das Zugriffsprotokoll der vertraulichen Angaben (welcher Verwalter wann angezeigt/geändert hat), bei Zwei-Faktor-Anmeldung die registrierten Schlüssel. Wird der Server von jemand anderem als der Einrichtung selbst betrieben, brauchen Sie einen Vertrag zur Auftragsverarbeitung (Art. 28 DSGVO). Ein Personal- oder Betriebsrat sollte bei der Einführung einbezogen werden, wenn Ausgaben einzelnen Personen zugeordnet werden.
+The privacy policy (or your record of processing activities) should list what AssetLotse stores: name, username, e-mail address, group memberships, loans with dates (who received what, who issued/checked it in), a log of sent e-mails, the access log of confidential details (which manager revealed/changed them and when) and, with two-factor authentication, the registered keys. If the server is operated by someone other than the institution itself, you need a data processing agreement (Art. 28 GDPR). Involve your staff council when introducing it, since loans are linked to individual people.
 
-**Aufbewahrungsfristen** (*Einstellungen → Datenschutz → Aufbewahrung*, Standard **12 Monate**): Abgeschlossene Ausgaben werden die eingestellte Zeit nach der Rückgabe automatisch gelöscht, ebenso Einträge im E-Mail-Protokoll. Pro Gegenstand bleibt nur die Anzahl der Ausgaben erhalten, damit die Statistik stimmt. Laufende (auch unbefristete) und überfällige Ausgaben sowie die Mahn-Einträge dazu werden nie gelöscht. Der Lauf erfolgt einmal täglich automatisch; „Jetzt bereinigen“ oder `flask --app wsgi apply-retention` startet ihn sofort. Wird ein Benutzer gelöscht, verschwinden seine Ausgaben sofort (die Anzahl pro Gegenstand bleibt). Nicht bestätigte Selbstregistrierungen werden nach 7 Tagen gelöscht. Auch das **Zugriffsprotokoll der vertraulichen Angaben** wird nach dieser Frist gelöscht (bei „nie löschen“ bleibt es, bis der Gegenstand gelöscht wird). Die Fristen gehören ebenfalls in die Datenschutzerklärung.
+**Retention periods** (*Settings → Privacy → Retention*, default **12 months**): completed loans are deleted automatically the configured time after their return, and so are e-mail log entries. Only the number of loans per item is kept, so statistics stay correct. Active (including open-ended) and overdue loans and their reminder entries are never deleted. The job runs once a day; “Clean up now” or `flask --app wsgi apply-retention` runs it immediately. When a user is deleted, their loans are removed at once (the per-item count is kept). Unconfirmed self-registrations are deleted after 7 days. The **access log of confidential details** is also deleted after this period (with “never delete” it is kept until the item is deleted). State the retention periods in your privacy policy as well.
 
-## Sicherheit
+## Security
 
-Sicherheitslücken bitte nicht als Issue, sondern **vertraulich** melden – siehe [SECURITY.md](SECURITY.md).
+Please report security problems **privately**, not as an issue – see [SECURITY.md](SECURITY.md).
 
-- **Passwörter** lokaler Konten: mindestens 10 Zeichen. Nach mehreren Fehlversuchen wird die Anmeldung kurz gesperrt; von außen zusätzlich je Benutzername, falls jemand viele Adressen durchprobiert.
-- **Abmelden auf allen Geräten:** *Profil → Sicherheit → Angemeldete Geräte*. Das passiert auch automatisch, wenn das Passwort geändert oder die Zwei-Faktor-Anmeldung von einem Admin zurückgesetzt wird – das aktuelle Gerät bleibt angemeldet.
-- **AD-Konten** laufender Sitzungen werden alle 4 Stunden nachgeprüft (mit dem Dienstkonto): Wer im AD deaktiviert, gelöscht oder aus der berechtigten Gruppe genommen wurde, wird abgemeldet; Rolle und Gruppen werden angeglichen. Ist das AD nicht erreichbar, bleibt die Sitzung bestehen. Ohne Dienstkonto (direkter Bind) ist diese Prüfung nicht möglich.
-- **Verschlüsselt in der Datenbank** liegen: die Zugangsdaten für das AD-Dienstkonto und den Mailserver, die **2FA-Geheimnisse** und die **vertraulichen Angaben** der Gegenstände (Schlüssel: `data/secret_key` bzw. `ASSETLOTSE_SECRET_KEY`). Wer die Datenbank ohne diese Datei kopiert, kann sie nicht lesen.
-- **Die `secret_key` gehört zur Datenbank:** Wird sie geändert oder geht sie verloren, schlagen alle 2FA-Anmeldungen fehl, die gespeicherten SMTP-/AD-Passwörter sind nicht mehr lesbar **und alle vertraulichen Angaben (z. B. BitLocker-Schlüssel) sind unwiederbringlich verloren**. Datenbank deshalb nur **zusammen mit ihrer `secret_key`** sichern, zurückspielen oder umziehen – und die `secret_key` selbst sicher aufbewahren (sie ist der Generalschlüssel zu den vertraulichen Angaben). AssetLotse merkt sich beim ersten Start einen Prüfwert des Schlüssels (nicht den Schlüssel selbst) und **startet nicht**, wenn der Schlüssel nicht zur Datenbank passt – dann im Protokoll nachsehen und die passende `secret_key` zurückholen. Soll der neue Schlüssel bewusst gelten: einmalig mit `ASSETLOTSE_ACCEPT_NEW_KEY=1` starten (danach wieder entfernen), anschließend 2FA der Benutzer zurücksetzen, SMTP-/AD-Passwort neu eingeben und die vertraulichen Angaben neu erfassen.
-- **Browser-Schutz:** Strenge Content-Security-Policy (Skripte und Stylesheets nur vom eigenen Server, weder eingebettete Skripte noch Inline-Styles), Schutz vor Einbettung in fremde Seiten, CSRF-Schutz für alle Formulare. Seiten für angemeldete Benutzer (auch CSV-Export, Fotos) werden als privat gekennzeichnet und nicht in Proxy-/CDN-Caches oder auf der Platte des Browsers abgelegt.
-- **Vertrauliche Angaben anzeigen und ändern** (auch die Freigabe für die ausleihende Person) setzt bei Konten mit 2FA immer den zweiten Faktor in der laufenden Sitzung voraus – auch wenn im internen Netz das Passwort zum Anmelden reicht.
-- **Erster zweiter Faktor:** Wer die Zwei-Faktor-Anmeldung einrichtet, meldet damit alle anderen Geräte ab. Das Ändern des Passworts ist gegen Raten gebremst.
-- **Hochgeladene Fotos** werden verkleinert und neu als JPEG gespeichert – Metadaten und versteckte Inhalte in Bilddateien bleiben nicht erhalten. Der **CSV-Export** markiert Zellen, die mit `=`, `+`, `-` oder `@` beginnen, damit Excel sie nicht als Formel ausführt.
+- **Passwords** for local accounts: at least 10 characters. Repeated failures briefly lock the login; from outside also per user name, in case someone tries many addresses.
+- **Sign out everywhere:** *Profile → Security → Signed-in devices*. This also happens automatically when the password is changed or an admin resets two-factor authentication – the current device stays signed in.
+- **AD accounts** with an open session are re-checked every 4 hours (using the service account): anyone disabled, deleted or removed from the permitted group in AD is signed out; role and groups are updated. If AD is unreachable the session stays. Without a service account (direct bind) this check is not possible.
+- **Stored encrypted in the database:** the credentials for the AD service account and the mail server, the **2FA secrets** and the items' **confidential details** (key: `data/secret_key` or `ASSETLOTSE_SECRET_KEY`). A copy of the database without that file cannot read them.
+- **The `secret_key` belongs to the database:** if it is changed or lost, all 2FA sign-ins fail, the stored SMTP/AD passwords can no longer be read **and all confidential details (e.g. BitLocker keys) are lost for good**. So back up, restore or move a database only **together with its `secret_key`** – and keep the `secret_key` itself safe (it is the master key to the confidential details). On first start AssetLotse stores a check value of the key (not the key itself) and **refuses to start** if the key does not match the database – check the log and bring back the matching `secret_key`. To accept a new key deliberately, start once with `ASSETLOTSE_ACCEPT_NEW_KEY=1` (remove it afterwards), then reset users' 2FA, re-enter the SMTP/AD passwords and enter the confidential details again.
+- **Browser protection:** strict Content Security Policy (scripts and stylesheets only from your own server, neither inline scripts nor inline styles), protection against framing by other sites, CSRF protection on all forms. Pages for signed-in users (including CSV export and photos) are marked private and are not stored in proxy/CDN caches or on the browser's disk.
+- **Showing and changing confidential details** (including the share with the borrower) always requires the second factor in the current session for accounts with 2FA – even where the password is enough to sign in on the internal network.
+- **First second factor:** setting up two-factor sign-in signs out all other devices. Changing the password is throttled against guessing.
+- **Uploaded photos** are resized and re-saved as JPEG – metadata and hidden content in image files are not kept. The **CSV export** marks cells starting with `=`, `+`, `-` or `@` so Excel does not run them as formulas.
 
-### Automatische Abmeldung
+### Automatic sign-out
 
-*Einstellungen → Sicherheit → Automatische Abmeldung* – wer so lange nichts in AssetLotse tut, wird abgemeldet (z. B. ein offener Browser am Ausgabeplatz). Jede aufgerufene Seite, jedes gespeicherte Formular und auch das Ausfüllen eines Formulars zählt als Aktivität – ein langes Formular geht also nicht verloren.
+*Settings → Security → Automatic sign-out* – anyone who does nothing in AssetLotse for this long is signed out (e.g. a browser left open at the issue desk). Every page opened, every saved form and also filling in a form counts as activity – so a long form is not lost.
 
-| Einstellung | Wirkung |
+| Setting | Effect |
 |---|---|
-| *Für alle (Stunden)* | Standard **12**; Startwert aus `ASSETLOTSE_SESSION_HOURS`, `0` = aus. Erlaubt 0,25 (15 Minuten) bis 720 |
-| *Für Administratoren* | optional kürzer, z. B. `1` – leer = wie für alle |
-| *Von außen* | optional kürzer für Zugriffe aus dem Internet – leer = wie intern |
-| Hinweis 2 Minuten vorher | „Sie werden in 2 Minuten abgemeldet – weiterarbeiten?“ (Standard an). Ein Klick auf *Weiterarbeiten* verlängert die Anmeldung, auch wenn man gerade nur tippt |
-| Beim Schließen des Browsers abmelden | „Angemeldet bleiben“ wird nicht mehr angeboten; schon vorhandene „Angemeldet bleiben“-Anmeldungen enden beim nächsten Neustart des Browsers |
+| *For everyone (hours)* | default **12**; start value from `ASSETLOTSE_SESSION_HOURS`, `0` = off. Allowed 0.25 (15 minutes) to 720 |
+| *For administrators* | optionally shorter, e.g. `1` – empty = same as for everyone |
+| *From outside* | optionally shorter for access from the internet – empty = same as internally |
+| Notice 2 minutes before | “You will be signed out in 2 minutes – continue working?” (on by default). Clicking *Continue working* extends the session, even if you are only typing |
+| Sign out when the browser is closed | “Stay signed in” is no longer offered; existing “Stay signed in” sessions end at the next browser restart |
 
-- Es gilt die **kürzeste zutreffende Frist** (Admin von außen: die kürzere von beiden).
-- Die Frist gilt **auch mit „Angemeldet bleiben“** – das hält die Anmeldung nur über einen Neustart des Browsers hinweg (höchstens 14 Tage), nicht über die Frist hinaus.
-- Ist die Zeit um, wechselt auch die **geöffnete Seite** zur Anmeldung, damit z. B. ein angezeigter BitLocker-Schlüssel nicht auf dem Bildschirm stehen bleibt. Arbeitet jemand in einem anderen Tab weiter, zählt das mit.
+- The **shortest limit that applies** wins (an administrator from outside: the shorter of the two).
+- The limit **also applies with “Stay signed in”** – that only keeps the session across a browser restart (at most 14 days), not beyond the limit.
+- When the time is up, the **open page** also switches to the sign-in page, so that e.g. a BitLocker key on screen does not stay visible. Working in another tab counts too.
 
-## Datensicherung
+## Backups
 
-*Administration → Datensicherung.* Die Datenbank wird **jeden Tag automatisch gesichert** (Standard ab 2 Uhr nachts) – im laufenden Betrieb, ohne Anhalten. Jede Sicherung wird nach dem Schreiben auf Beschädigung geprüft. Aufbewahrt werden die **neuesten 10 täglichen Sicherungen** (einstellbar 1–100) – also 10 Tage, ältere werden automatisch gelöscht. Sicherungen von Hand (*Jetzt sichern*) und vor einer Wiederherstellung zählen nicht mit: Von ihnen bleiben die neuesten 5 erhalten. Zusätzlich sichert jede neue Version beim ersten Start (`…-vor-<Version>.db`); die drei neuesten davon bleiben erhalten – sie braucht, wer auf eine ältere Version zurückgeht. Sicherungen von Hand, vor einer Wiederherstellung und vor einem Update werden nach 30 Tagen gelöscht, damit gelöschte Daten nicht unbegrenzt in alten Sicherungen bleiben; die neueste Sicherung bleibt aber immer. Ist die automatische Sicherung abgeschaltet, gilt die eingestellte Anzahl für die Sicherungen von Hand (ohne Altersgrenze).
+*Administration → Backups.* The database is **backed up automatically every day** (default from 2 a.m.) – while running, without downtime. Every backup is checked for corruption after writing. The **newest 10 daily backups** are kept (configurable 1–100) – that is 10 days; older ones are deleted automatically. Manual backups (*Back up now*) and those before a restore do not count: of them, the newest 5 are kept. In addition, every new version backs up on its first start (`…-vor-<version>.db`); the three newest of these are kept – you need them to go back to an older version. Manual, before-restore and before-update backups are deleted after 30 days, so deleted data does not stay in old backups indefinitely; the newest backup always stays, though. With automatic backups switched off, the number set applies to the manual backups (no age limit).
 
-- **Ablage:** `./data/backups` auf dem Server. Mit `ASSETLOTSE_BACKUP_DIR` lässt sich ein anderer Ordner einstellen, z. B. ein eingebundenes NAS-Laufwerk (in `docker-compose.override.yml` als zusätzliches Volume einbinden, z. B. `/mnt/nas/assetlotse:/backup`).
-- **„Jetzt sichern“** legt sofort eine Sicherung an (auch vor größeren Änderungen sinnvoll). Einzelne Sicherungen lassen sich herunterladen oder löschen.
-- **Schlägt eine Sicherung fehl**, erscheint ein Warnzeichen am Menüpunkt *Datensicherung*, und Administratoren bekommen eine E-Mail (wenn der E-Mail-Versand eingerichtet ist).
-- Gesichert wird die **Datenbank** (Gegenstände, vertrauliche Angaben in verschlüsselter Form, Benutzer, Ausgaben, Einstellungen). **Fotos** (`./data/images`), Logo und **`secret_key`** liegen als Dateien in `./data` – für einen kompletten Umzug den ganzen Ordner mitnehmen.
-- **Eine Datenbank immer mit ihrer `secret_key` zurückspielen**, sonst funktionieren 2FA und gespeicherte SMTP-/AD-Passwörter nicht und die vertraulichen Angaben sind unlesbar (siehe [Sicherheit](#sicherheit)). Wer Sicherungen an einen anderen Ort kopiert, braucht dort auch eine Kopie der `secret_key` – getrennt und gut geschützt aufbewahrt.
-- Wichtig: Sicherungen auf demselben Server schützen vor Bedienfehlern und defekten Updates, **nicht** vor einem Festplattenausfall. Kopieren Sie den Ordner regelmäßig an einen anderen Ort.
-- Nur für SQLite. Bei MySQL/MariaDB oder PostgreSQL mit `mysqldump` bzw. `pg_dump` sichern.
+- **Location:** `./data/backups` on the server. `ASSETLOTSE_BACKUP_DIR` sets a different folder, e.g. a mounted NAS share (add it as an extra volume in `docker-compose.override.yml`, e.g. `/mnt/nas/assetlotse:/backup`).
+- **“Back up now”** creates a backup immediately (useful before bigger changes). Single backups can be downloaded or deleted.
+- **If a backup fails**, a warning sign appears on the *Backups* menu entry and administrators get an e-mail (if e-mail sending is set up).
+- The **database** is backed up (items, confidential details in encrypted form, users, loans, settings). **Photos** (`./data/images`), logo and **`secret_key`** are files in `./data` – take the whole folder with you when moving servers.
+- **Always restore a database together with its `secret_key`**, otherwise 2FA and stored SMTP/AD passwords stop working and the confidential details cannot be read (see [Security](#security)). If you copy backups to another place, keep a copy of the `secret_key` there too – separately and well protected.
+- Important: backups on the same server protect against mistakes and broken updates, **not** against a disk failure. Copy the folder to another place regularly.
+- SQLite only. With MySQL/MariaDB or PostgreSQL use `mysqldump` or `pg_dump`.
 
-**Wiederherstellen** (der aktuelle Stand wird vorher automatisch gesichert):
+**Restoring** (the current state is backed up automatically first):
 
 ```bash
 docker compose stop assetlotse
@@ -542,147 +542,147 @@ docker compose run --rm assetlotse restore assetlotse-2026-10-19_020012.db
 docker compose start assetlotse
 ```
 
-`backups` und `restore` funktionieren auch dann, wenn AssetLotse nicht startet (z. B. weil die Datenbank von einer neueren Version stammt – siehe [Bestimmte Version festlegen und zurückgehen](#bestimmte-version-festlegen-und-zurückgehen)).
+`backups` and `restore` also work when AssetLotse does not start (e.g. because the database comes from a newer version – see [Pinning a version and going back](#pinning-a-version-and-going-back)).
 
-Datenschutz: Sicherungen enthalten alle Daten, auch solche, die nach der Aufbewahrungsfrist schon gelöscht wurden – bei 10 täglichen Sicherungen also bis zu 10 Tage länger. Das gehört mit in die Datenschutzerklärung.
+Privacy: backups contain all data, including data already deleted by the retention period – with 10 daily backups up to 10 days longer. Mention this in your privacy policy.
 
 ---
 
-## Konfiguration (Datei `.env`)
+## Configuration (file `.env`)
 
-| Variable | Bedeutung |
+| Variable | Meaning |
 |---|---|
-| `ASSETLOTSE_TAG` | Version des Images: `latest` (Standard – neueste Version mit Sicherheitsupdates) oder fest, z. B. `2.0.0` bzw. `2.0.0-s3` (siehe [Bestimmte Version festlegen](#bestimmte-version-festlegen-und-zurückgehen)) |
-| `ASSETLOTSE_IMAGE` | Adresse des Images (Standard `ghcr.io/soleil0815/assetlotse`; z. B. für einen Fork) |
-| `DATABASE_URL` | z. B. `mysql+pymysql://assetlotse:geheim@db/assetlotse?charset=utf8mb4` (MySQL-Treiber ist enthalten; PostgreSQL braucht ein selbst gebautes Image mit `psycopg[binary]` in `requirements.txt`) |
-| `ASSETLOTSE_SECRET_KEY` | Sitzungs- und Verschlüsselungsschlüssel; ohne Angabe einmalig erzeugt und in `data/secret_key` gespeichert. Verschlüsselt 2FA-Geheimnisse, gespeicherte SMTP-/AD-Passwörter **und die vertraulichen Angaben** – **nicht nachträglich ändern** (siehe [Sicherheit](#sicherheit)) |
-| `ASSETLOTSE_ACCEPT_NEW_KEY` | `1` = einen geänderten Schlüssel bewusst übernehmen (AssetLotse startet sonst nicht, wenn der Schlüssel nicht zur Datenbank passt). Nur einmalig setzen |
-| `ASSETLOTSE_BIND` | Adresse, auf der der Port veröffentlicht wird (Standard `0.0.0.0` = alle). `127.0.0.1`, wenn der Reverse-Proxy direkt auf diesem Rechner läuft (nicht als Container bzw. mit `network_mode: host`) – dann kann niemand den Proxy umgehen. Läuft der Proxy als eigener Container, besser beide in ein gemeinsames Docker-Netz hängen |
-| `ASSETLOTSE_PORT` | Port (Standard `9343`, erlaubt 1024–65535) – gilt auf dem Docker-Host und im Container, nur hier ändern |
-| `TZ` | Zeitzone (Standard `Europe/Berlin`). Fehlt die Zeitzone im Image, steht beim Start „Time zone TZ=… not found – times in UTC“ im Protokoll; prüfen mit `docker compose exec assetlotse date` |
-| `PUID` / `PGID` | Benutzer/Gruppe für `./data` (Standard `1000`) |
-| `ASSETLOTSE_TRUSTED_PROXIES` | Von wem Proxy-Header akzeptiert werden: `private` (Standard), `none` oder Liste wie `172.18.0.0/16,192.168.0.11` |
-| `ASSETLOTSE_SECURE_COOKIES` | `auto` (Standard: bei HTTPS), `1` (immer), `0` (nie) |
-| `ASSETLOTSE_FORCE_HTTPS` | `auto` (Standard: umschalten, sobald HTTPS über den Proxy gesehen wurde), `1` (immer), `0` (nie) – HTTP über den Reverse-Proxy auf HTTPS umleiten und HSTS senden |
-| `ASSETLOTSE_LOGLEVEL` | `INFO` (Standard), `DEBUG` für LDAP-Fehlersuche |
-| `ASSETLOTSE_SESSION_HOURS` | Startwert der [automatischen Abmeldung](#automatische-abmeldung) in Stunden ohne Aktivität (Standard `12`, `0` = aus). Danach gilt, was unter *Einstellungen* gespeichert ist |
-| `ASSETLOTSE_BACKUP_DIR` | Ordner für die automatischen Sicherungen im Container (Standard: `backups` im Datenverzeichnis). Muss in `docker-compose.override.yml` als Volume eingebunden sein – sonst warnt der Container beim Start |
-| `ASSETLOTSE_UPDATE_CHECK` | `0` = nie bei GitHub nach neuen Versionen fragen (z. B. Server ohne Internet); der Schalter unter *Einstellungen → Allgemein* ist dann gesperrt. Standard: Prüfung einmal am Tag |
-| `ASSETLOTSE_SCHEDULER` | `0` = keine zeitgesteuerten Läufe (Erinnerungen, Sicherung, Aufbewahrung) in diesem Prozess, z. B. wenn mehrere App-Server laufen und nur einer sie ausführen soll. Standard `1` |
-| `ASSETLOTSE_SOURCE_URL` | Link zum Quellcode auf der Seite *Über dieses Programm* (Standard: dieses Repository; bei einer veränderten Fassung deren Quellcode) – siehe [Lizenz](#lizenz) |
+| `ASSETLOTSE_TAG` | Version of the image: `latest` (default – newest version with security updates) or fixed, e.g. `2.0.0` or `2.0.0-s3` (see [Pinning a version](#pinning-a-version-and-going-back)) |
+| `ASSETLOTSE_IMAGE` | Address of the image (default `ghcr.io/soleil0815/assetlotse`; e.g. for a fork) |
+| `DATABASE_URL` | e.g. `mysql+pymysql://assetlotse:secret@db/assetlotse?charset=utf8mb4` (the MySQL driver is included; PostgreSQL needs your own image build with `psycopg[binary]` in `requirements.txt`) |
+| `ASSETLOTSE_SECRET_KEY` | Session and encryption key; if unset, generated once and stored in `data/secret_key`. Encrypts 2FA secrets, stored SMTP/AD passwords **and the confidential details** – **do not change it later** (see [Security](#security)) |
+| `ASSETLOTSE_ACCEPT_NEW_KEY` | `1` = deliberately accept a changed key (otherwise AssetLotse refuses to start when the key does not match the database). Set only once |
+| `ASSETLOTSE_BIND` | Address the port is published on (default `0.0.0.0` = all). `127.0.0.1` if the reverse proxy runs directly on this machine (not as a container, or with `network_mode: host`) – then nobody can bypass the proxy. If the proxy runs as its own container, put both into a shared Docker network instead |
+| `ASSETLOTSE_PORT` | Port (default `9343`, allowed 1024–65535) – applies on the Docker host and in the container, change it only here |
+| `TZ` | Time zone (default `Europe/Berlin`). If the zone is missing from the image, the log shows “Time zone TZ=… not found – times in UTC” at start-up; check with `docker compose exec assetlotse date` |
+| `PUID` / `PGID` | User/group owning `./data` (default `1000`) |
+| `ASSETLOTSE_TRUSTED_PROXIES` | Who may send proxy headers: `private` (default), `none` or a list such as `172.18.0.0/16,192.168.0.11` |
+| `ASSETLOTSE_SECURE_COOKIES` | `auto` (default: over HTTPS), `1` (always), `0` (never) |
+| `ASSETLOTSE_FORCE_HTTPS` | `auto` (default: switch once HTTPS through the proxy was seen), `1` (always), `0` (never) – redirect HTTP through the reverse proxy to HTTPS and send HSTS |
+| `ASSETLOTSE_LOGLEVEL` | `INFO` (default), `DEBUG` for LDAP troubleshooting |
+| `ASSETLOTSE_SESSION_HOURS` | Start value of the [automatic sign-out](#automatic-sign-out) in hours without activity (default `12`, `0` = off). After that, what is saved under *Settings* applies |
+| `ASSETLOTSE_BACKUP_DIR` | Folder for automatic backups inside the container (default: `backups` in the data directory). Must be mounted as a volume in `docker-compose.override.yml` – otherwise the container warns at start-up |
+| `ASSETLOTSE_UPDATE_CHECK` | `0` = never ask GitHub for new versions (e.g. servers without internet); the switch under *Settings → General* is then locked. Default: check once a day |
+| `ASSETLOTSE_SCHEDULER` | `0` = no scheduled jobs (reminders, backup, retention) in this process, e.g. when several app servers run and only one should do them. Default `1` |
+| `ASSETLOTSE_SOURCE_URL` | Link to the source code on the *About this program* page (default: this repository; for a modified version, its source code) – see [License](#license) |
 
-Alles Weitere (Standard-Leihdauer, Verlängerungen, Selbstausleihe, Sichtbarkeit des Bestands, AD, E-Mail, Erscheinungsbild, Registrierung, 2FA-Regeln) stellen Sie in der Oberfläche ein.
+Everything else (default loan period, extensions, self-service checkout, inventory visibility, AD, e-mail, branding, registration, 2FA policy) is configured in the web interface.
 
-**Zur Datenbankwahl:** SQLite reicht für den Gerätebestand eines Instituts mit tausenden Gegenständen und vielen gleichzeitigen Nutzern problemlos – und ein Backup ist einfach eine Dateikopie. MariaDB/MySQL oder PostgreSQL lohnen sich, wenn ihr ohnehin einen Datenbankserver mit Backup-Routine betreibt oder mehrere App-Server parallel laufen sollen.
+**Choosing a database:** SQLite easily handles an institute's equipment with thousands of items and many concurrent users – and a backup is just a file copy. MariaDB/MySQL or PostgreSQL are worthwhile if you already run a database server with a backup routine, or want several app servers in parallel.
 
 ---
 
-## Diagnose und Diagnosepaket
+## Diagnostics and diagnostic package
 
-*Administration → Diagnose* prüft die Installation und zeigt Auffälligkeiten (fehlende oder alte Sicherung, E-Mail- oder AD-Fehler, Aufruf ohne HTTPS, Administratoren ohne zweiten Faktor, unvollständige Datenbank, Fehler im Protokoll …). **Diagnosepaket herunterladen** erzeugt eine ZIP-Datei zum Weitergeben, wenn Sie Hilfe brauchen:
+*Administration → Diagnostics* checks the installation and shows findings (missing or old backup, e-mail or AD errors, access without HTTPS, administrators without a second factor, incomplete database, errors in the log …). **Download diagnostic package** creates a ZIP file to pass on when you need help:
 
-- `summary.txt` – Version und Auffälligkeiten, `diagnose.json` – alle Angaben (Server, Python, Zeitzone, Speicher, Datenbank-Prüfung und -Aufbau, Anzahl der Einträge je Tabelle, Sicherungen, Update-Prüfung, E-Mail, AD, Reverse-Proxy/HTTPS, Einstellungen, `.env`, Paketversionen), `log.txt` – die neuesten Zeilen des Programmprotokolls.
-- **Anonym:** keine Datensätze, nur Anzahlen. Passwörter, Schlüssel, 2FA-Daten und vertrauliche Angaben werden nicht gelesen. Namen, Benutzernamen, E-Mail-Adressen, IP-Adressen, Rechnernamen, AD-Pfade sowie Angaben zu Gegenständen, Gruppen und Standorten werden durch feste Platzhalter ersetzt (`user-3`, `email-2@example.invalid`, `ip-4 (private)`); Organisationsname und eigene Texte nur als „gesetzt/leer“.
-- **Ohne Weboberfläche:** `docker compose run --rm assetlotse diagnose` legt das Paket unter `./data/diagnose/` ab – funktioniert auch, wenn AssetLotse nicht mehr startet.
-- **Programmprotokoll:** Zusätzlich zur Container-Ausgabe schreibt AssetLotse seine Meldungen nach `./data/logs/assetlotse.log` (höchstens etwa 2 MB, ältere Zeilen fallen weg). In `.env` ist nichts einzutragen.
-- **Bleibt aktuell:** Neue Einstellungen, Umgebungsvariablen und Datenbankfelder müssen im Programm ausdrücklich eingeordnet werden (zeigen, anonymisieren, nur zählen, nur „gesetzt“) – sonst schlagen die Tests fehl. Tabellen und Datenbankaufbau werden ohnehin automatisch erfasst.
+- `summary.txt` – version and findings, `diagnose.json` – all details (server, Python, time zone, memory, database check and structure, number of entries per table, backups, update check, e-mail, AD, reverse proxy/HTTPS, settings, `.env`, package versions), `log.txt` – the newest lines of the program log.
+- **Anonymous:** no records, only counts. Passwords, keys, 2FA data and confidential details are not read. Names, user names, e-mail addresses, IP addresses, host names, AD paths and details of items, groups and locations are replaced by fixed placeholders (`user-3`, `email-2@example.invalid`, `ip-4 (private)`); organization name and own texts only as "set/empty".
+- **Without the web interface:** `docker compose run --rm assetlotse diagnose` stores the package in `./data/diagnose/` – also works when AssetLotse no longer starts.
+- **Program log:** in addition to the container output, AssetLotse writes its messages to `./data/logs/assetlotse.log` (at most about 2 MB, older lines are dropped). Nothing needs to be entered in `.env`.
+- **Stays up to date:** new settings, environment variables and database fields must be classified explicitly in the program (show, anonymize, count only, "set" only) – otherwise the tests fail. Tables and the database structure are covered automatically anyway.
 
-## Wartung
+## Maintenance
 
-Befehle im laufenden Container – immer über den Entrypoint, damit sie wie die App als `PUID:PGID` laufen (sonst entstehen z. B. Sicherungen, die root gehören und die die App nicht anbieten kann):
+Commands in the running container – always through the entrypoint, so they run as `PUID:PGID` like the app (otherwise e.g. backups end up owned by root and the app cannot offer them):
 
 ```bash
 E="docker compose exec assetlotse docker-entrypoint.sh flask --app wsgi"
-$E reset-password admin       # Passwort zurücksetzen (aktiviert das Konto, hebt die Anmeldesperre auf)
-$E reset-2fa admin            # zweiten Faktor zurücksetzen (Handy/Schlüssel verloren)
-$E make-admin michael         # einem Konto die Admin-Rolle zurückgeben (und es aktivieren)
-$E unlock admin               # Anmeldesperre nach Fehlversuchen sofort aufheben
-$E list-admins                # alle Admin-Konten anzeigen
-$E apply-retention            # Aufbewahrungsfrist sofort anwenden (alte Ausgaben löschen)
-$E send-reminders             # Erinnerungen sofort versenden
-$E create-admin notfall       # zusätzliches lokales Admin-Konto
-$E backup                     # Datenbank jetzt sichern
+$E reset-password admin       # reset password (re-enables the account, lifts the sign-in lockout)
+$E reset-2fa admin            # reset second factor (phone/key lost)
+$E make-admin michael         # give an account the admin role back (and re-enable it)
+$E unlock admin               # lift the lockout after failed attempts right away
+$E list-admins                # list all admin accounts
+$E apply-retention            # apply retention period now (delete old loans)
+$E send-reminders             # send reminders now
+$E create-admin emergency     # additional local admin account
+$E backup                     # back up the database now
 ```
 
-Sicherungen anzeigen und zurückspielen (Container vorher anhalten): siehe [Datensicherung](#datensicherung).
+Listing and restoring backups (stop the container first): see [Backups](#backups).
 
-In der Konsole von Dockhand (oder einer anderen Container-Verwaltung) entfällt `docker compose exec assetlotse` – dort direkt `docker-entrypoint.sh flask --app wsgi …` eingeben.
+In the console of Dockhand (or another container manager) leave out `docker compose exec assetlotse` – enter `docker-entrypoint.sh flask --app wsgi …` directly there.
 
-### Als Administrator ausgesperrt – was tun?
+### Locked out as administrator – what now?
 
-Aussperren kann man sich nur aus der Weboberfläche; über den Server kommen Sie immer wieder hinein (`$E` wie oben):
+You can only lock yourself out in the web interface; through the server you always get back in (`$E` as above):
 
-| Was ist passiert? | Lösung |
+| What happened? | Solution |
 |---|---|
-| Passwort vergessen | `$E reset-password admin` – fragt zweimal nach dem neuen Passwort (mindestens 10 Zeichen), aktiviert das Konto und hebt die Anmeldesperre auf |
-| Handy oder Sicherheitsschlüssel verloren | zuerst einen Wiederherstellungscode verwenden, sonst `$E reset-2fa admin` |
-| „Zu viele Fehlversuche“ | 8 Fehlversuche sperren Name und Adresse für 5 Minuten – abwarten oder `$E unlock admin` |
-| Admin-Rolle versehentlich entzogen oder Konto gesperrt | `$E make-admin NAME`. Bei einem AD-Konto setzen die AD-Regeln die Rolle bei der nächsten Anmeldung neu – dann mit einem lokalen Konto anmelden und die Regeln korrigieren |
-| Kein Admin-Konto mehr / unklar, welches es gibt | `$E list-admins`, dann ggf. `$E create-admin notfall` |
-| Active Directory falsch eingestellt oder nicht erreichbar | mit dem **lokalen** Admin-Konto anmelden – das geht immer ohne AD; dort lässt sich das AD auch abschalten |
-| Datenbank beschädigt oder falsche Änderung | Sicherung zurückspielen, siehe [Datensicherung](#datensicherung) |
+| Password forgotten | `$E reset-password admin` – asks twice for the new password (at least 10 characters), re-enables the account and lifts the sign-in lockout |
+| Phone or security key lost | first use a recovery code, otherwise `$E reset-2fa admin` |
+| "Too many failed attempts" | 8 failed attempts lock name and address for 5 minutes – wait or `$E unlock admin` |
+| Admin role removed by mistake or account disabled | `$E make-admin NAME`. For an AD account the AD rules set the role again at the next sign-in – then sign in with a local account and fix the rules |
+| No admin account left / not sure which exist | `$E list-admins`, then if needed `$E create-admin emergency` |
+| Active Directory misconfigured or unreachable | sign in with the **local** admin account – that always works without AD; there you can also switch AD off |
+| Database damaged or wrong change | restore a backup, see [Backups](#backups) |
 
-**Vorsorge:** ein zweites lokales Notfall-Admin-Konto mit langem Passwort im Passwort-Manager anlegen, die Wiederherstellungscodes der 2FA aufbewahren und den Ordner `./data` sichern – Datenbank und `secret_key` gehören zusammen.
+**Precautions:** create a second local emergency admin account with a long password in your password manager, keep the 2FA recovery codes and back up the `./data` folder – database and `secret_key` belong together.
 
-Die Ersteinrichtung im Browser (`/setup`) ist nur einmal und nur aus dem internen Netz (oder über `localhost`) möglich – sonst könnte bei einer frisch installierten, offen erreichbaren Instanz jeder Fremde zuerst Admin werden. Gibt es später kein Administratorkonto mehr (z. B. versehentlich gelöscht), legen Sie eines mit `create-admin` auf dem Server an – im Web geht das aus Sicherheitsgründen nicht mehr.
+The initial setup in the browser (`/setup`) works only once and only from the internal network (or via `localhost`) – otherwise any stranger could become admin of a freshly installed, openly reachable instance. If there is no administrator account later on (e.g. deleted by mistake), create one with `create-admin` on the server – for security reasons this is no longer possible via the web.
 
-Das Datenbankschema wird beim Start automatisch angepasst (fehlende Spalten werden ergänzt) – nach der Sicherung `…-vor-<Version>.db`. Updates behalten also Ihre Daten.
+The database schema is upgraded automatically on start-up (missing columns are added) – after the backup `…-vor-<version>.db`. So updates keep your data.
 
 ## Tests
 
-Im Repository (Entwicklung):
+In the repository (development):
 
 ```bash
 python -m pytest -q tests
-python -m mypy            # Typprüfung (Einstellungen in mypy.ini; Werkzeuge: tests/requirements-typing.txt)
+python -m mypy            # type check (settings in mypy.ini; tools: tests/requirements-typing.txt)
 ```
 
-Die Typprüfung wird schrittweise eingeführt: Die Module in den strengen Abschnitten von `mypy.ini` müssen fehlerfrei sein (sonst scheitert `tests/test_typing.py`), Funde in allen anderen werden nur aufgelistet. Ist ein Modul sauber, kommt es in die strenge Liste.
+The type check is introduced step by step: the modules in the strict sections of `mypy.ini` must have no findings (otherwise `tests/test_typing.py` fails), findings in all others are only listed. Once a module is clean, it goes on the strict list.
 
-Auf GitHub laufen die Tests bei jedem Push und Pull Request im fertigen Image, auf amd64 und arm64.
+On GitHub the tests run on every push and pull request in the finished image, on amd64 and arm64.
 
-**Bildschirmfotos dieser Seite:** `python3 scripts/readme_screenshots.py` (braucht Playwright mit Chromium) startet AssetLotse mit neutralen Beispieldaten und erneuert die Bilder in `.github/readme/` (deutsch und englisch). Bei jeder sichtbaren Änderung ausführen; `tests/test_readme.py` prüft, dass die Versionszeile oben zur Programmversion passt.
+**Screenshots on this page:** `python3 scripts/readme_screenshots.py` (needs Playwright with Chromium) starts AssetLotse with neutral example data and renews the images in `.github/readme/` (German and English). Run it whenever the interface changes visibly; `tests/test_readme.py` checks that the version line at the top matches the program version.
 
-## Aufbau
+## Project layout
 
 ```
 assetlotse/
-  __init__.py      App-Factory, Konfiguration, CLI-Befehle
-  models.py        Datenmodell (Benutzer, Gruppen, Gegenstände, vertrauliche Angaben und Zugriffsprotokoll,
-                   Ausleihen, Standorte, Einstellungen, Mail-Protokoll, Sicherheitsschlüssel)
-  ldap_auth.py     Active-Directory-/LDAP-Anmeldung, Gruppenauflösung und Rollenregeln
-  ldap_tls.py      Abruf und Prüfung der DC-Zertifikate
-  twofa.py         Zwei-Faktor-Anmeldung (TOTP, WebAuthn, Wiederherstellungscodes)
-  mailer.py        SMTP-Versand, Benachrichtigungen, täglicher Zeitplan
-  retention.py     Aufbewahrungsfristen (alte Ausleihen, Mail- und Zugriffsprotokoll löschen)
-  backup.py        Automatische Datensicherung (SQLite), Aufbewahrung der letzten N Sicherungen
-  branding.py      Logo, Hintergrundbild, Farben
-  proxy.py         Automatische Reverse-Proxy- und HTTPS-Erkennung
-  netzone.py       Internes Netz oder Zugriff von außen (für die Zwei-Faktor-Regeln)
-  lockout.py       Anmeldesperre nach Fehlversuchen
-  labels.py        Etiketten-PDF (62 × 29 mm) mit Code-128-Barcode, ohne Zusatzbibliothek
-  i18n.py          Mehrsprachigkeit (Deutsch/Englisch), Sprachwahl, Datumsformate
-  translations/    Deutsche Texte (de.json)
-  views/           Seiten: main (inkl. Über/Lizenz, Sprachwahl), assets (Bestand, Fotos, Export, Etiketten),
-                   loans (Ausgabe, Rückgabe, Ausgabetheke), locations, admin, security, register, help
-  templates/       Jinja-Templates (inkl. E-Mail-Vorlagen und Hilfetexte help/de, help/en)
-  static/          CSS, JavaScript (ohne Build-Schritt)
-docs/              Handbuch-AssetLotse.pdf, Manual-AssetLotse.pdf (werden in der Hilfe verlinkt)
-tests/             Automatische Tests
-build/             Feste Debian-Paketlisten je Architektur und Installationsskripte für das Image
-scripts/           Build-Kette: lock.py (Versionen festlegen), ci.py (Entscheidungen des Workflows), eol_check.py
-docker-compose.yml Die einzige Programmdatei auf dem Server (neben .env und data) – nicht bearbeiten
-update.sh          Update von Hand (optional), Rückweg, ohne Internet, Aufräumen alter Installationen
+  __init__.py      App factory, configuration, CLI commands
+  models.py        Data model (users, groups, items, confidential details and access log,
+                   loans, locations, settings, mail log, security keys)
+  ldap_auth.py     Active Directory / LDAP sign-in, group resolution and role rules
+  ldap_tls.py      Fetching and verifying DC certificates
+  twofa.py         Two-factor authentication (TOTP, WebAuthn, recovery codes)
+  mailer.py        SMTP sending, notifications, daily scheduler
+  retention.py     Retention periods (delete old loans, mail and access log)
+  backup.py        Automatic database backups (SQLite), keeping the last N
+  branding.py      Logo, background image, colours
+  proxy.py         Automatic reverse-proxy and HTTPS detection
+  netzone.py       Internal network or access from outside (for the 2FA rules)
+  lockout.py       Sign-in lock after failed attempts
+  labels.py        Label PDF (62 × 29 mm) with Code 128 barcode, no extra library
+  i18n.py          German/English, language selection, date formats
+  translations/    German texts (de.json)
+  views/           Pages: main (incl. About/License, language switch), assets (inventory, photos, export, labels),
+                   loans (issuing, returns, issue desk), locations, admin, security, register, help
+  templates/       Jinja templates (incl. e-mail templates and help texts help/de, help/en)
+  static/          CSS, JavaScript (no build step)
+docs/              Handbuch-AssetLotse.pdf, Manual-AssetLotse.pdf (linked in the help)
+tests/             Automated tests
+build/             Pinned Debian package lists per architecture and install scripts for the image
+scripts/           Build chain: lock.py (pin versions), ci.py (decisions of the workflow), eol_check.py
+docker-compose.yml The only program file on the server (besides .env and data) – do not edit
+update.sh          Updating by hand (optional), going back, without internet, cleaning up old installations
 ```
 
-## Lizenz
+## License
 
-AssetLotse ist freie Software unter der **GNU Affero General Public License, Version 3 oder später** (AGPL-3.0-or-later) – vollständiger Text in [LICENSE](LICENSE).
+AssetLotse is free software under the **GNU Affero General Public License, version 3 or later** (AGPL-3.0-or-later) – full text in [LICENSE](LICENSE).
 
-Kurz gesagt: Jeder darf AssetLotse nutzen, weitergeben und verändern, auch kommerziell. Wer eine **veränderte Fassung** weitergibt **oder im Netz für andere betreibt**, muss den Quellcode dieser Fassung unter derselben Lizenz zugänglich machen. AssetLotse wird ohne jede Gewährleistung bereitgestellt.
+In short: anyone may use, share and modify AssetLotse, commercially too. Anyone who distributes a **modified version** **or runs it on a network for others** must make the source code of that version available under the same license. AssetLotse comes with no warranty.
 
-Version, Lizenz, Entwickler ([helfi.space](https://helfi.space)) und Quellcode-Link stehen nach der Anmeldung auf der Seite *Über dieses Programm* (Klick auf die Versionsnummer unten in der Seitenleiste). Der Link führt standardmäßig zu diesem Repository; wer eine **veränderte** Fassung betreibt, trägt mit `ASSETLOTSE_SOURCE_URL` in der `.env` die Adresse seines eigenen Quellcodes ein. „AssetLotse“ ist zugleich der Standardname in der Oberfläche; unter *Administration → Einstellungen* (Name) bzw. *Erscheinungsbild* können Sie ihn z. B. durch den Namen Ihres Instituts ersetzen.
+After signing in, version, license, developer ([helfi.space](https://helfi.space)) and source link are shown on the *About this program* page – click the version number at the bottom of the sidebar. By default the link points to this repository; anyone running a **modified** version sets the address of their own source code with `ASSETLOTSE_SOURCE_URL` in `.env`. “AssetLotse” is also the default name in the interface; you can replace it, e.g. with your institute's name, under *Administration → Settings* (Name) or *Branding*.
 
-Verwendete Bibliotheken (eigene Lizenzen, werden bei der Installation geladen): Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF, SQLAlchemy, PyMySQL, ldap3, cryptography, fido2, segno, Pillow, requests, gunicorn/waitress.
+Libraries used (under their own licenses, installed at setup time): Flask, Flask-SQLAlchemy, Flask-Login, Flask-WTF, SQLAlchemy, PyMySQL, ldap3, cryptography, fido2, segno, Pillow, requests, gunicorn/waitress.
 
-Mitgelieferte Schriften: **Inter** (The Inter Project Authors) unter der SIL Open Font License 1.1 – Lizenztexte in `assetlotse/static/fonts/`.
+Bundled fonts: **Inter** (The Inter Project Authors) under the SIL Open Font License 1.1 – license texts in `assetlotse/static/fonts/`.

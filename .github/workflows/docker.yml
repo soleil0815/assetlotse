@@ -251,7 +251,7 @@ jobs:
             changed="$(git diff --name-only "v${version}" HEAD -- . ':(exclude)requirements.txt' \
               ':(exclude)build/debian-packages.lock' ':(exclude)build/debian-packages.arm64.lock' \
               ':(exclude)CHANGELOG.md' ':(exclude)README.md' \
-              ':(exclude)README.en.md' ':(exclude)docs/README.md' ':(exclude)tests' ':(exclude)scripts' \
+              ':(exclude)README.de.md' ':(exclude)README.en.md' ':(exclude)docs/README.md' ':(exclude)tests' ':(exclude)scripts' \
               ':(exclude).github' ':(exclude)Dockerfile' ':(exclude).trivyignore' ':(exclude).gitignore')"
             if ! diff -q <(git show "v${version}:Dockerfile" | grep -vE '^ARG (PYTHON_IMAGE|PIP_VERSION)=') \
                          <(grep -vE '^ARG (PYTHON_IMAGE|PIP_VERSION)=' Dockerfile) >/dev/null; then
