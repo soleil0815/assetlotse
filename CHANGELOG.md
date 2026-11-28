@@ -2,6 +2,12 @@
 
 The current version is shown at the bottom left of the sidebar after signing in.
 
+## 2.10.2 – 2026-11-28
+
+**Changed**
+- **The GitHub page is now in English:** `README.md` is the English description, the German one moved to
+  `README.de.md` (each links to the other). The program itself is unchanged.
+
 ## 2.10.1 – 2026-11-25
 
 **Build and release**

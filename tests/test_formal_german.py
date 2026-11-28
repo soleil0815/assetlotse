@@ -45,7 +45,7 @@ class FormalGermanTests(unittest.TestCase):
             self.assertEqual(offending(e["de"]["title"] + " " + e["de"]["text"]), [], e["version"])
 
     def test_readme(self):
-        text = (ROOT / "README.md").read_text()
+        text = (ROOT / "README.de.md").read_text()
         text = re.sub(r"```.*?```|`[^`]*`", " ", text, flags=re.S)        # code is not German text
         self.assertEqual(offending(text), [])
 
